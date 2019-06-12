@@ -1,0 +1,115 @@
+local View = require("system.view")
+local equipment_tips_parent_view = class("equipment_tips_parent_view", View)
+
+function equipment_tips_parent_view:doInit(params)
+    self.m_ui_manager = app:get_ui_manager()
+    --装备栏的view
+    self.m_equipment_list_frame = self:getFrame("equipment_list")
+    --创建tips用到的参数
+    self.m_param_list = {}
+
+    self.m_top_height = params['top_height']
+    self.m_bottem_height = params['bottem_height']
+
+    self:load("ui/EquipmentTipsParent.prefab", function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self.m_equipment_tips_parent = go.transform:Find("equipment_tips_parent").gameObject:GetComponent("DragSkill")
+        self.m_tips_left = go.transform:Find("tips_left")
+        self.m_tips_right = go.transform:Find("tips_right")
+
+        self.m_equipment_tips_parent.onClick = DragSkill_OnPointerClickHandler()
+        self.m_equipment_tips_parent.onClick:AddListener(function()
+            self:close_tips()
+        end)
+        self.m_equipment_tips_parent.gameObject:SetActive(false)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local param = child_frame:getParam()
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            view_go:AddComponent(UnityEngine.RectTransform)
+            view_go.transform.parent = param['parent']
+            --print(param['parent']:Find("point").localPosition)
+            view_go.transform.localPosition = param['parent']:Find("point").localPosition
+            view_go.transform.localScale = Vector3.one
+        end)
+        self:init_tips_param_list()
+        self:getFrame():onload(self.m_param_list)
+    end)
+
+    ------响应点击背包装备事件
+    self:subscribe(self.m_equipment_list_frame:on_event("equip_info_list"), function(equip_list, obj)
+        self:init_equipment_tips(equip_list)
+        self.m_select_obj = obj
+    end)
+    ------响应点击装备栏装备事件
+    self:subscribe(self.m_equipment_list_frame:on_event("equip_info"), function(equip_list)
+        self:init_equipment_tips(equip_list)
+    end)
+end
+
+------初始化预创建tips时需要的参数列表
+function equipment_tips_parent_view:init_tips_param_list()
+    for i = 1, 2 do
+        if i == 1 then
+            local params = {}
+            params['parent'] = self.m_tips_right
+            params['max_height'] = Screen.height - self.m_top_height - self.m_bottem_height
+            self.m_param_list['bag'] = params
+        else
+            local params = {}
+            params['parent'] = self.m_tips_left
+            params['max_height'] = Screen.height - self.m_top_height - self.m_bottem_height
+            self.m_param_list['equip'] = params
+        end
+    end
+end
+
+------加载装备tips
+function equipment_tips_parent_view:init_equipment_tips(param)
+    --自己维护的表，为了记录传来的参数数量有多少， temp
+    local list = {}
+    local index = 1
+    for k,v in pairs(param) do
+        list[index] = v
+        index = index + 1
+    end
+    local child_frame_list = self:getFrame():get_child_frame_list()
+    --将承载tips的Panel显示
+    self.m_equipment_tips_parent.gameObject:SetActive(true)
+    for k, v in pairs(param) do
+        print(k)
+        if string.find(k, "bag") then
+            print(#param,"bag")
+            self.m_param_list['bag']['param'] = v
+            self.m_param_list['bag']['need_show_button'] = 1
+            self.m_tips_right.gameObject:SetActive(true)
+            child_frame_list.bag:refresh_view(self.m_param_list['bag'])
+        else
+            print(#param)
+            self.m_param_list['equip']['param'] = v
+            self.m_param_list['equip']['need_show_button'] = false
+            if #list == 1 then
+                self.m_param_list['equip']['need_show_button'] = 2
+                print(self.m_param_list['equip']['need_show_button'])
+            end
+            self.m_tips_left.gameObject:SetActive(true)
+            child_frame_list.equip:refresh_view(self.m_param_list['equip'])
+        end
+    end
+end
+
+function equipment_tips_parent_view:close_tips()
+    self.m_tips_left.gameObject:SetActive(false)
+    self.m_tips_right.gameObject:SetActive(false)
+    self.m_equipment_tips_parent.gameObject:SetActive(false)
+    if self.m_select_obj then
+        self.m_select_obj:SetActive(false)
+    end
+end
+
+return equipment_tips_parent_view

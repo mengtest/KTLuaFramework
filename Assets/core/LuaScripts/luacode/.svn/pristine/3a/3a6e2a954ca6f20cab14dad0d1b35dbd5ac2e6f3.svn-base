@@ -1,0 +1,14 @@
+--- Created by xinghanzhong
+--- DateTime: 2018/3/3 16:55
+--- 装备穿戴的枚举
+local EnumEquipment = {}
+
+EnumEquipment.EquipWearLimit = {
+    Level = 0, -- 等级
+    Major = 1, -- 专精
+    Occu = 2, -- 玩家职业
+    Camp = 3, -- 阵营
+    WeaponType = 4, -- 武器种类
+}
+
+return EnumEquipment

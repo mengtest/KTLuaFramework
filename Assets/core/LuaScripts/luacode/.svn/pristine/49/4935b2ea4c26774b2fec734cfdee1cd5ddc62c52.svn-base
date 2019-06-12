@@ -1,0 +1,41 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/10 13:45
+---
+local show_view = {}
+function show_view:doInit(param)
+    local text = param.string
+    local text1 = param.str
+     local ui_manager = app:get_ui_manager()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Show"), function(show)
+        self.m_show_text_one = show.transform:Find("show_text_one").gameObject:GetComponent(UnityEngine.UI.Text)
+        self:subscribe(self:getFrame():on_event_text_set(true), function()
+            self:show_text()
+        end)
+        self:subscribe(self:getFrame():on_event_move_set(true), function()
+            self:show_move()
+            self.m_show_text_one.text = text
+        end)
+    end)
+end
+--销毁当前对象
+function show_view:show_text()
+    slua_timer.addDelayEvent(
+    1.6,
+    function()
+        self:getFrame():destroySelf()
+    end)
+end
+--创建后停留0.5S后，执行提示文字的移动
+function show_view:show_move()
+    self.m_show_text_one.gameObject.transform.localPosition = Vector3(0, 100, 0)
+    slua_timer.addDelayEvent(
+    0.8,
+    function()
+        local t2 = ShortcutExtensions.DOLocalMoveY(self.m_show_text_one.gameObject.transform, 175, 1, false)
+        DG_DOTweenUtil.OnComplete(t2, function()
+            print("那就这样吧！！！！！！！！！！！！！！！！！！！！！！！！！！！！")
+        end)
+    end)
+end
+return show_view

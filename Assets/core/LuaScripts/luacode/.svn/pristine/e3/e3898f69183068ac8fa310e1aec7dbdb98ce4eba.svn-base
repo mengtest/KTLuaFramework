@@ -1,0 +1,637 @@
+
+local Quest_data = require("subsystem.quest.quest_data")
+
+local Frame = require("system.frame")
+local Quest_manager = class("Quest_manager", Frame)
+
+function Quest_manager:doInit()
+    self.m_cur_map_id = -1
+	self.m_unit = nil
+    self.m_unlocked_quest_list = {}
+	self.m_quest_data_list = {}
+	self.m_precondition_quest_data_list = {}
+    self.m_prey_dict = {}
+    
+    -- 数据格式
+--    self.m_area_condition_info_dict = {[
+--        [map_id] = {[
+--            [trigger_id] = {
+--                ["self_info"] = {
+--                    ["worldPosition"] = (Vector3)
+--                    ["worldRotation"] = (Vector3)
+--                    ["localScale"] = (Vector3)
+--                    ["radius"] = (float)
+--                },
+--                ["cond_info"] = {[
+--                    [quest_id] = {[condition_index]}
+--                ]},
+--                ["quest_info"] = {
+--                    [quest_id]
+--                }
+--            }
+--        ]}
+--    ]}
+    self.m_prevs_dict = {}
+    self.m_panels_dict = {}
+    --self.m_nexts_info_dict = {}
+    self.m_trigger_cmp_quest_dict = {}
+    
+    self.m_area_condition_info_dict = {}
+    self.m_trigger_cmp_dict = {}
+    self.m_trigger_go_dict = {}
+    
+    self.m_finished_dict = {}               -- 已完成的任务列表以及其对应的Giver的id字典
+    self.m_npc_dependently_quest_state = {} -- 与npc相关的任务以及其状态
+    self.m_npc_dependently_talk_list = {}   
+
+    Event_system:add_event_listener(EVENT_SCENE_LOADED, event_binder(self, self.on_scene_loaded))
+    Event_system:add_event_listener(EVENT_SCENE_UNLOADED, event_binder(self, self.on_scene_unloaded))
+end
+
+function Quest_manager:init()
+    self:req_quest_list()
+end
+
+function Quest_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+-- *------------------[S]Sever interface-----------------——*
+-- [S2C]
+
+-- 收到所有任务
+function Quest_manager:rec_quest_all(timestamp, infos, nexts, prevs, panels)
+    self:add_panels(panels)
+    self:add_prevs(prevs)
+    self:filter_unlocked_quest(nexts)
+    for i = 1, #infos do
+        local info = infos[i]
+        local quest_data, is_existed = self:add_quest_data(info.tmpl, info.timestamp)
+        if quest_data and not is_existed then
+            --[[local finish_list = info.finishes
+            local condition_dict = quest_data:get_condition_dict()
+            for index, condition in pairs(condition_dict) do
+                condition:set_cur_param(finish_list[index].stats)
+            end--]]
+            for index, v in pairs(info.finishes) do
+                quest_data:set_condition_cur_param(index, v)
+            end
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+            Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, info.tmpl)
+        end
+    end
+    
+    -- 临时
+    --self:add_quest_data(911, 0)
+end
+
+-- 收到后续任务
+function Quest_manager:rec_quest_jobs(infos, nexts, prevs, panels)
+    --self:add_and_post_panels(panels)
+    self:add_prevs(prevs)
+    self:filter_unlocked_quest(nexts)
+    for i = 1, #infos do
+        local info = infos[i]
+        local quest_data, is_existed = self:add_quest_data(info.tmpl, info.timestamp)
+        if quest_data and not is_existed then
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+            Event_system:dispatch_event(EVENT_QUEST_ADD_NEW_QUEST, info.tmpl)
+        end
+    end
+end
+
+-- 更新任务通过条件的状态
+function Quest_manager:rec_update_quest(id, index, cond)
+    --local param = cond["stats"]
+    local quest_data = self.m_quest_data_list[id]
+    if quest_data then
+        quest_data:set_condition_cur_param(index, cond)
+        
+        Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, id)
+    end
+end
+
+-- 移除指定任务
+function Quest_manager:rec_quest_remove(id)
+    self:del_prev(id)
+    self:del_quest_data(id)
+end
+
+-- 放弃指定任务
+function Quest_manager:rec_give_up_quest(quest_id)
+    self:del_prev(quest_id)
+    self:del_quest_data(quest_id)
+    app:logError("drop quest succeed, quest_id = " .. tostring(quest_id))
+end
+
+------------------------------------------------------------
+-- [C2S]
+
+-- 接收任务，测试接口
+function Quest_manager:req_quest_test(id)
+	self:base_call("quest_test", id)
+end
+
+-- 完成任务
+function Quest_manager:req_complete_quest(id)
+	self:base_call("quest_done", id)
+end
+
+-- 请求所有任务列表
+function Quest_manager:req_quest_list()
+	self:base_call("quest_list")
+end
+
+-- 触发任务
+function Quest_manager:req_trigger_quest(id)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Quest_manager:req_trigger_quest, id = %s", tostring(id))
+    self:cell_call("quest_cond_position", id, 0)
+end
+
+-- 触发任务状态更新
+function Quest_manager:req_update_condition(quest_id, index, param)
+    self:cell_call("quest_cond_position", quest_id, index)
+end
+
+-- 放弃任务
+function Quest_manager:req_give_up_quest(quest_id)
+    app:logError("Quest_manager:req_give_up_quest, quest_id = " .. quest_id)
+    self:base_call("quest_drop", quest_id)
+end
+
+-- *------------------[E]Sever interface-----------------——*
+
+function Quest_manager:cell_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function Quest_manager:base_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+-- 获取已解锁的任务(id)列表
+function Quest_manager:get_unlocked_quest_list()
+    return self.m_unlocked_quest_list
+end
+
+-- 获取已接取的任务(Quest_data)列表
+function Quest_manager:get_quest_list()
+    return self.m_quest_data_list
+end
+
+function Quest_manager:add_unlocked_quest(quest_id)
+    if Util_table:is_contain(self.m_unlocked_quest_list, quest_id) then
+        return
+    end
+    
+    table.insert(self.m_unlocked_quest_list, quest_id)
+end
+
+function Quest_manager:del_unlocked_quest(quest_id)
+    Util_table:remove_by_val(self.m_unlocked_quest_list, quest_id)
+end
+
+function Quest_manager:add_prey(creature_id)
+    local is_existed = self.m_prey_dict[creature_id]
+    if not is_existed then
+        self.m_prey_dict[creature_id] = true
+    end
+end
+
+function Quest_manager:del_prey(creature_id)
+    self.m_prey_dict[creature_id] = nil
+end
+
+function Quest_manager:get_prey_list()
+    local prey_list = {}
+    for creature_id, _ in pairs(self.m_prey_dict) do
+        table.insert(prey_list, creature_id)
+    end
+    return prey_list
+end
+
+function Quest_manager:add_prevs(prevs)
+    for i = 1, #prevs do
+        -- self.m_prevs_dict[prevs[i]] (true：未完成，false or nil：完成)
+        self.m_prevs_dict[prevs[i]] = true
+    end
+end
+
+function Quest_manager:del_prev(prev_id)
+    self.m_prevs_dict[prev_id] = nil
+end
+
+function Quest_manager:add_panels(panels)
+    for i = 1, #panels do
+        self.m_panels_dict[panels[i]] = true
+    end
+end
+
+function Quest_manager:add_and_post_panels(panels)
+    for i = 1, #panels do
+        if not self.m_panels_dict[panels[i]] then
+            self.m_panels_dict[panels[i]] = true
+            Event_system:dispatch_event(EVENT_QUEST_FIRST_TRIGGER, panels[i])
+        end
+    end
+end
+
+function Quest_manager:add_quest_data(quest_id, timestamp)
+    self:del_area_quest_info(quest_id)
+    
+    local is_existed = true
+    if not self.m_quest_data_list[quest_id] then
+        local quest_data = Quest_data:new(quest_id, timestamp, self)
+        is_existed = false
+        self.m_quest_data_list[quest_id] = quest_data
+        local receiver_id = quest_data:get_receiver()
+        local giver_id = quest_data:get_giver()
+        self:set_npc_dependently_quest_state(quest_data:get_receiver(), quest_id, Enum_Quest.Quest_State.Invalid)
+        self:set_npc_dependently_quest_state(quest_data:get_giver(), quest_id, Enum_Quest.Quest_State.Received)
+        --TODO::添加 依据quest_data中的所有与npc交互以完成任务的condition而发送事件。
+    end
+    if quest_id <= 0 then
+        app:logError("received invalid quest id: " .. quest_id)
+        return nil, false
+    end
+    return self.m_quest_data_list[quest_id], is_existed
+end
+
+function Quest_manager:del_quest_data(quest_id)
+    local quest_data = self.m_quest_data_list[quest_id]
+    if quest_data then
+        self:set_npc_dependently_quest_state(quest_data:get_giver(), quest_id, Enum_Quest.Quest_State.Invalid)
+        self.m_quest_data_list[quest_id] = nil
+        Event_system:dispatch_event(EVENT_QUEST_DEL_QUEST, quest_id)
+    end
+end
+
+function Quest_manager:add_area_quest_info(map_id, trigger_id, quest_id)
+    local info = self.m_area_condition_info_dict
+    if not info[map_id] then
+        info[map_id] = {}
+    end
+    info = info[map_id]
+    local temp_info = info
+    if not info[trigger_id] then
+        info[trigger_id] = {["quest_info"] = {}}
+    end
+    info = info[trigger_id]["quest_info"]
+    if not info[quest_id] then
+        info[quest_id] = true
+        if self.m_cur_map_id == map_id then
+            local is_succeed, func_enter = self:register_area_quest_func(map_id, trigger_id, quest_id)
+            if is_succeed then
+                info[quest_id] = func_enter
+            end
+        end
+    end
+    
+    self:add_unlocked_quest(quest_id)
+end
+
+function Quest_manager:register_area_quest_func(map_id, trigger_id, quest_id)
+    local this = self
+    local func_enter = nil
+    if trigger_id == 9999 then
+        func_enter = function ()
+            app:logError("post suicide")
+            local unit = this:getFrame("world"):getUnit(app:getKBESDK():get_player_id())
+            unit:suicide()
+        end
+    else
+        func_enter = function ()
+            this:req_trigger_quest(quest_id)
+        end
+    end
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+function Quest_manager:add_area_condition_info(map_id, trigger_id, quest_id, index)
+    local info = self.m_area_condition_info_dict
+    if not info[map_id] then
+        info[map_id] = {}
+    end
+    info = info[map_id]
+    local temp_info = info
+    if not info[trigger_id] then
+        info[trigger_id] = {["cond_info"] = {}}
+    end
+    info = info[trigger_id]["cond_info"]
+    if not info[quest_id] then
+        info[quest_id] = {}
+    end
+    info = info[quest_id]
+    if not info[index] then
+        info[index] = true
+        if self.m_cur_map_id ~= -1 then
+            local is_succeed, func_enter = self:register_area_condition_func(map_id, trigger_id, quest_id, index)
+            if is_succeed then
+                info[index] = func_enter
+            end
+        end
+    end
+end
+
+function Quest_manager:register_area_condition_func(map_id, trigger_id, quest_id, index)
+    local this = self
+    local func_enter = function ()
+        this:req_update_condition(quest_id, index, nil)
+    end
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+function Quest_manager:del_area_quest_info(quest_id)
+    self:del_unlocked_quest(quest_id)
+    
+    local params = dbc.quest[quest_id].begin_params
+    local map_id, trigger_id = params[1], params[2]
+    local info = self.m_area_condition_info_dict[map_id]
+    if not info then
+        return
+    end
+    info = info[trigger_id]
+    if not info then
+        return
+    end
+    local quest_layer = info["quest_info"]
+    quest_layer[quest_id] = nil
+end
+
+function Quest_manager:del_area_condition_info(map_id, trigger_id, quest_id, index)
+    local info = self.m_area_condition_info_dict[map_id]
+    if not info then
+        return
+    end
+    info = info[trigger_id]
+    if not info then
+        return
+    end
+    local quest_layer = info["cond_info"]
+    info = quest_layer[quest_id]
+    local func_enter = info[index]
+    if func_enter then
+        self:getFrame("world"):unregister_area_trigger_enter_func(map_id, trigger_id, func_enter)
+    end
+end
+
+function Quest_manager:filter_unlocked_quest(nexts)
+    for i = 1, #nexts do
+        local cur_next = nexts[i]
+        local quest_data = dbc.quest[cur_next]
+        
+        local flag = true
+        for index = 1, 4 do
+            local prev_id = quest_data["prevs"][index]
+            if prev_id and prev_id > 0 and self.m_prevs_dict[prev_id] then
+                flag = false
+                break
+            end
+        end
+        if flag then
+            if quest_data.begin == 1 then
+                local interact_data = dbc.interact[dbc.quest[cur_next].begin_params[1]]
+                local receiver_id = (interact_data and interact_data.obj_tp == Enum_Scene.Interact_Obj_Tp.Npc) and interact_data.obj_id or -1
+                self:set_npc_dependently_quest_state(receiver_id, cur_next, Enum_Quest.Quest_State.Unlocked)
+            elseif quest_data.begin == 2 then
+                local params = dbc.quest[cur_next].begin_params
+                self:add_area_quest_info(params[1], params[2], cur_next)
+            end
+        end
+    end
+end
+
+function Quest_manager:filter_first_quest(panels)
+    for i = 1, #panels do
+        local cur_panel = panels[i]
+        local quest_data = dbc.quest[cur_panel]
+        
+        if not self.m_panels_dict[cur_panel] then
+            local flag = true
+            for index = 1, 4 do
+                local prev_id = quest_data["prev" .. index]
+                if prev_id > 0 and self.m_prevs_dict[prev_id] then
+                    flag = false
+                    break
+                end
+            end
+            if flag then
+                if quest_data.begin == 2 then
+                    local params = dbc.quest[cur_panel].begin_params
+                    --self:add_area_quest_info(params[1], params[2], cur_panel)
+                    -- TODO:: 添加进入区域后的触发事件
+                else
+                    self.m_panels_dict[cur_panel] = true
+                    Event_system:dispatch_event(EVENT_QUEST_FIRST_TRIGGER, cur_panel)
+                end
+            end
+        end
+    end
+end
+
+function Quest_manager:create_trigger(map_id, info)
+    local this = self
+    local cur_map_id = self.m_cur_map_id
+    for trigger_id, info_1 in pairs(info or {}) do
+        for quest_id, v in pairs(info_1["quest_info"] or {}) do
+            if type(v) ~= "function" then
+                self:register_area_quest_func(map_id, trigger_id, quest_id)
+            end
+        end
+        for quest_id, index_info in pairs(info_1["cond_info"] or {}) do
+            for index, v in pairs(index_info) do
+                if type(v) ~= "function" then
+                    self:register_area_condition_func(map_id, trigger_id, quest_id, index)
+                end
+            end
+        end
+    end
+end
+
+function Quest_manager:destroy_trigger(trigger_id)
+    local trigger_cmp = self.m_trigger_cmp_dict[trigger_id]
+    if trigger_cmp then
+        trigger_cmp:destroy()
+        self.m_trigger_cmp_dict[trigger_id] = nil
+    end
+    local trigger_go = self.m_trigger_go_dict[trigger_id]
+    if trigger_go then
+        Object.Destroy(trigger_go)
+        self.m_trigger_go_dict[trigger_id] = nil
+    end
+end
+
+function Quest_manager:create_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(true)
+    end
+end
+
+function Quest_manager:destroy_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(false)
+    end
+end
+
+--function Quest_manager:set_npc_dependently_interact_info(interact_id, quest_id, state)
+--    local npc_id = dbc.interact[interact_id].obj_id
+--    local giver = self:getFrame("world"):get_giver(npc_id)
+----    if giver then
+----        giver:add_condition_interact_id(quest_id, interact_id)
+----    end
+--    self:add_npc_dependently_talk(quest_id, interact_id)
+--    self:set_npc_dependently_quest_state(npc_id, quest_id, state)
+--end
+--
+--function Quest_manager:remove_npc_dependently_interact_info(interact_id, quest_id)
+--    local npc_id = dbc.interact[interact_id].obj_id
+--    local giver = self:getFrame("world"):get_giver(npc_id)
+--    if giver then
+--        giver:del_condition_interact_id(quest_id, interact_id)
+--    end
+--end
+
+function Quest_manager:set_npc_dependently_quest_state(npc_id, quest_id, state)
+    if npc_id <= 0 then return end
+    local quest_state = self.m_npc_dependently_quest_state[npc_id]
+    
+    if state == Enum_Quest.Quest_State.Invalid then
+        if quest_state then
+            quest_state[quest_id] = nil
+            if Util_table:count(quest_state) == 0 then
+                table.remove(self.m_npc_dependently_quest_state, npc_id)
+            end
+        end
+        --self:del_unlocked_quest(quest_id)
+    else
+        if not quest_state then
+            quest_state = {}
+            self.m_npc_dependently_quest_state[npc_id] = quest_state
+        end
+        quest_state[quest_id] = quest_state[quest_id] and (quest_state[quest_id] == Enum_Quest.Quest_State.Received and state or quest_state[quest_id]) or state
+        
+        if quest_state[quest_id] == Enum_Quest.Quest_State.Unlocked then
+            self:add_unlocked_quest(quest_id)
+        elseif quest_state[quest_id] == Enum_Quest.Quest_State.Received then
+            self:del_unlocked_quest(quest_id)
+        end
+    end
+    
+    local giver = self:getFrame("world"):get_giver(npc_id)
+    if giver then
+        giver:on_part_of_state_changed(quest_id, quest_state and quest_state[quest_id] or Enum_Quest.Quest_State.Invalid)
+    end
+end
+
+function Quest_manager:add_condition_interact_id(quest_id, interact_id)
+--    local interact_layer = self.m_npc_dependently_talk_list[quest_id] or {}
+--    if not Util_table:is_contain(interact_layer, interact_id) then
+--        table.insert(interact_layer, interact_id)
+--    end
+--    self.m_npc_dependently_talk_list[quest_id] = interact_layer
+    
+    local npc_layer = self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id] or {}
+    self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id] = npc_layer
+    local quest_layer = npc_layer[quest_id] or {}
+    npc_layer[quest_id] = quest_layer
+    if not Util_table:is_contain(quest_layer, interact_id) then
+        table.insert(quest_layer, interact_id)
+    end
+end
+
+function Quest_manager:del_condition_interact_id(quest_id, interact_id)
+--    local interact_layer = self.m_npc_dependently_talk_list[quest_id]
+--    if not interact_layer then
+--        return
+--    end
+--    Util_table:remove_by_val(interact_layer, interact_id)
+--    if #interact_layer == 0 then
+--        self.m_npc_dependently_talk_list[quest_id] = nil
+--    end
+    
+    local npc_layer = self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id]
+    if not npc_layer then
+        return
+    end
+    local quest_layer = npc_layer[quest_id]
+    if not quest_layer then
+        return
+    end
+    Util_table:remove_by_val(quest_layer, interact_id)
+    if Util_table:count(quest_layer) == 0 then
+        npc_layer[quest_id] = nil
+    end
+end
+
+-- TODO:: 需要添加多状态并存时的优先显示规则
+function Quest_manager:get_primary_state(quest_state_dict)
+    return quest_state_dict[1]
+end
+
+function Quest_manager:get_npc_dependently_quest_state(npc_id, quest_id)
+    if not npc_id or npc_id <= 0 then return end
+    local quest_state = self.m_npc_dependently_quest_state[npc_id]
+    if not quest_state then
+        return
+    end
+    if quest_id then
+        return quest_state[quest_id] and {[quest_id] = quest_state[quest_id]} or nil
+    else
+        return quest_state
+    end
+end
+
+function Quest_manager:get_npc_dependently_talk_list(npc_id, quest_id)
+    local npc_layer = self.m_npc_dependently_talk_list[npc_id]
+    if not npc_layer then
+        return
+    end
+    
+    if quest_id then
+        local quest_layer = npc_layer[quest_id]
+        if not quest_layer then
+            return
+        end
+        return quest_layer
+    else
+        local rst_tbl = {}
+        for _, quest_layer in pairs(npc_layer) do
+            for _, interact_id in pairs(quest_layer) do
+                if not Util_table:is_contain(rst_tbl, interact_id) then
+                    table.insert(rst_tbl, interact_id)
+                end
+            end
+        end
+        return rst_tbl
+    end
+end
+
+function Quest_manager:on_scene_loaded(world)
+    self.m_cur_map_id = world:get_map_id()
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Quest_manager:on_scene_loaded, map_id = %s", tostring(self.m_cur_map_id))
+
+    for map_id, info in pairs(self.m_area_condition_info_dict) do
+        self:create_trigger(map_id, info)
+    end
+end
+
+function Quest_manager:on_scene_unloaded()
+    self.m_cur_map_id = -1
+    
+    for _, info in pairs(self.m_area_condition_info_dict) do
+        for trigger_id, _ in ipairs(info) do
+            self:destroy_trigger(trigger_id)
+        end
+    end
+end
+
+return Quest_manager
+

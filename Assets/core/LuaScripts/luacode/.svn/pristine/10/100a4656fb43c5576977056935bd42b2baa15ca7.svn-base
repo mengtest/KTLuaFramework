@@ -1,0 +1,13 @@
+---
+--- Created by wdd.
+--- DateTime: 2018/2/2 0002 17:07
+---
+
+local Frame = require("system.frame")
+local SkillSectorWarning = class("skill_sector_warning", Frame)
+
+function SkillSectorWarning:doInit(param)
+
+end
+
+return SkillSectorWarning

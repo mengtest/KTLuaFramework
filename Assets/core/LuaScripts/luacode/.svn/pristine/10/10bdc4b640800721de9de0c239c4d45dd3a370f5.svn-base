@@ -1,0 +1,75 @@
+local View = require("system.view")
+local spirit_slot_view = class("spirit_slot_view", View)
+
+function spirit_slot_view:doInit()
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("SpiritBeastMain"), function(loaded_go)
+        self.m_res_loaded = true
+        local frame = self:getFrame()
+        local template_go = loaded_go.transform:Find("bg/drag_panel/drag_area_container/spirit_container/spirit_select/water_spirit").gameObject
+        local go = Object.Instantiate(template_go)
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        local btn = go:GetComponent(UI.Button)
+        self.m_selected_img = go.transform:Find("selected")
+        self.m_lock_img = go.transform:Find("lock")
+        self.m_icon = go.transform:Find("icon"):GetComponent(UI.Image)
+        self:subscribe(frame:on_event_is_lock_set(true), function(is_lock)
+            if is_lock then
+                -- 如果锁定
+                self.m_lock_img.gameObject:SetActive(true)
+                btn.interactable = false
+            else
+                -- 如果解锁了
+                self.m_lock_img.gameObject:SetActive(false)
+                btn.interactable = true-- 初始化的时候默认选择第一个
+            end
+        end)
+        ---- 这种情况要用属性来实现
+        self:subscribe(frame:on_event_is_selected_set(true), function(is_selected)
+             -- TODO 为什么这个地方打出来的值为nil？？？？？？
+            --print("选中？？？",is_selected)
+            --self.m_selected_img.gameObject:SetActive(is_selected)
+            if is_selected then
+                self.m_selected_img.gameObject:SetActive(true)
+            else
+                self.m_selected_img.gameObject:SetActive(false)
+            end
+        end)
+        self:subscribe(frame:on_event_spirit_data_set(true), function(val)
+            if val == nil then
+                return
+            end
+            if not self.m_icon.gameObject.activeSelf then
+                self.m_icon.gameObject:SetActive(true)
+            end
+
+            local icon_path = dbc.sprite[val.tmpl].icon
+            self:change_sprite(icon_path)
+        end)
+        btn.onClick:AddListener(function()
+            if string.find(self:getFrame():getFrameName(), "spirit_property_slot") then
+                self:getFrame("spirit_property"):change_selected_slot(frame)
+            else
+                self:getFrame("sprite"):change_selected_slot(frame)
+            end
+        end)
+
+
+    end)
+end
+
+
+function spirit_slot_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return spirit_slot_view

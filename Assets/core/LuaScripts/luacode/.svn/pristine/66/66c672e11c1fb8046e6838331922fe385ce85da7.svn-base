@@ -1,0 +1,34 @@
+local Frame = require("system.frame")
+local matching_done = class("matching_done", Frame)
+
+Event.decl(matching_done, "attack_down")
+Event.decl(matching_done, "cure_down")
+Event.decl(matching_done, "defense_down")
+Event.decl(matching_done, "sure_down")
+Event.decl(matching_done, "cancle_down")
+
+function matching_done:doInit(param)
+
+end
+
+function matching_done:on_refuse_btn()
+    self:emit_event("cancle_down")
+end
+
+function matching_done:on_sure_btn()
+    self:emit_event("sure_down")
+end
+
+function matching_done:on_attack_btn()
+    self:emit_event("attack_down")
+end
+
+function matching_done:on_cure_btn()
+    self:emit_event("cure_down")
+end
+
+function matching_done:on_defense_btn()
+    self:emit_event("defense_down")
+end
+
+return matching_done

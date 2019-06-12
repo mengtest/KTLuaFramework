@@ -1,0 +1,204 @@
+local View = require("system.view")
+local skill_ui_setting_btn_view = class("skill_ui_setting_btn_view", View)
+
+function skill_ui_setting_btn_view:doInit(param)
+    self.m_parent = param.parent
+    self.m_on_beign_drag_handler = nil    -- 外部回调 开始拖动
+    self.m_on_drag_handler = nil        -- 外部回调 拖动
+    self.m_on_end_drag_handler = nil        -- 外部回调 结束拖动
+
+    self.m_on_drop_handler = nil    -- 外部回调 扔下技能
+    self.m_on_pointer_enter_handler = nil        -- 外部回调 拖动技能进入技能按钮区域
+    self.m_on_pointer_exit_handler = nil        -- 外部回调 拖动技能离开技能按钮区域
+
+    self.m_on_pointer_click_handler = nil   -- 外部回调 点击技能按钮
+
+
+    self:loadRes()
+end
+
+function skill_ui_setting_btn_view:set_on_beign_drag_handler(func)
+    assert(type(func) == "function")
+    self.m_on_beign_drag_handler = func
+end
+
+function skill_ui_setting_btn_view:set_on_drag_handler(func)
+    assert(type(func) == "function")
+    self.m_on_drag_handler = func
+end
+
+function skill_ui_setting_btn_view:set_on_end_drag_handler(func)
+    assert(type(func) == "function")
+    self.m_on_end_drag_handler = func
+end
+function skill_ui_setting_btn_view:set_on_drop_handler(func)
+    assert(type(func) == "function")
+    self.m_on_drop_handler = func
+end
+
+function skill_ui_setting_btn_view:set_on_pointer_enter_handler(func)
+    assert(type(func) == "function")
+    self.m_on_pointer_enter_handler = func
+end
+
+function skill_ui_setting_btn_view:set_on_pointer_exit_handler(func)
+    assert(type(func) == "function")
+    self.m_on_pointer_exit_handler = func
+end
+
+function skill_ui_setting_btn_view:set_on_pointer_click_handler(func)
+    assert(type(func) == "function")
+    self.m_on_pointer_click_handler = func
+end
+
+-- 获取技能图标组件
+function skill_ui_setting_btn_view:get_icon()
+    return self.m_icon_image
+end
+
+-- 获取模板图标组件(就是为了换个颜色)
+function skill_ui_setting_btn_view:get_container_image()
+    return self.m_container_image
+end
+
+-- 获取当前按钮所在的栏位
+function skill_ui_setting_btn_view:get_layer()
+    local layer = self.m_parent.transform.parent.name
+    local layer_num = tonumber(string.match(layer, "%d+"))
+
+    return layer_num
+end
+
+
+function skill_ui_setting_btn_view:loadRes()
+
+
+    self:load_prefab("ui/SkillSetting.prefab", function(loaded_go)
+        self.m_res_loaded = true
+        local view = self:getGO()
+        view.transform:SetParent(self.m_parent)
+        view:AddComponent(RectTransform)
+        view.transform.localPosition = Vector3(0, 0, 0)
+        view.transform.localScale = Vector3.one
+
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find("bg/skill_btn_moudle").gameObject
+        local go = Object.Instantiate(template_go)
+
+        go.transform:SetParent(view.transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+        local frame = self:getFrame()
+        --local skill_data = frame:get_skill_data()
+        --self.m_skill_data = skill_data
+
+        --------临时-------
+        local skill_btn_name = frame:getFrameName()
+        local skill_btn_id = tonumber(string.match(skill_btn_name, "%d+"))
+        self.m_skill_btn_id = skill_btn_id
+        ---------临时-------
+
+
+
+        -- 获取组件
+
+        local icon_image = go_trsf:Find("icon").gameObject:GetComponent(UI.Image)
+        self.m_icon_image = icon_image
+        local container_image = go:GetComponent(UI.Image)
+        self.m_container_image = container_image
+
+        local drag_skill = go:GetComponent("DragSkill")
+        local drop_skill = go:GetComponent("DropSkill")
+
+
+
+        --交互事件 --
+        -- 点击技能按钮
+        drag_skill.onClick = DragSkill_OnPointerClickHandler()
+        drag_skill.onClick:AddListener(function()
+            if self.m_on_pointer_click_handler ~= nil then
+                self.m_on_pointer_click_handler(self)
+            end
+        end)
+
+        --开始拖拽
+        drag_skill.onBeginDrag = DragSkill_OnBeginDragHandler()
+        drag_skill.onBeginDrag:AddListener(function(event_data)
+            if self.m_on_beign_drag_handler ~= nil then
+                self.m_on_beign_drag_handler(self, event_data)
+            end
+        end)
+
+        --拖拽ing
+        drag_skill.onDrag = DragSkill_OnDragHandler()
+        drag_skill.onDrag:AddListener(function(event_data)
+            if self.m_on_drag_handler ~= nil then
+                self.m_on_drag_handler(event_data)
+            end
+        end)
+
+        -- 结束拖拽
+        drag_skill.onEndDrag = DragSkill_OnEndDragHandler()
+        drag_skill.onEndDrag:AddListener(function(event_data)
+            if self.m_on_end_drag_handler ~= nil then
+                self.m_on_end_drag_handler(event_data)
+            end
+        end)
+
+        -- 放下技能
+        drop_skill.onDrop = DropSkill_OnDropHandler()
+        drop_skill.onDrop:AddListener(function(event_data)
+            if self.m_on_drop_handler ~= nil then
+                self.m_on_drop_handler(self, event_data)
+            end
+        end)
+
+        -- 拖动技能进入区域
+        drop_skill.onPointerEnter = DropSkill_OnPointerEnterHandler()
+        drop_skill.onPointerEnter:AddListener(function(event_data)
+            if self.m_on_pointer_enter_handler ~= nil then
+                self.m_on_pointer_enter_handler(self, event_data)
+            end
+        end)
+
+        -- 拖动技能离开区域
+        drop_skill.onPointerExit = DropSkill_OnPointerExitHandler()
+        drop_skill.onPointerExit:AddListener(function()
+            if self.m_on_pointer_exit_handler ~= nil then
+                self.m_on_pointer_exit_handler(self)
+            end
+        end)
+
+
+        -- 技能模板
+        self:subscribe(frame:on_event_skill_id_set(true), function(val)
+
+            if val == 0 then
+                return
+            end
+            local client_cfg = frame:get_client_cfg()
+            if not client_cfg then
+                ---- TODO 这里  client_cfg  会报空 需要查一下 暂时先 return 掉
+                return
+            end
+            -- 绘制图标
+            local icon_path = client_cfg.icon
+            self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                --print("-------------", asset_ref.asset)
+                local tex = asset_ref.asset
+                if (tex == nil) then
+                    Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                else
+                    icon_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                end
+            end)
+        end)
+    end)
+end
+
+
+return skill_ui_setting_btn_view

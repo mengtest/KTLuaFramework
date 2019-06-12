@@ -1,0 +1,54 @@
+﻿
+local View = require("system.view")
+local Sidebar_view = class("Sidebar_view", View)
+
+
+function Sidebar_view:doInit()
+    self:load("ui/sidebar/sidebar.prefab", function(go)
+        local parent_go = self:getParent():getGO()
+        local parent_tr = parent_go and parent_go.transform or nil
+        self:init_with_go(go, parent_tr)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(),go)
+    end )
+end
+
+function Sidebar_view:on_prepared()
+	self:init_btn()
+end
+
+function Sidebar_view:init_btn()
+	local tr = self.m_go.transform
+    local tr_hide = tr:Find("btn_hide/img")
+    local tog_hide = tr:Find("btn_hide"):GetComponent(UnityEngine.UI.Toggle)
+	local btn_quest = tr:Find("border/border_btn/vertical_group_btn/btn_quest"):GetComponent(UnityEngine.UI.Button)
+	local btn_team = tr:Find("border/border_btn/vertical_group_btn/btn_team"):GetComponent(UnityEngine.UI.Button)
+    local content_rt = tr:Find("border/border_mask/border_detail"):GetComponent(UnityEngine.RectTransform)
+	local this = self
+    local base_posX = content_rt.localPosition.x
+    tog_hide.onValueChanged:AddListener(function (flag)
+        local width = content_rt.rect.width
+        local aim_posX = nil
+        local aim_eul = nil
+        if flag then
+            aim_posX = base_posX
+            aim_eul = Vector3(0, 0, 0)
+        else
+            aim_posX = base_posX - width
+            aim_eul = Vector3(0, 180, 0)
+        end
+        local tweener_pos = ShortcutExtensions.DOLocalMoveX(content_rt, aim_posX, 0.3, false)
+        DG_DOTweenUtil.SetEase(tweener_pos, Ease.OutBack)
+        local tweener_rot = ShortcutExtensions.DOLocalRotate(tr_hide, aim_eul, 0.3, DG.Tweening.RotateMode.Fast)
+        DG_DOTweenUtil.SetEase(tweener_rot, Ease.InOutCubic)
+    end)
+    tog_hide.isOn = true
+	btn_quest.onClick:AddListener(function ()
+		this.m_frame:toggle("quest_bar")
+	end)
+	btn_team.onClick:AddListener(function ()
+		this.m_frame:toggle("team_bar")
+	end)
+end
+
+
+return Sidebar_view

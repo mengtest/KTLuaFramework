@@ -1,0 +1,44 @@
+local View = require("system.view")
+local loading_view = class("loading_view", View)
+
+function loading_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_world = self:getFrame("world")
+    self.m_pro = 0
+    self.m_is_show = false
+    self:load("UI/loading.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        self.m_loading_image = go.transform:Find("loading_bg/fill_image"):GetComponent(UI.Image)
+        self.m_per_text = go.transform:Find("loading_bg/percent"):GetComponent(UI.Text)
+        self:subscribe(self.m_world:on_event_attr_set("map_loaded"), function(val)
+            if (val == true) then
+                self.m_is_show = true
+            else
+                self.m_is_show = false
+                self.m_pro = 0
+                self.m_loading_image.fillAmount = self.m_pro
+                self:getGO().gameObject:SetActive(true)
+            end
+        end
+        )
+    end)
+end
+
+function loading_view:doUpdate()
+    if self.m_is_show == true and self.m_pro >= 1 then
+        return
+    end
+    if self.m_loading_image then
+        self.m_pro = self.m_pro + app:get_delta_time() * 0.4
+        self.m_loading_image.fillAmount = self.m_pro
+        local per = self.m_pro * 100
+        self.m_per_text.text = tostring( math.ceil(per)).."%"
+    end
+    if self.m_is_show == true and self.m_pro >= 1 then
+        self:getGO().gameObject:SetActive(false)
+        self.m_pro = 0
+    end
+end
+
+return loading_view

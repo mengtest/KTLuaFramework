@@ -1,0 +1,111 @@
+local M = {}
+
+-- 单位类型
+M.UnitType = {
+    NPC = 1, -- NPC
+    NORMAL_CREATURE = 2, -- 普通怪
+    ELITE_CREATURE = 3, -- 精英怪
+    BOSS = 4, -- BOSS
+    BIGBOSS = 5, -- 巨型BOSS
+    MOBGIVER = 6,-- ??
+    TOTEM = 7, -- 图腾
+    TRAP = 8, -- 陷阱
+    UNSELECTABLE_ITEM = 9,  -- 不可选择的摆设
+}
+
+
+M.BoneName = {
+    bottom = "bottom",               -- 默认的特效挂点，位于模型底部中心
+    top = "top",                  -- 默认的顶部挂点，播放血条，ui
+    chest = "chest",                -- 默认用于胸部，位置在胸部前方，播放受创或挂BUFF等
+    head = "head",                 -- 默认用于头部，位置在额部,用于类似金翅冠或其他效果
+    back = "back",                 -- 默认用于背部，位置在胸部后背,用于翅膀时装效果
+    waist_1 = "waist_1",              -- 默认用于腰部，位置在腰部,用于外挂时装效果
+    weapon_hand_l_1 = "weapon_hand_l_1",      -- 默认用于左手
+    weapon_hand_r_1 = "weapon_hand_r_1",      -- 默认用于右手
+    shoulder_l_1 = "shoulder_l_1",         -- 默认用于左部肩膀
+    shoulder_r_1 = "shoulder_r_1",         -- 默认用于右部肩膀
+    arm_up_l_1 = "arm_up_l_1",           -- 默认用于左上臂
+    arm_up_r_1 = "arm_up_r_1",           -- 默认用于右上臂
+    arm_down_l_1 = "arm_down_l_1",         -- 默认用于左下臂
+    arm_down_r_1 = "arm_down_r_1",         -- 默认用于右下臂
+    weapon_spine_1 = "weapon_spine_1",       -- 默认用于背部左边 / 左手武器的回收对应腰部挂点
+    weapon_spine_2 = "weapon_spine_2",       -- 默认用于背部右边 / 右手武器的回收对应腰部挂点
+    camera = "camera",               -- 默认用于游戏内过场动画
+}
+
+-- 2017-11-27 pacman 主角动画状态机名称
+M.PCAnimStateName = {
+    ATK = "atk",            -- 攻击
+    INSTANT_SKILL = "instant_skill",    -- 释放技能
+    INSTANT_SKILL_1 = "instant_skill_1",    -- 释放技能_1
+    INSTANT_SKILL_2 = "instant_skill_2",    -- 释放技能_2
+    SKILL_SING_LOOP = "skill_sing_loop",    -- 吟唱(子状态机)
+    SING_A = "sing_a",      -- 吟唱动作a
+    SING_B = "sing_b",      -- 吟唱动作b
+    FORWARD = "forward",    -- 前进
+    CHANNEL_START = "channel_start",    -- 引导a
+    CHANNEL_LOOP = "channel_loop",    -- 引导b
+    CHANNEL_END = "channel_end",    -- 引导c
+    AUTO_MOVE_A = "auto_move_a",    -- 自动移动a
+    AUTO_MOVE_B = "auto_move_b",    -- 自动移动b
+    AUTO_MOVE_C = "auto_move_c",    -- 自动移动c
+    AUTO_MOVE_D = "auto_move_d",    -- 自动移动d
+}
+
+-- 2017-11-29 pacman AnimatorOverrideController 替换clip名称
+M.OverrideClipName = {
+    CG = "cg",
+    FACE_ANIM = "face_anim",
+    FACE_ANIM_LOOP = "face_anim_loop",
+    INSTANT_SKILL = "instant_skill",
+    INSTANT_SKILL_2ND = "2nd_instant_skill",      -- 2nd overlay动画专用
+    NORMAL_ATK = "normal_atk",
+    SING_A = "sing_a",
+    SING_B = "sing_b",
+    CHANNEL_START = "channel_start",
+    CHANNEL_LOOP = "channel_loop",
+    CHANNEL_END = "channel_end",
+}
+
+M.AnimLayerName = {
+    BASE = "Base Layer",    -- 全身层
+    LOWER = "Lower Layer",  -- 下身层
+    UPPER = "Upper Layer",  -- 上身层
+    UPPER_2ND = "Upper 2nd",         -- 第二上身层
+}
+
+-- 2017-12-01 pacman animator参数
+M.AnimParam = {}
+M.AnimParam.SubAct = {}
+M.AnimParam.SubAct.DYHZJ = {            -- 地狱火撞击
+    NONE = 0,       -- 无
+    LOWER = 1,       -- 起跳
+    JUMP = 2,       -- 腾空
+    ATTACK = 3,     -- 攻击
+    FINISH = 4,     -- 结束
+
+}
+
+-- 2017-11-29 pacman 上半身版动画文件名后缀
+M.UpperAnimClipSurfix = "_upper"
+
+
+M.Skill_Object_State = {
+    START = 1, -- 开始吟唱 瞬发技能会在下一帧就收到go 而且客户端的判断上不会进入吟唱状态  所以目前应该不会有问题
+    GO = 2,
+    BEHIT = 3,   
+    FINISH = 4,
+
+    FAILED = 11, -- 失败
+    INSERT = 12, -- 插入的技能 
+    SKIP = 13, -- 跳过spell_go的表现处理
+}
+
+M.Vehicle_State_Type = 
+{
+    NORMAL = 0,
+    STONE = 1,
+}
+
+return M

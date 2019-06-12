@@ -1,0 +1,11 @@
+local BattlePreviewView = {}
+
+function BattlePreviewView:doInit()
+
+end
+
+function BattlePreviewView:doUpdate()
+	
+end
+
+return BattlePreviewView

@@ -1,0 +1,39 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local SkillChargeSfxView = {}
+
+function SkillChargeSfxView:doInit(param)
+    local frame = self:getFrame()
+    local sfx_path = frame:get_sfx_path()
+    local point_list = {}
+    self:load(sfx_path, function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localRotation = Quaternion.identity
+
+        local charge_list = assert(go:GetComponent(KTParticleControll)):getChargeSfxRoot()
+
+        for i = 1, charge_list.childCount do
+            table.insert(point_list, charge_list:GetChild(i-1).gameObject)
+        end
+        
+        
+        local skill_data = param.skill_data
+        
+        self:subscribe(skill_data:on_event_charged_count_set(true), function(val)
+            
+            for i = 1, #point_list do
+                if (i <= val) then
+                    point_list[i]:SetActive(true)
+                else
+                    point_list[i]:SetActive(false)
+                end
+            end
+        end)
+    
+    
+    
+    end)
+
+end
+
+return SkillChargeSfxView

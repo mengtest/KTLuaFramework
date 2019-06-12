@@ -1,0 +1,54 @@
+local sect_info_compare = {}
+
+
+-- 显示
+Event.decl(sect_info_compare, "show")
+-- 隐藏
+Event.decl(sect_info_compare, "hide")
+-- 下方按钮
+Event.decl(sect_info_compare, "on_equipment_target_btn")
+Event.decl(sect_info_compare, "on_spirit_target_btn")
+
+
+function sect_info_compare:doInit()
+end
+
+function sect_info_compare:on_loaded()
+    -- 装备目标左侧的四项装备目标
+    self:createChild("sect_equipment_target", "sect.sect_equipment_target")
+    -- 装备目标右侧的装等目标
+    self:createChild("sect_equipment_level_detail", "sect.sect_equipment_level_detail")
+    -- 装备目标右侧的词缀目标
+    --self:createChild("sect_equipment_affix_detail", "sect.sect_equipment_affix_detail")
+    -- 装备目标右侧的套装目标
+    --self:createChild("sect_equipment_suit_detail", "sect.sect_equipment_suit_detail")
+    -- 装备目标右侧的属性目标
+    --self:createChild("sect_equipment_property_detail", "sect.sect_equipment_property_detail")
+end
+
+-- 返回按钮
+function sect_info_compare:on_return_btn()
+    self:emit_event("hide")
+end
+
+-- 下方总览按钮
+function sect_info_compare:on_equipment_target_btn()
+    self:emit_event("on_equipment_target_btn")
+end
+
+-- 下方详情按钮
+function sect_info_compare:on_spirit_target_btn()
+    self:emit_event("on_spirit_target_btn")
+end
+
+-- 显示
+function sect_info_compare:show()
+    self:emit_event("show")
+end
+
+-- 隐藏
+function sect_info_compare:hide()
+    self:emit_event("hide")
+end
+
+return sect_info_compare

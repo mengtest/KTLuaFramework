@@ -1,0 +1,26 @@
+local skynet = require "skynet"
+local netpack = require "netpack"
+
+local PushNotify = class("PushNotify")
+
+function PushNotify:start()
+end
+
+function PushNotify:stop()
+end
+
+function PushNotify:sendPlayer(pid, name, ...)
+	local param = netpack.tostring(skynet.pack({...}))
+	return skynet.call("world", "lua", "push_notify", pid, name, param)
+end
+
+function PushNotify:sendAll(name, ...)
+	local param = netpack.tostring(skynet.pack({...}))
+	local ret = skynet.call("world", "lua", "push_notify", 0, name, param)
+	return ret
+end
+
+function PushNotify:getNotifys()
+end
+
+return PushNotify:new()

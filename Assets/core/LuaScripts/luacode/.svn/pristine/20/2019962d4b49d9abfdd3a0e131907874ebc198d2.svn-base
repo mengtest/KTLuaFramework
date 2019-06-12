@@ -1,0 +1,32 @@
+require("mobdebug").start()
+
+import 'UnityEngine'
+import 'HedgehogTeam.EasyTouch'
+import 'DG.Tweening'
+require "common.comm_init"
+
+GCFG = require "gcfg"
+assert(type(GCFG) == "table")
+
+-- foreach C# ienumerable
+function foreach(csharp_ienumerable)
+    return Slua.iter(csharp_ienumerable)
+end
+
+dbc = TableLoader.loadAll()
+
+local Application = require "system.application"
+app = Application:new()
+app:start()
+
+lang = require "common.language"
+model_mgr = require "common.model_mgr"
+
+local LuaWatchProxy = require "system.lua_watch_proxy"
+LuaWatchProxy:watch("app", app)
+
+cmd = require "common.cmd"      -- pacman 2017-11-13 控制台
+
+update = function()
+	app:update()
+end

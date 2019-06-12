@@ -1,0 +1,16 @@
+--[[
+	方便打包的DSL
+--]]
+
+local M = {}
+
+local _pkg_dict = {}
+local _cur_pkg
+
+
+function M.pkg( name, fn )
+	
+end
+
+
+return M

@@ -1,0 +1,22 @@
+local M = class("Gate")
+
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(M, "dir", function() return 0 end)
+
+function M:initialize(id)
+	Attribute.init(self)
+	self.m_id = id
+end
+
+function M:reset_move()
+end
+
+function M:on_init()
+	print("Gate:on_init")
+end
+
+function M:on_destroy()
+	print("Gate:on_destroy")
+end
+
+return M

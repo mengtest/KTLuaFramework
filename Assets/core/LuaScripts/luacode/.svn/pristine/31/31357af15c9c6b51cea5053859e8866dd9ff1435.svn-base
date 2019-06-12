@@ -1,0 +1,43 @@
+local rows = {}
+rows[1] = {['tmpl']=100001,['text']='你也想去救猴们？',['audio']=100201,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=0,['answer_right']='是的！',['answer_wrong']='不小心走错地',['right_feedback']='你可想过后果？',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='那你从哪来回哪去。',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100002,['event_id']=0}
+rows[2] = {['tmpl']=100002,['text']='我们的力量太弱小，做不可能赢的事只是自取灭亡。',['audio']=100201,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=1,['answer_right']='我们有大圣力量',['answer_wrong']='那也得打',['right_feedback']='大圣的力量？',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='那你会害了大家的！',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100003,['event_id']=0}
+rows[3] = {['tmpl']=100003,['text']='传言中虽说我们都继承了大圣的力量，可大圣的力量在哪里？',['audio']=100202,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=0,['answer_right']='就在我们心中',['answer_wrong']='我也不知道',['right_feedback']='心中？',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='没力量我们有什么资本战斗呢？',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100004,['event_id']=0}
+rows[4] = {['tmpl']=100004,['text']='监神者也是因为这个传言而来的，所以这个传言就是个祸害啊！',['audio']=100203,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=1,['answer_right']='传言会成真',['answer_wrong']='传言是祸害',['right_feedback']='希望如你所愿！',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='那我们还有什么力量？',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100005,['event_id']=0}
+rows[5] = {['tmpl']=100005,['text']='那你说我们现在应该怎么办？',['audio']=100204,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=1,['answer_right']='召集猴群反抗',['answer_wrong']='听流元帅您的',['right_feedback']='如今也只能这样了',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='嗯，我想我们陷入了困境',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=0,['event_id']=0}
+rows[6] = {['tmpl']=100006,['text']='你找我有什么事？我正烦着呢？别惹我！',['audio']=100205,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1058,['prompt']=0,['answer_right']='去救被抓的猴子',['answer_wrong']='认错人了',['right_feedback']='就你这小不点？我先看看你几斤几两？',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='走开走开，别烦我！',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=0,['event_id']=0}
+rows[7] = {['tmpl']=100007,['text']='站住！说出我们灵猴一族暗语，说错了乖乖等着被抓起来吧',['audio']=100201,['anim']='n_ca_linghou003_chat_01',['host_name']=1058,['prompt']=0,['answer_right']='齐天大圣！',['answer_wrong']='宝塔镇河妖！',['right_feedback']='嗯，不错不错！',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='卫兵，给我拿下他！',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100008,['event_id']=0}
+rows[8] = {['tmpl']=100008,['text']='你为什么会从后山下来！',['audio']=100201,['anim']='n_ca_linghou003_mood_05',['host_name']=1058,['prompt']=1,['answer_right']='有天兵抓我',['answer_wrong']='去后山玩耍',['right_feedback']='什么！天兵已经去后山了！',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='说实话！不然还是要抓起来',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100009,['event_id']=0}
+rows[9] = {['tmpl']=100009,['text']='山上的动静是出了什么事！',['audio']=100202,['anim']='n_ca_linghou003_chat_01',['host_name']=1058,['prompt']=0,['answer_right']='大圣园被毁了',['answer_wrong']='没什么大事啊',['right_feedback']='啊，什么！这群混蛋！',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='那么大动静不可能没事！',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=100010,['event_id']=0}
+rows[10] = {['tmpl']=100010,['text']='这么大的事情需要尽快告诉芭将军',['audio']=100203,['anim']='n_ca_linghou003_mood_11',['host_name']=1058,['prompt']=1,['answer_right']='还是我去把',['answer_wrong']='我可不想去 ',['right_feedback']='那辛苦你了，我派人带你去',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='灵猴一族危在旦夕，你应该尽你最大的努力',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=0,['event_id']=0}
+rows[11] = {['tmpl']=100011,['text']='你是来参加我家小姐喜宴的？交出请帖。',['audio']=100203,['anim']='n_ca_linghou006_base_mood_04',['host_name']=30201009,['prompt']=1,['answer_right']='没有请帖',['answer_wrong']='我找找看',['right_feedback']='没有请帖？叫我一声爷爷也是可以的。',['right_reaction']='',['wrong_feedback']='找什么找',['wrong_reaction']='',['another']=0,['event_id']=0}
+rows[12] = {['tmpl']=100012,['text']='你说寨子里怎么突然就戒严了啊？',['audio']=100203,['anim']='n_ca_linghou006_base_mood_02',['host_name']=1062,['prompt']=1,['answer_right']='大圣园死了个将军 ',['answer_wrong']='我也不知道啊',['right_feedback']='啊，胖将军怎么会死…不好…暴露了',['right_reaction']='n_ca_linghou006_base_mood_04',['wrong_feedback']='希望别和监神者打起来啊',['wrong_reaction']='n_ca_linghou006_base_mood_04',['another']=0,['event_id']=0}
+rows[13] = {['tmpl']=100013,['text']='听说守卫们挨个在对暗号，你知道暗号么！',['audio']=100203,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1063,['prompt']=1,['answer_right']='天兵没头脑！',['answer_wrong']='不行你先说！ ',['right_feedback']='你才是没头脑…不好…暴露了',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='天兵没头脑！',['wrong_reaction']='n_ca_linghou006_base_mood_02',['another']=0,['event_id']=0}
+rows[14] = {['tmpl']=100014,['text']='也不知道这些士兵在查什么，大家都是老实猴！',['audio']=100203,['anim']='n_ca_linghou006_base_mood_02',['host_name']=1064,['prompt']=1,['answer_right']='胖将军有命令！',['answer_wrong']='谁知道呢！',['right_feedback']='胖将军不是去大圣…啊…不好，暴露了',['right_reaction']='n_ca_linghou006_base_mood_04',['wrong_feedback']='希望村子里别出大乱子',['wrong_reaction']='n_ca_linghou006_base_mood_04',['another']=0,['event_id']=0}
+rows[15] = {['tmpl']=100015,['text']='好好的查个什么劲！大家平时都这么忙！',['audio']=100203,['anim']='n_ca_linghou006_base_mood_04',['host_name']=1065,['prompt']=1,['answer_right']='据说有东西被盗了！',['answer_wrong']='我也不知道！ ',['right_feedback']='哦，不是查天兵啊..糟了暴露了',['right_reaction']='n_ca_linghou006_base_mood_02',['wrong_feedback']='早点查完赶紧走！这一天天的',['wrong_reaction']='n_ca_linghou006_base_mood_01',['another']=0,['event_id']=0}
+rows[16] = {['tmpl']=100016,['text']='你说什么！水帘洞天已经被监神者占领了！',['audio']=100203,['anim']='n_ca_linghou003_mood_05',['host_name']=1068,['prompt']=1,['answer_right']='千真万确！',['answer_wrong']='开玩笑的…',['right_feedback']='走，早就看监神者不顺眼了！',['right_reaction']='chat_01',['wrong_feedback']='一边去一边去，闲得你…',['wrong_reaction']='n_ca_linghou003_mood_05',['another']=0,['event_id']=0}
+rows[17] = {['tmpl']=100017,['text']='这是芭将军的虎符！说说到底出了什么事！',['audio']=100203,['anim']='n_ca_linghou003_chat_01',['host_name']=1069,['prompt']=1,['answer_right']='水帘洞被占领了！',['answer_wrong']='我偷来玩的…',['right_feedback']='哼，这次来了他们就别想走！',['right_reaction']='chat_01',['wrong_feedback']='快放回去，这可不是用来完的',['wrong_reaction']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[18] = {['tmpl']=100018,['text']='你说什么！流元帅和其他猴子都被抓了，在水帘洞内？',['audio']=100203,['anim']='n_ca_linghou003_mood_05',['host_name']=1070,['prompt']=1,['answer_right']='绝对属实！',['answer_wrong']='谁知道呢！',['right_feedback']='走吧，我们快去救他们出来！',['right_reaction']='chat_01',['wrong_feedback']='胡闹！走开走开别烦我',['wrong_reaction']='n_ca_linghou003_mood_05',['another']=0,['event_id']=0}
+rows[19] = {['tmpl']=100019,['text']='监神者这么猖狂，看来我们得做点什么了啊！',['audio']=100203,['anim']='n_ca_linghou003_mood_11',['host_name']=1071,['prompt']=1,['answer_right']='赶走他们！',['answer_wrong']='开玩笑的…',['right_feedback']='走，我们一起赶走他们！',['right_reaction']='chat_01',['wrong_feedback']='一边去一边去…',['wrong_reaction']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+
+local datas = {
+	[100001] = rows[1],
+	[100002] = rows[2],
+	[100003] = rows[3],
+	[100004] = rows[4],
+	[100005] = rows[5],
+	[100006] = rows[6],
+	[100007] = rows[7],
+	[100008] = rows[8],
+	[100009] = rows[9],
+	[100010] = rows[10],
+	[100011] = rows[11],
+	[100012] = rows[12],
+	[100013] = rows[13],
+	[100014] = rows[14],
+	[100015] = rows[15],
+	[100016] = rows[16],
+	[100017] = rows[17],
+	[100018] = rows[18],
+	[100019] = rows[19],
+}
+return datas

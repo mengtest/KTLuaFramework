@@ -1,0 +1,263 @@
+---
+--- Created by GLK
+--- DateTime: 2018/3/2 16:06
+---
+local Frame = require("system.frame")
+local matching_manager = class("dungeon_manager", Frame)
+
+Event.decl(matching_manager, "rec_matching_data")
+-- 拒绝匹配副本消息，要将匹配状态取消，通知主界面
+Event.decl(matching_manager, "refuse_sure_matching_notify")
+
+function matching_manager:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function matching_manager:init()
+
+end
+
+--------------------  client  to  server  begin
+
+-- 向服务器请求匹配信息
+function matching_manager:req_matching_data()
+    self:base_call("req_get_match_data")
+end
+
+-- 确认返回副本
+function matching_manager:req_come_back_matching_inst()
+    self:base_call("come_back_matching_inst")
+end
+
+-- 确认参与匹配
+function matching_manager:req_match_lose_duty()
+    self:base_call("match_lose_duty")
+end
+
+-- 请求停止匹配
+function matching_manager:req_pause_matching()
+    self:base_call("req_pause_instance")
+end
+
+-- 请求匹配
+function matching_manager:req_match_instance(is_random, duty, random_type, dungeon_id)
+    local dungeon_manager = self:getFrame("dungeon_manager")
+    local unlocked_dungeon = dungeon_manager:gain_unlock_dungeon_list()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local level = role:get_attr("level")
+    if dungeon_id == 0 then
+        for i, v in ipairs(unlocked_dungeon) do
+            if dbc.instances[v].difficulty == random_type then
+                if level >= dbc.instances[v].floor_level and level <= dbc.instances[v].toplimit_level then
+                    --print("i,v", i, v)
+                    --print("is_random, duty, random_type, dungeon_id        ", is_random, duty, random_type, dungeon_id)
+                    self:base_call("req_match_instance", is_random, duty, random_type, dungeon_id)
+                    return
+                end
+            end
+        end
+        self:getFrame("float_hint_manager"):add_float("已解锁副本中没有此难度类型", self.m_ui_manager.UI_Depth.ALERT)
+    else
+        self:base_call("req_match_instance", is_random, duty, random_type, dungeon_id)
+    end
+end
+
+-- 队伍成员确认参与匹配
+function matching_manager:make_sure_to_match(is_matching, duty)
+    self:base_call("make_sure_to_match", is_matching, duty)
+end
+
+-- 匹配成功信息回复，确认客户端匹配成功
+function matching_manager:agree_create_matching_inst(is_matching, dbid)
+    self:base_call("agree_create_matching_inst", is_matching, dbid)
+end
+
+--------------------  client  to  server  end  --------------------
+
+--------------------  server  to  client  begin
+
+-- 向服务器请求后反回的匹配信息
+function matching_manager:rec_matching_data(challenge_num, is_maching, dungeon_id, time, duty, diff)
+    self:emit_event("rec_matching_data", challenge_num, is_maching, dungeon_id, time, duty, diff)
+end
+
+-- 队伍中除了发起匹配的其它人收到此消息
+function matching_manager:will_create_matching(diff_type, dungeon_id)
+    self:create_matching_done(diff_type, dungeon_id)
+end
+
+-- 匹配成功会收到此消息
+function matching_manager:will_create_matching_inst(dbid, dungeon_id)
+    self:create_matching_sure( dbid, dungeon_id)
+end
+
+-- 点击匹配按钮如果在副本外返回副本 弹二次确认面板
+function matching_manager:rec_come_back_matching_inst()
+    self.m_ui_manager:CreateUI("matching_back_inst", "team.team_quick_matching.matching_back_inst", "是否确认返回副本？", self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 点击匹配按钮如果在副本内并且有人离开 弹二次确认面板 参与匹配
+function matching_manager:rec_can_join_matching()
+    self.m_ui_manager:CreateUI("matching_continue", "team.team_quick_matching.matching_continue", "是否继续进行匹配？", self.m_ui_manager.UI_Depth.HIGH)
+end
+
+--------------------  server  to  client  end  --------------------
+
+--------------------  client  local  begin
+
+-- 获取副本系列
+-- ret结构  {series_id,{dungeon_id}{state}{can_use}}  series_id顺次排列
+function matching_manager:gain_dungeon_series()
+    -- 先从instance_map中帅选出有几个系列
+    local series_max = 0
+    local instance_map_table = dbc.instances_map
+    local instance_table = dbc.instances
+    for i, v in pairs(instance_table) do
+        local dungeon_id = instance_table[i].inst_map_id
+        if instance_map_table[dungeon_id].inst_entry_type == enum.shared.InstanceEntryType.MATCHING then
+            if v.matching_inst_flag > series_max then
+                series_max = v.matching_inst_flag
+            end
+        end
+    end
+    if series_max == 0 then
+        return nil
+    else
+        local ret = {}
+        local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+        local sdk = app:getKBESDK()
+        local role_id = sdk:get_player_id()
+        local role = kbe_mgr:get_entity(role_id)
+        local level = role:get_attr("level")
+        local dungeon_list = self:getFrame("dungeon_manager"):gain_unlock_dungeon_list()
+        for i = 1, series_max do
+            ret[i] = {}
+            -- dungeon_id的list
+            ret[i]["id"] = {}
+            -- 对应dungeon_id的list的是否解锁状态  0表是未解锁  1表示解锁
+            ret[i]["state"] = {}
+            -- 对应dungeon_id的list的是否可匹配状态  0表是未解锁  1表示解锁
+            ret[i]["use"] = {}
+            for k, v in pairs(instance_table) do
+                local dungeon_id = instance_table[k].inst_map_id
+                if instance_map_table[dungeon_id].inst_entry_type == enum.shared.InstanceEntryType.MATCHING then
+                    if v.matching_inst_flag == i then
+                        ret[i]["id"][#ret[i]["id"] + 1] = k
+                        ret[i]["state"][#ret[i]["state"] + 1] = 0
+                        ret[i]["use"][#ret[i]["use"] + 1] = 0
+                    end
+                end
+            end
+        end
+        for key, val in pairs(dungeon_list) do
+            local dungeon_id = instance_table[val].inst_map_id
+            if instance_map_table[dungeon_id].inst_entry_type == enum.shared.InstanceEntryType.MATCHING then
+                for i = 1, series_max do
+                    for k = 1, #ret[i]["id"] do
+                        if ret["id"] == val then
+                            ret[i]["state"][k] = 1
+                        end
+                        if level >= dbc.instances[val].floor_level and level <= dbc.instances[val].toplimit_level then
+                            ret[i]["use"][k] = 1
+                        end
+                    end
+                end
+            end
+        end
+        return ret
+    end
+end
+
+-- 在匹配的时候选择职业
+function matching_manager:deal_player_duty()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local duty = role:get_rclass()
+    local spe_list = {}
+    spe_list[1] = duty * 3 + 0
+    spe_list[2] = duty * 3 + 1
+    spe_list[3] = duty * 3 + 2
+    local ret = {}
+    ret[1] = dbc.specialization[spe_list[1]].duty
+    ret[2] = dbc.specialization[spe_list[2]].duty
+    ret[3] = dbc.specialization[spe_list[3]].duty
+    return ret
+end
+
+-- 确认匹配页面
+function matching_manager:create_matching_sure( dbid, dungeon_id)
+    self:charge_matching_main()
+    self:charge_matching_sure()
+    local send = {}
+    send[1] = dbid
+    send[2] = dungeon_id
+    self.m_ui_manager:CreateUI("matching_sure", "team.team_quick_matching.matching_sure", send, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 确认匹配成功界面
+function matching_manager:create_matching_done(diff_type, dungeon_id)
+    self:charge_matching_main()
+    self:charge_matching_done()
+    local parma = {}
+    parma[1] = diff_type
+    parma[2] = dungeon_id
+    self.m_ui_manager:CreateUI("matching_done", "team.team_quick_matching.matching_done", parma, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 创建快速匹配主界面
+function matching_manager:create_quick_matching_view()
+    local frame_mgr = self:getFrameMgr()
+    if frame_mgr:getFrame("quick_matching_main") ~= nil then
+        self:getFrame("quick_matching_main"):destroySelf()
+    end
+    self.m_ui_manager:CreateUI("quick_matching_main", "team.team_quick_matching.quick_matching_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 判断匹配主界面是否存在
+function matching_manager:charge_matching_main()
+    local frame_mgr = self:getFrameMgr()
+    if frame_mgr:getFrame("quick_matching_main") ~= nil then
+        self.m_ui_manager:DestroyUI("quick_matching_main")
+    end
+end
+
+-- 判断matching_done界面是否存在
+function matching_manager:charge_matching_done()
+    local frame_mgr = self:getFrameMgr()
+    if frame_mgr:getFrame("matching_done") ~= nil then
+        self.m_ui_manager:DestroyUI("matching_done")
+    end
+end
+
+-- 判断matching_sure界面是否存在
+function matching_manager:charge_matching_sure()
+    local frame_mgr = self:getFrameMgr()
+    if frame_mgr:getFrame("matching_sure") ~= nil then
+        self.m_ui_manager:DestroyUI("matching_sure")
+    end
+end
+
+function matching_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function matching_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function matching_manager:local_log(...)
+    -- app:logError(string.format(...))
+end
+
+--------------------  client  local  end  --------------------
+
+return matching_manager

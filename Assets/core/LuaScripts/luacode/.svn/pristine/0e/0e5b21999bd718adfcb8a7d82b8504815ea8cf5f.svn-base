@@ -1,0 +1,80 @@
+---
+--- Created by xiaojingli.
+--- DateTime: 2018/1/15 17:12
+---
+local View = require("system.view")
+local float_hint_view = class("float_hint_view", View)
+
+function float_hint_view:doInit()
+    self.m_frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Float_hint_text"), function(go)
+        self.m_text_parent_tr = go.transform:Find("scroll_text/Text")
+        self.m_text_parent_cmp = self.m_text_parent_tr:GetComponent(UnityEngine.UI.Text)
+        self:set_height(self.m_frame:get_start_y())
+
+        self.m_bg_tr = go.transform:Find("scroll_text/Text/bg")
+        self.m_bg_cmp = self.m_bg_tr:GetComponent(UnityEngine.UI.Image)
+
+        self.m_text_tr = go.transform:Find("scroll_text/Text/text")
+        self.m_text_cmp = self.m_text_tr:GetComponent(UnityEngine.UI.Text)
+
+        self.m_text_parent_cmp.text = self.m_frame:get_str()
+        self.m_text_cmp.text = self.m_frame:get_str()
+
+        self:init_with_go(go, nil)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+
+        slua_timer.addDelayEvent(self.m_frame:get_stop_time(), function()
+            self:alpha_from_one_to_zero(self.m_frame:get_duration())
+        end)
+
+        self:subscribe(self.m_frame:on_event("set_height"), function(height)
+            self:set_height(height)
+        end)
+    end)
+end
+
+--设置飘字高度
+function float_hint_view:set_height(height)
+    self.m_text_parent_tr:GetComponent(RectTransform).anchoredPosition = Vector2(0, height)
+end
+
+--颜色变浅至消失
+function float_hint_view:alpha_from_one_to_zero(duration)
+    local tweener = DOTween.ToAlpha(function()
+        return self.m_text_parent_cmp.color, self.m_bg_cmp.color, self.m_text_cmp.color
+    end, function(c)
+        self.m_text_parent_cmp.color = c
+        self.m_bg_cmp.color = c
+        self.m_text_cmp.color = c
+        self:change_alpha(self.m_text_parent_cmp, c)
+        self:change_alpha(self.m_text_cmp, c)
+    end, 0, duration)
+
+    DG_DOTweenUtil.OnComplete(tweener, function()
+        self.m_frame:destroy_self()
+    end)
+end
+
+--改变富文本alpha值
+function float_hint_view:change_alpha(component, color)
+    local a = color.a * 255
+    local s = string.format("%#x", tostring(a))
+    local alpha = string.sub(s, 3, 4)
+    if string.len(alpha) == 1 then
+        alpha = "0" .. alpha
+    end
+    if a < 1 then
+        alpha = "00"
+    end
+
+    local text = component.text
+
+    for str in string.gmatch(text, "#%x%x%x%x%x%x%x%x") do
+        text = string.gsub(text, str, string.sub(str, 1, 7) .. alpha)
+        component.text = text
+    end
+end
+
+return float_hint_view

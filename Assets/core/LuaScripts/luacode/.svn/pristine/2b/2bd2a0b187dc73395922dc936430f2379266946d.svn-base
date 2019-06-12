@@ -1,0 +1,122 @@
+local View = require("system.view")
+local quest_ui_list_item_view = class("quest_ui_list_item_view", View)
+
+function quest_ui_list_item_view:doInit(param)
+    local frame = self:getFrame()
+    self.m_is_note = false
+    --param  [1]表示显示隐藏 1显示 0隐藏   [2]表示quest_data
+    self:load(app:getAssetPathMgr().get_ui_view_asset("QuestItem"), function(go)
+        self:getGO():AddComponent(RectTransform)
+        self:getGO().transform:GetComponent(RectTransform).sizeDelta = Vector2(556, 84)
+        if self:getGO().transform.parent ~= param[3].transform then
+            self:getGO().transform:SetParent(param[3].transform)
+        end
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform:GetComponent(RectTransform).sizeDelta = Vector2(556, 84)
+        go.transform:GetComponent(RectTransform).anchorMin = Vector2(0.5, 0.5)
+        go.transform:GetComponent(RectTransform).anchorMax = Vector2(0.5, 0.5)
+        go.transform:GetComponent(RectTransform).pivot = Vector2(0.5, 0.5)
+        go.transform.localScale = Vector3.one
+        go.transform.anchoredPosition3D = Vector3.zero
+        self.m_name_text = go.transform:Find("quest/quest_btn/name"):GetComponent(UI.Text)
+        self.m_goes = go.transform:Find("quest").transform
+        self.m_interest_btn = go.transform:Find("quest/interest").transform:GetComponent(UI.Button)
+        self.m_choose_btn = go.transform:Find("quest/quest_btn").transform:GetComponent(UI.Button)
+        self.m_yellow_point = go.transform:Find("quest/interest/yellow_point").transform
+        self.m_choose_img = go.transform:Find("quest/quest_btn/is_choose").transform
+        self.m_green_img = go.transform:Find("quest/quest_btn/trace_icon_green").transform
+        self.m_yellow_img = go.transform:Find("quest/quest_btn/trace_icon_yellow").transform
+        self.m_interest_btn.onClick:AddListener(function()
+            self:on_interest()
+        end)
+
+        self.m_choose_btn.onClick:AddListener(function()
+            self:on_item_dowm()
+        end)
+
+        self:subscribe(frame:on_event("item_dowm"), function()
+            self:on_item_dowm()
+        end)
+        self:subscribe(frame:on_event("item_sel_cancle"), function()
+            self:on_item_sel_cancle()
+        end)
+        self:subscribe(frame:on_event("cancle_interest"), function()
+            self:on_cancle_interest()
+        end)
+        self:subscribe(frame:on_event("refresh"), function(data)
+            self:on_refresh(data)
+        end)
+
+        self.m_data = nil
+        self:on_refresh(param)
+    end)
+end
+
+function quest_ui_list_item_view:on_item_dowm()
+    self.m_choose_img.gameObject:SetActive(true)
+    self:getFrame("quest_ui_list"):item_change(self:getFrame())
+    self:getFrame("quest_ui_show"):refresh_show_data(self.m_quest_id)
+end
+
+function quest_ui_list_item_view:on_item_sel_cancle()
+    self.m_choose_img.gameObject:SetActive(false)
+end
+
+-- 关注任务
+function quest_ui_list_item_view:on_interest()
+    if self.m_is_note == false then
+        local list = self:getFrame("quest_manager"):get_noted_quest_list()
+        if #list >= 3 then
+            self:getFrame("float_hint_manager"):add_float("关注任务数最多为3", app:get_ui_manager().UI_Depth.ALERT)
+        else
+            self:getFrame("quest_manager"):add_quest_note(self.m_quest_id)
+            self.m_is_note = true
+            self.m_yellow_point.gameObject:SetActive(true)
+        end
+    else
+        self:getFrame("quest_manager"):del_quest_note(self.m_quest_id)
+        self.m_yellow_point.gameObject:SetActive(false)
+        self.m_is_note = false
+    end
+end
+
+-- 取消关注
+function quest_ui_list_item_view:on_cancle_interest()
+    self.m_yellow_point.gameObject:SetActive(false)
+end
+
+-- 刷新显示
+function quest_ui_list_item_view:on_refresh(param)
+    self.m_data = param[2]
+    if param[1] == 0 then
+        self.m_goes.gameObject:SetActive(false)
+    else
+        self.m_goes.gameObject:SetActive(true)
+    end
+    if param[2] ~= nil then
+        self.m_quest_id = param[2]:get_quest_id()
+        local name = dbc.quest[self.m_quest_id].name
+        self.m_name_text.text = name
+        if param[2]:get_index() == 0 then
+            self.m_green_img.gameObject:SetActive(false)
+            self.m_yellow_img.gameObject:SetActive(false)
+        elseif param[2]:get_index() == 1 then
+            self.m_green_img.gameObject:SetActive(true)
+            self.m_yellow_img.gameObject:SetActive(false)
+        elseif param[2]:get_index() == 2 then
+            self.m_green_img.gameObject:SetActive(false)
+            self.m_yellow_img.gameObject:SetActive(true)
+        end
+
+        if param[2]:get_note() == 1 then
+            self.m_yellow_point.gameObject:SetActive(true)
+            self.m_is_note = true
+        else
+            self.m_yellow_point.gameObject:SetActive(false)
+            self.m_is_note = false
+        end
+    end
+end
+
+return quest_ui_list_item_view

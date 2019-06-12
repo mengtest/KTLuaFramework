@@ -1,0 +1,14 @@
+local sect_info_view = {}
+
+function sect_info_view:doInit()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectInfo"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+    end)
+end
+
+
+
+return sect_info_view

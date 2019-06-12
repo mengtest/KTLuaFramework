@@ -1,0 +1,168 @@
+local View = require("system.view")
+local skill_ui_setting_list_view = class("skill_ui_setting_list_view", View)
+
+
+
+function skill_ui_setting_list_view:doInit(param)
+
+    -- 是否在表面拖动
+    self.m_is_drag_on_surface = true
+
+    -- 拖动的技能图标
+    self.m_dragging_icon_dict = {}
+
+    -- 拖动的地方
+    self.m_dragging_plane_dict = {}
+
+    self:load("ui/SkillSettingList.prefab", function(go)
+
+        local canvas = go
+        self.m_canvas = canvas
+        -- 适配为啥不好用呢？？？
+        --app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+
+            local name = child_frame:getFrameName()
+
+            if string.find(name, "skill_ui_setting_list_btn") then
+                local skill_btn_id = tonumber(string.match(name, "%d+"))
+
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("bg/grid")
+                view_go.transform.parent = parent_transform
+
+                -------------------------------------------------------
+                -- 回调  开始拖动
+                view:set_on_beign_drag_handler(
+                function(skill_ui_setting_list_btn_view, event_data)
+                    self:on_begin_drag(skill_ui_setting_list_btn_view, event_data)
+                end
+                )
+                -- 回调  拖动ing
+                view:set_on_drag_handler(
+                function(event_data)
+                    self:on_drag(event_data)
+                end
+                )
+
+                -- 回调  结束拖动
+                view:set_on_end_drag_handler(
+                function(event_data)
+                    self:on_end_drag(event_data)
+                end
+                )
+                -- 回调  点击技能按钮
+                view:set_on_pointer_click_handler(
+                function(skill_ui_setting_list_btn_view)
+                    self:on_pointer_click(skill_ui_setting_list_btn_view)
+                end
+                )
+
+            end
+        end)
+        self:getFrame():on_loaded()
+    end)
+
+end
+
+
+-- 开始拖动
+function skill_ui_setting_list_view:on_begin_drag(skill_ui_setting_list_btn_view, event_data)
+    --self:getFrame():set_is_dropped(false)
+    local btn_frame = skill_ui_setting_list_btn_view:getFrame()
+    self.m_drag_btn_frame = btn_frame
+    local skill_id = btn_frame:get_skill_id()
+    self.m_drag_skill_id = skill_id
+    local icon = skill_ui_setting_list_btn_view:get_icon()
+    self.m_drag_icon = icon
+
+    self:local_log("开始拖动时的技能id：%s", skill_id)
+    --self:getFrame():set_source_skill_id(skill_id)
+
+    self.m_dragging_icon_dict[event_data.pointerId] = GameObject("icon")
+    self.m_dragging_icon_dict[event_data.pointerId].transform:SetParent(self.m_canvas.transform, false)
+    self.m_dragging_icon_dict[event_data.pointerId].transform:SetAsLastSibling()
+
+    local image = self.m_dragging_icon_dict[event_data.pointerId]:AddComponent(UI.Image)
+    local group = self.m_dragging_icon_dict[event_data.pointerId]:AddComponent(UnityEngine.CanvasGroup)
+    group.blocksRaycasts = false
+
+    ------- 这里需要动一下
+    image.sprite = icon.sprite
+    image:SetNativeSize()
+
+    if self.m_is_drag_on_surface then
+        self.m_dragging_plane_dict[event_data.pointerId] = icon.gameObject.transform
+    else
+        self.m_dragging_plane_dict[event_data.pointerId] = self.m_canvas.transform
+    end
+
+
+    self:set_dragged_position(event_data)
+end
+
+-- 拖动
+function skill_ui_setting_list_view:on_drag(event_data)
+
+    if self.m_dragging_icon_dict[event_data.pointerId] ~= nil then
+        self:set_dragged_position(event_data)
+    end
+
+end
+
+-- 设置拖动的位置
+function skill_ui_setting_list_view:set_dragged_position(event_data)
+
+    if self.m_is_drag_on_surface and event_data.pointerEnter ~= nil and event_data.pointerEnter.transform ~= nil then
+        self.m_dragging_plane_dict[event_data.pointerId] = event_data.pointerEnter.transform
+
+    end
+
+    local rt = self.m_dragging_icon_dict[event_data.pointerId]:GetComponent(RectTransform)
+
+    local ok, globalMousePos = RectTransformUtility.ScreenPointToWorldPointInRectangle(self.m_dragging_plane_dict[event_data.pointerId], event_data.position, event_data.pressEventCamera, Slua.out)
+    if ok then
+        rt.position = globalMousePos
+        rt.rotation = self.m_dragging_plane_dict[event_data.pointerId].rotation
+    end
+
+end
+
+-- 结束拖动
+function skill_ui_setting_list_view:on_end_drag(event_data)
+
+    if self.m_dragging_icon_dict[event_data.pointerId] ~= nil then
+        Object.Destroy(self.m_dragging_icon_dict[event_data.pointerId])
+    end
+    self.m_dragging_icon_dict[event_data.pointerId] = nil
+    --self:getFrame():set_source_skill_id(-1)
+    --self:getFrame():set_target_skill_id(-1)
+
+end
+
+
+function skill_ui_setting_list_view:on_pointer_click(skill_ui_setting_list_btn_view)
+
+    local btn_frame = skill_ui_setting_list_btn_view:getFrame()
+    self.m_click_btn_frame = btn_frame
+    local skill_id = btn_frame:get_skill_id()
+    self.m_click_skill_id = skill_id
+    local icon = skill_ui_setting_list_btn_view:get_icon()
+    self.m_click_icon = icon
+    --local skill_btn_id = skill_ui_setting_list_btn_view:get_btn_id()
+    --self.m_skill_btn_id = skill_btn_id
+
+    self:getFrame():set_skill(skill_id)
+
+    self:local_log("点击操作的目标技能id：%s", skill_id )
+end
+
+function skill_ui_setting_list_view:local_log(...)
+    --app:logError(string.format(...))
+end
+return skill_ui_setting_list_view

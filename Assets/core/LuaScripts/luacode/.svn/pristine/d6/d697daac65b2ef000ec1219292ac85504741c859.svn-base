@@ -1,0 +1,28 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/22 20:4
+
+local take_task = {}
+--Attribute.decl(take_task, "pos", function()
+--    return Vector3(0, 0, 0)
+--end)
+function take_task:doInit(param)
+    --local giver_id = param
+    --self.giver = self:getFrame("giver")
+    --self.unit = self.giver:get_cc(giver_id)
+    --self.bb =  self.unit:get_cc()
+
+    --self.world = self:getFrame("world")
+    --self.unit = self.world:getUnit(giver_id)
+    --self.cc = self.unit:get_cc()
+
+
+    --这里获取的是giver中的控self.offset = Vector3(self.cc.center.x + self.cc.height * -0.3, self.cc.center.y + self.cc.height * 1, 0)
+    --self:subscribe( self:getFrame("giver"):set_tmpl():on_event_pos_set(true), function(val)
+    --    self:set_pos(val)
+    --end)
+end
+
+return take_task
+
+

@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local big_map_boss = class("big_map_boss", Frame)
+
+function big_map_boss:doInit(param)
+
+end
+
+return big_map_boss

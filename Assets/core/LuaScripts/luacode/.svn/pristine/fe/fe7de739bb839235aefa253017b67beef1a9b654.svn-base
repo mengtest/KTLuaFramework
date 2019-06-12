@@ -1,0 +1,125 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+local Enum_Unit = require "common.Enum.Enum_Unit"
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+    
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.CLIMB)
+    
+    self.m_unit:set_anim_trigger("climb")
+    
+    local ladder = self.m_param.ladder
+    -- 初始位置
+    local start_pos = ladder:getEnterPos(self.m_param.collider.gameObject:GetInstanceID()).position 
+    
+    self.m_param.playerController:set_is_show_battle_panel(false)
+    
+    -- 顶部
+    self.m_top = ladder.top.position
+    -- 底部
+    self.m_bottom = ladder.bottom.position
+    
+    self.m_unit:set_pos(start_pos)
+    self.m_unit:emit_event("set_position", start_pos)
+
+    self.m_unit:lookAt(ladder.transform.position)
+
+    
+    --武器还没有拆分 这是个临时做法
+    local tra = self.m_unit:get_bone(Enum_Unit.BoneName.weapon_hand_r_1)
+    
+    tra.gameObject:SetActive(false)
+end
+
+
+function M:exit()
+    --print("UnitActStateSkillSing:exit")
+    self.m_param.playerController:set_is_show_battle_panel(true)
+
+    --武器还没有拆分 这是个临时做法
+    local tra = self.m_unit:get_bone(Enum_Unit.BoneName.weapon_hand_r_1)
+    
+    tra.gameObject:SetActive(true)
+
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+    
+    
+    local delta_time = app.get_delta_time()
+    local unit = self.m_unit
+    -------------------
+    -- 方位计算---
+    local move_speed = unit:get_move_speed()
+    
+    local move_dir = unit:get_move_state()
+    
+    
+    -- 我能怎么办 我也很绝望啊
+    if (move_dir == 1) then
+        if (unit:get_pos().y < self.m_top.y) then
+            self:Move(Vector3(0, move_speed * delta_time, 0))
+        else
+            self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+            local endPos = self.m_param.ladder.top_out.position
+            self.m_unit:set_pos(endPos)
+            self.m_unit:emit_event("set_position", endPos)
+        end
+    elseif (move_dir == 5) then
+        if (unit:get_pos().y > self.m_bottom.y) then
+            self:Move(Vector3(0, -move_speed * delta_time, 0))
+        else
+            self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+            
+            local endPos = self.m_param.ladder.bottom_out.position
+            self.m_unit:set_pos(endPos)
+            self.m_unit:emit_event("set_position", endPos)
+        end
+    elseif (move_dir == 3) then
+        
+    elseif (move_dir == 4) then
+        
+    end
+
+    --self.m_unit:lookAt(self.m_ladder.transform.position)
+end
+
+
+function M:Move(V3)
+    
+    local cc = self.m_unit:get_cc()
+    
+    if cc == nil then
+        return
+    end
+    
+    cc:Move(V3)
+    
+    self.m_unit:set_pos(cc.transform.position)
+    
+   
+
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+return M

@@ -1,0 +1,69 @@
+local View = require("system.view")
+local loading_view = class("loading_view", View)
+
+loading_temp_pro = 0.4
+player_init_done = false
+
+function loading_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_world = self:getFrame("world")
+    self.m_pro = 0
+    self.m_is_show = false
+    self.m_normal = 0.2
+    self:load(app:getAssetPathMgr().get_ui_view_asset("loading"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        self.m_loading_image = go.transform:Find("loading_bg/fill_image"):GetComponent(UI.Image)
+        self.m_loading_image.fillAmount = self.m_pro
+        self.m_per_text = go.transform:Find("loading_bg/percent"):GetComponent(UI.Text)
+        self:subscribe(self.m_world:on_event_attr_set("map_loaded"), function(val)
+            if (val == true) then
+                self.m_is_show = true
+            else
+                self.m_is_show = false
+                self.m_pro = 0
+                self.m_loading_image.fillAmount = self.m_pro
+                self:getGO().gameObject:SetActive(true)
+            end
+        end)
+    end)
+end
+
+function loading_view:doUpdate()
+
+    if self.m_is_show == true and self.m_pro >= 1 then
+        --Debug.LogError("loading_view  self.m_pro  "..tostring(self.m_pro))
+        self.m_ui_manager:HideView("quest_ui_main")
+        self:getGO().gameObject:SetActive(false)
+        self.m_normal = 0.3
+        self.m_pro = 0
+        self.m_is_show = false
+        return
+    end
+
+    if self.m_pro >= 1 then
+        return
+    else
+        --Debug.LogError("loading_view...loading_temp_pro"..tostring(loading_temp_pro))
+        if self.m_pro >= loading_temp_pro then
+            return
+        end
+        if self.m_loading_image then
+            self.m_pro = self.m_pro + app:get_delta_time() * self.m_normal
+            if self.m_pro >= 0.5 and self.m_is_show == false then
+                self.m_pro = 0.5
+            end
+            if self.m_pro >= 1 then
+                self.m_loading_image.fillAmount = 1
+                self.m_per_text.text = "正在加载资源: " .. tostring( 100) .. "%"
+                return
+            end
+            self.m_loading_image.fillAmount = self.m_pro
+
+            local per = self.m_pro * 100
+            self.m_per_text.text = "正在加载资源: " .. tostring( math.ceil(per)) .. "%"
+        end
+    end
+end
+
+return loading_view

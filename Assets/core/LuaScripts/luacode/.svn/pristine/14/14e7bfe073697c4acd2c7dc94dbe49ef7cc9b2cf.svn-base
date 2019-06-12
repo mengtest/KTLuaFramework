@@ -1,0 +1,14 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/10 13:44
+---
+local show = {}
+
+Attribute.decl(show, "text")
+Attribute.decl(show, "move")
+function show:doInit()
+
+end
+
+
+return show

@@ -1,0 +1,558 @@
+local View = require("system.view")
+local big_map_view = class("big_map_view", View)
+
+function big_map_view:doInit(param)
+    self.m_map_left_bottom = param["map_left_bottom"]
+    self.m_map_right_up = param["map_right_up"]
+    self.m_show_quest_data = param['show_quest_data']
+    local is_in_dungeon = param["inst_id"]
+
+    --- 当前显示的是否是世界地图
+    self.m_is_world_map = false
+
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    --- 任务信息面板
+    self.m_quest_info = nil
+    --- 每个区域地图任务
+    self.m_area_map_quest = {}
+    --- 当前需要显示的任务列表
+    self.m_cur_map_quest = nil
+    --- 每个区域地图传送点
+    self.m_area_map_trans = {}
+    --- 当前需要显示的传送点列表
+    self.m_cur_map_trans = nil
+    --- 记录每个区域地图中包含的任务信息，包含quest_data、在地图上的坐标
+    self.m_area_map_quest_list = {}
+    --- 记录每个区域地图中包含的传送点信息，包含id、是否激活、在地图上的坐标
+    self.m_area_map_trans_list = {}
+    --- 在切换区域地图时创建的传送点
+    self.m_create_trans = nil
+
+    self.m_world = self:getFrame("world")
+    self.m_map_id = param['map_id']
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_map_manager = self:getFrame("map_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_icon_point = nil
+
+    self.m_will_trans = false
+    self.m_tran_pro = 0
+    self.m_send_done = false
+    self.m_begin_init = false
+    self.m_prepare_time = 3
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigMap"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local drag_area = self["map_area_gameObject"]:GetComponent("DragSkill")
+        drag_area.onClick = DragSkill_OnPointerClickHandler()
+        drag_area.onClick:AddListener(function()
+            self["quest_info_gameObject"]:SetActive(false)
+        end)
+
+        self.m_map = self["area_map_gameObject"]
+        self.m_trans_bar = go.transform:Find("trans_bg").transform
+        self.m_loading = go.transform:Find("loading").transform
+
+        self.m_trans_bar_text = self.m_trans_bar:Find("Text"):GetComponent(UI.Text)
+        self.m_trans_bar_image = self.m_trans_bar:Find("fill"):GetComponent(UI.Image)
+        self.m_trans_bar_image.fillAmount = self.m_tran_pro
+        self.m_loading_text = self.m_loading:Find("Text"):GetComponent(UI.Text)
+        local map_id = self.m_world:get_map_id()
+        --- 若显示的不是当前所在地图，则不显示玩家icon
+        self["player_icon_gameObject"]:SetActive(self.m_map_id == map_id)
+        self:change_map_icon(self.m_map_id)
+
+
+        self.m_icon = self["player_icon_gameObject"].transform
+        ----主角icon的特效，打开地图显示，2秒后消失
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_ditu_kuosan"), self.m_icon, "big_map")
+
+
+        self.m_icon_point = self.m_icon:GetComponent(UnityEngine.RectTransform)
+        self:refresh_map_data(self.m_map_id)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local child_param = child_frame:getParam()
+            --Debug.LogError(tostring(name))
+            local id = tonumber(string.match(name, "%d"))
+
+            if string.find(name, "quest_info") then
+                self.m_quest_info = child_frame
+                local view = self.m_mgr:getView(name)
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = self["quest_info_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "world_map") then
+                local view = self.m_mgr:getView(name)
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = self["world_map_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "boss_icon") then
+                local view = self.m_mgr:getView(name)
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = self["boss_list_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(child_param["pos"])
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "big_map_dungeon_join") then
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = self["dungeon_join_list_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                local list_pos = {}
+                local y_num = id * 2
+                local x_num = y_num - 1
+                list_pos["x"] = dbc.map[self.m_map_id].dungeon_join_pos[x_num]
+                list_pos["z"] = dbc.map[self.m_map_id].dungeon_join_pos[y_num]
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(list_pos)
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+        --self.m_frame:do_trans()
+
+        --- 加载本地图中的任务
+        self:create_quest_parent(self.m_map_id)
+        --- 加载本地图中的传送点
+        self:create_trans_parent(self.m_map_id)
+        if is_in_dungeon == 0 then
+            ----不在副本中，不显示boss信息
+            self.m_frame:on_loaded(0)
+        else
+            ----在副本中，显示对应的信息
+            self.m_dungeon_manager:cell_call("get_inst_progress")
+            self.m_frame:on_loaded(1)
+        end
+
+        --- 设置地图显示位置
+        self:set_map_show_pos(self["player_icon_gameObject"])
+        if param['show_quest_data'] then
+            if not self["quest_info_gameObject"].activeSelf then
+                self["quest_info_gameObject"]:SetActive(true)
+            end
+        end
+
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_owner_pos"), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_owner_dir"), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+    self:subscribe(self.m_frame:on_event("show_quest_condition_aim_area"), function(quest_id, index)
+        self:show_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self.m_frame:on_event("begin_trans"), function(id)
+        self:on_do_trans(id)
+    end)
+    --- 响应关闭按钮的点击事件
+    self:subscribe(self.m_frame:on_event("close"), function()
+        self.m_frame:destroySelf()
+    end)
+    --- 响应任务图标按钮点击的事件
+    self:subscribe(self.m_frame:on_event("quest_click"), function(quest_param)
+        self:quest_click_callback(quest_param)
+    end)
+    --- 响应传送点图标按钮点击的事件
+    self:subscribe(self.m_frame:on_event("trans_click"), function(trans_param, trans_pos)
+        self:teleport_point_click_callback(trans_param, trans_pos)
+    end)
+    --- 响应任务图标按钮点击的事件
+    self:subscribe(self.m_frame:on_event("refresh_trans_info"), function()
+        if not self["quest_info_gameObject"].activeSelf then
+            self["quest_info_gameObject"]:SetActive(true)
+        end
+    end)
+    --- 响应切换地图的点击事件
+    self:subscribe(self.m_frame:on_event("change_map"), function(map_id)
+        self:change_world_area_map(map_id)
+    end)
+end
+
+function big_map_view:refresh_owner_pos(pos)
+    self.m_icon_point.anchoredPosition3D = self:project_3d_pos_to_map_pos(pos)
+end
+
+function big_map_view:refresh_owner_dir(dir)
+    --- 高老庄副本特殊处理
+    if self.m_map_id == 20004 or self.m_map_id == 20005 or self.m_map_id == 20006 or self.m_map_id == 20007 then
+        self.m_icon_point.localEulerAngles = Vector3(0, 0, dir)
+    else
+       self.m_icon_point.localEulerAngles = Vector3(0, 0, -dir)
+    end
+end
+
+function big_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3((pos.x - self.m_map_left_bottom.x) * self.m_scale_x, (pos.z - self.m_map_left_bottom.z) * self.m_scale_y, 0)
+end
+
+------得到缩放
+function big_map_view:gain_xy_scale()
+    return self.m_scale_x, self.m_scale_y
+end
+
+function big_map_view:change_sprite(obj, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            obj.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+-----处理传送的一系列操作
+function big_map_view:on_do_trans(id)
+    self["map_bg_gameObject"]:SetActive(false)
+    self["quest_info_gameObject"]:SetActive(false)
+    self.m_go_map = dbc.teleport_point[id].map_id
+    --- 如果本地图传送，显示传送的loading条
+    self.m_trans_bar_text.text = dbc.teleport_point[id].teleport_point_name
+    self.m_trans_bar.gameObject:SetActive(true)
+    self.m_will_trans = true
+    self.m_tran_id = id
+end
+
+function big_map_view:doUpdate()
+    if self.m_begin_init then
+        self.m_prepare_time = self.m_prepare_time - app:get_delta_time()
+        local show = math.floor(self.m_prepare_time)
+        if show <= 0 then
+            if self.m_frame.m_mgr:getFrame("big_map") ~= nil then
+                self.m_ui_manager:DestroyUI("big_map")
+            end
+        end
+        if self.m_loading_text then
+            self.m_loading_text.text = "Loading..." .. tostring(show)
+        end
+    end
+
+    if self.m_send_done then
+        return
+    end
+
+    if self.m_tran_pro >= 1 then
+        self.m_map_manager:req_transform(self.m_tran_id)
+        self.m_send_done = true
+        self.m_trans_bar.gameObject:SetActive(false)
+        if self.m_go_map == self.m_world:get_map_id() then
+            self.m_loading.gameObject:SetActive(true)
+            self.m_begin_init = true
+        else
+            if self.m_frame.m_mgr:getFrame("big_map") ~= nil then
+                self.m_ui_manager:DestroyUI("big_map")
+            end
+        end
+        self.m_will_trans = false
+        return
+    end
+
+    if not self.m_will_trans then
+        return
+    end
+
+    if self.m_will_trans then
+        if self.m_tran_pro >= 1 then
+            self.m_will_trans = false
+            return
+        end
+        if self.m_tran_pro < 1 then
+            local pro = self.m_tran_pro + app:get_delta_time() * 0.5
+            self.m_tran_pro = pro
+            self.m_trans_bar_image.fillAmount = self.m_tran_pro
+        else
+            self.m_will_trans = false
+        end
+    end
+end
+
+--加载特效
+function big_map_view:load_sfx(path, parent, ui_name)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.rotation = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager:GetDepthName(ui_name))
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+        slua_timer.addDelayEvent(
+        2.0,
+        function()
+            --当大地图还存在时，将特效关闭
+            if self:getGO() then
+                go:SetActive(false)
+                component:Stop()
+            end
+        end)
+
+    end)
+end
+
+---- 切换世界、区域地图
+function big_map_view:change_world_area_map(map_id)
+    --- 若选择的区域地图不是当前所在区域的地图，则不显示玩家icon，若是则显示
+    self["player_icon_gameObject"]:SetActive(map_id == self.m_map_id)
+    local map_data = dbc.map[map_id]
+    if self.m_is_world_map then
+        self:refresh_map_data(map_id)
+        self:change_map_icon(map_id)
+        self:create_quest_parent(map_id)
+        self:create_trans_parent(map_id)
+        --self["area_map_content_gameObject"].transform.localPosition = Vector3.zero
+        if map_id == self.m_map_id then
+            self:set_map_show_pos(self["player_icon_gameObject"])
+        else
+            self["scrollbar_h_GUIScrollbar"].value = 0.5
+            self["scrollbar_v_GUIScrollbar"].value = 0.5
+        end
+        --- 根据任务是否被筛选设置本地图任务显示、隐藏，其余的全部隐藏
+        for _, v in pairs(self.m_area_map_quest) do
+            v:SetActive(v == self.m_cur_map_quest)
+        end
+        --- 根据传送点是否被筛选设置本地图传送点显示、隐藏，其余的全部隐藏
+        for _, v in pairs(self.m_area_map_trans) do
+            v:SetActive(v == self.m_cur_map_trans)
+        end
+        --- 世界地图切换到区域地图
+        self["area_map_content_gameObject"]:SetActive(true)
+        self["world_map_gameObject"]:SetActive(false)
+        self.m_frame:set_map_name(map_data.name)
+        self.m_frame:set_change_btn_text("世界")
+    else
+        --- 区域地图切换到世界地图
+        --self["area_map_GUIImage"].gameObject:SetActive(false)
+        self["area_map_content_gameObject"]:SetActive(false)
+        self["world_map_gameObject"]:SetActive(true)
+        self.m_frame:set_map_name("世界地图")
+        self.m_frame:set_change_btn_text("区域")
+        --- 切换到世界地图时抛出事件，参数为玩家当前所在的地图id
+        self.m_frame:emit_event("change_world_map", self.m_map_id)
+        self["quest_info_gameObject"]:SetActive(false)
+    end
+    self.m_is_world_map = not self.m_is_world_map
+end
+
+---- 创建每个区域地图的任务
+function big_map_view:create_quest_parent(map_id)
+    local area_map_quest = self.m_area_map_quest[map_id]
+    if area_map_quest then
+        self.m_cur_map_quest = area_map_quest
+    else
+        local quest_parent = Object.Instantiate(self["list_item_gameObject"])
+        quest_parent.name = string.format("quest_list_%d", map_id)
+        quest_parent.transform:SetParent(self["quest_list_gameObject"].transform)
+        quest_parent.transform.localPosition = Vector3.zero
+        quest_parent.transform.localScale = Vector3.one
+        quest_parent:SetActive(true)
+        self.m_area_map_quest[map_id] = quest_parent
+        self.m_cur_map_quest = quest_parent
+        --- 查找当前地图的任务,并将当前地图的任务数据保存起来
+        local area_quests = self.m_frame:create_quest_in_current_map(map_id)
+        local temp_area_quest = {}
+        for i = 1, #area_quests do
+            --- 剔除错误的任务信息，存在获取不到area_data的任务
+            if area_quests[i].area_data then
+                --- 获取任务应该显示在地图上的坐标
+                local quest_pos = self:project_3d_pos_to_map_pos(area_quests[i].area_data["worldPosition"])
+                temp_area_quest[i] = area_quests[i]
+                temp_area_quest[i].pos = quest_pos
+            end
+        end
+        self.m_area_map_quest_list[map_id] = temp_area_quest
+    end
+end
+
+---- 创建每个区域地图的传送点
+function big_map_view:create_trans_parent(map_id)
+    local area_map_trans = self.m_area_map_trans[map_id]
+    if area_map_trans then
+        self.m_cur_map_trans = area_map_trans
+    else
+        local trans_parent = Object.Instantiate(self["list_item_gameObject"])
+        trans_parent.name = string.format("trans_list_%d", map_id)
+        trans_parent.transform:SetParent(self["transmit_list_gameObject"].transform)
+        trans_parent.transform.localPosition = Vector3.zero
+        trans_parent.transform.localScale = Vector3.one
+        trans_parent:SetActive(true)
+        self.m_area_map_trans[map_id] = trans_parent
+        self.m_cur_map_trans = trans_parent
+        local create_trans = nil
+        --if self.m_map_id ~= map_id then
+        --- 查找当前地图的传送点
+        self.m_create_trans = self.m_frame:load_trans_point(map_id)
+        --end
+    end
+end
+
+---- 打开地图时默认将玩家位置显示在屏幕中心，若无法显示在中心则使地图贴边显示
+function big_map_view:set_map_show_pos(center_go)
+    --- 玩家icon的坐标
+    local center_go_pos = center_go:GetComponent(RectTransform).anchoredPosition3D
+    --- 屏幕的尺寸
+    local screen_size = self["map_area_gameObject"]:GetComponent(RectTransform).sizeDelta
+    --- 地图的尺寸
+    local map_size = self["area_map_gameObject"]:GetComponent(RectTransform).sizeDelta
+    --- 思路 icon在中心时地图超出content的距离与scrollbar为1时超出的距离的比值，作为scrollbar的值，0~1范围内
+    local value_h = (center_go_pos.x - screen_size.x / 2) / (map_size.x - screen_size.x)
+    local value_v = (center_go_pos.y - screen_size.y / 2) / (map_size.y - screen_size.y)
+    value_h = Mathf.Clamp01(value_h)
+    value_v = Mathf.Clamp01(value_v)
+    self["scrollbar_h_GUIScrollbar"].value = value_h
+    self["scrollbar_v_GUIScrollbar"].value = value_v
+end
+
+function big_map_view:change_map_icon(map_id)
+    local path_list = dbc.map[map_id].map_pic_path
+    for i = 1, #path_list do
+        local cache = string.format("area_map_%d_GUIImage", i)
+        self:change_sprite(self[cache], path_list[i])
+    end
+end
+
+--- 获取地图的左下、右上坐标及比例尺
+function big_map_view:refresh_map_data(map_id)
+    local map_info = dbc.map[map_id]
+    self.m_map_left_bottom = Vector3(map_info.left_bottom[1], 0, map_info.left_bottom[2])
+    self.m_map_right_up = Vector3(map_info.right_top[1], 0, map_info.right_top[2])
+    self.m_temp_map_size = self.m_map_right_up - self.m_map_left_bottom
+    --地图的尺寸
+    local map_size = self.m_map:GetComponent(UnityEngine.RectTransform).rect.size
+    self.m_scale_x = map_size.x / self.m_temp_map_size.x
+    self.m_scale_y = map_size.y / self.m_temp_map_size.z
+    self.m_frame:set_scale(self.m_scale_x, self.m_scale_y)
+end
+
+---- 点击任务图标的回调
+function big_map_view:quest_click_callback(quest_param)
+    --- 邻近的任务图标
+    local show_quest_list = {}
+    --- 邻近的传送点图标
+    local show_trans_list = {}
+    local quest_pos = self:project_3d_pos_to_map_pos(quest_param['area_data'].worldPosition)
+    local map_id = quest_param['map_id']
+    self:gain_current_map_teleport_point(map_id)
+    --- 找到邻近的任务图标
+    for _, value in pairs(self.m_area_map_quest_list[map_id]) do
+        local distance = Vector3.Distance(quest_pos, value.pos)
+        if distance <= 60 then
+            if quest_param['quest_data'] == value['quest_data'] then
+                --- 将自身作为表的第一个元素
+                table.insert(show_quest_list, 1, value)
+            else
+                table.insert(show_quest_list, value)
+            end
+        end
+    end
+    --- 找到邻近的传送点图标
+    for _, info in pairs(self.m_area_map_trans_list[map_id]) do
+        local distance = Vector3.Distance(quest_pos, info.pos)
+        if distance <= 60 then
+            table.insert(show_trans_list, info)
+        end
+    end
+    if #show_quest_list + #show_trans_list == 1 then
+        --- 若目标只有一个（即自身），直接刷新信息面板
+        self.m_frame:emit_event("refresh_quest_info", quest_param, false)
+    else
+        --- 若有多个目标则显示选择列表
+        self.m_frame:emit_event("show_choice_list", show_quest_list, enum.ui.Enum_UI_MapItemType.Item_Choice_Quest, show_trans_list, enum.ui.Enum_UI_MapItemType.Item_Choice_Teleport_Point)
+    end
+    if not self["quest_info_gameObject"].activeSelf then
+        self["quest_info_gameObject"]:SetActive(true)
+    end
+end
+
+---- 点击传送点图标的回调
+function big_map_view:teleport_point_click_callback(trans_param, trans_pos)
+    --- 邻近的任务图标
+    local show_quest_list = {}
+    --- 邻近的传送点图标
+    local show_trans_list = {}
+    local map_id = trans_param['map_id']
+    self:gain_current_map_teleport_point(map_id)
+    --- 找到邻近的任务图标
+    for _, value in pairs(self.m_area_map_quest_list[map_id]) do
+        local distance = Vector3.Distance(trans_pos, value.pos)
+        if distance <= 60 then
+            table.insert(show_quest_list, value)
+        end
+    end
+    --- 找到邻近的传送点图标
+    for _, info in pairs(self.m_area_map_trans_list[map_id]) do
+        local distance = Vector3.Distance(trans_pos, info.pos)
+        if distance <= 60 then
+            if trans_param['id'] == info['id'] then
+                --- 将自身作为表的第一个元素
+                table.insert(show_trans_list, 1, info)
+            else
+                table.insert(show_trans_list, info)
+            end
+        end
+    end
+    if #show_quest_list + #show_trans_list == 1 then
+        --- 若目标只有一个（即自身），直接刷新信息面板
+        self.m_frame:emit_event("refresh_trans_info", trans_param, false)
+    else
+        --- 若有多个目标则显示选择列表
+        self.m_frame:emit_event("show_choice_list", show_trans_list, enum.ui.Enum_UI_MapItemType.Item_Choice_Teleport_Point, show_quest_list, enum.ui.Enum_UI_MapItemType.Item_Choice_Quest)
+    end
+    if not self["quest_info_gameObject"].activeSelf then
+        self["quest_info_gameObject"]:SetActive(true)
+    end
+end
+
+function big_map_view:gain_current_map_teleport_point(map_id)
+    --- 地图创建初始不会在这里走创建传送点，之后会在这里走，在这里创建时就在这里取值，否则在frame中取值
+    local area_trans = self.m_create_trans or self.m_frame:gain_trans_info()
+    for i = 1, #area_trans do
+        local list_pos = {}
+        list_pos["x"] = dbc.teleport_point[area_trans[i].id].client_map_pos[1]
+        list_pos["z"] = dbc.teleport_point[area_trans[i].id].client_map_pos[2]
+        area_trans[i].pos = self:project_3d_pos_to_map_pos(list_pos)
+    end
+    --- 将本地图传送点信息保存起来
+    self.m_area_map_trans_list[map_id] = area_trans
+end
+
+---- 获取任务图标的父物体
+function big_map_view:gain_quest_icon_parent()
+    return self.m_cur_map_quest.transform
+end
+
+function big_map_view:gain_trans_icon_parent()
+    return self.m_cur_map_trans.transform
+end
+
+return big_map_view

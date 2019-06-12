@@ -1,0 +1,31 @@
+local Frame = require("system.frame")
+local matching_sure = class("matching_sure", Frame)
+
+function matching_sure:doInit(param)
+    self.m_dungeon_id = param[2]
+    self.m_dbid = param[1]
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function matching_sure:on_refuse_btn()
+    self:on_cancle_down(0, self.m_dbid)
+    self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+    self:destroySelf()
+end
+
+function matching_sure:on_sure_btn()
+    self:on_sure_down(1, self.m_dbid)
+    self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+    self:destroySelf()
+end
+
+function matching_sure:on_sure_down(sure, dbid)
+    self.m_matching_manager:agree_create_matching_inst(sure, dbid)
+end
+
+function matching_sure:on_cancle_down(sure, dbid)
+    self.m_matching_manager:agree_create_matching_inst(sure, dbid)
+end
+
+return matching_sure

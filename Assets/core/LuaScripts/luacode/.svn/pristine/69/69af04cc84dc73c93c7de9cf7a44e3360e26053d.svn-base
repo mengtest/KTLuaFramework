@@ -1,0 +1,14 @@
+local HintShow = {}
+
+Attribute.decl(HintShow,"hinttextOne")
+Attribute.decl(HintShow,"hinttextTwo")
+Attribute.decl(HintShow,"hinttextThree")
+Event.decl(HintShow,"reset")
+function HintShow:doInit()
+end
+
+
+function HintShow:reset()
+    self:emit_event("reset")
+end
+return HintShow

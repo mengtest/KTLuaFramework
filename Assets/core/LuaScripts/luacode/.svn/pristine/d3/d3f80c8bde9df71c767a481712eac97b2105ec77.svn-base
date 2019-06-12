@@ -1,0 +1,32 @@
+local row_0 = {['id']=1001,['delay_time']='0',['text']='虎符在此，灵猴一族，随我冲杀！救出同胞！',['time']=5,['bubble_id']=0}
+local row_1 = {['id']=1002,['delay_time']='0',['text']='滚出花果山，还我家园！',['time']=5,['bubble_id']=0}
+local row_2 = {['id']=1003,['delay_time']='0',['text']='天威不可违！',['time']=5,['bubble_id']=0}
+local row_3 = {['id']=1004,['delay_time']='0',['text']='终于解决掉这些天兵了，快随本将军继续前进。',['time']=5,['bubble_id']=0}
+local row_4 = {['id']=1005,['delay_time']='0',['text']='前面好像有道大门，绕道后面看看有没有打开发办法。',['time']=5,['bubble_id']=0}
+local row_5 = {['id']=1006,['delay_time']='0',['text']='这大门还真是坚硬啊，快看看那是些什么。',['time']=5,['bubble_id']=0}
+local row_6 = {['id']=1007,['delay_time']='0',['text']='我们必须打碎这些能量柱机关，才能将前面的石墙破坏。',['time']=5,['bubble_id']=0}
+local row_7 = {['id']=1008,['delay_time']='0',['text']='这些能量柱好像很强，大家要小心！',['time']=5,['bubble_id']=0}
+local row_8 = {['id']=1009,['delay_time']='0',['text']='干得漂亮，我们赶快进入山洞里营救同胞吧！',['time']=5,['bubble_id']=0}
+local row_9 = {['id']=1010,['delay_time']='0',['text']='这段山路很长，大家注意四周，避免埋伏！',['time']=5,['bubble_id']=0}
+local row_10 = {['id']=1011,['delay_time']='0',['text']='快看，我们的同胞就被绑在那边！',['time']=5,['bubble_id']=0}
+local row_11 = {['id']=1012,['delay_time']='0',['text']='快去解救这些小猴子，接下来我们还有很多事情要做！',['time']=5,['bubble_id']=0}
+local row_12 = {['id']=1013,['delay_time']='0',['text']='接下来我们要去营救大马猴了，大家快跟上！',['time']=5,['bubble_id']=0}
+local row_13 = {['id']=1014,['delay_time']='0',['text']='可恶的天兵，竟然用这种卑鄙的手段捆住大马猴！',['time']=5,['bubble_id']=0}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+	[1004] = row_3,
+	[1005] = row_4,
+	[1006] = row_5,
+	[1007] = row_6,
+	[1008] = row_7,
+	[1009] = row_8,
+	[1010] = row_9,
+	[1011] = row_10,
+	[1012] = row_11,
+	[1013] = row_12,
+	[1014] = row_13,
+}
+return datas

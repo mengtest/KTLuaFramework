@@ -1,0 +1,45 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+
+function big_map:doInit(param)
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_owner = self:getFrame("world"):get_main_player()
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    self:init()
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded(result)
+    if result == 1 then
+        ----表示在副本内     加载boss信息
+        self:createChild("boss_icon_" .. 1001, "%subsystem.map.big_map.big_map_boss", { ["id"] = 1001, ["pos"] = Vector3(-420,0,760) })
+    end
+    ------加载任务信息
+end
+
+return big_map

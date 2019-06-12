@@ -1,0 +1,37 @@
+local Frame = require("system.frame")
+local quick_matching_main = class("quick_matching_main", Frame)
+
+Event.decl(quick_matching_main, "team_btn_down")
+Event.decl(quick_matching_main, "troops_btn_down")
+Event.decl(quick_matching_main, "battle_btn_down")
+
+function quick_matching_main:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function quick_matching_main:on_loaded()
+    self:createChild("team_matching", "team.team_quick_matching.team_matching")
+end
+
+-- 关闭按钮回调
+function quick_matching_main:on_close_btn()
+    self.m_ui_manager:HideView("quick_matching_main")
+    self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 队伍按钮回调
+function quick_matching_main:on_team_btn()
+    self:emit_event("team_btn_down")
+end
+
+-- 团队按钮回调
+function quick_matching_main:on_troops_btn()
+    self:emit_event("troops_btn_down")
+end
+
+-- 战场按钮回调
+function quick_matching_main:on_battle_btn()
+    self:emit_event("battle_btn_down")
+end
+
+return quick_matching_main

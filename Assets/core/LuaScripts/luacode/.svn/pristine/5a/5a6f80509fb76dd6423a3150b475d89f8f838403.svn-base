@@ -1,0 +1,11 @@
+
+local Enum_Quest = {}
+
+Enum_Quest.Quest_State = {
+    Invalid  = 0,   -- 未开启
+    Unlocked = 1,   -- 已解锁
+    Reveived = 2,   -- 已接取
+    Finished = 3,   -- 已完成
+}
+
+return Enum_Quest

@@ -1,0 +1,40 @@
+
+local View = require("system.view")
+local Scroll_text_view = class("Scroll_text_view", View)
+
+function Scroll_text_view:doInit()
+    --[[local go = GameObject("Scroll_text")
+    local text = go:AddComponent(UnityEngine.UI.Text)
+    text.alignment = UnityEngine.TextAnchor.MiddleCenter
+    text.text = "gaga"
+    self:init_with_go(go, nil)--]]
+    
+    self:load("ui/scroll_text.prefab", function (go)
+        self.m_text_msg = go:GetComponent(UnityEngine.UI.Text)
+        
+        self:init_with_go(go, nil)
+    end)
+end
+
+function Scroll_text_view:on_prepared()
+    local this = self
+    self:subscribe(self.m_frame:on_event_attr_set("msg", true), function (msg)
+        this.m_text_msg.text = msg
+    end)
+    local tr = self:getGO().transform
+    local tweener = ShortcutExtensions.DOLocalMoveY(tr, 100, 3, false)
+    DG_DOTweenUtil.OnComplete(tweener, function ()
+        this:getFrame():destroy_self()
+    end)
+end
+
+
+
+
+
+
+
+
+
+
+return Scroll_text_view

@@ -1,0 +1,85 @@
+
+local model_mgr = require "common.model_mgr"
+
+local View = require("system.view")
+local CreateRoleView = class("CreateRoleView", View)
+
+CreateRoleView.Profession_Color = {
+    [SharedEnum.RoleClass.WARRIOR] = Color.green, -- 战士
+    [SharedEnum.RoleClass.MAGE] = Color.green, -- 法师
+    [SharedEnum.RoleClass.DRUID] = Color.green, -- 德鲁伊
+    [SharedEnum.RoleClass.HUNTER] = Color.green, -- 猎人
+    [SharedEnum.RoleClass.PRIEST] = Color.green, -- 牧师
+    [SharedEnum.RoleClass.ROGUE] = Color.green, -- 盗贼
+    [SharedEnum.RoleClass.DEMON_HUNTER] = Color.green, -- 恶魔猎手
+}
+
+CreateRoleView.Profession_Toggle_Name = {
+    [SharedEnum.RoleClass.WARRIOR] = nil,
+    [SharedEnum.RoleClass.MAGE] = "warriorShield",
+    [SharedEnum.RoleClass.DRUID] = nil,
+    [SharedEnum.RoleClass.HUNTER] = nil,
+    [SharedEnum.RoleClass.PRIEST] = "warriorSword",
+    [SharedEnum.RoleClass.ROGUE] = nil,
+    [SharedEnum.RoleClass.DEMON_HUNTER] = "archer",
+    
+}
+
+function CreateRoleView:doInit()
+    local this = self
+    
+    self:load("UI/CreateRole.prefab", function (go)
+        this:getFrame():on_ui_loaded(go)
+        local ui_manager = app:get_ui_manager()
+        ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+    end)
+    
+    self:subscribe(self:getFrame():on_event("ProfessionDown"), function (tog)
+        self:on_profession_down(tog)
+    end)
+    self:subscribe(self:getFrame():on_event("ProfessionUp"), function (tog)
+        self:on_profession_up(tog)
+    end)
+    
+    local path = string.format("Scenes/%s.unity", "juesezhanshi")
+    self:loadScene(path, function ()
+        this:getFrame():on_scene_loaded()
+    end)
+end
+
+function CreateRoleView:doDestroy()
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByName("juesezhanshi")
+    if s and s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function CreateRoleView:on_profession_down(tog)
+    if not tog then
+        return
+    end
+    local tr = tog.transform
+    local sequence = DOTween.Sequence()
+    local tweener_1 = ShortcutExtensions.DOScale(tr, 1.2, 0.1)
+    local tweener_2 = ShortcutExtensions.DOScale(tr, 1, 0.1)
+    TweenSettingsExtensions.Append(sequence, tweener_1)
+    TweenSettingsExtensions.Append(sequence, tweener_2)
+    
+    tr:Find("bg_normal").gameObject:SetActive(false)
+    tr:Find("bg_selected").gameObject:SetActive(true)
+end
+
+function CreateRoleView:on_profession_up(tog)
+    if not tog then
+        return
+    end
+    local tr = tog.transform
+    
+    tr:Find("bg_normal").gameObject:SetActive(true)
+    tr:Find("bg_selected").gameObject:SetActive(false)
+end
+
+
+
+return CreateRoleView

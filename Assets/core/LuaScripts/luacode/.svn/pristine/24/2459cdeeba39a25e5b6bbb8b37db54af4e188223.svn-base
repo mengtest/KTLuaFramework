@@ -1,0 +1,469 @@
+--[[
+	游戏所有的包
+--]]
+local U = require 'common.util.underscore'
+local dsl = require 'system.package.package_dsl'
+local AP = require 'system.asset_paths'
+
+local function ui_prefab( name )
+    return string.format('ui/%s.prefab', name)
+end
+
+local function colume( name )
+    return function( cfg )
+        return cfg[name]
+    end
+end
+
+local function colume_format( format, name )
+    return function( cfg )
+        return string.format(format, cfg[name])
+    end
+end
+
+local function add_res_with_cfg(result, cfg, ... )
+    U.each({ ... }, function( getter )
+        local value = getter(cfg)
+        if value and value ~= '' then
+            result[#result + 1] = value
+        end
+    end)
+end
+
+local function get_res_with_cfg(cfg, ... )
+    local result = {}
+    add_res_with_cfg(result, cfg, ...)
+    return result
+end
+
+local function table_all( table_name, ... )
+    local result = {}
+    local cfgs = assert(dbc[table_name], table_name)
+    for id, cfg in pairs(cfgs) do
+        add_res_with_cfg(result, cfg, ...)
+    end
+    return result
+end
+
+local function unique( list )
+    local set = {}
+    U.each(list, function( val )
+        set[val] = true
+    end)
+    return U.keys(set)
+end
+
+local function all_colume_values(cfgs, colume)
+    local result = {}
+    for _, cfg in pairs(cfgs) do
+        result[#result + 1] = cfg[colume]
+    end
+    return unique(result)
+end
+
+local function fixed_res( getter_name )
+    local tbl_name = getter_name .. '_params'
+    return U.values(AP[tbl_name])
+end
+
+---------------------------------------
+-- UI
+--
+local _uis = {
+    'Login',
+    "EquipmentBackpack",
+    "BackpackEquip",
+    "BackpackEquip",
+    "BackpackEquip",
+    "Equip_item",
+    "Equipment",
+    "EquipmentTipsParent",
+    "EquipmentTipsParent",
+    "EquipmentTipsParent",
+    "CharacterAttr",
+    "FashionableDress",
+    "Fashion_select_model",
+    "FeshionableDressInfoShow",
+    "FashionableDress",
+    "BigMap",
+    "BigMap",
+    "BigMapQuestInfo",
+    "BigMapQuestItem",
+    "BigMapQuest",
+    "BigMap",
+    "BigWorldMap",
+    "BigMapTrans",
+    "map/aim_area",
+    "map/aim_area",
+    "map/boss_point",
+    "map/NpcStatus",
+    "PopTextOverlay",
+    "Trace_quest_bar",
+    "Trace_quest_item",
+    "NPC_talking",
+    "Alert",
+    "QuestItem",
+    "QuestList",
+    "Quest",
+    "QuestShow",
+    "QuestList",
+    "Quiz",
+    "Hint",
+    "BossShow",
+    "PlayerController",
+    "Bubble",
+    "BuffContainer",
+    "HeadOverlay",
+    "CreateRole",
+    "Confirmdungeonprogress",
+    "DungeonJoinSelect",
+    "Dungeon_leave_sure",
+    "DungeonReset",
+    "DungeonStopTimeShow",
+    "Float_hint_text",
+    "HeadOverlay",
+    "InteractTip",
+    "Launcher",
+    "loading",
+    "Login",
+    "MiniIconTemplate",
+    "MiniMap",
+    "MessageBox",
+    "PlayerController",
+    "talent_icon_container",
+    "PlayerHPBar",
+    "Sect",
+    "Show",
+    "SkillShowList",
+    "SkillShowList",
+    "SkillSystemShow",
+    "SkillSetting",
+    "SkillSettingList",
+    "SkillSettingList",
+    "SkillSetting",
+    "Skill_show_hint",
+    "Talent",
+    "Talent",
+    "SpiritHandbookCard",
+    "SpiritHandBookInfo",
+    "SpiritHandbookList",
+    "SpiritHandbook",
+    "SpiritHandbook",
+    "SpiritInfo",
+    "SpiritList",
+    "SpiritList",
+    "SpiritBeastMain",
+    "SpiritMerge",
+    "SpiritMerge",
+    "SpiritBeastMain",
+    "SpiritPropertySkillBtn",
+    "SpiritSkillList",
+    "SpiritSkillSlot",
+    "SpiritSkillBtn",
+    "SpiritBeastMain",
+    "SpiritDevelop",
+    "SpiritUpgrade",
+    "Dungeon_leave_sure",
+    "Dungeon_leave_sure",
+    "MatchingDone",
+    "MatchingListItem",
+    "MatchingSure",
+    "Matching",
+    "PlayerController",
+    "threat_manager",
+    "Item",
+    "Main",
+    "Shop",
+    'SkillBtn',
+    'SpecialSkillBtn',
+    'TeamBar',
+    'TeamMatching',
+    'TeamMemberItem',
+    'TeamInvateItem',
+    'TeamBuffItem',
+    "Death"
+}
+
+dsl.pkg('ui', function( pkg )
+    U.each(_uis, function( ui_name )
+        pkg:add(ui_prefab(ui_name))
+    end)
+
+    pkg:add(
+    fixed_res('get_ui_main_view_resource'),
+    fixed_res('get_team_bar_view_resource'),
+    fixed_res('get_matching_view_resource'),
+    fixed_res('get_team_skilltarget_control_view_resource'),
+    fixed_res('get_mini_map_manager_resource'),
+    fixed_res('get_skill_ui_setting_view_resource'),
+    fixed_res('get_spirit_handbook_card_view_resource'),
+    fixed_res('get_spirit_merge_btn_view_resource'),
+    fixed_res('get_backpack_item_view_resource'),
+    fixed_res('get_player_controller_view_resource'),
+    fixed_res('get_sfx_asset'),
+    fixed_res('get_weather_resource'),
+    fixed_res('get_sidebar_view_resource'),
+    fixed_res('get_unit_view_resource'),
+    fixed_res('get_create_role_view_resource'),
+    fixed_res('get_world_resource'),
+    fixed_res('get_head_overlay_item_view'),
+    fixed_res('get_skill_cd_bar'),
+    fixed_res('get_skill_cd_bar_fill'),
+    fixed_res('get_top_hint_resource'))
+
+    pkg:add(table_all('matching_rule_client',
+    colume('pic_name')))
+end)
+
+---------------------------------------
+-- Scene
+--
+local function get_scene_file( cfg )
+    local map_name = cfg.res_client
+    local is_stream_map = cfg.load_map_type == 1
+
+    if is_stream_map then
+        return string.format("scenes/%s_game.unity", map_name .. "/" .. map_name)
+    end
+    return string.format("scenes/%s.unity", map_name)
+end
+
+local function get_map_streamer_scenes( cfg )
+    local is_stream_map = cfg.load_map_type == 1
+    if is_stream_map then
+        local map_name = cfg.res_client
+        local sub_scene_dir = string.format('Assets/scenes/%s/res', map_name)
+        return U.map(U.to_array(KTPackageLuaHelper.Glob(sub_scene_dir, "*.unity")), function( value )
+            return string.format('scenes/%s/res/%s.unity', map_name, value)
+        end)
+    end
+end
+
+local function get_map_streamer_resources( cfg )
+    local is_stream_map = cfg.load_map_type == 1
+
+    if is_stream_map then
+        local map_name = cfg.res_client
+        local sub_scene_dir = string.format('Assets/scenes/%s/res', map_name)
+        local sub_scene_prefab_dir = string.format('Assets/scenes/%s/prefad', map_name)
+        local result = {}
+        U.each(KTPackageLuaHelper.Glob(sub_scene_dir, "*.prefab"), function( asset )
+            result[#result + 1] = string.format('scenes/%s/res/%s.prefab', map_name, asset)
+        end)
+
+        U.each(KTPackageLuaHelper.Glob(sub_scene_prefab_dir, "*.prefab"), function( asset )
+            result[#result + 1] = string.format('scenes/%s/prefad/%s.prefab', map_name, asset)
+        end)
+
+        U.each(KTPackageLuaHelper.Glob(sub_scene_prefab_dir, "*.asset"), function( asset )
+            result[#result + 1] = string.format('scenes/%s/prefad/%s.asset', map_name, asset)
+        end)
+
+        return result
+    end
+end
+
+local function get_weather_config( cfg )
+    return 'weathers/WeatherSystem/' .. cfg.res_client .. '_skysphere_settings.asset'
+end
+
+local function get_weather_file( cfg )
+    return (cfg.load_map_type == 1) and string.format('weathers/%s_game.asset', cfg.res_client) or string.format('weathers/%s.asset', cfg.res_client)
+end
+
+local function get_ktpp_config( cfg )
+    return 'scene_prefabs/sky/KTPPSettings_' .. cfg.res_client .. '.asset'
+end
+
+
+for map_id, cfg in pairs(dbc.map) do
+    local pkg_prefix = string.format('map_%d', map_id)
+    dsl.pkg(pkg_prefix .. '_scene', function( pkg )
+        pkg:add(get_res_with_cfg(cfg,
+        get_scene_file,
+        get_map_streamer_scenes))
+
+        pkg:add(
+        fixed_res('get_ui_main_view_scene'),
+        fixed_res('get_create_role_view_scene'))
+    end)
+
+    dsl.pkg(pkg_prefix .. '_assets', function( pkg )
+        pkg:add(get_res_with_cfg(cfg,
+        colume('map_pic_path'),
+        colume('area_pic_path'),
+        get_map_streamer_resources,
+        get_weather_config,
+        get_weather_file,
+        get_ktpp_config))
+    end)
+end
+
+---------------------------------------
+-- model
+--
+local function get_model_prefab_name( cfg )
+    return string.format('actors/prefab/%s.prefab', cfg.prefab_name)
+end
+
+local function get_upper_anim(anim_path)
+    return string.gsub(anim_path, "%.anim", "_upper.anim")
+end
+
+local function get_model_anim_path_single( model_path, anim_name, with_upper )
+    local main_anim = string.format("models/Role/%s/animation/%s.anim", model_path, anim_name)
+    if not with_upper then
+        return main_anim
+    end
+
+    local upper_anim = get_upper_anim(main_anim)
+    return { main_anim, upper_anim }
+end
+
+local function get_model_anim_path( model_path, anim_name, with_upper )
+    if anim_name == '' then
+        return
+    end
+
+    if type(anim_name) == 'string' then
+        return get_model_anim_path_single(model_path, anim_name, with_upper)
+    end
+
+    return U.map(anim_name, function( name )
+        return get_model_anim_path_single(model_path, name, with_upper)
+    end)
+end
+
+local function anim_getter(model_id_colume, anim_name_colume, with_upper )
+    return function( cfg )
+        local model_id = assert(cfg[model_id_colume], model_id_colume)
+        local anim_name = assert(cfg[anim_name_colume], anim_name_colume)
+        local model_path = assert(dbc.model_path[model_id], model_id).model_path
+        return get_model_anim_path(model_path, anim_name, with_upper)
+    end
+end
+
+local function enum_anim_getter( anim_name, with_upper )
+    local all_model_paths = all_colume_values(dbc.model_path, 'model_path')
+    return function( cfg )
+        return U.map(all_model_paths, function(model_path)
+            return get_model_anim_path(model_path, cfg[anim_name], with_upper)
+        end)
+    end
+end
+
+dsl.pkg('models', function( pkg )
+    pkg:add(table_all('treasure',
+    anim_getter('interact_obj_display_id', 'normal_anim'),
+    anim_getter('interact_obj_display_id', 'success_anim'),
+    colume('success_sfx')))
+
+    pkg:add(table_all('model_path',
+    get_model_prefab_name,
+    colume('appearance_sfx'),
+    colume('appear_sfx'),
+    colume('exit_sfx'),
+    colume('creature_dead_sfx'),
+    colume('creature_be_hit_sfx')))
+
+    pkg:add(table_all('abiotic',
+    anim_getter('model_id', 'anim'),
+    colume('sfx')))
+
+    pkg:add(table_all('s2c_anim',
+    enum_anim_getter('anima_name', true),
+    colume('anima_sfx')))
+
+    pkg:add(table_all('item',
+    colume('bag_icon'),
+    colume('equip_path')))
+
+    pkg:add(table_all('sprite',
+    colume('icon'),
+    colume('handbook_icon')))
+
+    pkg:add(table_all('equip_quality_client',
+    colume('backpack_icon'),
+    colume('equip_big_icon'),
+    colume('equip_small_icon'),
+    colume('equip_middle_icon'),
+    colume('spirit_quality_icon')))
+end)
+
+---------------------------------------
+-- Character
+--
+dsl.pkg('character', function( pkg )
+    pkg:add(table_all('specialization', colume('animator')))
+
+    pkg:add(table_all('creature',
+    anim_getter('model_id', 'greet_action_id')))
+
+    pkg:add(table_all('spell_client',
+    colume('icon'),
+    colume('cd_icon'),
+    enum_anim_getter('move_anim', true),
+    enum_anim_getter('sing_anim_a', true),
+    enum_anim_getter('sing_anim_b', true),
+    enum_anim_getter('channel_anim', true),
+    enum_anim_getter('instant_anim', true),
+    colume('sing_sfx'),
+    colume('channel_sfx'),
+    colume('instant_pro_sfx'),
+    colume('instant_sfx'),
+    colume('cast_sfx'),
+    colume('cast_sfx_aim'),
+    colume('hit_sfx'),
+    colume('main_hit_sfx'),
+    colume('space_hit_sfx'),
+    colume('charge_sfx'),
+
+    colume('specialization_bg_path'),
+    colume('specialization_fill_path'),
+    colume('specialization_bright_path'),
+    colume('specialization_interrupt_path'),
+    colume('indicateareas_effect_path')))
+
+    pkg:add(table_all('spell_buff_client',
+    colume('buff_icon'),
+    colume('buff_sfx'),
+    colume('ui_sfx_path')))
+
+    pkg:add(table_all('vocation',
+    colume_format('ui/Icons/%s', 'btn_icon_normal'),
+    colume_format('ui/Icons/%s', 'btn_icon_pressed'),
+    colume_format('ui/Icons/%s', 'img_presentation')))
+
+    pkg:add(table_all('quiz',
+    enum_anim_getter('anim'),
+    enum_anim_getter('right_reaction'),
+    enum_anim_getter('wrong_reaction')))
+
+    pkg:add(table_all('talk',
+    enum_anim_getter('anim')))
+
+    pkg:add(table_all('fashion_dress',
+    colume('card_icon_path'),
+    colume('role_partical_path'),
+    colume('scene_partical_path'),
+    colume('character_partical_path'),
+    colume('theme_partical_path')))
+
+    pkg:add(table_all('weapon',
+    colume('weapon'),
+    colume('sfx'),
+    colume('blade')))
+
+    pkg:add(fixed_res('get_skill_projector'))
+end)
+
+---------------------------------------
+-- Audio
+--
+local function get_sound(cfg)
+    return string.format("actors/audio/%s/%s", cfg.group, cfg.name)
+end
+
+dsl.pkg('audio', function( pkg )
+    pkg:add(table_all('sound', get_sound))
+end)

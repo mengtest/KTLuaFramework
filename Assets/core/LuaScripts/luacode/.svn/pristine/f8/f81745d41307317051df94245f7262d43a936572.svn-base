@@ -1,0 +1,87 @@
+
+local Popup_item_base = require("view.popup_item.popup_item_base")
+local Popup_item_corner = class("Popup_item_corner", Popup_item_base)
+
+--local ObserverHost = require "system.observer_host"
+--Popup_item_corner:include(ObserverHost)
+
+
+Popup_item_corner.DirEnum = {
+    LeftUp = 1,
+    RightUp = 2,
+    RightDown = 3,
+    LeftDown = 4
+}
+
+Popup_item_corner.Const.dip_angle = 55             -- 扇形中线与y轴的倾角
+Popup_item_corner.Const.field_angle = 20           -- 随机取向的角度范围【扇形张角】
+Popup_item_corner.Const.curvature_coef = 0.2       -- 曲率系数（系数越大，抛物线越弯）
+
+function Popup_item_corner:init()
+    self.m_cur_duration = 0
+end
+
+function Popup_item_corner:set_dir(dir_enum,damage,is_down)
+    local curve_storage = app:get_curve_storage()
+
+
+    --local angle_center = 90 * dir_enum - 135 + (dir_enum % 2 == 1 and (45 - curve_storage.dipAngle) or (curve_storage.dipAngle - 45))
+    local angle_center = 90 * dir_enum - 135 + (dir_enum % 2 == 1 and (45 - self.Const.dip_angle) or (self.Const.dip_angle - 45))
+    if is_down then
+        angle_center = angle_center+180
+    end
+    --local field_angle = curve_storage.fieldAngle
+    local field_angle = self.Const.field_angle / 2
+    local angle = math.random(angle_center - field_angle, angle_center + field_angle)
+    local rst_dir = Quaternion.AngleAxis(angle, Vector3(0, 0, -1)) * Vector3.up
+    self.m_start_screen_pos = self.m_start_screen_pos + rst_dir * self:get_leave_coef()
+    self.m_tr.localPosition = self.m_start_screen_pos
+    --local end_screen_pos = self:get_inside_screen_pos(rst_dir, curve_storage.moveDisCoef * self.m_height)
+    local end_screen_pos = self:get_inside_screen_pos(rst_dir, self.Const.move_dis_coef * self.m_height)
+    self.m_end_screen_pos = end_screen_pos and end_screen_pos or self.m_start_screen_pos
+    local vec_fwd = self.m_end_screen_pos - self.m_start_screen_pos
+    local dir_fwd = vec_fwd.normalized
+    self.m_v_vec = vec_fwd / self.m_duration
+    self.m_side_dir = (Vector3.up - Vector3.Dot(dir_fwd, Vector3.up) * dir_fwd).normalized
+    --self.m_side_G = (8 * curve_storage.curvatureCoef * self.m_v_vec.magnitude) / (self.m_duration * self.m_duration)
+    self.m_side_G = (8 * self.Const.curvature_coef * self.m_v_vec.magnitude) / (self.m_duration * self.m_duration)
+    self.m_side_v0 = self.m_side_G * self.m_duration / 2
+
+    if not end_screen_pos then
+        self:set_duration(0)
+        if  damage then
+            local pc = app:getFrameMgr():getFrame("player_controller")
+            local info = {
+                damage =damage
+            }
+            pc:emit_event("poptextoverlay_add", info)
+            return
+        end
+
+    end
+
+    local speed_curve_name = self.m_is_cirt and "corner_cirt_speed" or "corner_speed"
+    local scale_curve_name = self.m_is_cirt and "corner_cirt_scale" or "corner_scale"
+
+    self.m_time_coef = 0
+    local tweener_pos = DG_DOTweenUtil.ToFloat(function (val)
+        self.m_time_coef = val
+    end, 0, self.m_duration, self.m_duration)
+    DG_DOTweenUtil.SetAnimationCurve(tweener_pos, curve_storage:GetAnimationCurve("damage_popup", speed_curve_name))
+    local tweener_scale = ShortcutExtensions.DOScale(self.m_tr, 2, self.m_duration)
+    DG_DOTweenUtil.SetAnimationCurve(tweener_scale, curve_storage:GetAnimationCurve("damage_popup", scale_curve_name))
+end
+
+function Popup_item_corner:update(delta_time)
+    self.m_cur_duration = self.m_cur_duration + delta_time
+    if self.m_cur_duration >= self.m_duration then
+        self.m_cur_duration = self.m_duration
+        return false
+    end
+    local vec_fwd = self.m_v_vec * self.m_time_coef
+    local vec_side = self.m_side_dir * (self.m_side_v0 * self.m_time_coef - 0.5 * self.m_side_G * self.m_time_coef * self.m_time_coef)
+    self.m_tr.localPosition = self.m_start_screen_pos + vec_fwd + vec_side
+    self:refresh_to_screen_pos()
+    return true
+end
+return Popup_item_corner

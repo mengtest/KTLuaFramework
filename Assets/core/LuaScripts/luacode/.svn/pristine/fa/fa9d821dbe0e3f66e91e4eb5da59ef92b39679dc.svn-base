@@ -1,0 +1,71 @@
+local rows = {}
+rows[1] = {['tmpl']=700001,['name']='传送门',['type']=3,['count']=0,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70002,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[2] = {['tmpl']=700002,['name']='水平死亡面',['type']=4,['count']=0,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70003,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=3,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[3] = {['tmpl']=700003,['name']='宝箱',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70001,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='smallcase_01_open',['success_sfx']={'sfx/skill/prefab/monster/chusheng_yanchen01_bai.prefab'},['success_sfx_mount']={'world'}}
+rows[4] = {['tmpl']=700004,['name']='空采集物',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[5] = {['tmpl']=700005,['name']='雷叉',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70006,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[6] = {['tmpl']=700006,['name']='捆绑的猴子',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70008,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[7] = {['tmpl']=700007,['name']='黄色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70009,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[8] = {['tmpl']=700008,['name']='绿色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70010,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[9] = {['tmpl']=700009,['name']='蓝色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70011,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[10] = {['tmpl']=700010,['name']='魂镜容器',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70012,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[11] = {['tmpl']=700011,['name']='三藏的凡尘',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70013,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[12] = {['tmpl']=700012,['name']='魂镜蓄能池',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70014,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[13] = {['tmpl']=700013,['name']='骨妖传送阵',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70015,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[14] = {['tmpl']=700014,['name']='魂镜遗迹',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70016,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[15] = {['tmpl']=700015,['name']='月光采集物',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70017,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={'sfx/skill/prefab/scene/datangbianjing/yuehuang_nengliangpenfa.prefab'},['success_sfx_mount']={'bottom'}}
+rows[16] = {['tmpl']=700016,['name']='魂魄',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70018,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[17] = {['tmpl']=700017,['name']='祭坛中心采集物',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70019,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[18] = {['tmpl']=700018,['name']='菜篮子',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70020,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[19] = {['tmpl']=700019,['name']='炸药桶',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70021,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='fight_die',['success_sfx']={'sfx/skill/prefab/scene/datangbianjing/cj_dtbj_jiutong_02.prefab'},['success_sfx_mount']={'Bone_mutong'}}
+rows[20] = {['tmpl']=700020,['name']='法阵采集物',['type']=0,['count']=1,['time']=1,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70022,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[21] = {['tmpl']=700021,['name']='树林中的湖水1',['type']=0,['count']=1,['time']=3,['dist']=5,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[22] = {['tmpl']=700022,['name']='树林中的湖水2',['type']=0,['count']=1,['time']=3,['dist']=5,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[23] = {['tmpl']=700023,['name']='树林中的湖水3',['type']=0,['count']=1,['time']=3,['dist']=5,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[24] = {['tmpl']=700024,['name']='平民窟的水果1',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[25] = {['tmpl']=700025,['name']='平民窟的水果2',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[26] = {['tmpl']=700026,['name']='水井下的宝贝',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[27] = {['tmpl']=700027,['name']='监神者的神祗',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[28] = {['tmpl']=700028,['name']='监神者的神祗',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[29] = {['tmpl']=700029,['name']='大唐边境的树',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[30] = {['tmpl']=700030,['name']='大唐边境的石头',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[31] = {['tmpl']=700031,['name']='烽火1',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[32] = {['tmpl']=700032,['name']='烽火2',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+rows[33] = {['tmpl']=700033,['name']='烽火3',['type']=0,['count']=1,['time']=5,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70023,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1',['normal_anim']='',['success_anim']='',['success_sfx']={},['success_sfx_mount']={}}
+
+local datas = {
+	[700001] = rows[1],
+	[700002] = rows[2],
+	[700003] = rows[3],
+	[700004] = rows[4],
+	[700005] = rows[5],
+	[700006] = rows[6],
+	[700007] = rows[7],
+	[700008] = rows[8],
+	[700009] = rows[9],
+	[700010] = rows[10],
+	[700011] = rows[11],
+	[700012] = rows[12],
+	[700013] = rows[13],
+	[700014] = rows[14],
+	[700015] = rows[15],
+	[700016] = rows[16],
+	[700017] = rows[17],
+	[700018] = rows[18],
+	[700019] = rows[19],
+	[700020] = rows[20],
+	[700021] = rows[21],
+	[700022] = rows[22],
+	[700023] = rows[23],
+	[700024] = rows[24],
+	[700025] = rows[25],
+	[700026] = rows[26],
+	[700027] = rows[27],
+	[700028] = rows[28],
+	[700029] = rows[29],
+	[700030] = rows[30],
+	[700031] = rows[31],
+	[700032] = rows[32],
+	[700033] = rows[33],
+}
+return datas

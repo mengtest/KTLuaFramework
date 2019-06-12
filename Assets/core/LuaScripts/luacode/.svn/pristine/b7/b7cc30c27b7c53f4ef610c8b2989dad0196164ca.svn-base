@@ -1,0 +1,23 @@
+local Frame = require("system.frame")
+local skill_ui_manager = class("skill_ui_manager", Frame)
+
+function skill_ui_manager:doInit()
+
+end
+
+function skill_ui_manager:init()
+    self:local_log("skill_ui_manager  初始化")
+    print("skill_ui_manager  ")
+end
+
+function skill_ui_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function skill_ui_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return skill_ui_manager

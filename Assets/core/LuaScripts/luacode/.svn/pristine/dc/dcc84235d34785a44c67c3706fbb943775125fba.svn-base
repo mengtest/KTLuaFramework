@@ -1,0 +1,20 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/27 14:00
+---
+local Frame = require("system.frame")
+local equipment_item = class("equipment_item", Frame)
+
+Attribute.decl(equipment_item, "level", "0")
+
+function equipment_item:doInit(params)
+    --self:set_is_dont_create_go_automatic(true)
+    self:set_is_add_rect_trans(true)
+    self.m_equip_name = params.name
+    self.m_quality_path = params.quality_path
+    self.m_equip_path = params.equip_path
+    self.m_level = params.level
+    self.m_parent_node = params.parent_node
+end
+
+return equipment_item

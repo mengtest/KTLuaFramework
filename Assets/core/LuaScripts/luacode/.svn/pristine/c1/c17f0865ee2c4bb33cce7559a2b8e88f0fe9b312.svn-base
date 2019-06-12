@@ -1,0 +1,9 @@
+local MessageBoxView = {}
+
+function MessageBoxView:doInit()
+	self:load(app:getAssetPathMgr().get_ui_view_asset("MessageBox"), function(go)
+
+	end)
+end
+
+return MessageBoxView

@@ -1,0 +1,65 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/5 10:03
+---
+local mini_map_icon_template_view = require("view.map.mini_map.mini_map_icon_template_view")
+local mini_map_trace_quest_icon_view = class("mini_map_trace_quest_icon_view", mini_map_icon_template_view)
+
+function mini_map_trace_quest_icon_view:doInit()
+    self:load_icon_prefab(self:getFrame():get_icon_path(), Vector2(0.5, 0.23))
+    self:load_event()
+end
+
+function mini_map_trace_quest_icon_view:refresh_icon_pos()
+    local quest_data = self:getFrame():get_quest_data()
+    if quest_data then
+        local min_dis, map_id, area_id = quest_data:get_target_info()
+        if min_dis == -1 then
+            return
+        end
+        local area_data = self:getFrame("world"):get_area_data(map_id, area_id)
+        if area_data == nil then
+            return
+        end
+        local quest_pos = area_data.worldPosition
+        self:set_quest_point_pos_at_edge(quest_pos)
+    end
+end
+
+--改变图片icon
+--type=1:追踪任务中心点在小地图内
+--type=2:追踪任务中心点在小地图外
+--function mini_map_icon_template_view:change_icon(type)
+--    local icon = nil
+--    local pivot = Vector2(0.5, 0.5)
+--    if type == 1 then
+--        icon = self:getFrame():get_area_icon_path()
+--        pivot = Vector2(0.5, 0.5)
+--        if self["particle"] then
+--            self["particle"].gameObject:SetActive(false)
+--        end
+--    elseif type == 2 then
+--        icon = self:getFrame():get_icon_path()
+--        pivot = Vector2(0.5, 0.23)
+--        if self["particle"] then
+--            self["particle"].gameObject:SetActive(true)
+--        end
+--    else
+--        icon = self:getFrame():get_icon_path()
+--    end
+--    self:load_icon(icon, pivot)
+--end
+
+function mini_map_trace_quest_icon_view:is_show(is_show)
+    if is_show then
+        self:show()
+    else
+        self:hide()
+    end
+end
+
+function mini_map_trace_quest_icon_view:local_log(...)
+    app:logError(string.format(...))
+end
+
+return mini_map_trace_quest_icon_view

@@ -1,0 +1,209 @@
+
+local model_mgr = require "common.model_mgr"
+local Exhibition = require("subsystem.exhibition")
+
+local Frame = require("system.frame")
+local CreateRole = class("CreateRole", Frame)
+
+Attribute.decl(CreateRole, "nickname", "")
+Event.decl(CreateRole, "ProfessionDown")
+Event.decl(CreateRole, "ProfessionUp")
+
+function CreateRole:doInit()
+    self.m_cam_tr = Camera.main.transform
+    self.m_account = nil
+    self.m_first_btn = nil
+    self.m_ctrller_dict = {}
+    self.m_cur_ctrller = nil
+    self.m_class_id = nil
+    self.m_tr = nil
+    
+    self:subscribe(app:getKBESDK():on_event("login_result"), function(ok, msg)
+		self:on_login_result(ok, msg)
+	end)
+end
+
+function CreateRole:doDestroy()
+    for k, ctrller in pairs(self.m_ctrller_dict) do
+        ctrller:destroy()
+    end
+    self.m_ctrller_dict = nil
+end
+
+function CreateRole:set_account(account)
+    self.m_account = account
+end
+
+function CreateRole:on_login_result(ok, msg)
+	if ok then
+		app:doGameWithKBE()
+		self:destroySelf()
+	end
+end
+
+--function CreateRole:on_warriorShield(is_on)
+--    if not is_on then return end
+--    self:on_switch(1)
+--end
+--
+--function CreateRole:on_warriorSword(is_on)
+--    if not is_on then return end
+--    self:on_switch(4)
+--end
+--
+--function CreateRole:on_archer(is_on)
+--    if not is_on then return end
+--    self:on_switch(6)
+--end
+--
+--function CreateRole:on_switch(class_id)
+--    if self.m_class_id == class_id then
+--        return
+--    end
+--    local cur_ctrller = self.m_ctrller_dict[class_id]
+--    if cur_ctrller then
+--        self:start_ctrller(cur_ctrller, class_id)
+--    else
+--        local this = self
+--        self:create_ctrller(class_id, function (ctrller)
+--            this:start_ctrller(ctrller, class_id)
+--        end)
+--    end
+--end
+
+function CreateRole:set_cur_class(class_id)
+    self.m_class_id = class_id
+end
+
+function CreateRole:on_btn_enter_game()
+    self.m_account:req_create_role(self.m_class_id)
+end
+
+function CreateRole:on_ui_loaded(go)
+    local ui_tr = go.transform
+    
+    local this = self
+    local btn_mask = ui_tr:Find("btn_mask"):GetComponent(KTButton)
+    btn_mask.onPointerDown = {"+=", function (evt)
+        this.m_cur_ctrller:on_pointer_down(evt)
+    end}
+    btn_mask.onPointerUp = {"+=", function (evt)
+        this.m_cur_ctrller:on_pointer_up(evt)
+    end}
+    
+    local parent_node = ui_tr:Find("grid_profession")
+    local btn_item_go = parent_node:Find("btn_item").gameObject
+    local first_mark = true
+    local sorted_vocation_keys = util.tab_keys(dbc.vocation)
+    table.sort(sorted_vocation_keys)
+    for kk, kv in ipairs(sorted_vocation_keys) do
+        local k = kv
+        local v = dbc.vocation[kv]
+        local cur_btn_go = Object.Instantiate(btn_item_go)
+        local cur_btn_tr = cur_btn_go.transform
+        local cur_tog = cur_btn_tr:GetComponent(UnityEngine.UI.Toggle)
+        cur_btn_tr.parent = parent_node
+        cur_btn_tr.localPosition = Vector3.zero
+        cur_btn_tr.localScale = Vector3.one
+        self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.btn_icon_normal)), function(asset_ref)
+            local tex = asset_ref.asset
+            cur_btn_tr:GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end)
+        self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.btn_icon_pressed)), function(asset_ref)
+            local tex = asset_ref.asset
+            cur_btn_tr:Find("img_selected"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end)
+        cur_tog.onValueChanged:AddListener(function (is_on)
+            if is_on then
+                self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.img_presentation)), function(asset_ref)
+                    local tex = asset_ref.asset
+                    ui_tr:Find("img_profession_describe"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                end)
+                this:btn_start(k, cur_tog)
+            else
+                this:btn_over(k, cur_tog)
+            end
+        end)
+        if first_mark then
+            self.m_first_btn = cur_tog
+            first_mark = false
+        end
+    end
+    btn_item_go:SetActive(false)
+end
+
+function CreateRole:get_full_path(local_path)
+    return "ui/Icons/" .. local_path
+end
+
+function CreateRole:btn_start(class_id, tog)
+    local cur_ctrller = self.m_ctrller_dict[class_id]
+    if cur_ctrller then
+        self:start_ctrller(cur_ctrller, class_id)
+    else
+        local this = self
+        self:create_ctrller(class_id, function (ctrller)
+            this:start_ctrller(ctrller, class_id)
+        end)
+    end
+    self:emit_event("ProfessionDown", tog)
+end
+
+function CreateRole:btn_over(class_id, tog)
+    local cur_ctrller = self.m_ctrller_dict[class_id]
+    if cur_ctrller then
+        --self:stop_ctrller(cur_ctrller)
+        cur_ctrller:stop()
+    end
+    self:emit_event("ProfessionUp", tog)
+end
+
+function CreateRole:start_ctrller(ctrller, class_id)
+    self.m_cur_ctrller = ctrller
+    self.m_class_id = class_id
+    ctrller:start()
+end
+
+--function CreateRole:stop_ctrller(ctrller)
+--    ctrller:stop()
+--end
+
+function CreateRole:on_scene_loaded()
+    self.m_first_btn.isOn = true
+end
+
+function CreateRole:create_ctrller(id, cb)
+    local this = self
+    local data = dbc.vocation[id]
+    if not data then
+        app:logError("未找到指定的vocation数据，id = " .. id)
+    end
+    local model_id = data.model_id
+    local exhibition_id = dbc.exhibition[data.exhibition_id] and data.exhibition_id or 1
+    self:subscribe(app:getResMgr():rxLoad(model_mgr.GetPrefabPathById(model_id)), function (asset_ref)
+        local go = Object.Instantiate(asset_ref.asset)
+        this:on_finished(go, data)
+        this.m_ctrller_dict[id] = Exhibition:new(go, exhibition_id)
+        if cb then
+            cb(this.m_ctrller_dict[id])
+        end
+    end)
+end
+
+function CreateRole:on_finished(go, data)
+    local tr = go.transform
+    tr.position = Vector3(data.role_pos[1], data.role_pos[2], data.role_pos[3])
+    tr.rotation = Vector3.zero
+    tr.localScale = Vector3.one * data.role_scale
+    
+    self.m_cam_tr.position = Vector3(data.cam_pos[1], data.cam_pos[2], data.cam_pos[3])
+    self.m_cam_tr.rotation = Quaternion.Euler(data.cam_rot[1], data.cam_rot[2], data.cam_rot[3])
+end
+
+function CreateRole:doUpdate()
+    if self.m_cur_ctrller then
+        self.m_cur_ctrller:update()
+    end
+end
+
+return CreateRole

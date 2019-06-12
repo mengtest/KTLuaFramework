@@ -1,0 +1,67 @@
+local View = require("system.view")
+local matching_list_item_view = class("matching_list_item_view", View)
+
+function matching_list_item_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    local frame = self:getFrame()
+    self.m_parent_frame = param
+    self.m_view_go = nil
+    self.m_dungeon_id = nil
+    self:load(app:getAssetPathMgr().get_ui_view_asset("MatchingListItem"), function(go)
+        self.m_view_go = self:getGO()
+        go.transform.localPosition = Vector3(710, -430, 0)
+        go.transform.localScale = Vector3.one
+
+        self:subscribe(frame:on_event("item_down"), function()
+            self:on_item_down()
+        end)
+
+        self:subscribe(frame:on_event("refresh"), function(val)
+            self:on_refresh(val)
+        end)
+
+        self:subscribe(frame:on_event("refresh_bg"), function(val)
+            self:on_refresh_bg()
+        end)
+
+        local max_num = self.m_dungeon_manager:gain_unlock_dungeon_length()
+        local name = frame:getFrameName()
+        if string.find(name, tostring(max_num)) then
+            if self.m_parent_frame:gain_is_matching() == 0 then
+                self.m_parent_frame:on_normal_btn()
+            else
+                self.m_parent_frame:on_sel_item()
+            end
+        end
+        self.m_view_go.gameObject:SetActive(false)
+    end)
+end
+
+-----被点击之后的处理
+function matching_list_item_view:on_item_down()
+    self["bg_img_GUIImage"].gameObject:SetActive(true)
+    self.m_parent_frame:refresh_bg(self:getFrame())
+    self.m_parent_frame:selected_matching_dungeon(self.m_dungeon_id)
+end
+
+-----刷新数据，这里来控制item是否显示，以及他要显示什么内容
+function matching_list_item_view:on_refresh(val)
+    if not val then
+        self.m_dungeon_id = nil
+        self.m_view_go.gameObject:SetActive(false)
+    else
+        self.m_dungeon_id = val
+        self.m_view_go.gameObject:SetActive(true)
+        local text = self["item_btn_GUIButton"].transform:GetComponent(UI.Text)
+        text.text = dbc.instances[val].name
+        self:on_refresh_bg()
+    end
+end
+
+----刷新BG
+function matching_list_item_view:on_refresh_bg()
+    self["bg_img_GUIImage"].gameObject:SetActive(false)
+end
+
+return matching_list_item_view

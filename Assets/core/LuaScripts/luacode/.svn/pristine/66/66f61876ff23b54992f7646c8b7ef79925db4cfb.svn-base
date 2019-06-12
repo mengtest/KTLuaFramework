@@ -1,0 +1,155 @@
+local M = {}
+
+Attribute.decl(M, "can_use", true)
+Attribute.decl(M, "highLight", false)
+Attribute.decl(M, "have_enough_mana", true)  -- rjy 2017.10.28 技能消耗
+Attribute.decl(M, "is_target_in_range", false)  -- rjy 2017.11.07施法距离
+
+Event.decl(M, "change_skill_data") -- 更换了技能data
+
+function M:doInit(parma)
+    local unit = parma.unit
+    self.m_unit = unit
+    self.m_skill_data = unit:get_skill(parma.id) --技能数据
+    local dbc_spell = dbc.spell[self.m_skill_data:get_id()]
+    self:check_condition(unit, dbc_spell)
+    self:check_cost_account()
+    self:check_charge_sfx()
+    
+end
+
+-- 修改按钮上绑定的技能数据
+function M:change_skill_data(skill_data)
+    local unit = self.m_unit
+    self.m_skill_data =skill_data --技能数据
+    local dbc_spell = dbc.spell[self.m_skill_data:get_id()]
+    self:check_condition(unit, dbc_spell)
+    self:check_cost_account()
+    self:check_charge_sfx()
+    self:emit_event("change_skill_data")
+end
+
+-- 检查充能特效,因为只有技能安装上之后才应该去显示这些东西  所以我认为放在按钮这里更合适
+function M:check_charge_sfx()
+    if(self.m_charge_sfx_list ~= nil) then
+        for i = 1,#self.m_charge_sfx_list do
+            self.m_charge_sfx_listi[i]:destroySelf()
+        end
+        self.m_charge_sfx_list = {}
+    end
+
+
+    local client_cfg =  self.m_skill_data:get_client_cfg()
+    local skill_mgr = app:getSkillMgr()
+
+    self.m_charge_sfx_list = skill_mgr:add_charge_sfx(client_cfg.charge_sfx,client_cfg.charge_mount_point,self.m_unit,self.m_skill_data)
+end
+
+
+
+function M:check_condition(unit, dbc_spell)
+    if (dbc_spell.condition > 0) then
+        --具有释放条件的技能
+        self:change_btn_state(false, false)
+
+        --临时做法 等待服务器修改位运算以及是否有通用枚举
+
+        --如果是目标眩晕
+        if (dbc_spell.condition == 1) then
+            self:subscribe(unit:on_event_target_set(), function(target)
+                if (self.m_target_func ~= nil) then
+                    self:unsubscribe(self.m_target_func)
+                end
+                if (target ~= nil) then
+                    self.m_target_func = self:subscribe(target:on_event_stunned_set(), function(val)
+                        self:change_btn_state_by_condition(val)
+                    end)
+                end
+            end)
+
+            -- self:subscribe(unit:on_event_stunned_set(), function(val)
+            --     self:change_btn_state_by_condition(val)
+            -- end)
+        end
+
+        --如果是自己眩晕
+        if (dbc_spell.condition == 2) then
+            self:subscribe(unit:on_event_stunned_set(), function(val)
+                self:change_btn_state_by_condition(val)
+            end)
+        end
+    end
+end
+
+
+function M:change_btn_state(can_use, is_highLight)
+    self:set_can_use(can_use)
+    self:set_highLight(is_highLight)
+end
+
+function M:change_btn_state_by_condition(val)
+    if (val == 1) then
+        self:change_btn_state(true, true)
+    else
+        self:change_btn_state(false, false)
+    end
+end
+
+
+-- rjy 2017.10.28 技能消耗
+function M:check_cost_account()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local role = kbe_mgr:get_entity(app:getKBESDK():get_player_id())
+
+    if self.m_skill_data:get_cost_type() == SharedEnum.SpellCostType.MANA then
+
+        self:subscribe(role:on_event_mana_set(true), function(val)
+            if val < self.m_skill_data:get_cost_num() / 10000 * role:get_mana_max() then
+                self:set_have_enough_mana(false)
+                --print("法力值不足啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊")
+            else
+                ---- TODO 总觉得这里之后还会加一些判断（下面两个同理）    遇到的时候再加   现在想不起来。。。。
+                if role:get_mana_max() == 0 then
+                    self:set_have_enough_mana(false)
+                else
+                    self:set_have_enough_mana(true)
+                end
+            end
+        end)
+
+    elseif self.m_skill_data:get_cost_type() == SharedEnum.SpellCostType.PAIN then
+        self:subscribe(role:on_event_pain_set(true), function(val)
+            if val < self.m_skill_data:get_cost_num() then
+                self:set_have_enough_mana(false)
+                --print("痛苦值不足啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊")
+            else
+                if role:get_pain_max() == 0 then
+                    self:set_have_enough_mana(false)
+                else
+                    self:set_have_enough_mana(true)
+                end
+            end
+        end)
+
+    elseif self.m_skill_data:get_cost_type() == SharedEnum.SpellCostType.FURY then
+        self:subscribe(role:on_event_fury_set(true), function(val)
+            if val < self.m_skill_data:get_cost_num() then
+                self:set_have_enough_mana(false)
+                --print("恶魔值不足啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊")
+            else
+                if role:get_fury_max() == 0 then
+                    self:set_have_enough_mana(false)
+                else
+                    self:set_have_enough_mana(true)
+                end
+            end
+        end)
+    end
+end
+
+
+function M:get_skill_data()
+    return self.m_skill_data
+end
+
+return M

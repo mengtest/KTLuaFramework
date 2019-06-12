@@ -1,0 +1,44 @@
+local Frame = require("system.frame")
+local random_matching = class("random_matching", Frame)
+
+Event.decl(random_matching, "show_normal")
+Event.decl(random_matching, "show_hero")
+Event.decl(random_matching, "show_diff")
+Event.decl(random_matching, "matching")
+Event.decl(random_matching, "attack_down")
+Event.decl(random_matching, "cure_down")
+Event.decl(random_matching, "defense_down")
+
+function random_matching:doInit(param)
+
+end
+
+function random_matching:on_normal_btn()
+    self:emit_event("show_normal")
+end
+
+function random_matching:on_hero_btn()
+    self:emit_event("show_hero")
+end
+
+function random_matching:on_diff_btn()
+    self:emit_event("show_diff")
+end
+
+function random_matching:on_attack_btn()
+    self:emit_event("attack_down")
+end
+
+function random_matching:on_cure_btn()
+    self:emit_event("cure_down")
+end
+
+function random_matching:on_defense_btn()
+    self:emit_event("defense_down")
+end
+
+function random_matching:on_matching_btn()
+    self:emit_event("matching")
+end
+
+return random_matching

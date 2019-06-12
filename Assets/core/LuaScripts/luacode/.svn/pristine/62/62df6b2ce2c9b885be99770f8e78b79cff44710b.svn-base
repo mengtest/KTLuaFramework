@@ -1,0 +1,76 @@
+local Frame = require("system.frame")
+local spirit_handbook_model_show = class("spirit_handbook_model_show", Frame)
+
+Event.decl(spirit_handbook_model_show, "show_image")
+Event.decl(spirit_handbook_model_show, "hide_image")
+
+function spirit_handbook_model_show:doInit()
+    self:set_is_add_rect_trans(true)
+    -- 存放模型的字典
+    self.m_model_dict = {}
+    -- 当前展示的模型
+    self.m_cur_model = nil
+
+    -- 点击槽位切换模型
+    self:subscribe(self:getFrame("spirit_handbook_list"):on_event("change_card"), function(id)
+        if id == 0 then
+            self:emit_event("show_image")
+        else
+            self:emit_event("hide_image")
+            self:load_model(dbc.sprite[id].model_id)
+        end
+    end)
+
+    self:subscribe(self:getFrame("sprite"):on_event("show"), function()
+        self:load_model(dbc.sprite[self:getFrame("spirit_handbook_list"):get_selected_card():get_id()].model_id)
+    end)
+end
+
+---- 加载模型
+function spirit_handbook_model_show:load_model(id)
+    local model = self.m_model_dict[id]
+    if model then
+        self.m_cur_model:SetActive(false)
+        model:SetActive(true)
+        self.m_cur_model = model
+        self.m_cur_model.transform.rotation = Vector3(0, 180, 0)
+    else
+        self:create_ctrller(id, function(model)
+            -- 将其余已创建的模型隐藏
+            for k, v in pairs(self.m_model_dict) do
+                if v ~= model then
+                    v:SetActive(false)
+                end
+            end
+            self.m_cur_model = model
+        end)
+    end
+end
+
+function spirit_handbook_model_show:create_ctrller(id, cb)
+    self:subscribe(app:getResMgr():rxLoad(app:get_model_mgr().GetPrefabPathById(id)), function(asset)
+        local go = Object.Instantiate(asset)
+        go.transform.position = Vector3(600, 0, 0)
+        go.transform.rotation = Vector3(0, 180, 0)
+        go.transform.localScale = Vector3.one * 1
+        self.m_model_dict[id] = go
+
+        if cb then
+            cb(self.m_model_dict[id])
+        end
+    end)
+end
+
+function spirit_handbook_model_show:start_rotate(is_clockwise, speed)
+    local rot_speed = 360 / 6 * speed
+    rot_speed = is_clockwise and rot_speed or -rot_speed
+    if self.m_cur_model then
+        self.m_cur_model.transform:Rotate(Vector3.up, rot_speed * Time.deltaTime)
+    end
+
+end
+function spirit_handbook_model_show:get_model_dict()
+    return self.m_model_dict
+end
+
+return spirit_handbook_model_show

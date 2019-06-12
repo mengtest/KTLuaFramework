@@ -1,0 +1,91 @@
+local View = require("system.view")
+local dungeon_reset_view = class("dungeon_reset_view", View)
+
+function dungeon_reset_view:doInit(param)
+    local dungeon_id = param.dungeon_id
+    --Debug.LogError("dungeon_reset_view"..tostring(dungeon_id))
+    local dungeon_progress = param.progress_arry
+    local drag_progress = param.drag_arry
+    local dungeon_reset = param.reset
+    --Debug.LogError("dungeon_reset......"..tostring(dungeon_reset))
+    self.m_pro_dic = {}
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self:load("ui/DungeonReset.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local accept_btn = go.transform:Find("confirm_dungeon_reset/accept_btn"):GetComponent(UI.Button)
+        local cancle_btn = go.transform:Find("confirm_dungeon_reset/cancle_btn"):GetComponent(UI.Button)
+        local reset_btn = go.transform:Find("confirm_dungeon_reset/reset_btn"):GetComponent(UI.Button)
+        self.tip_text = go.transform:Find("confirm_dungeon_reset/Scroll View/Viewport/Content"):GetComponent(UI.Text)
+        local reset_tip = go.transform:Find("confirm_dungeon_reset/reset_tip"):GetComponent(UI.Text)
+        local show_color = "red"
+        local level_tip_text = go.transform:Find("confirm_dungeon_reset/level_tip_text"):GetComponent(UI.Text)
+        local dungeon_name = dbc.instances[dungeon_id].name
+        level_tip_text.text = "您将进入进行中的"
+        level_tip_text.text = level_tip_text.text .. "<color="..show_color..">" .. dungeon_name .. "</color>副本"
+        local type = dbc.instances[dungeon_id].diff_name
+        level_tip_text.text = level_tip_text.text .. "<color="..show_color..">" .. type .. "</color>难度"
+        level_tip_text.text = level_tip_text.text .. "，当前副本进度如下："
+        accept_btn.onClick:AddListener(function()
+            self.m_dungeon_manager:base_call("accept_enter_instance", dungeon_id)
+            self.m_ui_manager:DestroyUI("dungeon_reset")
+        end)
+
+        cancle_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_reset")
+        end)
+        reset_btn.onClick:AddListener(function()
+            self.m_dungeon_manager:base_call("req_close_instance", dungeon_id)
+            self.m_ui_manager:DestroyUI("dungeon_reset")
+        end)
+        if dungeon_reset == 1 then
+            reset_tip.gameObject:SetActive(false)
+        else
+            reset_tip.gameObject:SetActive(true)
+            reset_btn.interactable = false
+        end
+        -----当前副本的需要显示的进度节点   这是一个列表   一个进度点在instance_progress中对应一个boss表
+        local progress_point = dbc.instances[dungeon_id].progresses
+        -------用一个字典来记载进度点，以及每一个进度点表示的boss的id组
+        --for k, v in ipairs(drag_progress) do
+        --    Debug.LogError("drag_progressV的值为......"..tostring(v))
+        --end
+        --for k, v in ipairs(dungeon_progress) do
+        --    Debug.LogError("dungeon_progressV的值为......"..tostring(v))
+        --end
+        for k, v in pairs(progress_point) do
+            local boss_name = dbc.creature[v].name
+            local progress_point_id = v
+            local boss_drag_state = drag_progress[k]
+            ----1代表存活状态   0代表死亡
+            self.m_pro_dic[progress_point_id] = { ["boss_name"] = boss_name, ["boss_state"] = 1, ["boss_drag_state"] = boss_drag_state }
+        end
+        ----判断收到服务器进度消息的处理  如果已经通过boss进度，则修改其存活状态
+        for k, v in pairs(dungeon_progress) do
+            if self.m_pro_dic[v] ~= nil then
+                self.m_pro_dic[v]["boss_state"] = 0
+            end
+        end
+        self.tip_text.text = ""
+        ------接下来做对应的英雄名字状态的显示   temp处理
+        for k, v in pairs(self.m_pro_dic) do
+            if v["boss_state"] == 1 then
+                self.tip_text.text = self.tip_text.text .. "\n" .. v["boss_name"] .. "\t\t\t\t\t\t\t\t\t\t" .. "存活"
+                if v["boss_drag_state"] == 1 then
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t" .. "可拾取"
+                else
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "不可拾取</color>"
+                end
+            elseif v["boss_state"] == 0 then
+                self.tip_text.text = self.tip_text.text .. "\n" .. v["boss_name"] .. "\t\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "已击杀</color>"
+                if v["boss_drag_state"] == 1 then
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t" .. "可拾取"
+                else
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "不可拾取</color>"
+                end
+            end
+        end
+    end)
+end
+
+return dungeon_reset_view

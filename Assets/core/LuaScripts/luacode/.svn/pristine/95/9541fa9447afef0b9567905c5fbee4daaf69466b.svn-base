@@ -1,0 +1,13 @@
+
+local Frame = require("system.frame")
+local dungeon_join = class("dungeon_join", Frame)
+
+function dungeon_join:doInit(param)
+
+end
+
+-------点击按钮后切换页面
+function dungeon_join:change_target(old, new)
+
+end
+return dungeon_join

@@ -1,0 +1,11 @@
+local rows = {}
+rows[1] = {['id']=1,['param']={4.0,24.0,0.2,0.4}}
+rows[2] = {['id']=2,['param']={1.0,2.0,0.2,0.2}}
+rows[3] = {['id']=3,['param']={0.5,3.0,0.1,0.1}}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+}
+return datas

@@ -1,0 +1,11 @@
+local rows = {}
+rows[1] = {['id']=11,['name']='监神者营地',['condi']={1},['condi_param']={20},['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=21,['map_id']=1004,['map_file']='res/map/ceshi.json',['diff_name']='',['des_one']='',['des_two']='',['time']=150,['chg_condi']={},['chg_val']={},['share_quest']={},['bind']=0,['reset_type']=0,['reset_time']={},['progresses']={},['prepare_time']=0,['boss_pos']={-90,545}}
+rows[2] = {['id']=12,['name']='监神者营地',['condi']={1},['condi_param']={1},['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=21,['map_id']=1004,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='',['des_one']='',['des_two']='',['time']=3600,['chg_condi']={},['chg_val']={},['share_quest']={},['bind']=0,['reset_type']=0,['reset_time']={},['progresses']={30106001},['prepare_time']=0,['boss_pos']={-90,545}}
+rows[3] = {['id']=13,['name']='监神者营地',['condi']={1},['condi_param']={1},['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='普通',['des_one']='单人副本',['des_two']='',['time']=3600,['chg_condi']={1},['chg_val']={},['share_quest']={201},['bind']=0,['reset_type']=0,['reset_time']={},['progresses']={30106001},['prepare_time']=0,['boss_pos']={-90,545}}
+
+local datas = {
+	[11] = rows[1],
+	[12] = rows[2],
+	[13] = rows[3],
+}
+return datas

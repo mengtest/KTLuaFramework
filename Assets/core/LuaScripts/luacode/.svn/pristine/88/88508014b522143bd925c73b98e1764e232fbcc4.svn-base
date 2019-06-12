@@ -1,0 +1,29 @@
+local View = require("system.view")
+local transmit_view = class("transmit_view", View)
+
+function transmit_view:doInit(param)
+    self.m_frame = self:getFrame()
+    self.m_map_manager = self:getFrame("map_manager")
+    self.m_big_map_view = self:getView("big_map")
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigMapTrans"), function(go)
+        --- 获取传送点图标的父物体
+        local icon_parent = self.m_big_map_view:gain_trans_icon_parent()
+        local trans_id = param.id
+        local list_pos = {}
+        list_pos["x"] = dbc.teleport_point[trans_id].client_map_pos[1]
+        list_pos["z"] = dbc.teleport_point[trans_id].client_map_pos[2]
+        local pos = self.m_big_map_view:project_3d_pos_to_map_pos(list_pos)
+        self.m_frame:set_trans_pos(pos)
+        go.transform:SetParent(icon_parent)
+        self.m_res_loaded = true
+        go.transform.localPosition = pos
+        go.transform.localScale = Vector3.one
+
+        local is_unlock = param['is_unlock']
+        self["transmit_use_icon_gameObject"]:SetActive(is_unlock)
+        self["transmit_no_icon_gameObject"]:SetActive(not is_unlock)
+    end)
+end
+
+return transmit_view

@@ -1,0 +1,109 @@
+local View = require("system.view")
+local fashion_select_card_view = class("fashion_select_card_view", View)
+
+function fashion_select_card_view:doInit(param)
+    self.m_param = param
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_fashionable_dress_list = self:getFrame("fashionable_dress_list")
+    self.m_suit_manager = self:getFrame("suit_manager")
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("FashionableDress"), function(loaded_go)
+        local template_go = loaded_go.transform:Find("dressing_room/card_group/Fashion_select_card").gameObject
+        local choiceGo = Object.Instantiate(template_go)
+        self:getGO():AddComponent(RectTransform)
+        choiceGo.transform:SetParent(self:getGO().transform)
+        choiceGo.transform.localPosition = Vector3.zero
+        choiceGo.transform.localScale = Vector3.one
+        choiceGo:SetActive(true)
+
+        self.m_card_icon = choiceGo:GetComponent(UI.Image)
+        self.m_residue_time = choiceGo.transform:Find("residue_time"):GetComponent(UI.Text)
+        self.m_price_obj = choiceGo.transform:Find("price").gameObject
+        self.m_price = self.m_price_obj.transform:Find("price"):GetComponent(UI.Text)
+        self.m_wear_state = choiceGo.transform:Find("wear").gameObject
+        --点击按钮后的两个选中效果
+        self.m_select_icon = choiceGo.transform:Find("select").gameObject
+        self.m_light_icon = choiceGo.transform:Find("light").gameObject
+        --时装选择按钮
+        self.m_test_fashion_bt = choiceGo:GetComponent(UI.Button)
+        self.m_test_fashion_bt.onClick:AddListener(function()
+            self:card_click_call_back()
+        end)
+
+        self:subscribe(self.m_frame:on_event("close_icons"), function()
+            self.m_select_icon:SetActive(false)
+            self.m_light_icon:SetActive(false)
+        end)
+        self:refresh_self(param)
+    end)
+end
+
+function fashion_select_card_view:refresh_self(params)
+    --临时做法，忽略所有参数为number类型的卡牌 temp
+    if type(params) == 'number' then
+        return
+    end
+    local price = params.info.price
+    local time_limit = params.info.time_limit
+    local icon_path = params.info.card_icon_path
+    ---获取套装包含的套件
+    local suit_contains = self.m_suit_manager:check_suit_contains(params.info.id)
+    ---套装中各个套件是否拥有
+    local suit_contains_state = {}
+
+    self:change_sprite(self.m_card_icon, icon_path)
+    ---暂时定义第三件为已拥有时装，temp 以后通过服务器获取
+    --if params['index'] % 5 ~= 3 then
+    --    self.m_price_obj:SetActive(true)
+    --    self.m_price.text = price
+    --end
+    if suit_contains and params.info.type == 0 then
+        local sum = 0
+        local count = 0
+        for k, v in pairs(suit_contains) do
+            suit_contains_state[k] = self.m_suit_manager:check_whether_own_suit(v)
+            sum = sum + self.m_suit_manager:check_whether_own_suit(v)
+            count = count + 1
+        end
+        if sum / count == 0 then
+            -- 一件都没有
+            self.m_price_obj:SetActive(true)
+            self.m_price.text = price
+        elseif sum / count == 1 then
+            --全都有
+        else
+            --部分拥有
+        end
+    end
+
+    --if #time_limit > 1 then
+    --    self.m_residue_time.gameObject:SetActive(true)
+    --    local value = string.format("剩余<Color=#f00>%d</Color>天<Color=#f00>%d</Color>小时", time_limit[1], time_limit[2])
+    --    self.m_residue_time.text = value
+    --end
+end
+
+------点击卡片后的回调
+function fashion_select_card_view:card_click_call_back()
+    local param_list = { ['frame'] = self.m_frame, ['dress_info'] = self.m_param }
+    --将选中效果显示
+    self.m_select_icon:SetActive(true)
+    self.m_light_icon:SetActive(true)
+    ShortcutExtensions.DOScale(self.m_select_icon.transform, 1.3, 0.1)
+    ShortcutExtensions.DOScale(self.m_select_icon.transform, 1, 0.5)
+    self.m_fashionable_dress_list:emit_event("card_click", param_list)
+end
+
+function fashion_select_card_view:change_sprite(image, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return fashion_select_card_view

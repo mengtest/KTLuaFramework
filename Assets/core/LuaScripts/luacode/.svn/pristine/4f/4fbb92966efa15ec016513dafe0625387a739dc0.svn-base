@@ -1,0 +1,505 @@
+local rows = {}
+rows[1] = {['rank']=11,['invert']=100,['cost']=1}
+rows[2] = {['rank']=21,['invert']=200,['cost']=8}
+rows[3] = {['rank']=31,['invert']=300,['cost']=27}
+rows[4] = {['rank']=41,['invert']=400,['cost']=64}
+rows[5] = {['rank']=51,['invert']=500,['cost']=125}
+rows[6] = {['rank']=61,['invert']=600,['cost']=216}
+rows[7] = {['rank']=71,['invert']=700,['cost']=343}
+rows[8] = {['rank']=81,['invert']=800,['cost']=512}
+rows[9] = {['rank']=91,['invert']=900,['cost']=729}
+rows[10] = {['rank']=101,['invert']=1000,['cost']=1000}
+rows[11] = {['rank']=111,['invert']=1100,['cost']=1331}
+rows[12] = {['rank']=121,['invert']=1200,['cost']=1728}
+rows[13] = {['rank']=131,['invert']=1300,['cost']=2197}
+rows[14] = {['rank']=141,['invert']=1400,['cost']=2744}
+rows[15] = {['rank']=151,['invert']=1500,['cost']=3375}
+rows[16] = {['rank']=161,['invert']=1600,['cost']=4096}
+rows[17] = {['rank']=171,['invert']=1700,['cost']=4913}
+rows[18] = {['rank']=181,['invert']=1800,['cost']=5832}
+rows[19] = {['rank']=191,['invert']=1900,['cost']=6859}
+rows[20] = {['rank']=201,['invert']=2000,['cost']=8000}
+rows[21] = {['rank']=211,['invert']=2100,['cost']=9261}
+rows[22] = {['rank']=221,['invert']=2200,['cost']=10648}
+rows[23] = {['rank']=231,['invert']=2300,['cost']=12167}
+rows[24] = {['rank']=241,['invert']=2400,['cost']=13824}
+rows[25] = {['rank']=251,['invert']=2500,['cost']=15625}
+rows[26] = {['rank']=261,['invert']=2600,['cost']=17576}
+rows[27] = {['rank']=271,['invert']=2700,['cost']=19683}
+rows[28] = {['rank']=281,['invert']=2800,['cost']=21952}
+rows[29] = {['rank']=291,['invert']=2900,['cost']=24389}
+rows[30] = {['rank']=301,['invert']=3000,['cost']=0}
+rows[31] = {['rank']=12,['invert']=200,['cost']=1}
+rows[32] = {['rank']=22,['invert']=300,['cost']=8}
+rows[33] = {['rank']=32,['invert']=400,['cost']=27}
+rows[34] = {['rank']=42,['invert']=500,['cost']=64}
+rows[35] = {['rank']=52,['invert']=600,['cost']=125}
+rows[36] = {['rank']=62,['invert']=700,['cost']=216}
+rows[37] = {['rank']=72,['invert']=800,['cost']=343}
+rows[38] = {['rank']=82,['invert']=900,['cost']=512}
+rows[39] = {['rank']=92,['invert']=1000,['cost']=729}
+rows[40] = {['rank']=102,['invert']=1100,['cost']=1000}
+rows[41] = {['rank']=112,['invert']=1200,['cost']=1331}
+rows[42] = {['rank']=122,['invert']=1300,['cost']=1728}
+rows[43] = {['rank']=132,['invert']=1400,['cost']=2197}
+rows[44] = {['rank']=142,['invert']=1500,['cost']=2744}
+rows[45] = {['rank']=152,['invert']=1600,['cost']=3375}
+rows[46] = {['rank']=162,['invert']=1700,['cost']=4096}
+rows[47] = {['rank']=172,['invert']=1800,['cost']=4913}
+rows[48] = {['rank']=182,['invert']=1900,['cost']=5832}
+rows[49] = {['rank']=192,['invert']=2000,['cost']=6859}
+rows[50] = {['rank']=202,['invert']=2100,['cost']=8000}
+rows[51] = {['rank']=212,['invert']=2200,['cost']=9261}
+rows[52] = {['rank']=222,['invert']=2300,['cost']=10648}
+rows[53] = {['rank']=232,['invert']=2400,['cost']=12167}
+rows[54] = {['rank']=242,['invert']=2500,['cost']=13824}
+rows[55] = {['rank']=252,['invert']=2600,['cost']=15625}
+rows[56] = {['rank']=262,['invert']=2700,['cost']=17576}
+rows[57] = {['rank']=272,['invert']=2800,['cost']=19683}
+rows[58] = {['rank']=282,['invert']=2900,['cost']=21952}
+rows[59] = {['rank']=292,['invert']=3000,['cost']=24389}
+rows[60] = {['rank']=302,['invert']=3100,['cost']=27000}
+rows[61] = {['rank']=312,['invert']=3200,['cost']=29791}
+rows[62] = {['rank']=322,['invert']=3300,['cost']=32768}
+rows[63] = {['rank']=332,['invert']=3400,['cost']=35937}
+rows[64] = {['rank']=342,['invert']=3500,['cost']=39304}
+rows[65] = {['rank']=352,['invert']=3600,['cost']=42875}
+rows[66] = {['rank']=362,['invert']=3700,['cost']=46656}
+rows[67] = {['rank']=372,['invert']=3800,['cost']=50653}
+rows[68] = {['rank']=382,['invert']=3900,['cost']=54872}
+rows[69] = {['rank']=392,['invert']=4000,['cost']=59319}
+rows[70] = {['rank']=402,['invert']=4100,['cost']=0}
+rows[71] = {['rank']=13,['invert']=300,['cost']=1}
+rows[72] = {['rank']=23,['invert']=400,['cost']=8}
+rows[73] = {['rank']=33,['invert']=500,['cost']=27}
+rows[74] = {['rank']=43,['invert']=600,['cost']=64}
+rows[75] = {['rank']=53,['invert']=700,['cost']=125}
+rows[76] = {['rank']=63,['invert']=800,['cost']=216}
+rows[77] = {['rank']=73,['invert']=900,['cost']=343}
+rows[78] = {['rank']=83,['invert']=1000,['cost']=512}
+rows[79] = {['rank']=93,['invert']=1100,['cost']=729}
+rows[80] = {['rank']=103,['invert']=1200,['cost']=1000}
+rows[81] = {['rank']=113,['invert']=1300,['cost']=1331}
+rows[82] = {['rank']=123,['invert']=1400,['cost']=1728}
+rows[83] = {['rank']=133,['invert']=1500,['cost']=2197}
+rows[84] = {['rank']=143,['invert']=1600,['cost']=2744}
+rows[85] = {['rank']=153,['invert']=1700,['cost']=3375}
+rows[86] = {['rank']=163,['invert']=1800,['cost']=4096}
+rows[87] = {['rank']=173,['invert']=1900,['cost']=4913}
+rows[88] = {['rank']=183,['invert']=2000,['cost']=5832}
+rows[89] = {['rank']=193,['invert']=2100,['cost']=6859}
+rows[90] = {['rank']=203,['invert']=2200,['cost']=8000}
+rows[91] = {['rank']=213,['invert']=2300,['cost']=9261}
+rows[92] = {['rank']=223,['invert']=2400,['cost']=10648}
+rows[93] = {['rank']=233,['invert']=2500,['cost']=12167}
+rows[94] = {['rank']=243,['invert']=2600,['cost']=13824}
+rows[95] = {['rank']=253,['invert']=2700,['cost']=15625}
+rows[96] = {['rank']=263,['invert']=2800,['cost']=17576}
+rows[97] = {['rank']=273,['invert']=2900,['cost']=19683}
+rows[98] = {['rank']=283,['invert']=3000,['cost']=21952}
+rows[99] = {['rank']=293,['invert']=3100,['cost']=24389}
+rows[100] = {['rank']=303,['invert']=3200,['cost']=27000}
+rows[101] = {['rank']=313,['invert']=3300,['cost']=29791}
+rows[102] = {['rank']=323,['invert']=3400,['cost']=32768}
+rows[103] = {['rank']=333,['invert']=3500,['cost']=35937}
+rows[104] = {['rank']=343,['invert']=3600,['cost']=39304}
+rows[105] = {['rank']=353,['invert']=3700,['cost']=42875}
+rows[106] = {['rank']=363,['invert']=3800,['cost']=46656}
+rows[107] = {['rank']=373,['invert']=3900,['cost']=50653}
+rows[108] = {['rank']=383,['invert']=4000,['cost']=54872}
+rows[109] = {['rank']=393,['invert']=4100,['cost']=59319}
+rows[110] = {['rank']=403,['invert']=4200,['cost']=64000}
+rows[111] = {['rank']=413,['invert']=4300,['cost']=68921}
+rows[112] = {['rank']=423,['invert']=4400,['cost']=74088}
+rows[113] = {['rank']=433,['invert']=4500,['cost']=79507}
+rows[114] = {['rank']=443,['invert']=4600,['cost']=85184}
+rows[115] = {['rank']=453,['invert']=4700,['cost']=91125}
+rows[116] = {['rank']=463,['invert']=4800,['cost']=97336}
+rows[117] = {['rank']=473,['invert']=4900,['cost']=103823}
+rows[118] = {['rank']=483,['invert']=5000,['cost']=110592}
+rows[119] = {['rank']=493,['invert']=5100,['cost']=117649}
+rows[120] = {['rank']=503,['invert']=5200,['cost']=0}
+rows[121] = {['rank']=14,['invert']=400,['cost']=1}
+rows[122] = {['rank']=24,['invert']=500,['cost']=8}
+rows[123] = {['rank']=34,['invert']=600,['cost']=27}
+rows[124] = {['rank']=44,['invert']=700,['cost']=64}
+rows[125] = {['rank']=54,['invert']=800,['cost']=125}
+rows[126] = {['rank']=64,['invert']=900,['cost']=216}
+rows[127] = {['rank']=74,['invert']=1000,['cost']=343}
+rows[128] = {['rank']=84,['invert']=1100,['cost']=512}
+rows[129] = {['rank']=94,['invert']=1200,['cost']=729}
+rows[130] = {['rank']=104,['invert']=1300,['cost']=1000}
+rows[131] = {['rank']=114,['invert']=1400,['cost']=1331}
+rows[132] = {['rank']=124,['invert']=1500,['cost']=1728}
+rows[133] = {['rank']=134,['invert']=1600,['cost']=2197}
+rows[134] = {['rank']=144,['invert']=1700,['cost']=2744}
+rows[135] = {['rank']=154,['invert']=1800,['cost']=3375}
+rows[136] = {['rank']=164,['invert']=1900,['cost']=4096}
+rows[137] = {['rank']=174,['invert']=2000,['cost']=4913}
+rows[138] = {['rank']=184,['invert']=2100,['cost']=5832}
+rows[139] = {['rank']=194,['invert']=2200,['cost']=6859}
+rows[140] = {['rank']=204,['invert']=2300,['cost']=8000}
+rows[141] = {['rank']=214,['invert']=2400,['cost']=9261}
+rows[142] = {['rank']=224,['invert']=2500,['cost']=10648}
+rows[143] = {['rank']=234,['invert']=2600,['cost']=12167}
+rows[144] = {['rank']=244,['invert']=2700,['cost']=13824}
+rows[145] = {['rank']=254,['invert']=2800,['cost']=15625}
+rows[146] = {['rank']=264,['invert']=2900,['cost']=17576}
+rows[147] = {['rank']=274,['invert']=3000,['cost']=19683}
+rows[148] = {['rank']=284,['invert']=3100,['cost']=21952}
+rows[149] = {['rank']=294,['invert']=3200,['cost']=24389}
+rows[150] = {['rank']=304,['invert']=3300,['cost']=27000}
+rows[151] = {['rank']=314,['invert']=3400,['cost']=29791}
+rows[152] = {['rank']=324,['invert']=3500,['cost']=32768}
+rows[153] = {['rank']=334,['invert']=3600,['cost']=35937}
+rows[154] = {['rank']=344,['invert']=3700,['cost']=39304}
+rows[155] = {['rank']=354,['invert']=3800,['cost']=42875}
+rows[156] = {['rank']=364,['invert']=3900,['cost']=46656}
+rows[157] = {['rank']=374,['invert']=4000,['cost']=50653}
+rows[158] = {['rank']=384,['invert']=4100,['cost']=54872}
+rows[159] = {['rank']=394,['invert']=4200,['cost']=59319}
+rows[160] = {['rank']=404,['invert']=4300,['cost']=64000}
+rows[161] = {['rank']=414,['invert']=4400,['cost']=68921}
+rows[162] = {['rank']=424,['invert']=4500,['cost']=74088}
+rows[163] = {['rank']=434,['invert']=4600,['cost']=79507}
+rows[164] = {['rank']=444,['invert']=4700,['cost']=85184}
+rows[165] = {['rank']=454,['invert']=4800,['cost']=91125}
+rows[166] = {['rank']=464,['invert']=4900,['cost']=97336}
+rows[167] = {['rank']=474,['invert']=5000,['cost']=103823}
+rows[168] = {['rank']=484,['invert']=5100,['cost']=110592}
+rows[169] = {['rank']=494,['invert']=5200,['cost']=117649}
+rows[170] = {['rank']=504,['invert']=5300,['cost']=125000}
+rows[171] = {['rank']=514,['invert']=5400,['cost']=132651}
+rows[172] = {['rank']=524,['invert']=5500,['cost']=140608}
+rows[173] = {['rank']=534,['invert']=5600,['cost']=148877}
+rows[174] = {['rank']=544,['invert']=5700,['cost']=157464}
+rows[175] = {['rank']=554,['invert']=5800,['cost']=166375}
+rows[176] = {['rank']=564,['invert']=5900,['cost']=175616}
+rows[177] = {['rank']=574,['invert']=6000,['cost']=185193}
+rows[178] = {['rank']=584,['invert']=6100,['cost']=195112}
+rows[179] = {['rank']=594,['invert']=6200,['cost']=205379}
+rows[180] = {['rank']=604,['invert']=6300,['cost']=0}
+rows[181] = {['rank']=15,['invert']=500,['cost']=1}
+rows[182] = {['rank']=25,['invert']=600,['cost']=8}
+rows[183] = {['rank']=35,['invert']=700,['cost']=27}
+rows[184] = {['rank']=45,['invert']=800,['cost']=64}
+rows[185] = {['rank']=55,['invert']=900,['cost']=125}
+rows[186] = {['rank']=65,['invert']=1000,['cost']=216}
+rows[187] = {['rank']=75,['invert']=1100,['cost']=343}
+rows[188] = {['rank']=85,['invert']=1200,['cost']=512}
+rows[189] = {['rank']=95,['invert']=1300,['cost']=729}
+rows[190] = {['rank']=105,['invert']=1400,['cost']=1000}
+rows[191] = {['rank']=115,['invert']=1500,['cost']=1331}
+rows[192] = {['rank']=125,['invert']=1600,['cost']=1728}
+rows[193] = {['rank']=135,['invert']=1700,['cost']=2197}
+rows[194] = {['rank']=145,['invert']=1800,['cost']=2744}
+rows[195] = {['rank']=155,['invert']=1900,['cost']=3375}
+rows[196] = {['rank']=165,['invert']=2000,['cost']=4096}
+rows[197] = {['rank']=175,['invert']=2100,['cost']=4913}
+rows[198] = {['rank']=185,['invert']=2200,['cost']=5832}
+rows[199] = {['rank']=195,['invert']=2300,['cost']=6859}
+rows[200] = {['rank']=205,['invert']=2400,['cost']=8000}
+rows[201] = {['rank']=215,['invert']=2500,['cost']=9261}
+rows[202] = {['rank']=225,['invert']=2600,['cost']=10648}
+rows[203] = {['rank']=235,['invert']=2700,['cost']=12167}
+rows[204] = {['rank']=245,['invert']=2800,['cost']=13824}
+rows[205] = {['rank']=255,['invert']=2900,['cost']=15625}
+rows[206] = {['rank']=265,['invert']=3000,['cost']=17576}
+rows[207] = {['rank']=275,['invert']=3100,['cost']=19683}
+rows[208] = {['rank']=285,['invert']=3200,['cost']=21952}
+rows[209] = {['rank']=295,['invert']=3300,['cost']=24389}
+rows[210] = {['rank']=305,['invert']=3400,['cost']=27000}
+rows[211] = {['rank']=315,['invert']=3500,['cost']=29791}
+rows[212] = {['rank']=325,['invert']=3600,['cost']=32768}
+rows[213] = {['rank']=335,['invert']=3700,['cost']=35937}
+rows[214] = {['rank']=345,['invert']=3800,['cost']=39304}
+rows[215] = {['rank']=355,['invert']=3900,['cost']=42875}
+rows[216] = {['rank']=365,['invert']=4000,['cost']=46656}
+rows[217] = {['rank']=375,['invert']=4100,['cost']=50653}
+rows[218] = {['rank']=385,['invert']=4200,['cost']=54872}
+rows[219] = {['rank']=395,['invert']=4300,['cost']=59319}
+rows[220] = {['rank']=405,['invert']=4400,['cost']=64000}
+rows[221] = {['rank']=415,['invert']=4500,['cost']=68921}
+rows[222] = {['rank']=425,['invert']=4600,['cost']=74088}
+rows[223] = {['rank']=435,['invert']=4700,['cost']=79507}
+rows[224] = {['rank']=445,['invert']=4800,['cost']=85184}
+rows[225] = {['rank']=455,['invert']=4900,['cost']=91125}
+rows[226] = {['rank']=465,['invert']=5000,['cost']=97336}
+rows[227] = {['rank']=475,['invert']=5100,['cost']=103823}
+rows[228] = {['rank']=485,['invert']=5200,['cost']=110592}
+rows[229] = {['rank']=495,['invert']=5300,['cost']=117649}
+rows[230] = {['rank']=505,['invert']=5400,['cost']=125000}
+rows[231] = {['rank']=515,['invert']=5500,['cost']=132651}
+rows[232] = {['rank']=525,['invert']=5600,['cost']=140608}
+rows[233] = {['rank']=535,['invert']=5700,['cost']=148877}
+rows[234] = {['rank']=545,['invert']=5800,['cost']=157464}
+rows[235] = {['rank']=555,['invert']=5900,['cost']=166375}
+rows[236] = {['rank']=565,['invert']=6000,['cost']=175616}
+rows[237] = {['rank']=575,['invert']=6100,['cost']=185193}
+rows[238] = {['rank']=585,['invert']=6200,['cost']=195112}
+rows[239] = {['rank']=595,['invert']=6300,['cost']=205379}
+rows[240] = {['rank']=605,['invert']=6400,['cost']=216000}
+rows[241] = {['rank']=615,['invert']=6500,['cost']=226981}
+rows[242] = {['rank']=625,['invert']=6600,['cost']=238328}
+rows[243] = {['rank']=635,['invert']=6700,['cost']=250047}
+rows[244] = {['rank']=645,['invert']=6800,['cost']=262144}
+rows[245] = {['rank']=655,['invert']=6900,['cost']=274625}
+rows[246] = {['rank']=665,['invert']=7000,['cost']=287496}
+rows[247] = {['rank']=675,['invert']=7100,['cost']=300763}
+rows[248] = {['rank']=685,['invert']=7200,['cost']=314432}
+rows[249] = {['rank']=695,['invert']=7300,['cost']=328509}
+rows[250] = {['rank']=705,['invert']=7400,['cost']=0}
+
+local datas = {
+	[11] = rows[1],
+	[21] = rows[2],
+	[31] = rows[3],
+	[41] = rows[4],
+	[51] = rows[5],
+	[61] = rows[6],
+	[71] = rows[7],
+	[81] = rows[8],
+	[91] = rows[9],
+	[101] = rows[10],
+	[111] = rows[11],
+	[121] = rows[12],
+	[131] = rows[13],
+	[141] = rows[14],
+	[151] = rows[15],
+	[161] = rows[16],
+	[171] = rows[17],
+	[181] = rows[18],
+	[191] = rows[19],
+	[201] = rows[20],
+	[211] = rows[21],
+	[221] = rows[22],
+	[231] = rows[23],
+	[241] = rows[24],
+	[251] = rows[25],
+	[261] = rows[26],
+	[271] = rows[27],
+	[281] = rows[28],
+	[291] = rows[29],
+	[301] = rows[30],
+	[12] = rows[31],
+	[22] = rows[32],
+	[32] = rows[33],
+	[42] = rows[34],
+	[52] = rows[35],
+	[62] = rows[36],
+	[72] = rows[37],
+	[82] = rows[38],
+	[92] = rows[39],
+	[102] = rows[40],
+	[112] = rows[41],
+	[122] = rows[42],
+	[132] = rows[43],
+	[142] = rows[44],
+	[152] = rows[45],
+	[162] = rows[46],
+	[172] = rows[47],
+	[182] = rows[48],
+	[192] = rows[49],
+	[202] = rows[50],
+	[212] = rows[51],
+	[222] = rows[52],
+	[232] = rows[53],
+	[242] = rows[54],
+	[252] = rows[55],
+	[262] = rows[56],
+	[272] = rows[57],
+	[282] = rows[58],
+	[292] = rows[59],
+	[302] = rows[60],
+	[312] = rows[61],
+	[322] = rows[62],
+	[332] = rows[63],
+	[342] = rows[64],
+	[352] = rows[65],
+	[362] = rows[66],
+	[372] = rows[67],
+	[382] = rows[68],
+	[392] = rows[69],
+	[402] = rows[70],
+	[13] = rows[71],
+	[23] = rows[72],
+	[33] = rows[73],
+	[43] = rows[74],
+	[53] = rows[75],
+	[63] = rows[76],
+	[73] = rows[77],
+	[83] = rows[78],
+	[93] = rows[79],
+	[103] = rows[80],
+	[113] = rows[81],
+	[123] = rows[82],
+	[133] = rows[83],
+	[143] = rows[84],
+	[153] = rows[85],
+	[163] = rows[86],
+	[173] = rows[87],
+	[183] = rows[88],
+	[193] = rows[89],
+	[203] = rows[90],
+	[213] = rows[91],
+	[223] = rows[92],
+	[233] = rows[93],
+	[243] = rows[94],
+	[253] = rows[95],
+	[263] = rows[96],
+	[273] = rows[97],
+	[283] = rows[98],
+	[293] = rows[99],
+	[303] = rows[100],
+	[313] = rows[101],
+	[323] = rows[102],
+	[333] = rows[103],
+	[343] = rows[104],
+	[353] = rows[105],
+	[363] = rows[106],
+	[373] = rows[107],
+	[383] = rows[108],
+	[393] = rows[109],
+	[403] = rows[110],
+	[413] = rows[111],
+	[423] = rows[112],
+	[433] = rows[113],
+	[443] = rows[114],
+	[453] = rows[115],
+	[463] = rows[116],
+	[473] = rows[117],
+	[483] = rows[118],
+	[493] = rows[119],
+	[503] = rows[120],
+	[14] = rows[121],
+	[24] = rows[122],
+	[34] = rows[123],
+	[44] = rows[124],
+	[54] = rows[125],
+	[64] = rows[126],
+	[74] = rows[127],
+	[84] = rows[128],
+	[94] = rows[129],
+	[104] = rows[130],
+	[114] = rows[131],
+	[124] = rows[132],
+	[134] = rows[133],
+	[144] = rows[134],
+	[154] = rows[135],
+	[164] = rows[136],
+	[174] = rows[137],
+	[184] = rows[138],
+	[194] = rows[139],
+	[204] = rows[140],
+	[214] = rows[141],
+	[224] = rows[142],
+	[234] = rows[143],
+	[244] = rows[144],
+	[254] = rows[145],
+	[264] = rows[146],
+	[274] = rows[147],
+	[284] = rows[148],
+	[294] = rows[149],
+	[304] = rows[150],
+	[314] = rows[151],
+	[324] = rows[152],
+	[334] = rows[153],
+	[344] = rows[154],
+	[354] = rows[155],
+	[364] = rows[156],
+	[374] = rows[157],
+	[384] = rows[158],
+	[394] = rows[159],
+	[404] = rows[160],
+	[414] = rows[161],
+	[424] = rows[162],
+	[434] = rows[163],
+	[444] = rows[164],
+	[454] = rows[165],
+	[464] = rows[166],
+	[474] = rows[167],
+	[484] = rows[168],
+	[494] = rows[169],
+	[504] = rows[170],
+	[514] = rows[171],
+	[524] = rows[172],
+	[534] = rows[173],
+	[544] = rows[174],
+	[554] = rows[175],
+	[564] = rows[176],
+	[574] = rows[177],
+	[584] = rows[178],
+	[594] = rows[179],
+	[604] = rows[180],
+	[15] = rows[181],
+	[25] = rows[182],
+	[35] = rows[183],
+	[45] = rows[184],
+	[55] = rows[185],
+	[65] = rows[186],
+	[75] = rows[187],
+	[85] = rows[188],
+	[95] = rows[189],
+	[105] = rows[190],
+	[115] = rows[191],
+	[125] = rows[192],
+	[135] = rows[193],
+	[145] = rows[194],
+	[155] = rows[195],
+	[165] = rows[196],
+	[175] = rows[197],
+	[185] = rows[198],
+	[195] = rows[199],
+	[205] = rows[200],
+	[215] = rows[201],
+	[225] = rows[202],
+	[235] = rows[203],
+	[245] = rows[204],
+	[255] = rows[205],
+	[265] = rows[206],
+	[275] = rows[207],
+	[285] = rows[208],
+	[295] = rows[209],
+	[305] = rows[210],
+	[315] = rows[211],
+	[325] = rows[212],
+	[335] = rows[213],
+	[345] = rows[214],
+	[355] = rows[215],
+	[365] = rows[216],
+	[375] = rows[217],
+	[385] = rows[218],
+	[395] = rows[219],
+	[405] = rows[220],
+	[415] = rows[221],
+	[425] = rows[222],
+	[435] = rows[223],
+	[445] = rows[224],
+	[455] = rows[225],
+	[465] = rows[226],
+	[475] = rows[227],
+	[485] = rows[228],
+	[495] = rows[229],
+	[505] = rows[230],
+	[515] = rows[231],
+	[525] = rows[232],
+	[535] = rows[233],
+	[545] = rows[234],
+	[555] = rows[235],
+	[565] = rows[236],
+	[575] = rows[237],
+	[585] = rows[238],
+	[595] = rows[239],
+	[605] = rows[240],
+	[615] = rows[241],
+	[625] = rows[242],
+	[635] = rows[243],
+	[645] = rows[244],
+	[655] = rows[245],
+	[665] = rows[246],
+	[675] = rows[247],
+	[685] = rows[248],
+	[695] = rows[249],
+	[705] = rows[250],
+}
+return datas

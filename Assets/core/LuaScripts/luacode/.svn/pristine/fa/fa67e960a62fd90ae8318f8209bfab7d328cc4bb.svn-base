@@ -1,0 +1,40 @@
+local customer_bone = {}
+
+-- model_name(string):模型名
+-- bone_name(string):骨骼名
+-- base_name(string):待添加骨骼的父节点名(目前限定为只可选择在【默认绑点】列表中存在的绑点)
+-- local_pos(Vector3):相对位置偏移
+-- local_rot(Vector3):相对角度偏移(填 nil 则默认为无偏移)
+local function add_bone(model_name, bone_name, base_name, local_pos, local_rot)
+    local model_layer = customer_bone[model_name]
+    if not model_layer then
+        model_layer = {}
+        customer_bone[model_name] = model_layer
+    end
+    local bone_layer = model_layer[bone_name]
+    if bone_layer then
+        Debug.LogError(string.format("Bone parse wrong. This bone name is already existed. model_name = %s, bone_name = %s", tostring(model_name), tostring(bone_name)))
+        return
+    end
+    bone_layer = {}
+    local_rot = local_rot or {["x"] = 0, ["y"] = 0, ["z"] = 0}
+    model_layer[bone_name] = bone_layer
+    bone_layer["base_name"] = base_name
+    bone_layer["local_pos"] = local_pos
+    bone_layer["local_rot"] = Quaternion.Euler(local_rot.x, local_rot.y, local_rot.z)
+end
+
+local function get_customer_bone(model_name, bone_name)
+    local model_layer = customer_bone[model_name]
+    if not model_layer then
+        return
+    end
+    return model_layer[bone_name]
+end
+
+
+return
+{
+    get_customer_bone = get_customer_bone,
+    add_bone = add_bone,
+}

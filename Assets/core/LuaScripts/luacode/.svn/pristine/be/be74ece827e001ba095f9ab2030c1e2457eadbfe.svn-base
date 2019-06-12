@@ -1,0 +1,57 @@
+﻿
+local Quest_condition_base = class("Quest_condition_base")
+
+function Quest_condition_base:initialize(quest_id, index, quest_manager)
+	local data = dbc.quest[quest_id]
+	local index_str = tostring(index)
+
+	
+	--local tp_name = "finish" .. index_str
+	local tp_param_name = string.format("finish%s_params", index_str)
+	local finish_desc_name = string.format("finish%s_desc", index_str)
+	
+	self.m_cur_param = {0}
+	self.m_aim_param = data[tp_param_name]
+	self.m_finish_desc = data[finish_desc_name]
+    --self.m_quest_manager = quest_manager
+	
+	self:on_initialize(quest_id, index, quest_manager)
+end
+
+function Quest_condition_base:judge()
+    if self.on_judge then
+        return self:on_judge()
+    else
+        local cur_param = tonumber(self.m_cur_param[1]) or 100
+        local aim_param = self.m_aim_param[2] or 100
+        --app:logError(string.format("cur_param = %s, aim_param = %s", cur_param, aim_param))
+        if cur_param >= aim_param then
+            return true
+        end
+        return false
+    end
+	--return self:on_judge()
+end
+
+--function Quest_condition_base:get_cur_param()
+--	return self.m_cur_param
+--end
+
+function Quest_condition_base:get_fixed_param()
+    local cur_param = self.m_cur_param and self.m_cur_param[1] or "参数错了喂"
+    return string.format("%s/%s", cur_param, self.m_aim_param[2])
+end
+
+function Quest_condition_base:set_cur_param(cur_param)
+	self.m_cur_param = cur_param
+end
+
+--function Quest_condition_base:get_aim_param()
+--	return self.m_aim_param
+--end
+
+function Quest_condition_base:get_finish_desc()
+	return self.m_finish_desc
+end
+
+return Quest_condition_base

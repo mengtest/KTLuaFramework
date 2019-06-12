@@ -1,0 +1,18 @@
+local row_0 = {['id']=1,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+local row_1 = {['id']=2,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+local row_2 = {['id']=3,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+local row_3 = {['id']=4,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+local row_4 = {['id']=5,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+local row_5 = {['id']=6,['type']=1,['param1']=2.0,['param2']=5.0,['param3']=0.0,['param4']=0.0}
+local row_6 = {['id']=7,['type']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+	[4] = row_3,
+	[5] = row_4,
+	[6] = row_5,
+	[7] = row_6,
+}
+return datas

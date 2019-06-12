@@ -1,0 +1,51 @@
+
+local Popup_item_base = require("subsystem.popup_text.popup_item.popup_item_base")
+local Popup_item_up = class("Popup_item_up", Popup_item_base)
+
+function Popup_item_up:init()
+    self.m_cur_duratioin = 0
+
+end
+function Popup_item_up:set_damage(damage)
+    local curve_storage = app:get_curve_storage()
+    self.m_start_screen_pos = self.m_start_screen_pos + Vector3.up * self:get_leave_coef()
+    self.m_tr.localPosition = self.m_start_screen_pos
+    --local end_screen_pos = self:get_inside_screen_pos(Vector3.up, curve_storage.moveDisCoef * self.m_height)
+    local end_screen_pos = self:get_inside_screen_pos(Vector3.up, self.Const.move_dis_coef * self.m_height)
+    self.m_end_screen_pos = end_screen_pos and end_screen_pos or self.m_start_screen_pos
+    local vec = self.m_end_screen_pos - self.m_start_screen_pos
+    self.m_v_vec = vec / self.m_duration
+    if not end_screen_pos then
+        self:set_duration(0)
+        if  damage then
+            local pc = app:getFrameMgr():getFrame("player_controller")
+            local info = {
+                damage =damage
+            }
+            pc:emit_event("poptextoverlay_add", info)
+        end
+
+        return
+    end
+
+    local speed_curve_name = self.m_is_cirt and "up_cirt_speed" or "up_speed"
+    local scale_curve_name = self.m_is_cirt and "up_cirt_scale" or "up_scale"
+    local tweener_pos = ShortcutExtensions.DOLocalMove(self.m_tr, end_screen_pos, self.m_duration, false)
+    DG_DOTweenUtil.SetAnimationCurve(tweener_pos, curve_storage:GetAnimationCurve("damage_popup", speed_curve_name))
+    local tweener_scale = ShortcutExtensions.DOScale(self.m_tr, 2, self.m_duration)
+    DG_DOTweenUtil.SetAnimationCurve(tweener_scale, curve_storage:GetAnimationCurve("damage_popup", scale_curve_name))
+
+end
+
+function Popup_item_up:update(delta_time)
+    self.m_cur_duratioin = self.m_cur_duratioin + delta_time
+    --self.m_tr.localPosition = self.m_start_screen_pos + self.m_v_vec * self.m_cur_duratioin
+    if self.m_cur_duratioin < self.m_duration then
+        self:refresh_to_screen_pos()
+        return true
+    else
+        return false
+    end
+end
+
+return Popup_item_up

@@ -1,0 +1,15 @@
+local rows = {}
+rows[1] = {['id']=1,['loot_id']=2001}
+rows[2] = {['id']=2,['loot_id']=2001}
+rows[3] = {['id']=3,['loot_id']=2001}
+rows[4] = {['id']=4,['loot_id']=2001}
+rows[5] = {['id']=5,['loot_id']=2001}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+}
+return datas

@@ -1,0 +1,165 @@
+local View = require("system.view")
+local fashionable_dress_main_view = class("fashionable_dress_main_view", View)
+
+function fashionable_dress_main_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+    ----开始滑动时滑动条的值
+    self.m_start_scroll_bar_value = 0
+    -----按钮列表
+    self.m_btn_list = {}
+    ----当前选中的按钮
+    self.m_curr_selected_btn = nil
+    -----开始拖拽的位置
+    self.m_drag_begin_pos = nil
+    ---结束拖拽的位置
+    self.m_drag_end_pos = nil
+    self:load("UI/FashionableDress.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        --左上挂点，用于挂载套装显示信息面板
+        local left_top_parent = go.transform:Find("dressing_room/scroll_view/viewport/content/fashionable_dress/fashionable_dress_content/left_top_parent").transform
+        --左下挂点，用于挂载预览时装的卡牌界面
+        local left_bottem_parent = go.transform:Find("dressing_room/scroll_view/viewport/content/fashionable_dress/fashionable_dress_content/left_bottem_parent").transform
+        --右侧挂点，用于挂载右侧预览的角色模型面板
+        local right_parent = go.transform:Find("dressing_room/scroll_view/viewport/content/fashionable_dress/fashionable_dress_content/right_parent").transform
+
+        local left_btn_container = go.transform:Find("dressing_room/left_btn_container").transform
+        self.m_fashionable_dress_btn = left_btn_container:Find("fashionable_dress_btn"):GetComponent(UI.Button)
+        self.m_fashionable_dress_image = left_btn_container:Find("fashionable_dress_image").transform
+        self:add_btn_list(self.m_fashionable_dress_btn, self.m_fashionable_dress_image, 1, -303)
+        self.m_equipment_btn = left_btn_container:Find("equipment_btn"):GetComponent(UI.Button)
+        self.m_equipment_image = left_btn_container:Find("equipment_image").transform
+        self:add_btn_list(self.m_equipment_btn, self.m_equipment_image, 0.5, -423)
+        self.m_pendant_btn = left_btn_container:Find("pendant_btn"):GetComponent(UI.Button)
+        self.m_pendant_image = left_btn_container:Find("pendant_image").transform
+        self:add_btn_list(self.m_pendant_btn, self.m_pendant_image, 0, -544)
+        self.m_selected_image = left_btn_container:Find("selected_image").transform
+        self.m_drag_area_container = go.transform:Find("dressing_room/scroll_view").gameObject:GetComponent("DragSkill")
+        self.m_scroll_bar = go.transform:Find("dressing_room/scroll_view/scrollbar"):GetComponent(UI.Scrollbar)
+        local sub_list_parent = go.transform:Find("dressing_room/scroll_view/viewport/content").transform
+        self.m_fashionable_dress_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_fashionable_dress_btn)
+        end)
+
+        self.m_equipment_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_equipment_btn)
+        end)
+
+        self.m_pendant_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_pendant_btn)
+        end)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function(eventdata)
+            --self.m_need_move = false
+            self.m_drag_begin_pos = eventdata.position
+            self.m_start_scroll_bar_value = self.m_scroll_bar.value
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function(eventdata)
+            --self:end_drag_callback()
+            self.m_drag_end_pos = eventdata.position
+            local scroll_bar_value = self.m_scroll_bar.value
+            if self.m_drag_end_pos.y > self.m_drag_begin_pos.y then
+                for i = 1, #self.m_btn_list do
+                    ----当滑动超过一定范围时切换页面，否则回到当前页面
+                    if self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i >= 1 and i < 3 and math.abs(scroll_bar_value - self.m_start_scroll_bar_value) >= 0.25 then
+                        self:click_btn_callback(self.m_btn_list[i + 1]["btn"])
+                        break
+                    elseif self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i >= 1 and i < 3 and math.abs(scroll_bar_value - self.m_start_scroll_bar_value) < 0.25 then
+                        self:click_btn_callback(self.m_btn_list[i]["btn"])
+                        break
+                    end
+                end
+            elseif self.m_drag_end_pos.y < self.m_drag_begin_pos.y then
+                for i = 1, #self.m_btn_list do
+                    if self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i <= 3 and i > 1 and math.abs(scroll_bar_value - self.m_start_scroll_bar_value) >= 0.25 then
+                        self:click_btn_callback(self.m_btn_list[i - 1]["btn"])
+                        break
+                    elseif self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i <= 3 and i > 1 and math.abs(scroll_bar_value - self.m_start_scroll_bar_value) < 0.25 then
+                        self:click_btn_callback(self.m_btn_list[i]["btn"])
+                        break
+                    end
+                end
+            end
+            --self:end_drag_callback()
+        end)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "fashionable_dress_attr_show") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = left_top_parent.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        self:click_btn_callback(self.m_fashionable_dress_btn)
+
+        self.m_frame:on_loaded()
+    end)
+end
+
+function fashionable_dress_main_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+---点击左侧按钮的回调
+function fashionable_dress_main_view:click_btn_callback(press_btn)
+    self.m_curr_selected_btn = press_btn
+    self:change_btn_to_selected(press_btn)
+    self.m_need_move = true
+    self.m_move_speed = 0
+end
+
+-----按钮高亮
+function fashionable_dress_main_view:change_btn_to_selected(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn"] == press_btn then
+            v["btn"].transform.gameObject:SetActive(false)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            self:selected_image_move(v["pos"])
+            self.m_scroll_bar_target_value = v["value"]
+        else
+            v["btn"].transform.transform.gameObject:SetActive(true)
+            v["selected_show"].transform.gameObject:SetActive(false)
+        end
+    end
+end
+
+-----向按钮列表中添加内容
+function fashionable_dress_main_view:add_btn_list(btn, selected_show, value, pos)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["btn"] = btn, ["selected_show"] = selected_show, ["value"] = value, ["pos"] = pos }
+end
+
+function fashionable_dress_main_view:selected_image_move(target)
+    ShortcutExtensions.DOLocalMoveY(self.m_selected_image.gameObject.transform, target, 0.6, false)
+end
+
+return fashionable_dress_main_view

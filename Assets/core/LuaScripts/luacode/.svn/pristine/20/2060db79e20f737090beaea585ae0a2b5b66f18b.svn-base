@@ -1,0 +1,17 @@
+local View = require("system.view")
+local big_map_view = class("dungeon_confirm_progress_view", View)
+
+function big_map_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self:load("ui/BigMap.prefab",function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        local return_btn = go.transform:Find("map/return_bg/Button").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        return_btn.onClick:AddListener(function()
+            frame:destroySelf()
+        end)
+    end)
+end
+
+return big_map_view

@@ -1,0 +1,24 @@
+local M = {}
+
+Attribute.decl(M,"item_des",nil)
+Attribute.decl(M,"pos",nil)
+
+function M:doInit(data)
+    self.m_item_data = data.item_info
+    self.m_merchant_data = data.merchant_info
+    self:set_pos(data.pos)
+    self:set_item_des("商品id:"..tostring(self.m_item_data.id))
+end
+
+function M:get_item_data()
+    return self.m_item_data
+end
+
+function M:on_item_btn()
+    --Debug.LogError("商人："..tostring(self.m_merchant_data.entity_id))
+    --Debug.LogError("物品："..tostring(self.m_item_data.id))
+    app:getKBESDK():entity_cell_call(self.m_merchant_data.entity_id,"buy_item",self.m_item_data.id)  
+
+end
+
+return M

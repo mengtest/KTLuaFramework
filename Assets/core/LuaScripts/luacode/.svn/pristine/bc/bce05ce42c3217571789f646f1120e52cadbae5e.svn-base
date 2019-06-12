@@ -1,0 +1,142 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/8 17:56
+---
+--Unity的按钮如何点击切换对话内容
+local View = require("system.view")
+local quest_talk_view = class("quest_talk_view", View)
+function quest_talk_view:doInit(param)
+    --self.state = param.state
+    local ui_manager = app:get_ui_manager()
+    self.m_talk = {
+        "无间道A：挺利索的",
+        "无间道B：我也读过警校",
+        "无间道A：你们这些卧底真有意思，老在天台见面" ,
+        "无间道B：我不像你，我光明正大" ,
+        "无间道B：我要的东西呢?" ,
+        "无间道A：我要的你都未必有带来吧",
+        "无间道B：哼，什么意思，你上来晒太阳的啊",
+        "无间道A：给我个机会",
+        "无间道B：怎么给你机会",
+        "无间道A：我以前没得选择，现在我想做一个好人" ,
+        "无间道B：好，跟法官说，看他让不让你做好人",
+        "无间道A：那就是要我死" ,
+        "无间道B：对不起，我是警察",
+        "无间道A：谁知道",
+        "无间道C：别动，警察",
+        "无间道C：放下枪，放了刘警官再说",
+        "无间道B：你上司是韩琛的卧底"
+    }
+    self.m_num = 1
+    local frame = self:getFrame()
+    local ui_manager = app:get_ui_manager()
+    local nmu = 1
+    self:show()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("NPC_talking"), function(npc)
+        ui_manager:AdaptResolution(frame:getFrameName(), npc)
+        --NPC闲聊
+        --切换对话的button
+        self.m_next_btn = npc.transform:Find("npc_talk_bg/npc_next_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+        --对话内容
+        self.m_npc_talk = npc.transform:Find("npc_talk_bg/npc_talk_content").gameObject:GetComponent(UnityEngine.UI.Text)
+        --关闭面板
+        self.m_m_panel = npc.transform:Find("npc_talk_bg/close").gameObject:GetComponent("DragSkill")
+        --箭头显示动态
+        self.m_show = npc.transform:Find("npc_talk_bg/show").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_npc_talk.text = "其实这是很头痛的事情"
+        ----------------------------------------------------
+        --接任务
+        self.m_quest_task_talk_window = npc.transform:Find("quest_task_talk_window").gameObject
+
+        --NPC对话内容
+        self.m_npc_task_text = npc.transform:Find("quest_task_talk_window/quest_task_npc_text").gameObject:GetComponent(UnityEngine.UI.Text)
+        --获得任务奖励1
+        self.m_npc_task_icon_one_value = npc.transform:Find("quest_task_talk_window/quest_task_icon_o/quest_task_icon_item").gameObject:GetComponent(UnityEngine.UI.Image)
+        --获得任务奖励2
+        self.m_npc_task_icon_two_value = npc.transform:Find("quest_task_talk_window/quest_task_icon_t/quest_task_icon_item").gameObject:GetComponent(UnityEngine.UI.Image)
+        --完成任务的经验值
+        self.m_npc_task_exp = npc.transform:Find("quest_task_talk_window/quest_task_EXP/quest_task_EXP_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        --完成任务的金币数量
+        self.m_npc_task_gold = npc.transform:Find("quest_task_talk_window/quest_task_GOLD/quest_task_GOLD_value").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        --接任务按钮
+        self.m_npc_in_task_btn = npc.transform:Find("quest_task_talk_window/quest_task_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+        --交任务按钮
+        self.m_npc_task_btn = npc.transform:Find("quest_task_talk_window/quest_in_task_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+        --完成任务特效
+        self.m_finish_quest = npc.transform:Find("ui_renwu_wancheng").gameObject
+
+        --奖励经验
+        self.m_npc_task_exp.text = dbc.quest[1].exp
+        --奖励金币
+        self.m_npc_task_gold.text = dbc.quest[1].gold
+
+        --交任务
+        self.m_npc_task_btn.onClick:AddListener(function()
+            self:getFrame("ui_main"):show("获得经验值" .. dbc.quest[1].exp .. "\n" .. "获得金币值" .. dbc.quest[1].gold )
+            self.m_finish_quest.gameObject:SetActive(true)
+            self.m_show.gameObject:SetActive(true)
+            slua_timer.addDelayEvent(1.0, function()
+                self.m_finish_quest.gameObject:SetActive(false)
+            end)
+        end)
+        --接任务
+        self.m_npc_in_task_btn.onClick:AddListener(function()
+            self:getFrame("ui_main"):show("接取任务")
+        end)
+
+        --点击非对话框区域关闭
+        self.m_m_panel.onClick = DragSkill_OnPointerClickHandler()
+        self.m_m_panel.onClick:AddListener(function()
+            self.m_show.gameObject:SetActive(true)
+            self.m_mgr:getView("quest_talk"):getGO():SetActive(false)
+            self:getFrame("ui_main"):set_head(true)
+            self:getFrame("ui_main"):set_map(true)
+            self:getFrame("ui_main"):set_quest_bar(true)
+            self:getFrame("player_controller"):set_is_show_move_panel(true)
+            self:getFrame("player_controller"):set_is_show_battle_panel(true)
+        end)
+        --切换对话内容
+        self.m_next_btn.onClick:AddListener(function()
+            self.m_npc_talk.text = self.m_talk[self.m_num]
+            --self.m_npc_talk.text = dbc.npc_talk[self.m_num].npc_talk_str
+            self.m_num = self.m_num + 1
+            if self.m_num > #self.m_talk + 1 then
+                --闲聊
+                self.m_npc_talk.gameObject:SetActive(false)
+                --箭头显示
+                self.show_image = false
+                if nmu == 1 then
+                    --获得任务奖励的显示
+                    self.m_quest_task_talk_window:SetActive(true)
+                    --接任务按钮的显示
+                    self.m_npc_in_task_btn.gameObject:SetActive(false)
+                    --交任务按钮的显示
+                    self.m_npc_task_btn.gameObject:SetActive(true)
+                else
+                    --获得任务奖励的显示
+                    self.m_quest_task_talk_window:SetActive(true)
+                    --接取任务按钮的显示
+                    self.m_npc_in_task_btn.gameObject:SetActive(true)
+                    --交付任务按钮的显示
+                    self.m_npc_task_btn.gameObject:SetActive(false)
+                end
+            end
+        end)
+    end)
+end
+
+--箭头显示的状态
+function quest_talk_view:show()
+    slua_timer.addDelayEvent(0.5, function()
+        self.m_show.gameObject:SetActive(true)
+        slua_timer.addDelayEvent(0.3, function()
+            self.m_show.gameObject:SetActive(false)
+            slua_timer.addDelayEvent(0.5, function()
+                -- self:show()
+            end)
+        end)
+    end)
+end
+return quest_talk_view
+

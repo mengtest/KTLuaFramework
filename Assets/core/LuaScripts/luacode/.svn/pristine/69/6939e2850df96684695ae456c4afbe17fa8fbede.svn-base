@@ -1,0 +1,190 @@
+local Frame = require("system.frame")
+local talent_ui = class("talent_ui", Frame)
+
+
+function talent_ui:doInit(param)
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+
+
+    -- 天赋技能列表 key:天赋所对应的技能id   value:table = { 是否锁定;是否学习;是否启用   }
+    self.m_talent_list = {}
+    -- 从服务器得到的已学习技能资讯列表
+    self.m_master_info_list = {}
+    -- 从服务器得到的未解锁技能id列表
+    self.m_locked_skill_id_list = {}
+    -- 从服务器得到的已经解锁但是还未学习的技能id列表
+    self.m_unlocked_skill_id_list = {}
+
+    local num = 0
+
+    self.m_master_info_list = self.m_skill_ui_manager:get_master_info_list()
+
+    for i, v in ipairs(self.m_master_info_list) do
+        if dbc.spell_ui[v.tmpl].is_talent then
+            local talent_info = {}
+            talent_info["talent_id"] = v.tmpl
+            talent_info["is_locked"] = false
+            talent_info["is_learned"] = true
+            if v.enabled == 1 then
+                talent_info["is_enabled"] = true
+            else
+                talent_info["is_enabled"] = false
+            end
+            self.m_talent_list[num + 1] = talent_info
+            num = num + 1
+        end
+    end
+
+    self.m_locked_skill_id_list = self.m_skill_ui_manager:get_locked_skill_id_list()
+    for i, v in ipairs(self.m_locked_skill_id_list) do
+        --print("self.m_locked_skill_id_list" , v)
+        if dbc.spell_ui[v].is_talent then
+            --print("我的天赋技能啊啊啊啊啊啊啊aa",v)
+            local talent_info = {}
+            talent_info["talent_id"] = v
+            talent_info["is_locked"] = true
+            talent_info["is_learned"] = false
+            talent_info["is_enabled"] = false
+            self.m_talent_list[num + 1] = talent_info
+            num = num + 1
+        end
+    end
+
+    self.m_unlocked_skill_id_list = self.m_skill_ui_manager:get_unlocked_skill_id_list()
+    for i, v in ipairs(self.m_unlocked_skill_id_list) do
+        if dbc.spell_ui[v].is_talent then
+            local talent_info = {}
+            talent_info["talent_id"] = v
+            talent_info["is_locked"] = false
+            talent_info["is_learned"] = false
+            talent_info["is_enabled"] = false
+            self.m_talent_list[num + 1] = talent_info
+            num = num + 1
+        end
+    end
+
+    -- 监听天赋学习
+    self:subscribe(self.m_skill_ui_manager:on_event("master_info_add"), function(master_info)
+        for i, v in ipairs(master_info) do
+            for key, val in ipairs(self.m_talent_list) do
+                if v["tmpl"] == val["talent_id"] then
+                    val["is_learned"] = true
+                end
+            end
+        end
+    end)
+    -- 监听天赋解锁
+    self:subscribe(self.m_skill_ui_manager:on_event("unlock_talent"), function(talent_id)
+        for key, val in ipairs(self.m_talent_list) do
+            if talent_id == val["talent_id"] then
+                val["is_locked"] = false
+            end
+        end
+    end)
+    -- 监听天赋启用
+    self:subscribe(self.m_skill_ui_manager:on_event("master_enabled"), function(talent_id)
+        -- 找到天赋的组号
+        local group_num = ""
+        for i, v in pairs(dbc.talent) do
+            if talent_id == v["skill"] then
+                local slot_str = tostring(i)
+                group_num = string.sub(slot_str, -4, -3)
+                break
+            end
+        end
+        -- 根据组号找到其余两个技能 并且将这两个技能置为未启用状态
+        for i, v in pairs(dbc.talent) do
+            if group_num == string.sub(tostring(i), -4, -3) then
+                if v["skill"] ~= talent_id then
+                    -- 从已学习的技能资讯列表中将已启用的天赋同组的两个取消启用
+                    for i, val in ipairs(self.m_talent_list) do
+                        if val["talent_id"] == v["skill"] then
+                            val["is_enabled"] = false
+                        end
+                    end
+                end
+            end
+        end
+        -- 将本技能置为启用状态
+        for key, val in ipairs(self.m_talent_list) do
+            if talent_id == val["talent_id"] then
+                val["is_enabled"] = true
+                --break
+            end
+            --print("天赋id", val["talent_id"], "是否锁定", val["is_locked"], "是否学习", val["is_learned"], "是否启用", val["is_enabled"])
+        end
+    end)
+end
+
+function talent_ui:on_loaded()
+
+    local grow_up_talent_list = {}
+    for key, val in ipairs(self.m_talent_list) do
+        for i, v in pairs(dbc.talent) do
+            if val["talent_id"] == v["skill"] then
+                --print("talent_ui_grow_up_talent_list  id", val["talent_id"], v["skill"])
+                local slot_str = tostring(i)
+                val["id"] = i
+                --print("string.sub(slot_str, -2, -1????)", string.sub(slot_str, -2, -1), type(string.sub(slot_str, -2, -1)))
+                if string.sub(slot_str, -2, -1) == "00" and string.sub(slot_str, -4, -3) ~= "06" then
+                    table.insert(grow_up_talent_list, val)
+                elseif string.sub(slot_str, -4, -3) == "06" then
+                    table.insert(grow_up_talent_list, val)
+                end
+            end
+        end
+    end
+
+    --print("talent_ui_grow_up_talent_list", #grow_up_talent_list)
+
+    local temp = nil
+    -----按照解锁的顺序排一下
+    for i = 1, #grow_up_talent_list - 1 do
+        for j = 1, #grow_up_talent_list - 1 do
+            if dbc.spell_ui[grow_up_talent_list[j]["talent_id"]].unlock_parameters_skill >= dbc.spell_ui[grow_up_talent_list[j + 1]["talent_id"]].unlock_parameters_skill then
+                temp = grow_up_talent_list[j + 1]
+                grow_up_talent_list[j + 1] = grow_up_talent_list[j]
+                grow_up_talent_list[j] = temp
+            end
+        end
+    end
+    ----按照talent表中的id排序
+    for i = 1, #grow_up_talent_list - 1 do
+        for j = 1, #grow_up_talent_list - 1 do
+            if grow_up_talent_list[j]["id"] >= grow_up_talent_list[j + 1]["id"] then
+                temp = grow_up_talent_list[j + 1]
+                grow_up_talent_list[j + 1] = grow_up_talent_list[j]
+                grow_up_talent_list[j] = temp
+            end
+        end
+    end
+    -- 成长期应该只有九个 ，现在还没有判断，等表格填好了再进行判断
+    for num, talent_info in ipairs(grow_up_talent_list) do
+        local param = { card_num = num, id = talent_info["talent_id"], is_locked = talent_info["is_locked"], is_learned = talent_info["is_learned"], is_enabled = talent_info["is_enabled"] }
+        self:createChild("talent_frame" .. talent_info["talent_id"], "%subsystem.skill_system_ui.talent", param)
+    end
+
+    --local temp = nil
+    -------按照解锁的顺序排一下
+    --for i = 1, #self.m_talent_list - 1 do
+    --    for j = 1, #self.m_talent_list - 1 do
+    --        if dbc.spell_ui[self.m_talent_list[j]["talent_id"]].unlock_parameters_skill >= dbc.spell_ui[self.m_talent_list[j + 1]["talent_id"]].unlock_parameters_skill then
+    --            temp = self.m_talent_list[j + 1]
+    --            self.m_talent_list[j + 1] = self.m_talent_list[j]
+    --            self.m_talent_list[j] = temp
+    --        end
+    --    end
+    --end
+    ---- 成长期应该只有九个 ，现在还没有判断，等表格填好了再进行判断
+    --for num, talent_info in ipairs(self.m_talent_list) do
+    --    local param = { card_num = num, id = talent_info["talent_id"], is_locked = talent_info["is_locked"], is_learned = talent_info["is_learned"], is_enabled = talent_info["is_enabled"] }
+    --    self:createChild("talent_frame" .. talent_info["talent_id"], "%subsystem.skill_system_ui.talent", param)
+    --end
+end
+
+-- 天赋技能列表 key:天赋所对应的技能id   value:table = { 是否解锁的状态;是否学习;是否启用  }
+function talent_ui:get_talent_info_list()
+    return self.m_talent_list
+end
+
+return talent_ui

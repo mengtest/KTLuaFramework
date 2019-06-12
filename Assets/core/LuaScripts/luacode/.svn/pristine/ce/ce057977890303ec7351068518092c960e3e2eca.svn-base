@@ -1,0 +1,222 @@
+﻿local Quest_condition_class_dir = {
+    [SharedEnum.QuestCond.TREASURE] = require("subsystem.quest.condition.quest_condition_collect"),
+    [SharedEnum.QuestCond.POSITION] = require("subsystem.quest.condition.quest_condition_enter_area"),
+    [SharedEnum.QuestCond.CREATURE] = require("subsystem.quest.condition.quest_condition_hunt"),
+    [SharedEnum.QuestCond.SKILL] = require("subsystem.quest.condition.quest_condition_skill"),
+    [SharedEnum.QuestCond.LEVEL] = require("subsystem.quest.condition.Quest_condition_level"),
+    --[SharedEnum.QuestCond.] = require("subsystem.quest.condition.quest_condition_talk"),
+}
+
+
+local Quest_data = class("Quest_data")
+
+function Quest_data:initialize(quest_id, timestamp, quest_manager)
+    self.m_quest_id = quest_id    --任务ID
+    self.m_timestamp = timestamp
+    self.m_quest_manager = quest_manager
+    self.m_condition_dict = {}    --通过条件列表
+    self.m_passed_quest_list = {}
+    self.m_aim_weights = 0
+    local quest_info = dbc.quest[self.m_quest_id]
+    self.m_begin_tp = quest_info.begin
+    self.m_giver = (dbc.interact[quest_info.giver] and dbc.interact[quest_info.giver].obj_tp == Enum_Scene.Interact_Obj_Tp.Npc) and dbc.interact[quest_info.giver].obj_id or 0
+    self.m_receiver = (quest_info.begin == SharedEnum.QuestCond.NPC and dbc.interact[quest_info.begin_params[1]].obj_tp == Enum_Scene.Interact_Obj_Tp.Npc) and dbc.interact[quest_info.begin_params[1]].obj_id or 0
+    self.m_giver_area = quest_info.giver_area
+    self.m_is_passed = false
+    self.m_quest_state = Enum_Quest.Quest_State.Received
+    self.m_is_traced = true -- 是否处于被追踪状态（是否在任务状态栏位上显示）
+    self.m_is_interest = false -- 是否处于关注状态
+
+    Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Quest_data after create_condition, self.m_quest_id = %s", tostring(self.m_quest_id)))
+    self:create_condition(quest_manager)
+end
+
+function Quest_data:create_condition(quest_manager)
+    local data = dbc.quest[self.m_quest_id]
+    if not data then
+        return
+    end
+    for index = 1, 8 do
+        local tp_name = "finish" .. tostring(index)
+        local tp = data[tp_name]
+        if tp and tp > 0 then
+            if Quest_condition_class_dir[tp] then
+                local condition = Quest_condition_class_dir[tp]:new(self.m_quest_id, index, quest_manager)
+                assert(condition)
+                self.m_aim_weights = self.m_aim_weights + condition:get_aim_weight()
+                Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Quest_data self.m_aim_weights = %s", tostring(self.m_aim_weights)))
+                self.m_condition_dict[index] = condition
+            else
+                print(string.format("cant found the condition type of %d", tp))
+            end
+        end
+    end
+end
+
+function Quest_data:get_quest_id()
+    return self.m_quest_id
+end
+
+function Quest_data:get_timestamp()
+    return self.m_timestamp
+end
+
+function Quest_data:get_cur_weights()
+    local weights = 0
+    for index, condition in pairs(self.m_condition_dict) do
+        weights = weights + condition:get_cur_weight()
+    end
+    return weights
+end
+
+function Quest_data:get_aim_weights()
+    return self.m_aim_weights
+end
+
+function Quest_data:get_closest_aim_info()
+    if self.m_is_passed and self.m_giver_area[1] then
+        return self:get_aim_info()
+    end
+
+    local infos = {}
+    for _, condition in pairs(self.m_condition_dict) do
+        local dis, dir = condition:get_aim_info()
+        if dis then
+            table.insert(infos, { dis, dir })
+        end
+    end
+    table.sort(infos, function(a, b)
+        if a[1] < b[1] then
+            return true
+        else
+            return false
+        end
+    end)
+    if infos[1] then
+        return infos[1][1], infos[1][2]
+    end
+end
+
+function Quest_data:get_aim_info()
+    --local dis, dir = 65536, Vector3.forward
+
+    local dis, dir = nil, nil
+    local world = self.m_quest_manager:getFrame("world")
+    local area_data = world:get_area_data(self.m_giver_area[1], self.m_giver_area[2])
+    if area_data then
+        local own_pos = world:get_main_player():get_pos()
+        local vec = (area_data.worldPosition - own_pos)
+        dis = vec.magnitude
+        dir = vec.normalized
+    end
+    return dis, dir
+end
+
+function Quest_data:get_aim_area()
+    return self.m_giver_area
+end
+
+function Quest_data:get_condition_aim_area(index)
+    return self.m_condition_dict[index]:get_aim_area()
+end
+
+function Quest_data:get_all_active_aim_area()
+    local rst_tbl = {}
+    if self.m_is_passed then
+        if self.m_giver_area[1] then
+            table.insert(rst_tbl, self.m_giver_area)
+        end
+    else
+        for _, condition in pairs(self.m_condition_dict) do
+            if not condition:on_judge() then
+                table.insert(rst_tbl, condition:get_aim_area())
+            end
+        end
+    end
+    return rst_tbl
+end
+
+function Quest_data:set_condition_cur_param(index, cur_param)
+    local condition = self.m_condition_dict[index]
+    if not condition then
+        return
+    end
+    condition:set_cur_param(cur_param)
+    local is_passed = condition:on_judge()
+    if is_passed and not Util_table:is_contain(self.m_passed_quest_list, index) then
+        table.insert(self.m_passed_quest_list, index)
+        if self.m_is_traced then
+            Event_system:dispatch_event(EVENT_QUEST_DEL_CONDITION_AREA, self.m_quest_id, index)
+        end
+    end
+    local cur_count = #self.m_passed_quest_list
+    local max_count = Util_table:count(self.m_condition_dict)
+    if cur_count >= max_count then
+        self.m_is_passed = true
+        self.m_quest_state = Enum_Quest.Quest_State.Finished
+        if self.m_giver <= 0 then
+            self.m_quest_manager:req_complete_quest(self.m_quest_id)
+        else
+            self.m_quest_manager:set_npc_dependently_quest_state(self.m_giver, self.m_quest_id, Enum_Quest.Quest_State.Finished)
+            if self.m_is_traced then
+                Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST_AREA, self.m_quest_id)
+            end
+        end
+    end
+
+    --Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, self.m_quest_id)
+end
+
+-- TODO:: 这个操作不应该放在这里，目前这个脚本内的很多操作理论上个都应该挪出去，目前暂时放在这里
+function Quest_data:refresh_aim_area()
+    if self.m_quest_state == Enum_Quest.Quest_State.Received then
+        for index, condition in pairs(self.m_condition_dict) do
+            if not condition:on_judge() then
+                Event_system:dispatch_event(EVENT_QUEST_ADD_CONDITION_AREA, self.m_quest_id, index)
+            end
+        end
+    elseif self.m_quest_state == Enum_Quest.Quest_State.Finished then
+        Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST_AREA, self.m_quest_id)
+    end
+    self.m_is_traced = true
+end
+
+function Quest_data:clear_aim_area()
+    if self.m_quest_state == Enum_Quest.Quest_State.Received then
+        for index, condition in pairs(self.m_condition_dict) do
+            if not condition:on_judge() then
+                Event_system:dispatch_event(EVENT_QUEST_DEL_CONDITION_AREA, self.m_quest_id, index)
+            end
+        end
+    elseif self.m_quest_state == Enum_Quest.Quest_State.Finished then
+        Event_system:dispatch_event(EVENT_QUEST_DEL_QUEST_AREA, self.m_quest_id)
+    end
+end
+
+function Quest_data:get_stat()
+    return self.m_quest_state
+end
+
+function Quest_data:get_receiver()
+    return self.m_receiver
+end
+
+function Quest_data:get_giver()
+    return self.m_giver
+end
+
+-- 设置关注
+function Quest_data:set_interest(interest)
+    self.m_is_interest = interest
+end
+
+-- 获取此任务是否被关注
+function Quest_data:get_interest()
+    return self.m_is_interest
+end
+
+function Quest_data:is_begin_with_enter_area()
+    return self.m_begin_tp == SharedEnum.QuestCond.POSITION
+end
+
+return Quest_data

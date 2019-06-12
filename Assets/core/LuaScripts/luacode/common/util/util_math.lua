@@ -1,0 +1,133 @@
+local UtilMath = { }
+
+-- 返回[limit_l, limit_r]中的一个随机数
+-- limit_l(float):随机数的最小值
+-- limit_r(float):随机数的最大值
+-- accuracy(int)[optional]:随机数的精度，1/1<<accuracy，limit:[1,16] default:10 
+function UtilMath:random_float(limit_l, limit_r, accuracy)
+    accuracy = accuracy or 10
+    accuracy = self:clamp(accuracy, 1, 16)
+    local accuracyCoef = (2 ^ accuracy)
+    local rst = math.random(limit_l * accuracyCoef, limit_r * accuracyCoef)
+    return rst / accuracyCoef
+end
+
+-- 返回value的符号，+1/-1
+function UtilMath:sign(value)
+    if not value or type(value) ~= "number" then
+        error("请输入有效的数值型数据。")
+    end
+
+    if value < 0 then
+        return -1
+    else
+        return 1
+    end
+end
+
+-- 将value限制在min与max之间
+function UtilMath:clamp(value, min, max)
+    if value < min then
+        value = min
+    elseif value > max then
+        value = max
+    end
+    return value
+end
+
+-- 获取两向量间的夹角，返回值区间[0, 180]Deg,无正负，不区分方向
+-- dir_l(Vector3):左向量
+-- dir_r(Vector3):右向量
+function UtilMath:get_delta_angle(dir_l, dir_r)
+    dir_l = dir_l.normalized
+    dir_r = dir_r.normalized
+    return math.deg(math.acos(Vector3.Dot(dir_l, dir_r)))
+end
+
+-- 获取两向量在XoZ平面上投影的夹角，返回值区间[0, 180]Deg,无正负，不区分方向
+-- dir_l(Vector3):左向量
+-- dir_r(Vector3):右向量
+function UtilMath:get_delta_angle_in_xz(dir_l, dir_r)
+    local temp_dir_l = Vector3(dir_l.x, 0, dir_l.z)
+    local temp_dir_r = Vector3(dir_r.x, 0, dir_r.z)
+    return self:get_delta_angle(temp_dir_l, temp_dir_r)
+end
+
+-- 获取一向量与XoZ平面的夹角，返回值区间[0, 180]Deg,无正负，不区分方向
+-- dir(Vector3):指定向量
+function UtilMath:get_delta_angle_between_xz(dir)
+    local dir_h = dir - self:get_projection_vector(dir, Vector3.up)
+    return self:get_delta_angle(dir, dir_h)
+end
+
+-- 获取vec_a向量在vec_b向量上的投影
+-- vec_a(Vector):任意n维向量(理论上)
+-- vec_b(Vector):任意与vec_a相同维数的向量
+function UtilMath:get_projection_vector(vec_a, vec_b)
+    vec_b = vec_b.normalized
+    return Vector3.Dot(vec_a, vec_b) * vec_b
+end
+
+-- 获取指定点在指定平面上的投影点
+-- ori_point(Vector3):待投影的原点
+-- plane_point(Vector3):投影平面上任意一点
+-- plane_normal(Vector3):投影平面的法线
+function UtilMath:get_projection_3d(ori_point, plane_point, plane_normal)
+    return ori_point + self:get_projection_vector(plane_point - ori_point, plane_normal)
+end
+
+-- 获取指定射线与指定平面的交点
+-- ori_point(Vector3):射线原点
+-- ori_dir(Vector3):射线方向
+-- plane_point(Vector3):相交平面上任意一点
+-- plane_normal(Vector3):相交平面的法线
+function UtilMath:get_intersection_3d(ori_point, ori_dir, plane_point, plane_normal)
+    local op = ori_dir.normalized
+    local on = plane_normal
+    local ob = plane_point - ori_point
+    return ori_point + Vector3.Dot(ob, on) / Vector3.Dot(op, on) * op
+end
+
+-- 获取以pos为起点dir为朝向， 到以pos为起点target_pos为终点的两个向量的最小夹角
+-- pos(Vector3) 起点
+-- dir(Number) 朝向
+-- target_pos(Vector3)  终点
+function UtilMath:get_angle_pdp(pos, dir, target_pos)
+    local dir_vtr = target_pos - pos
+    local dir_vtr_xz = Vector3.ProjectOnPlane(dir_vtr, Vector3.up)
+    local angle = Vector3.Angle(dir_vtr_xz, Quaternion.AngleAxis(dir, Vector3.up) * Vector3.forward)
+    return angle, dir_vtr_xz
+end
+
+-- 获取从pos1指向pos2的向量在xz平面上投影的dir(z轴为0， 顺时针为正)
+function UtilMath:GetLineDirOnXZ(pos1, pos2)
+    local vec = Vector3.ProjectOnPlane(pos2 - pos1, Vector3.up)
+    local dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+    return dir
+end
+
+
+-- 保留n位小数。。我自己写的 感觉很蠢  求优化 clz
+function UtilMath:GetPreciseDecimal(num, length)
+    local int = math.floor(num)
+    local decimal = tostring(num - int)
+    local re_decimal = string.sub(decimal, 3, #decimal * -1 + length + 1)
+    if not re_decimal or #re_decimal < 1 then
+        return int .. ".0"
+    end
+    return int .. "." .. re_decimal
+    --[[
+    return tonumber(string.format("%." .. length .. "f", num))  -- 末位四舍五入
+    ]]--
+end
+
+-- 获取一个数的整数部分
+function UtilMath:get_integer_part(x)
+    if math.ceil(x) == x then
+        x = math.ceil(x)
+    else
+        x = math.ceil(x) - 1
+    end
+    return x
+end
+return UtilMath

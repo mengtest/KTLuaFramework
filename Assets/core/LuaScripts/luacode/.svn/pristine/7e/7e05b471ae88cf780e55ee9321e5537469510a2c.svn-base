@@ -1,0 +1,46 @@
+mobdebug = require("mobdebug")
+mobdebug.start()
+-- mobdebug.off()
+
+import 'UnityEngine'
+import 'HedgehogTeam.EasyTouch'
+import 'DG.Tweening'
+require "common.comm_init"
+
+GCFG = require "gcfg"
+assert(type(GCFG) == "table")
+
+-- foreach C# ienumerable
+function foreach(csharp_ienumerable)
+    return Slua.iter(csharp_ienumerable)
+end
+
+dbc = TableLoader.loadAll()
+
+local Application = require "system.application"
+app = Application:new()
+app:start()
+
+local LuaWatchProxy = require "system.lua_watch_proxy"
+LuaWatchProxy:watch("app", app)
+
+
+update = function()
+	app:update()
+end
+
+fixed_update = function()--by lijunfeng 2017/12/13
+	app:fixed_update()
+end
+
+late_update = function()--by lijunfeng 2017/12/13
+	app:late_update()
+end
+
+--! 让编辑器运行时可以检测资源是否配置到某个bundle里面去了, 这里返回一个函数是为了让代码在发布后不会运行这部分逻辑.
+function get_is_asset_in_bundle_function()
+	local asset_db = require 'system.collector.asset_db'
+	return function( asset_path )
+		return asset_db[asset_path] ~= nil
+	end
+end

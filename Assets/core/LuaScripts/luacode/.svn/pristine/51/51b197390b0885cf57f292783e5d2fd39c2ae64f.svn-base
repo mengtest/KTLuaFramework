@@ -1,0 +1,174 @@
+local View = require("system.view")
+local spirit_list_btn_view = class("spirit_list_btn_view", View)
+
+
+function spirit_list_btn_view:doInit()
+    local frame = self:getFrame()
+    -- 显示
+    self:subscribe(frame:on_event("show"), function()
+        self:show()
+    end)
+    -- 隐藏
+    self:subscribe(frame:on_event("hide"), function()
+        self:hide()
+    end )
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("SpiritList"), function(loaded_go)
+        self.m_res_loaded = true
+
+        self.m_frame = frame
+        local template_go = loaded_go.transform:Find("spirit_list/Scroll View/Viewport/Content/spirit").gameObject
+        local go = Object.Instantiate(template_go)
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        -- 分解特效
+        self.m_decompose_sfx = nil
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_lingshou_fenjie"), go.transform, "m_decompose_sfx")
+        local btn = go:GetComponent(UI.Button)
+        self.m_quality_icon = go:GetComponent(UI.Image)
+        -- 选中框
+        self.m_select_trans = go.transform:Find("selected")
+        -- 头像
+        self.m_icon = go.transform:Find("icon"):GetComponent(UI.Image)
+        -- 装备中文字
+        self.m_equipped = go.transform:Find("equipped")
+        -- 等级
+        self.m_level_text = go.transform:Find("LVL"):GetComponent(UI.Text)
+
+        self:subscribe(frame:on_event_tmpl_set(true), function(val)
+            if val == 0 then
+                return
+            end
+            local icon_path = dbc.sprite[val].icon
+            self:change_sprite(icon_path)
+            local quality_icon = dbc.equip_quality_client[dbc.sprite[val].quality].spirit_quality_icon
+            self:change_quality(quality_icon)
+        end)
+
+        self:subscribe(frame:on_event("selected"), function()
+            self.m_frame:set_is_selected(true)
+            self.m_select_trans.gameObject:SetActive(true)
+        end)
+        self:subscribe(frame:on_event("unselected"), function()
+            self.m_frame:set_is_selected(false)
+            self.m_select_trans.gameObject:SetActive(false)
+        end)
+
+
+        -- 显示装备中
+        self:subscribe(frame:on_event("show_equip"), function()
+            self:show_equip()
+        end)
+        -- 隐藏装备中
+        self:subscribe(frame:on_event("hide_equip"), function()
+            self:hide_equip()
+        end )
+
+        -- 隐藏装备中
+        self:subscribe(frame:on_event("play_decompose_sfx"), function()
+            self:play_sfx()
+        end )
+
+        -- 刷新等级
+        self.m_level_text.text = frame:get_spirit_data().level
+        self:subscribe(self:getFrame("spirit_info"):on_event("refresh_star"), function(spirit_data)
+            if spirit_data == frame:get_spirit_data() then
+                self.m_level_text.text = spirit_data.level
+            end
+        end )
+        btn.onClick:AddListener(function()
+            if self:getFrame("spirit_list"):get_current_page() == self:getFrame("spirit_list").ChildPageName.MERGE_PAGE then
+                self:getFrame("spirit_list"):choose_merge(frame)
+                return
+            end
+            if self:getView("spirit_list"):get_is_single_choose() then
+                -- 如果是单选
+                self:getFrame("spirit_list"):change_selected_btn(frame)
+            else
+                -- 可以多选的情况
+                self:getFrame("spirit_list"):choose_selected_btn(frame)
+            end
+        end)
+    end)
+end
+
+
+function spirit_list_btn_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+function spirit_list_btn_view:change_quality(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_quality_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+---- 显示自己
+function spirit_list_btn_view:show()
+    self:getGO():SetActive(true)
+end
+---- 隐藏自己
+function spirit_list_btn_view:hide()
+    self:getGO():SetActive(false)
+end
+
+---- 显示装备中
+function spirit_list_btn_view:show_equip()
+    self.m_equipped.gameObject:SetActive(true)
+end
+---- 隐藏装备中
+function spirit_list_btn_view:hide_equip()
+    self.m_equipped.gameObject:SetActive(false)
+end
+
+
+function spirit_list_btn_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go.transform:GetChild(0):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+-- 被分解的时候播特效
+function spirit_list_btn_view:play_sfx()
+    self.m_decompose_sfx.gameObject.transform.parent.gameObject:SetActive(true)
+    self.m_decompose_sfx:Play()
+    slua_timer.addDelayEvent(1, function()
+        self:getFrame():destroySelf()
+    end)
+end
+
+return spirit_list_btn_view

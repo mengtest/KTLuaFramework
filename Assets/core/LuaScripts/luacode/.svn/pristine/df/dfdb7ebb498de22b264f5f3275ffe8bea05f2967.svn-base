@@ -1,0 +1,214 @@
+local sect_talent = {}
+
+-- 显示
+Event.decl(sect_talent, "show")
+-- 隐藏
+Event.decl(sect_talent, "hide")
+function sect_talent:get_role()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    return role
+end
+
+function sect_talent:doInit()
+    self.m_selected_frame = nil
+    self:set_is_add_rect_trans(true)
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    self.m_talent_list = self:getFrame("talent_ui"):get_talent_info_list()
+end
+
+function sect_talent:on_loaded()
+    self:create_talent_btn()
+
+    -- 监听天赋启用
+    self:subscribe(self.m_skill_ui_manager:on_event("master_enabled"), function(talent_id)
+        -- 与启用天赋同组的技能列表
+        local list = self:get_same_group_skill_list(talent_id)
+
+        for i, v in ipairs(self.m_main_talent_btn_list) do
+            if utility.table:is_contain(list, v:get_talent_id()) then
+                -- 同步天赋激活
+                v:set_talent_id(talent_id)
+                v:set_can_btn_click(true)
+                -- 如果激活的天赋是默认的核心天赋
+                if utility.table:is_contain(self.m_default_main_talent_id_list, talent_id) then
+                    v:set_talent_id(talent_id)
+                    v:set_can_btn_click(false)
+                end
+            end
+        end
+        for i, v in ipairs(self.m_sub_talent_btn_list) do
+            if utility.table:is_contain(list, v:get_talent_id()) then
+                -- 同步天赋激活
+                v:set_talent_id(talent_id)
+                v:set_can_btn_click(true)
+                -- 如果激活的天赋是默认的次级
+                if utility.table:is_contain(self.m_default_sub_talent_id_list, talent_id) then
+                    v:set_talent_id(talent_id)
+                    v:set_can_btn_click(false)
+                end
+            end
+        end
+
+
+        -- 设置天赋的完成度
+        local num = 0
+        for i, btn_frame in ipairs(self.m_talent_btn_list) do
+            -- 如果默认的天赋中包含现有的
+            if utility.table:is_contain(self.m_default_list, btn_frame:get_talent_id()) then
+                num = num + 1
+            end
+        end
+        local percent = utility.math:get_integer_part((num / 7) * 100)
+        self:getFrame("sect_elements"):set_talent_percent_num(percent .. "%")
+    end)
+
+
+end
+
+function sect_talent:create_talent_btn()
+    -- TODO 现在做的是天赋全解锁的情况下  自动激活以下七个天赋  每次上线都会激活
+    self.m_talent_btn_list = {}
+    -- frame列表
+    self.m_main_talent_btn_list = {}
+    -- frame列表
+    self.m_sub_talent_btn_list = {}
+    -- 此流派的默认天赋
+    self.m_default_list = {}
+    self.m_default_main_talent_id_list = {}
+    local main_talent_list = {
+        10000,
+        10100,
+        10200
+    }
+
+    self.m_default_sub_talent_id_list = {}
+    local sub_talent_list = {
+        10300,
+        10400,
+        10500,
+        10600
+    }
+    -- 创建核心流派天赋
+    for i, v in ipairs(main_talent_list) do
+        for k, talent_info in ipairs(self.m_talent_list) do
+            local id = talent_info.talent_id
+            if dbc.spell_ui[id].is_talent == v then
+                local frame = self:createChild("main_sect_talent_btn" .. id, "sect.sect_talent_btn", talent_info)
+                table.insert(self.m_talent_btn_list, frame)
+                table.insert(self.m_main_talent_btn_list, frame)
+                table.insert(self.m_default_main_talent_id_list, id)
+                table.insert(self.m_default_list, id)
+
+                -- TODO 这个地方直接激活这几个天赋
+                if not talent_info.is_learned then
+                    self.m_skill_ui_manager:req_master_learn(id)
+                    self.m_skill_ui_manager:req_master_enabling(self:get_group_num(id), self:get_talent_num(id))
+                else
+                    -- 学习了启用
+                    self.m_skill_ui_manager:req_master_enabling(self:get_group_num(id), self:get_talent_num(id))
+                end
+
+            end
+        end
+    end
+
+    -- 创建次级流派天赋
+    for i, v in ipairs(sub_talent_list) do
+        for k, talent_info in ipairs(self.m_talent_list) do
+            local id = talent_info.talent_id
+            if dbc.spell_ui[id].is_talent == v then
+                local frame = self:createChild("sub_sect_talent_btn" .. id, "sect.sect_talent_btn", talent_info)
+                table.insert(self.m_talent_btn_list, frame)
+                table.insert(self.m_sub_talent_btn_list, frame)
+                table.insert(self.m_default_sub_talent_id_list, id)
+                table.insert(self.m_default_list, id)
+
+                -- TODO 这个地方直接激活这几个天赋
+                if not talent_info.is_learned then
+                    self.m_skill_ui_manager:req_master_learn(id)
+                    self.m_skill_ui_manager:req_master_enabling(self:get_group_num(id), self:get_talent_num(id))
+                else
+                    -- 学习了启用
+                    self.m_skill_ui_manager:req_master_enabling(self:get_group_num(id), self:get_talent_num(id))
+                end
+
+
+            end
+        end
+    end
+
+    -- TODO 现在因为上来就直接激活默认的  所以直接设置100%
+    self:getFrame("sect_elements"):set_talent_percent_num("100%")
+end
+
+function sect_talent:change_select_btn(child)
+    if child == self.m_selected_frame then
+        self.m_selected_frame:set_window_show(false)
+    else
+        if self.m_selected_frame then
+            self.m_selected_frame:set_window_show(false)
+        end
+    end
+    for k, v in pairs(self.m_talent_btn_list) do
+        if v == child then
+            self.m_selected_frame = child
+            child:set_window_show(true)
+            break
+        end
+    end
+end
+
+
+
+
+-- 关闭按钮
+function sect_talent:on_close_btn()
+    self:hide()
+end
+-- 显示
+function sect_talent:show()
+    self:emit_event("show")
+end
+
+-- 隐藏
+function sect_talent:hide()
+    self:emit_event("hide")
+end
+-- 隐藏小弹窗
+function sect_talent:hide_window()
+    for k, v in pairs(self.m_talent_btn_list) do
+        v:set_window_show(false)
+    end
+end
+
+---- 获取组号
+function sect_talent:get_group_num(talent_id)
+    local group_num = ""
+    group_num = string.sub(dbc.spell_ui[talent_id].is_talent, -4, -3)
+    return tonumber(group_num)
+end
+---- 获取位置
+function sect_talent:get_talent_num(talent_id)
+    local talent_num = ""
+    talent_num = string.sub(dbc.spell_ui[talent_id].is_talent, -2, -1)
+    return tonumber(talent_num)
+end
+---- 获取同组的天赋技能
+function sect_talent:get_same_group_skill_list(skill_id)
+    local list = {}
+    local group_num = self:get_group_num(skill_id)
+
+    for id, talent_info in pairs(self.m_talent_list) do
+        if self:get_group_num(talent_info.talent_id) == group_num then
+            table.insert(list, talent_info.talent_id)
+        end
+    end
+    return list
+end
+
+
+
+return sect_talent

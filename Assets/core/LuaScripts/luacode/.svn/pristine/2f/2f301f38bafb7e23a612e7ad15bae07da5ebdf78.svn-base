@@ -1,0 +1,1104 @@
+﻿--[[added by lijunfeng 2017/12/7 用于具备creature属性的npc--]]
+local UnitAction = require "frame.unit_action"
+local Enum_Unit = require "common.Enum.Enum_Unit"
+
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local InterctFsm=nil
+
+local Frame = require("system.frame")
+
+local M = {}
+
+local DIR_THRESHOLD = 0.1
+local SMOOTH_TIME = 0.05
+M.BACK_SPEED_SCALE = 0.6
+M.GRAVITY = 9.8
+M.START_JUMP_SPEED = 5
+M.FALL_DISTANCE = 1
+
+M.MOVE_STATE = {
+    IDLE = 0,
+    FORWARD = 1,
+    R_FORWARD = 2,
+    RIGHT = 3,
+    R_BACK = 4,
+    BACK = 5,
+    L_BACK = 6,
+    LEFT = 7,
+    L_FORWARD = 8,
+}
+
+-- 技能子状态
+--M.SKILL_STATE =
+--{
+--    NONE = 0,       -- 无
+--    SINGING = 1,    -- 吟唱
+--    CHANNEL = 2,    -- 引导
+--}
+M.CONTROLL_TYPE = {
+    STATE = 1,
+    -- 通过move_state控制
+    ACTION = 2, -- 由action控制
+}
+
+Attribute.decl(M, "id", nil)
+Attribute.decl(M, "dbid", nil)
+Attribute.decl(M, "rclass", nil)
+Attribute.decl(M, "specialization", nil)
+Attribute.decl(M, "type", nil)
+Attribute.decl(M, "pos", function()
+    return Vector3(166, 22.08244, 107.8)
+end)
+Attribute.decl(M, "dir", 0)-- 角色朝向
+Attribute.decl(M, "birth_dir", 0)-- 角色出生时的朝向
+Attribute.decl(M, "model_height", 2)
+Attribute.decl(M, "model_radius", 0.5)
+Attribute.decl(M, "name", "")
+Attribute.decl(M, "bounding_radius", 0)
+Attribute.decl(M, "selectable", 0)
+Attribute.decl(M, "attackable", 0)
+
+Attribute.decl(M, "hp", 100)
+Attribute.decl(M, "hp_max", 100)
+
+Attribute.decl(M, "attack_damage", 10)
+Attribute.decl(M, "attack_time", 1)
+Attribute.decl(M, "attack_range", 1)
+
+Attribute.decl(M, "main_act", -1)-- 主行为
+Attribute.decl(M, "sub_act", -1)-- 子行为
+
+Attribute.decl(M, "move_dir", 0)-- 移动方向
+Attribute.decl(M, "move_speed", 3)           -- 正常移动速度
+
+-- 实际速度
+-- pacman 2017-11-09 为了简化多种操作方式下的代码，引入了这一属性
+-- 记录的值可能是正常移动速度，也可能不是，比如wow操作下后退行走时，实际速度速度是正常速度的百分比
+Attribute.decl(M, "actural_move_speed", 3)           -- 最终移动速度
+
+Attribute.decl(M, "move_state", M.MOVE_STATE.IDLE)
+Attribute.decl(M, "gravity_speed", 5)-- 重力方向速度 向上为正
+Attribute.decl(M, "controll_type", M.CONTROLL_TYPE.STATE)
+Attribute.decl(M, "to_jump", false)-- 同步状态
+
+Attribute.decl(M, "controller", nil)
+Attribute.decl(M, "action", nil)
+Attribute.decl(M, "target", function() return nil end)
+Attribute.decl(M, "target_id", 0)
+Attribute.decl(M, "in_combat", 0)
+Attribute.decl(M, "token_ticket", 0)
+Attribute.decl(M, "target_distance", 0) -- rjy 2017.11.07 用于判断目标距离
+Attribute.decl(M, "inst_id", 0)
+
+-- pacman 2017-11-21 原 anim_param, anim_trigger属性 是用来修改动画状态机参数的
+-- 这种情况下下用Attribute不好，用Event更好
+--Attribute.decl(M, "anim_param", function()
+--    return { run = false }
+--end, Attribute.TABLE)
+--Attribute.decl(M, "anim_trigger", nil)
+
+Attribute.calc(M, "dead", function(self)
+    return self:get_hp() <= 0
+end, "hp")
+Attribute.alias(M, "dead", "is_dead")
+Attribute.calc(M, "head_pos", function(self)
+    return self:get_pos() + Vector3(0, 2.5, 0)
+end, "pos")
+
+Attribute.decl(M, "skill_id", 0)
+--Attribute.decl(M, "cur_skill_data", nil)        -- 当前使用中的技能数据对象
+Attribute.decl(M, "skill_area_pos", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "skill_dir", 0)
+Attribute.decl(M, "display_id", 0)
+Attribute.decl(M, "skill_valid", true)
+Attribute.decl(M, "is_show_view", true)
+Attribute.decl(M, "skill_queue")
+Attribute.decl(M, "skill_sing_start_time", 0)-- 吟唱开始时间
+Attribute.decl(M, "skill_sing_end_time", 0)-- 吟唱结束时间
+--Attribute.decl(M, "skill_state", M.SKILL_STATE.NONE)
+--新加的是否被标记状态属性  用于选择攻击目标
+-- pacman 2017-9-18 诡异，这里初始值为false的时候，运行时取值get_is_Selected()为nil
+Attribute.decl(M, "is_Selected", function()
+    return false
+end)
+
+-- 搭乘的场景载具 比如电梯
+Attribute.decl(M, "carrier", nil)
+
+
+Event.decl(M, "get_bone")
+Event.decl(M, "be_hit")
+Event.decl(M, "show_skill_idctr")
+Event.decl(M, "move_skill_area")
+Event.decl(M, "yaw_skill_area")
+Event.decl(M, "popup_text")
+Event.decl(M, "anim_event")
+Event.decl(M, "start_skill")  -- 开始施法
+Event.decl(M, "instant_skill")  -- 进入施法出手环节
+Event.decl(M, "skill_sing_stop")-- 吟唱停止
+Event.decl(M, "add_buff")-- 新增buff
+Event.decl(M, "remove_buff")-- 移除buff
+
+-- 这个事件运行时修改动画
+Event.decl(M, "override_animator_clip")
+Event.decl(M, "skill_sing")
+Event.decl(M, "treasure")
+
+-- pacman 2017-11-21 旧写法中anim_trigger/anim_param是Attribute
+-- 但要修改动画状态机参数的话用Attribute不好，用Event才对
+-- 参数1 string trigger名称
+Event.decl(M, "anim_trigger")
+-- 参数1 string animation参数名称
+-- 参数2 string 参数值类型 "bool", "int", "float", 对应着Animator.SetBool,SetInteger,SetFloat
+-- 参数3 动态类型 参数值
+Event.decl(M, "anim_param")
+
+-- 当某个怪物发生器启动时
+Event.decl(M, "enable_creature_generator")
+
+Event.decl(M, "play_anim")
+Event.decl(M, "cross_fade")
+Event.decl(M, "show_enemy_skill_area")
+Event.decl(M, "set_position")
+Event.decl(M, "update_position")
+
+Event.decl(M, "run_function")
+
+function M:calc_back()
+    local state = self:get_move_state()
+
+    if state == M.MOVE_STATE.R_BACK
+    or state == M.MOVE_STATE.BACK
+    or state == M.MOVE_STATE.L_BACK then
+        return true
+    else
+        return false
+    end
+end
+Attribute.calc(M, "back", M.calc_back, "move_state")
+
+Attribute.decl(M, "is_main_player", false)
+Attribute.decl(M, "is_role", false)
+-- 这是个临时做法 等待服务器修改为位运算之后再作调整
+Attribute.decl(M, "stunned", nil)
+Attribute.decl(M, "frozen", nil)
+Attribute.decl(M, "silenced", nil)
+
+--交互部分
+Attribute.decl(M, "tid", 0)  
+Attribute.decl(M, "tmpl", 0)                                        -- creature 表id
+Attribute.decl(M, "quiz", 0)
+Attribute.decl(M, "interact_state", false)                              --是否处于交互状态
+Attribute.decl(M, "top_state", Enum_Quest.Quest_State.Invalid)      	-- 头顶提示状态
+
+-------------------
+-- 静态方法
+-- 计算move_state对应的8相角
+-- [-180, 180]，0度向前，以45度增减
+function M.get_angle8d_from_move_state(move_state)
+    if move_state <= M.MOVE_STATE.IDLE or move_state > M.MOVE_STATE.L_FORWARD then
+        return nil
+    else
+        return func.clamp_angle_180((move_state - 1) * 45)
+    end
+end
+
+-- 计算8相角对应的move_state
+function M.get_move_state_from_angle8d(angle_8d)
+    return math.floor(func.clamp_angle_0_360(angle_8d) / 45) + 1
+end
+
+local ATT_MAP = {
+    pos = "pos",
+    dir = "dir",
+	birth_dir="birth_dir",
+    name = "name",
+    health = "hp",
+    health_max = "hp_max",
+    target_id = "target_id",
+    dbid = "dbid",
+    rclass = "rclass",
+    specialization = "specialization",
+    bounding_radius = "bounding_radius",
+    selectable = "selectable",
+    attackable = "attackable",
+    display_id = "display_id",
+    inst_id = "inst_id",
+	tid="tid",
+	tmpl="tmpl",
+	interact_state="interact_state",
+	move_state="move_state"
+}
+
+local COMBATSTATE_MAP = {
+    -- 这是个临时做法 等待服务器修改为位运算之后再作调整
+    stunned = "stunned", -- 眩晕
+    frozen = "frozen", -- 冻结
+    silenced = "silenced", -- 沉默
+}
+
+
+function M:switch_selected_effect(is_selected)
+    if is_selected then
+        self:emit_event("show_monster_choose")
+    else
+        self:emit_event("hide_monster_choose")
+    end
+end
+
+-- 成员方法
+function M:doInit(param)	
+	assert(param.id)
+    self:set_id(param.id)
+    assert(param.cfg)
+    self.m_cfg = param.cfg -- creature表
+    self:set_is_role(param.is_role)
+    self.kbe_frame = param.role
+    self:set_type(param.id)
+
+	self:set_tmpl(param.id) --creature表 id 暂时保留tmpl为了兼容giver相关代码，实际应该只用tid
+	self.m_is_close_enough = true -- 是否达到触发距离
+    self.m_is_valid = true -- 是否处于可交互状态（若已经在其它交互状态中，则为不可交互状态）
+	self.m_giver=param.role
+	self.m_cur_quest_id = 0 --当前问答id
+	self.m_cur_interact_id=0 --保存临时交互id
+    self.m_token_ticket = 0 --问答票据
+    local sdk = app:getKBESDK()	
+	
+  -- unit 技能列表
+    local skill_queue = require "system.skill_queue"
+    skill_queue:init()
+    self:set_skill_queue(skill_queue)
+	
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(self.m_giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+
+    for k, v in pairs(COMBATSTATE_MAP) do
+        self:subscribe(self.m_giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+
+	self:set_name(self.m_cfg[self.m_giver:get_tid()])
+	self:set_pos(self.m_giver:get_pos())
+	self:set_birth_dir(self.m_giver:get_dir())
+	
+    UAFsm = require "frame.unit_act_state.ua_state_machine"
+
+    self:on_event_action_set():subscribe(function(new, old)
+        if old then
+            old:close()
+        end
+        if new then
+            new:start()
+        end
+    end)
+
+    self:on_event_dead_set():subscribe(function(val)
+        -- print("---------unit dead", val, self:get_id())
+        if val then
+            -- print(">>>>>>>>>switch to dead")
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.DEAD)
+        else
+            -- print(">>>>>>>>>switch to move")
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.MOVE)
+        end
+    end)
+	
+    local world = self:getFrame("world")
+
+    self.m_target_dir = self:get_dir()
+    -- 目标朝向
+    self.m_is_syncing_dir = false
+    -- 同步角度开关
+    self.m_dir_velocity = 0
+    -- smoothDamp用
+    self.m_move_back = false
+    -- 是否向后移动
+
+    -- 用CharacterController 组件来操作CONTROLL_TYPE.STATE类型的unit
+    self.m_char_ctrl_component = nil
+
+    -- 行为状态机
+    self.m_uafsm = UAFsm(nil, self)
+	
+	InterctFsm=require "frame.interact_state.interact_state_machine"
+	self.m_interact_fsm=InterctFsm(self)
+
+    -- 临时处理，等到场景加载完毕再初始化状态机
+    -- print("---------------", world)
+    self:subscribe(world:on_event_map_loaded_set(true), function(loaded)
+        if loaded then
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.MOVE)
+        end
+    end)
+
+    if world:get_map_loaded() then
+        self.m_uafsm:change_state(UAFsm.MAIN_ACT.MOVE)
+    end
+
+	--注册问答事件
+    self:subscribe(self.m_giver:on_event("dialog_bgn"), function(token_ticket)
+        Util_log:logError(Util_log.Mask.SJG_Quest, "Giver::dialog_bgn, " .. token_ticket)
+        self.m_token_ticket = token_ticket
+    end)
+
+    self:on_part_of_state_changed(nil, Enum_Quest.Quest_State.Invalid)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Giver.id = " .. self.m_giver:get_tid())
+	
+    --------------
+    -- 技能列表
+    -- 临时测试数据
+    self.m_skill_list = {}
+    local SkillData = require("data.skill_data")
+    for k, v in pairs(dbc.spell) do
+        local skill_data = SkillData:new(dbc.spell[k])
+        self.m_skill_list[k] = skill_data
+    end
+end
+
+-- 获取当前技能行为信息对象
+function M:get_skill_act_info()
+    return {target_id = self.m_skill_target_id}
+end
+
+
+-- 技能修改
+function M:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+    local skill_data = self:get_skill(skill_id)
+    skill_data:add_spell_mod(spell_mod_op, spell_mod_type, value)
+end
+
+
+-- 数据加载完毕（理论上应该包括模型以及其它与游戏对象相关的数据）后执行
+function M:on_data_prepared()
+    local world = self:getFrame("world")
+    world:emit_event("add_unit", self:get_id(), self)
+end
+
+function M:get_skill(id)
+    return self.m_skill_list[id]
+end
+
+
+function M:getCfg()
+    return self.m_cfg
+end
+
+function M:get_bone(bone_name)
+    local bone = nil
+    self:emit_event("get_bone", bone_name, function(out_bone)
+        bone = out_bone
+    end)
+    return bone
+end
+
+function M:update()
+    if Input.GetKeyDown(KeyCode.M) then
+        app:logError("self.id = " .. self:get_id() .. ",\t self.target_id = " .. self:get_target_id())
+    end
+
+    if self:get_controller() then
+        self:get_controller():update()
+    end
+
+    if self:get_action() then
+        if not self:get_action():update() then
+            self:set_action(nil)
+        end
+    end
+
+    self.m_uafsm:update()
+	self.m_interact_fsm:update()
+end
+
+-- 同步角度
+function M:update_dir()
+    if self.m_is_syncing_dir then
+        local cur_dir = func.clamp_angle_0_360(self:get_dir())
+        -- print(cur_dir, self.m_target_dir, math.abs(cur_dir - self.m_target_dir), self.m_is_syncing_dir)
+        if math.abs(cur_dir - self.m_target_dir) < DIR_THRESHOLD then
+            self:set_dir(self.m_target_dir)
+            self.m_is_syncing_dir = false
+        else
+            local smoothed_dir = Mathf.SmoothDampAngle(cur_dir, self.m_target_dir, self.m_dir_velocity, SMOOTH_TIME);
+            self:set_dir(smoothed_dir)
+        end
+    end
+end
+
+function M:lookAt(pos)
+    local vec = Vector3.ProjectOnPlane(pos - self:get_pos(), Vector3.up)
+    local dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+    self:set_dir(dir)
+end
+
+function M:set_target_dir(worldEulerY)
+    -- todo 检查玩家状态是否允许操作
+    -- 转换到 [-180, 180]
+    worldEulerY = func.clamp_angle_0_360(worldEulerY)
+
+    self.m_target_dir = worldEulerY
+    self.m_is_syncing_dir = true
+
+    -- print("Unit:sync_dir", tmp, worldEulerY)
+end
+
+
+function M:change_move_state(move_state)
+    self.m_uafsm:change_move_state(move_state)
+end
+
+--[[function M:change_interact_state(state_name)
+    self.m_interact_fsm:change_state(state_name)
+end
+--]]
+function M:navMoveTo(pos)
+    self:set_action(UnitAction.MoveTo(self, pos))
+end
+
+function M:tryAttackTarget(target)
+    -- 多个普通攻击动作随机一个
+    local atk_anim = model_mgr.RandomAtkAnim(self.m_cfg.model_id)
+    if (atk_anim ~= nil) then
+        self:emit_event("override_animator_clip", "normal_atk", atk_anim)
+    end
+
+    self:set_action(UnitAction.AttackTarget(self, target))
+end
+
+function M:moveWithPath(path)
+    assert(#path >= 2)
+    local from = path[1]
+    self:set_pos(from)
+    self:set_action(UnitAction.MoveWithPath(self, path, 2))
+end
+
+
+function M:show_skill_indicator(is_show, skill_id)
+    self:emit_event("show_skill_idctr", is_show, skill_id)
+end
+
+
+function M:cast_skill(skill_id, target_id, target_pos, target_dir)
+    --print("skill_id = " .. skill_id)
+    self:set_skill_id(skill_id)
+    --print("--------", target_id)
+    if (Enum_Unit.UnitType.BOSS == self.m_cfg.unit_type or
+    Enum_Unit.UnitType.BIGBOSS == self.m_cfg.unit_type) then
+        self:emit_event("show_enemy_skill_area", skill_id, target_pos)
+    end
+
+    local skill_mgr = app:getSkillMgr()
+
+    if skill_id == 1 then
+        local world = self:getFrame("world")
+        local target = world:getUnit(target_id)
+        if target then
+            self:tryAttackTarget(target)
+        end
+    else
+        -- 开始标准技能流程 --
+        self:start_skill(skill_id, target_id, target_pos, target_dir)
+	end
+end
+
+
+-- 开始标准技能流程
+---@param skill_id System.Single
+function M:start_skill(skill_id, target_id, target_pos, target_dir)
+    --print("---------start_skill", skill_id, target_id, target_pos, target_dir)
+    -- 记录本次流程要用到的数据
+    -- pacman 2017-09-14 我现在更倾向于应该在用到目标的时候，再次获取当前目标
+    -- 用来应对类似吟唱过程中切换了新目标的情况
+    -- 2017-09-15 经与策划确认，吟唱过程中切换了新目标，但是仍然对旧目标出手
+    self.m_skill_target_id = target_id
+    self.m_skill_target_pos = target_pos
+    self.m_skill_target_dir = target_dir
+
+    self:emit_event("start_skill", skill_id)
+
+    -- 启动吟唱
+    if self:start_skill_state_sing(skill_id) then
+        -- do nothing
+    else
+        -- 进入后继环节 --
+        self:on_skill_sing_state_exit(skill_id,Enum_Battle.Sing_Finish.FINISH)
+    end
+end
+
+
+-- 尝试开始技能吟唱环节，指定技能没有吟唱环节则返回false
+---@param skill_id System.Single
+---@return System.Boolean
+function M:start_skill_state_sing(skill_id)
+    --print("---------start_skill_state_sing", skill_id)
+    local skill_cfg = dbc.spell[skill_id]
+    --local client_cfg = dbc.spell_client[skill_id]
+    --assert(skill_cfg and client_cfg, string.format("invalid skill_id %d", skill_id))
+    local channel_interval = skill_cfg.channel_interval -- 引导间隔
+    local cast_time = self:get_skill(skill_id):get_cast_time() -- 吟唱时间
+    local is_sing = skill_cfg.is_sing
+
+    -- 判断是否有吟唱环节
+    -- 非引导技能，且吟唱时间不为0
+    if channel_interval == 0 and cast_time ~= 0 and is_sing then
+        -- 开始吟唱阶段 --
+        -- 是否可以吟唱中移动？
+        -- todo 从正确的地方获取【是否可以移动】标记
+        local can_move = true
+        if can_move then
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.SKILL_SING)
+        else
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.SKILL_SING)
+        end
+
+        -- 播放角色吟唱动作/特效
+        self:emit_event("skill_sing", skill_id)
+
+        return true
+    else
+        --print("------------ no sing state")
+        return false
+    end
+end
+
+
+-- 吟唱环节结束处理
+---@param skill_id System.Single
+function M:on_skill_sing_state_exit(skill_id, val)
+    self:emit_event("skill_sing_stop")
+
+    if (val ~= Enum_Battle.Sing_Finish.FINISH) then
+        return
+    end
+    -- 后继环节：出手或者引导 --
+    --    if self:start_skill_state_channel(skill_id) then
+    --        -- do nothing
+    --    else
+    --        -- 出手
+    --        self:skill_unleash(skill_id)
+    --    end
+
+
+    local skill_cfg = dbc.spell[skill_id]
+    local client_cfg = dbc.spell_client[skill_id]
+    local is_jump_to_tar = skill_cfg.is_jump_to_tar
+    local channel_interval = skill_cfg.channel_interval     -- 引导间隔
+    if is_jump_to_tar then
+        self:start_skill_jump(skill_id)
+    else
+        if self:start_skill_state_channel(skill_id) then
+            -- do nothing
+        else
+            -- 出手
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.MOVE)
+            self:skill_unleash(skill_id)
+        end
+    end
+
+end
+
+function M:start_skill_jump(skill_id)
+    self:skill_unleash(skill_id)
+    self.m_uafsm:change_state(UAFsm.MAIN_ACT.SKILL_JUMP)
+end
+
+function M:stop_skill_jump(skill_id)
+    if self:start_skill_state_channel(skill_id) then
+        -- do nothing
+    else
+        -- 回到站立姿态
+        self.m_uafsm:change_state(UAFsm.MAIN_ACT.MOVE)
+    end
+end
+
+
+-- 尝试开始技能引导环节，指定技能没有引导环节则返回false
+---@param skill_id System.Single
+---@return System.Boolean
+function M:start_skill_state_channel(skill_id)
+    local skill_cfg = dbc.spell[skill_id]
+    local client_cfg = dbc.spell_client[skill_id]
+    local channel_interval = skill_cfg.channel_interval -- 引导间隔
+
+    -- 判断是否有引导环节
+    if channel_interval > 0 then
+        -- 引导间隔非零，开始【引导】
+        -- 角色状态
+        -- 是否可以引导中移动？
+        -- todo 从正确的地方获取【是否可以移动】标记
+        local can_move = true
+        if can_move then
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.SKILL_CHANNEL)
+        else
+            self.m_uafsm:change_state(UAFsm.MAIN_ACT.SKILL_CHANNEL)
+        end
+
+        local skill_mgr = app:getSkillMgr()
+        skill_mgr:add_aoe(self, skill_id, self.m_skill_target_pos)
+
+        return true
+    else
+        return false
+    end
+end
+
+
+-- 吟唱环节结束处理
+---@param skill_id System.Single
+function M:on_skill_channel_state_exit(skill_id)
+    -- do nothing
+end
+
+-- 释放法术
+---@param skill_id System.Single
+function M:skill_unleash(skill_id)
+
+    local skill_cfg = dbc.spell[skill_id]
+    local client_cfg = dbc.spell_client[skill_id]
+    local skill_mgr = app:getSkillMgr()
+    local skill_effect_cfg_list = skill_mgr:get_effect_cfg_list(skill_id)
+
+    -- 播放释放动作
+    self:emit_event("instant_skill", skill_id)
+    -- 出招/受击特效播放时机将由animationClip上配置的animationEvent决定
+    -- 过程特效开关，如果为1则不立即释放飞弹等，而是等待动画事件 于2017年10月9日16:14 定义的临时做法
+    if (client_cfg.cast_sfx_event == 1) then
+        return
+    end
+
+    -- 过程特效：飞弹或者是空间特效
+    local speed = skill_cfg.speed
+    if speed ~= 0 then
+        -- 飞弹 --
+        -- todo 对于死亡目标的处理
+        -- 飞弹/空间特效处理
+        -- 目标是unit
+        if skill_mgr:is_target_type_target(skill_effect_cfg_list) then
+            local world = self:getFrame("world")
+            local target = world:getUnit(self.m_skill_target_id)
+            print(self:get_target_id(), target)
+            skill_mgr:shoot_projectile_at_unit(skill_id, self, target, function(projectile)
+                -- 飞弹命中目标回调
+                --print(")))))))))))) on_projectile_hit", skill_id)
+                -- 销毁飞弹对象
+                projectile:destroySelf()
+
+
+                skill_mgr:add_autodestory_sklsfx_in_unit(skill_id,
+                Enum_Battle.Skill_Sfx_Type.HIT, Enum_Battle.Skill_Mount_Point_Type.HIT,
+                target)
+            end)
+
+            -- 目标是空间位置
+        elseif skill_mgr:is_target_type_dest_area(skill_effect_cfg_list) then
+            --print(">>>>>>>>", skill_id, self.m_skill_target_pos)
+            local target_pos = self.m_skill_target_pos
+
+            --print("???????????????", self:get_id(), self:get_pos())
+            skill_mgr:shoot_projectile_at_pos(skill_id, self, target_pos, function(projectile)
+                -- 飞弹命中目标回调
+                -- 销毁飞弹对象
+                local dir = projectile:get_euler().y
+                projectile:destroySelf()
+
+                -- 播放命中特效
+                skill_mgr:add_skill_eft_at_pos(skill_id, Enum_Battle.Skill_Sfx_Type.HIT, target_pos, dir)
+
+            end)
+        end
+
+    else
+        -- 空间特效
+        -- pacman 2017-09-23 【普通过程特效】的播放过程临时移动到了unit:on_animation_event方法中
+        --local target_pos = self.m_skill_target_pos
+        --skill_mgr:add_skill_eft_at_pos(skill_id, Enum_Battle.Skill_Sfx_Type.CAST, target_pos, self.m_skill_target_dir)
+    end
+
+end
+
+
+function M:set_cc(cc)
+    self.m_char_ctrl_component = cc
+end
+
+function M:get_cc()
+    return self.m_char_ctrl_component
+end
+
+function M:on_be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff)
+    --print(">>>>>>>>> unit:on_be_hit", attacker_id, skill_id, hit_outcome, damage)
+    self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff)
+    self:emit_event("popup_text", attacker_id, skill_id, hit_outcome, damage, is_buff)
+
+end
+
+function M:change_battle_state(state)
+    self:set_in_combat(state)
+    -- 修改UI显示的
+end
+
+------技能-------
+-- 开始技能cd
+function M:start_skill_cd(skill_id)
+    local skill_data = self.m_skill_list[skill_id]
+    if skill_data == nil then
+        return
+    end
+    skill_data:start_cd()
+end
+
+
+-- 与指定技能同属同一【公共cd组】的技能开始公共cd
+function M:start_skill_g_cd(skill_id)
+    local target_cfg = dbc.spell[skill_id]
+    if target_cfg == nil then
+        return
+    end
+
+    for k, v in pairs(self.m_skill_list) do
+        local cfg = v:get_cfg()
+        if cfg.global_cooldown_category == target_cfg.global_cooldown_category then
+            v:start_g_cd()
+        end
+    end
+end
+
+
+-- 处理动画事件
+function M:on_animation_event(evt)
+    local skill_id = self:get_skill_id()
+    local client_cfg = dbc.spell_client[skill_id]
+    local evt_type = evt.stringParameter
+    local skill_cfg = dbc.spell[skill_id]
+
+    local skill_mgr = app:getSkillMgr()
+    local skill_effect_cfg_list = skill_mgr:get_effect_cfg_list(skill_id)
+
+    -- 施法者 --
+    local evt_type = evt.stringParameter
+    local evt_int = evt.intParameter
+
+    -- 类型 施放点 --
+    if evt_type == Enum_Battle.Anim_Evt_Type.CAST then
+
+    elseif evt_type == Enum_Battle.Anim_Evt_Type.SHOOT then
+        local speed = skill_cfg.speed
+        if speed ~= 0 then
+            -- 飞弹 --
+            -- todo 对于死亡目标的处理
+            -- 飞弹/空间特效处理
+            -- 目标是unit
+            if skill_mgr:is_target_type_target(skill_effect_cfg_list) then
+                local world = self:getFrame("world")
+                local target = world:getUnit(self.m_skill_target_id)
+                print(self:get_target_id(), target)
+                -- 添加锁定特效 暂时只考虑目标是unit的情况 
+                local aim_sfx = skill_mgr:add_aim_sfx_in_unit(skill_id, target)
+                skill_mgr:shoot_projectile_at_unit(skill_id, self, target, function(projectile)
+                    -- 飞弹命中目标回调
+                    --print(")))))))))))) on_projectile_hit", skill_id)
+                    -- 销毁飞弹对象
+                    projectile:destroySelf()
+
+                    skill_mgr:add_autodestory_sklsfx_in_unit(skill_id,
+                    Enum_Battle.Skill_Sfx_Type.HIT, Enum_Battle.Skill_Mount_Point_Type.HIT,
+                    target)
+                    -- 飞弹击中时 删除锁定特效
+                    if (aim_sfx ~= nil and type(aim_sfx) == "table") then
+                        for i, v in ipairs(aim_sfx) do
+                            v:destroySelf()
+                        end
+                    end
+
+                end)
+
+                -- 目标是空间位置
+            elseif skill_mgr:is_target_type_dest_area(skill_effect_cfg_list) then
+                --print(">>>>>>>>", skill_id, self.m_skill_target_pos)
+                local target_pos = self.m_skill_target_pos
+
+                --print("???????????????", self:get_id(), self:get_pos())
+                skill_mgr:shoot_projectile_at_pos(skill_id, self, target_pos, function(projectile)
+                    -- 飞弹命中目标回调
+                    -- 销毁飞弹对象
+                    local dir = projectile:get_euler().y
+                    projectile:destroySelf()
+
+                    -- 播放命中特效
+                    skill_mgr:add_skill_eft_at_pos(skill_id, Enum_Battle.Skill_Sfx_Type.HIT, target_pos, dir)
+
+                end)
+            end
+
+        else
+            skill_mgr:add_skill_eft_at_pos(skill_id, Enum_Battle.Skill_Sfx_Type.CAST, self:get_pos(), self.m_skill_target_dir)
+
+            -- 检查播放对地命中特效
+            -- 如果该技能是对地攻击类型
+            if skill_mgr:is_target_type_dest_area(skill_effect_cfg_list) then
+                local target_pos = self.m_skill_target_pos
+                skill_mgr:add_skill_eft_at_pos(skill_id, Enum_Battle.Skill_Sfx_Type.HIT, target_pos, self.m_skill_target_dir)
+            end
+        end
+    end
+
+    -- 执法者view后继处理：播放施法特效
+    self:emit_event("anim_event", skill_id, evt, false)
+
+
+
+    -------------
+    -- 施法目标 --
+    local world = self:getFrame("world")
+    local target = world:getUnit(self.m_skill_target_id)
+    --print("-----------------", skill_id, self.m_skill_target_id, target)
+    -- 如果没有施法目标
+    if target == nil then
+        return
+    else
+        -- 目前暂无需要在frame层进行的操作
+        -- 施法目标view后继处理
+        target:emit_event("anim_event", skill_id, evt, true)
+    end
+end
+
+function M:is_skill_jump_state()
+    return self:get_main_act() == self.m_uafsm.MAIN_ACT.SKILL_JUMP
+end
+
+-- 临时处理：通知角色地板被破坏
+function M:break_plane()
+    self.m_uafsm:change_state(UAFsm.MAIN_ACT.JUMP)
+    self:get_cc():Move(Vector3.zero * Time.deltaTime)
+end
+
+function M:start_normal_atk(skill_id, target, target_pos, target_dir)
+    -- 暂定 0、1时播放动作 2-9时不能攻击 10以上舍弃动作
+    -- pacman 2017-11-14 实际的set_anim_trigger等动作移动到了spell_start协议的回应处理
+    -- (最终执行的是unit:cast_skill/tryAttackTarget)
+    if (self:get_main_act() < 2) then
+        --self:emit_event("anim_trigger", "attack")
+    elseif (self:get_main_act() < 10) then
+        return false
+    end
+    self.kbe_frame:use_skill(skill_id, target:get_id(), target_pos, target_dir)
+    return true
+end
+
+function M:can_selectable()
+    if (self.kbe_frame:get_selectable() == 1) then
+        return true
+    else
+        return false
+    end
+end
+
+function M:can_attackable()
+    if (self.kbe_frame:get_attackable() == 1) then
+        return true
+    else
+        return false
+    end
+end
+
+-- 添加buff
+function M:on_add_buff(added_list)
+
+    local skill_mgr = app:getSkillMgr()
+
+    for i, v in ipairs(added_list) do
+        -- 在角色身上显示buff特效
+        skill_mgr:add_buff_eft(v, self)
+    end
+
+    self:emit_event("add_buff", added_list)
+end
+
+-- 移除buff
+function M:on_remove_buff(removed_list)
+    self:emit_event("remove_buff", removed_list)
+end
+
+
+function M:get_uafsm()
+    return self.m_uafsm
+end
+
+function M:get_interact_fsm()
+    return self.m_interact_fsm
+end
+
+-- 自杀
+function M:suicide()
+    self.kbe_frame:cast_skill(9999, nil, nil, 0)
+end
+
+--对话交互部分功能
+function M:on_prepared()
+    
+end
+
+--function Giver:get_cfg()
+--    return self.m_cfg
+--end
+
+function M:get_name()
+    return self.m_cfg.name
+end
+
+function M:get_model_id()
+    return self.m_cfg.model_id
+end
+
+function M:get_anim_ctrller()
+    local rst = nil
+    self:emit_event("get_anim_ctrller", function (anim_ctrller)
+        rst = anim_ctrller
+    end)
+    return rst
+end
+
+function M:get_receive_interact_id()
+    return dbc.quest[self.m_cur_quest_id] and dbc.quest[self.m_cur_quest_id].begin_params[1] or 0
+end
+
+function M:get_give_interact_id()
+    return dbc.quest[self.m_cur_quest_id] and dbc.quest[self.m_cur_quest_id].giver or 0
+end
+
+function M:get_interact_id()
+    local interact_id, quest_id = self:getFrame("quest_manager"):get_npc_dependently_talk_list(self:get_tmpl(), nil)
+    return interact_id or -1
+end
+-- lijunfeng 2017/12/15
+function M:get_cur_interact_id()
+	return self.m_cur_interact_id
+end
+
+function M:on_selected()
+	
+	print("触发交互显示")
+	
+    if not true or not self.m_is_valid then
+        return
+    end
+    local this = self
+    local cur_quest_state = self:get_top_state()
+    if cur_quest_state == Enum_Quest.Quest_State.Invalid then
+        Util_log:logError(Util_log.Mask.SJG_Quest, string.format("与当前NPC[%d]相关联的任务[%s]目前处于 ‘无任务状态’", self:get_tmpl(), tostring(self.m_cur_quest_id)))
+    elseif cur_quest_state == Enum_Quest.Quest_State.Unlocked then
+        Util_log:logError(Util_log.Mask.SJG_Quest, string.format("与当前NPC[%d]相关联的任务[%s]目前处于 ‘已解锁状态’", self:get_tmpl(), tostring(self.m_cur_quest_id)))
+        local interact_data = dbc.interact[dbc.quest[self.m_cur_quest_id].begin_params[1]]
+        local action_id = interact_data.action_tp == Enum_Scene.Interact_Action_Tp.Pop_Bubble and tonumber(interact_data.action_param) or -1
+        local this = self
+        self.m_giver:cell_call("dialog_new")
+        self:getFrame("quiz_manager"):start_talk(self, action_id)
+        self:getFrame("quiz_manager"):set_on_complete(function ()
+            local token_ticket = this:getFrame("world"):get_main_player():get_attr("token_ticket")
+            Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Giver received, post token_ticket = %d, quest_id = %d", token_ticket, self.m_cur_quest_id))
+            this.m_giver:cell_call("dialog_end", token_ticket or -1)
+        end)
+    elseif cur_quest_state == Enum_Quest.Quest_State.Received then
+        Util_log:logError(Util_log.Mask.SJG_Quest, string.format("与当前NPC[%d]相关联的任务[%s]目前处于 ‘已接取状态’", self:get_tmpl(), tostring(self.m_cur_quest_id)))
+    elseif cur_quest_state == Enum_Quest.Quest_State.Finished then
+        Util_log:logError(Util_log.Mask.SJG_Quest, string.format("与当前NPC[%d]相关联的任务[%s]目前处于 ‘已完成状态’", self:get_tmpl(), tostring(self.m_cur_quest_id)))
+        local interact_data = dbc.interact[dbc.quest[self.m_cur_quest_id].giver]
+        local action_id = interact_data.action_tp == Enum_Scene.Interact_Action_Tp.Pop_Bubble and tonumber(interact_data.action_param) or -1
+        local this = self
+        self.m_giver:cell_call("quest_done_new")
+        self:getFrame("quiz_manager"):start_talk(self, action_id)
+        self:getFrame("quiz_manager"):set_on_complete(function ()
+            local token_ticket = this:getFrame("world"):get_main_player():get_attr("token_ticket")
+            Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Giver received, post token_ticket = %d, quest_id = %d", token_ticket, self.m_cur_quest_id))
+            this.m_giver:cell_call("quest_done_end", this.m_cur_quest_id, token_ticket or -1)
+        end)
+    elseif cur_quest_state == Enum_Quest.Quest_State.Interact then
+        local interact_data = dbc.interact[self:get_interact_id()]
+        local action_id = interact_data.action_tp == Enum_Scene.Interact_Action_Tp.Pop_Bubble and tonumber(interact_data.action_param) or -1
+        local this = self
+        self.m_giver:cell_call("dialog_new")
+        self:getFrame("quiz_manager"):start_talk(self, action_id)
+        self:getFrame("quiz_manager"):set_on_complete(function ()
+            local token_ticket = this:getFrame("world"):get_main_player():get_attr("token_ticket")
+            Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Giver received, post token_ticket = %s, quest_id = %s", token_ticket, self.m_cur_quest_id))
+            this.m_giver:cell_call("dialog_end", token_ticket or -1)
+        end)
+    end
+end
+
+function M:set_is_close_enough(flag)
+    Util_log:log(Util_log.Mask.Global, string.format("Giver:set_is_close_enough(%s)", tostring(flag)))
+    self.m_is_close_enough = flag
+end
+-- by lijunfeng 2017/12/15 增加interact_id字段解决交互按钮显示
+function M:on_part_of_state_changed(quest_id,interact_id, quest_state)
+    local primary_quest_id, primary_quest_state = self:get_primary_state(quest_id, quest_state)
+    if primary_quest_id ~= self.m_cur_quest_id then
+        self.m_cur_quest_id = primary_quest_id
+    end
+	
+	self.m_cur_interact_id=interact_id
+    self:set_attr("top_state", primary_quest_state)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Giver:on_part_of_state_changed, self.m_cur_quest_id = %s", self.m_cur_quest_id)
+    Event_system:dispatch_event(EVENT_GIVER_STATUS, self:get_tmpl(), quest_id, self:get_pos(), self:get_top_state())
+end
+
+--TODO:: 多状态下的休闲显示规则
+function M:get_primary_state(cur_quest_id, cur_state)
+    local interact_id, talk_quest_id = self:getFrame("quest_manager"):get_npc_dependently_talk_list(self:get_tmpl(), nil)
+    if interact_id and interact_id > 0 then
+        return talk_quest_id, Enum_Quest.Quest_State.Interact
+    end
+    
+    local quest_state_dict = self:getFrame("quest_manager"):get_npc_dependently_quest_state(self:get_tmpl(), nil) or {}
+    local primary_quest_id, primary_quest_state = nil, Enum_Quest.Quest_State.Invalid
+    if cur_state == Enum_Quest.Quest_State.Invalid then
+        for quest_id, quest_state in pairs(quest_state_dict) do
+            primary_quest_id = quest_id
+            primary_quest_state = quest_state
+            break
+        end
+    elseif cur_state == Enum_Quest.Quest_State.Unlocked then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Received then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Finished then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Interact then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    end
+    return primary_quest_id, primary_quest_state
+end
+
+-- 在这里直接调用创建对话框
+function M:set_bubble(dialog_id)
+    self:getFrame("head_overlay"):creat_bubble_item(dialog_id, self:get_id())
+end
+
+function M:base_call(method_name, ...)
+    if not self.m_giver then
+        return
+    end
+    self.m_giver:base_call(method_name, ...)
+end
+
+function M:cell_call(method_name, ...)
+    if not self.m_giver then
+        return
+    end
+    self.m_giver:cell_call(method_name, ...)
+end
+
+return M

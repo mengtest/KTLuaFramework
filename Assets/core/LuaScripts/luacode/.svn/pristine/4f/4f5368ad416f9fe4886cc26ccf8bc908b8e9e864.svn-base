@@ -1,0 +1,45 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local SkillChargeSfxView = {}
+
+function SkillChargeSfxView:doInit(param)
+    local frame = self:getFrame()
+    local sfx_path = frame:get_sfx_path()
+    local point_list = {}
+    local unit = frame:get_unit()
+    local mount_point = unit:get_bone(frame:get_mount_point())
+    local view_go = self:getGO()
+    view_go.transform:SetParent(mount_point)
+    self:load(sfx_path, function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localRotation = Quaternion.identity   
+        
+        -- 充能特效放在人物身体外面 为了不让它跟着一起转动
+        view_go.transform:SetParent(nil)
+
+        self:subscribe(unit:on_event_pos_set(), function(val) 
+            go.transform.position = val
+        end)
+
+        local charge_list = assert(go:GetComponent(KTParticleControll),"充能特效: "..sfx_path.." 未添加KTParticleControll"):getChargeSfxRoot()
+
+        for i = 1, charge_list.childCount do
+            table.insert(point_list, charge_list:GetChild(i-1).gameObject)
+        end
+                
+        local skill_data = param.skill_data
+        
+        self:subscribe(skill_data:on_event_charged_count_set(true), function(val)            
+            for i = 1, #point_list do
+                if (i <= val) then
+                    point_list[i]:SetActive(true)
+                else
+                    point_list[i]:SetActive(false)
+                end
+            end
+        end)
+    end)
+
+end
+
+return SkillChargeSfxView

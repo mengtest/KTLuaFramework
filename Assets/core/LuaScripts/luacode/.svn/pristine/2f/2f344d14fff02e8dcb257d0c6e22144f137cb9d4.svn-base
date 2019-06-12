@@ -1,0 +1,9 @@
+local LauncherView = {}
+
+function LauncherView:doInit()
+	self:load(app:getAssetPathMgr().get_ui_view_asset("Launcher"), function(go)
+
+	end)
+end
+
+return LauncherView

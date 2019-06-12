@@ -1,0 +1,8 @@
+local row_0 = {['id']=1,['map_id']=1001,['pos']={1000.0,0.0,1000.0},['dir']=0.0,['range']=1.0,['dest_map_id']=1002,['dest_pos']={1000.0,0.0,1000.0},['dest_dir']=0.0}
+local row_1 = {['id']=2,['map_id']=1002,['pos']={2000.0,0.0,2000.0},['dir']=0.0,['range']=1.0,['dest_map_id']=1001,['dest_pos']={2000.0,0.0,2000.0},['dest_dir']=0.0}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+}
+return datas

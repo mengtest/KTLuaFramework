@@ -1,0 +1,128 @@
+local require_relative = REQUIRE_BASE(...)
+local ObserverHost = require "system.observer_host"
+local Combat = require_relative("interfaces.Combat")
+local CombatState = require_relative("interfaces.CombatState")
+local M = class("Creature")
+
+-- include mixin
+M:include(ObserverHost, Combat,CombatState)
+
+Attribute.decl(M, "tid", 0)
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(M, "dir", function() return 0 end)
+Attribute.decl(M, "move_state", 0)
+Attribute.decl(M, "move_speed", 0)
+Attribute.decl(M, "name", "")
+Attribute.decl(M, "health", 0)
+Attribute.decl(M, "health_max", 0)
+Attribute.decl(M, "target_id", 0)
+Attribute.decl(M, "in_combat", 0)
+-- 可否被选中 1:可以 0:不可以
+Attribute.decl(M, "selectable", 0)
+-- 可否被攻击 1:可以 0:不可以
+Attribute.decl(M, "attackable", 0)
+Attribute.decl(M, "created_time", 0)
+
+
+Event.decl(M, "spell_start")
+Event.decl(M, "be_hit")
+Event.decl(M, "set_position")
+Event.decl(M, "update_position")
+Event.decl(M, "play_anim")
+Event.decl(M, "popup_bubble")
+
+
+function M:initialize(id)
+    --print("kbe.Creature initialize")
+	Attribute.init(self)
+
+	-- 各mixin初始化
+	Combat.initialize(self)
+	CombatState.initialize(self)
+
+	self.m_id = id
+end
+
+function M:on_init()
+	--print("Creature:on_init")
+    -- 各mixin
+	Combat.on_init(self)
+	CombatState.on_init(self)
+end
+
+function M:on_destroy()
+	--print("Creature:on_destroy")
+    -- 各mixin
+	Combat.on_destroy(self)
+	CombatState.on_destroy(self)
+end
+
+function M:set_property(name, value)
+	self:set_attr(name, value)
+    self:emit_event("on_event_" .. name .. "_set", value)
+end
+
+function M:get_id()
+	return self.m_id
+end
+
+function M:get_role_type()
+	local id = self:get_tid()
+	return id
+end
+
+function M:reset_pos(position)
+	self:set_pos(position)
+    self:emit_event("set_position",position)
+end
+
+function M:move_to(pos)
+    self:emit_event("update_position",self:get_pos())
+end
+
+function M:spell_start(cast_id, spell_id, target_id, target_pos, dir, cast_time)
+	--Debug.LogError(self:get_id().." 准备！！技能："..cast_id.." ---> "..spell_id)
+	self:emit_event("spell_start", cast_id, spell_id, target_id, target_pos, dir, cast_time)
+end
+
+-- 技能释放
+function M:spell_go(cast_id,spell_id,hit_targets,miss_targets)
+	--Debug.LogError("去吧！！技能："..cast_id.." ---> "..spell_id)
+	self:emit_event("spell_go", cast_id, spell_id, hit_targets, miss_targets)
+end
+
+-- 技能失败
+function M:spell_failure(cast_id,spell_id,reason)
+	--Debug.LogError("回来！！技能："..cast_id.." ---> "..spell_id)
+	self:emit_event("spell_failure", cast_id, spell_id, reason)
+end
+
+function M:be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)	
+	-- if(is_buff == 0) then
+	-- 	Debug.LogError("咬他！！技能："..cast_id.." ---> "..skill_id)
+	-- end
+	--Debug.LogError(attacker_id.." skill queue be_hit "..cast_id.."   is buff -->"..is_buff.." health -->"..health)
+	self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)
+end
+
+--仇恨列表
+function M:threat_update(threat_info)
+    self:emit_event("threat_update", threat_info)
+end
+
+function M:play_anim(anima_name,has_camera,is_loop)
+	self:emit_event("play_anim",anima_name,has_camera,is_loop)
+end
+
+--此接口为服务器调用
+function M:popup_bubble(dialog_id)
+	self:emit_event("popup_bubble", dialog_id)
+end
+
+function M:update(delta)
+    -- 各mixin update
+	Combat.update(self, delta)
+	CombatState.update(self, delta)
+end
+
+return M

@@ -1,0 +1,48 @@
+local Frame = require("system.frame")
+local quest_ui_main = class("quest_ui_main", Frame)
+
+Event.decl(quest_ui_main, "refresh_quest_id_list")
+
+-- 显示任务UI
+Event.decl(quest_ui_main, "show")
+-- 隐藏任务UI
+Event.decl(quest_ui_main, "hide")
+
+function quest_ui_main:doInit()
+    --self.m_child_created = false
+
+    --self:createChild("quest_ui_list", "%subsystem.quest.quest_ui.quest_ui_list")
+    --self:createChild("quest_ui_show", "%subsystem.quest.quest_ui.quest_ui_show")
+    --Event_system:add_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+
+end
+function quest_ui_main:on_loaded()
+    self:createChild("quest_ui_list", "%subsystem.quest.quest_ui.quest_ui_list")
+    self:createChild("quest_ui_show", "%subsystem.quest.quest_ui.quest_ui_show")
+end
+function quest_ui_main:refresh_quest_id_list(list)
+    --self:emit_event("refresh_quest_id_list", list)
+    self:getFrame("quest_ui_list"):refresh_quest_list(list)
+end
+function quest_ui_main:del_quest_list(list)
+    self:getFrame("quest_ui_list"):del_quest_list(list)
+end
+--function quest_ui_main:add_new_quest()
+--    if not self.m_child_created then
+--        self:createChild("quest_ui_list", "%subsystem.quest.quest_ui.quest_ui_list")
+--        self:createChild("quest_ui_show", "%subsystem.quest.quest_ui.quest_ui_show")
+--        self.m_child_created = true
+--    else
+--        return
+--    end
+--
+--end
+
+function quest_ui_main:show(quest_id)
+    self:emit_event("show",quest_id)
+end
+
+function quest_ui_main:hide()
+    self:emit_event("hide")
+end
+return quest_ui_main

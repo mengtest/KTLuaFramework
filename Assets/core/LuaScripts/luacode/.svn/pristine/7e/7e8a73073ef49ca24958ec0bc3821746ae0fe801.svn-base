@@ -1,0 +1,60 @@
+---
+--- Created by xiaojingli.
+--- DateTime: 2018/1/15 15:34
+---
+local LuaQueue = require("common.util.lua_queue")
+local Frame = require("system.frame")
+local float_hint_manager = class("float_hint_manager", Frame)
+
+function float_hint_manager:doInit()
+    self.m_float_list = {}
+    self.m_float_list[1] = nil
+    self.m_float_list[2] = nil
+    self.m_float_list[3] = nil
+end
+
+--创建飘字
+function float_hint_manager:create_float_hint_text(params, depth)
+    depth = depth or app:get_ui_manager().UI_Depth.HIGH
+    local perlin_float = UnityEngine.Mathf.PerlinNoise(utility.math:random_float(-1024, 1024), utility.math:random_float(-1024, 1024))
+    return app:get_ui_manager():CreateUI("float_hint_" .. tostring(perlin_float), "float_hint.float_hint", params, depth)
+end
+
+-- pacman 2018-1-16 飘字
+-- @ str 字符串(如果带有富文本，color值设为6位十六进制的值，例:<color=#ffffff>hello</color>， 目前只支持6位十六进制)
+-- @ depth 层级(枚举类型)
+function float_hint_manager:add_float(str, depth)
+    local f = self:create_float_hint_text({ ["start_y"] = 200, ["duration"] = 1, ["stop_time"] = 2, ["str"] = str }, depth)
+
+    if self.m_float_list[3] ~= nil then
+        --3不为nil
+        self:local_log("float_hint_manager:add_float------------------->> 3 not is nil")
+        self.m_float_list[3]:set_height(1000)
+        self.m_float_list[3]:set_start_y(1000)
+        self.m_float_list[3] = nil
+    end
+
+    if self.m_float_list[2] ~= nil then
+        --2不为nil
+        self:local_log("float_hint_manager:add_float------------------->> 2 not is nil")
+        self.m_float_list[3] = self.m_float_list[2]
+        self.m_float_list[3]:set_height(360)
+        self.m_float_list[3]:set_start_y(360)
+
+    end
+    if self.m_float_list[1] ~= nil then
+        --1不为nil
+        self:local_log("float_hint_manager:add_float------------------->> 1 not is nil")
+        self.m_float_list[2] = self.m_float_list[1]
+        self.m_float_list[2]:set_height(280)
+        self.m_float_list[2]:set_start_y(280)
+    end
+    self.m_float_list[1] = f
+    self:local_log("float_hint_manager:add_float------------------->> FrameName : "..f:getFrameName())
+end
+
+function float_hint_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return float_hint_manager

@@ -1,0 +1,86 @@
+
+local Quest_condition = require "subsystem.quest.quest_bar.quest_condition"
+
+local Quest_detail = class("Quest_detail")
+
+function Quest_detail:initialize(go)
+	self.m_go = go
+	self.m_rect = go:GetComponent(RectTransform)
+	self.m_linked_go_list = {}
+	self.m_condition_dict = {}
+end
+
+function Quest_detail:destroy()
+	Object.Destroy(self.m_go)
+	for _, go in pairs(self.m_linked_go_list) do
+		Object.Destroy(go)
+	end
+end
+
+function Quest_detail:set_parent(parent_tr)
+	self.m_rect:SetParent(parent_tr)
+    self.m_rect.localPosition = Vector3.zero
+    self.m_rect.localScale = Vector3.one
+	self.m_rect.sizeDelta = Vector2(0, 0)
+end
+
+function Quest_detail:set_title(data)
+	local title_text = self.m_rect:Find("txt_title"):GetComponent(UnityEngine.UI.Text)
+	title_text.text = data.detail .. data.name
+    title_text.gameObject:SetActive(false)
+end
+
+function Quest_detail:init_condition(data, quest_data)
+	KTGame.instance.assetManager:LoadAsset("ui/sidebar/item_quest/border_siderbar_quest_condition_detail.prefab", function (ref)
+		for index = 1, 8 do
+			local name_finish_tp = "finish" .. tostring(index)
+			local condition_tp = data[name_finish_tp]
+			if condition_tp and condition_tp > 0 then
+				local name_finish_desc = string.format("finish%s_desc", tostring(index))
+				local name_finish_param = string.format("finish%s_param", tostring(index))
+				
+				
+				local go = Object.Instantiate(ref.asset)
+				go.transform.parent = self.m_rect
+                go.transform.localPosition = Vector3.zero
+                go.transform.localScale = Vector3.one
+				local quest_condition = Quest_condition:new(go)
+				self.m_condition_dict[index] = quest_condition
+				quest_condition:set_finish_desc(data[name_finish_desc])
+				--quest_condition:set_finish_param(data[name_finish_param])
+			end
+		end
+        self:refresh_by_quest_data(quest_data)
+	end)
+	--Quest_condition:new()
+end
+
+function Quest_detail:link_with(go)
+	table.insert(self.m_linked_go_list, go)
+end
+
+function Quest_detail:refresh_by_quest_data(quest_data)
+	local condition_dict = quest_data:get_condition_dict()
+	for index, condition in pairs(condition_dict) do
+		--self.m_condition_dict[index]:set_cur_param(condition:get_cur_param())
+		self:refresh_condition(index, condition:get_fixed_param())
+	end
+end
+
+function Quest_detail:refresh_condition(index, fixed_param)
+	local condition = self.m_condition_dict[index]
+	assert(condition, "index = " .. index)
+	--condition:set_cur_param(cur_param)
+    condition:refresh_param(fixed_param)
+end
+
+function Quest_detail:get_condition_dict()
+	return self.m_condition_dict
+end
+
+
+
+
+
+
+return Quest_detail

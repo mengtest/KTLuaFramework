@@ -1,0 +1,172 @@
+local View = require("system.view")
+local big_map_quest_info_view = class("big_map_quest_info_view", View)
+
+function big_map_quest_info_view:doInit()
+    self.m_frame = self:getFrame()
+    self.m_big_map = self:getFrame("big_map")
+    --- 当前显示的任务
+    self.m_cur_quest_data = nil
+    --- 当前显示的任务图标frame
+    self.m_cur_quest_frame = nil
+    --- 当前正在显示的传送点的id
+    self.m_cur_teleport_id = nil
+    --- 当前任务是否已被关注
+    self.m_cur_quest_interest = false
+    --- 存放多目标点击时创建的item
+    self.m_choice_item_list = {}
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigMapQuestInfo"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        self.m_frame:create_item(self["quest_item_gameObject"].transform, "info_item", enum.ui.Enum_UI_MapItemType.Item_Info_Quest, nil)
+    end)
+
+    --self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+    --    local name = child_frame:getFrameName()
+    --    local view = self.m_mgr:getView(name)
+    --    -- 布局位置
+    --    local view_go = view:getGO()
+    --    local parent_transform = self["quest_item_gameObject"].transform
+    --    view_go:AddComponent(RectTransform)
+    --    view_go.transform.parent = parent_transform
+    --    view_go.transform.localPosition = Vector3.zero
+    --    view_go.transform.localScale = Vector3.one
+    --end)
+
+    self:subscribe(self.m_big_map:on_event("refresh_quest_info"), function(quest_param, show_btn)
+        self:refresh_quest_info(quest_param, show_btn)
+    end)
+    self:subscribe(self.m_big_map:on_event("refresh_trans_info"), function(trans_param, show_btn)
+        self:refresh_trans_info(trans_param, show_btn)
+    end)
+    self:subscribe(self.m_big_map:on_event("show_choice_list"), function(first_list, first_type, second_list, second_type)
+        for i = 1, #self.m_choice_item_list do
+            self.m_choice_item_list[i]:get_self_go():SetActive(false)
+        end
+        local index = 1
+        for i = 1, #first_list do
+            local index_item = self.m_choice_item_list[index]
+            if index_item then
+                index_item:refresh_self({ ['type'] = first_type, ['param'] = first_list[i] })
+                index_item:get_self_go():SetActive(true)
+            else
+                local created_frame = self.m_frame:create_item(self["choice_list_parent_gameObject"].transform, #self.m_choice_item_list, first_type, first_list[i])
+                table.insert(self.m_choice_item_list, created_frame)
+            end
+            index = index + 1
+        end
+        for i = 1, #second_list do
+            local index_item = self.m_choice_item_list[index]
+            if index_item then
+                index_item:refresh_self({ ['type'] = second_type, ['param'] = second_list[i] })
+                index_item:get_self_go():SetActive(true)
+            else
+                local created_frame = self.m_frame:create_item(self["choice_list_parent_gameObject"].transform, #self.m_choice_item_list, second_type, second_list[i])
+                table.insert(self.m_choice_item_list, created_frame)
+            end
+            index = index + 1
+        end
+        self["choice_list_gameObject"]:SetActive(true)
+        self["quest_info_gameObject"]:SetActive(false)
+        self["teleport_point_info_gameObject"]:SetActive(false)
+    end)
+    self:subscribe(self.m_frame:on_event("back"), function()
+        self["quest_info_gameObject"]:SetActive(false)
+        self["teleport_point_info_gameObject"]:SetActive(false)
+        self["choice_list_gameObject"]:SetActive(true)
+        self["back_btn_GUIButton"].gameObject:SetActive(false)
+    end)
+end
+
+---- 刷新任务信息显示
+--- quest_param参数包含：地图id，quest_data，area_data，半径，关注任务列表
+function big_map_quest_info_view:refresh_quest_info(quest_param, show_btn)
+    --- 如果点击的是同一个任务，则不执行刷新操作
+    --if quest_param['quest_data'] == self.m_cur_quest_data then
+    --    return
+    --end
+    self["back_btn_GUIButton"].gameObject:SetActive(show_btn)
+    local quest_id = quest_param['quest_data']:get_quest_id()
+    --- 获取到三个返回值，1->距离 2->方向 3->目标的名称
+    local dis, dir, finish_desc = quest_param['quest_data']:get_closest_aim_info()
+    if not dis then
+        dis = 999
+    end
+    --- 任务当前进度
+    local cur_weights = quest_param['quest_data']:get_cur_weights()
+    --- 任务目标进度
+    local aim_weights = quest_param['quest_data']:get_aim_weights()
+    local color = self:gain_distance_show_color(dis)
+    local dis_show = string.format("距您<color=%s>%d</color>m", color, dis)
+    local quest_info = dbc.quest[quest_id]
+    local describe_show = string.format(quest_info.finish1_desc .. "(%d/%d)", cur_weights, aim_weights)
+    --- 获取任务所在地图信息
+    local map_info = dbc.map[quest_param.map_id]
+    --- 设置当前显示的任务
+    self.m_cur_quest_data = quest_param['quest_data']
+    --self.m_cur_quest_frame = quest_frame
+    --- 获取当前任务是否被关注
+    --self.m_cur_quest_interest = quest_param['quest_data']:get_interest()
+    --- 设置任务名称
+    self.m_frame:set_quest_name(quest_info.name)
+    self.m_frame:set_distance(dis_show)
+    self.m_frame:set_map_name(map_info.name)
+    --self.m_frame:set_target_dis(quest_info.finish1_desc)
+    self.m_frame:set_describe(describe_show)
+    self:quest_award_show()
+
+    --- 当点击了任务时，将传送点的id置空，避免出现点击传送点不显示信息的情况
+    self.m_cur_teleport_id = nil
+    --- 显示任务信息，隐藏传送点信息
+    self["quest_info_gameObject"]:SetActive(true)
+    self["teleport_point_info_gameObject"]:SetActive(false)
+    self["choice_list_gameObject"]:SetActive(false)
+end
+
+function big_map_quest_info_view:refresh_trans_info(trans_param, show_btn)
+    --- 如果点击的是同一个传送点，则不刷新信息
+    if trans_param.id == self.m_cur_teleport_id then
+        return
+    end
+    self["back_btn_GUIButton"].gameObject:SetActive(show_btn)
+    local trans_info = dbc.teleport_point[trans_param.id]
+    self.m_frame:set_teleport_point_name(trans_info.teleport_point_name)
+    self.m_frame:set_teleport_point_describe(trans_info.teleport_point_desc)
+    self.m_frame:set_teleport_point_id(trans_param.id)
+    self["trans_btn_GUIButton"].gameObject:SetActive(trans_param.is_unlock)
+    self["lock_state_gameObject"]:SetActive(not trans_param.is_unlock)
+
+    --- 当点击了传送点时，将任务置空，避免出现点击任务不显示信息的情况
+    self.m_cur_quest_data = nil
+    --- 显示传送点信息，隐藏任务信息
+    self["quest_info_gameObject"]:SetActive(false)
+    self["teleport_point_info_gameObject"]:SetActive(true)
+    self["choice_list_gameObject"]:SetActive(false)
+end
+
+---- 根据距离获取显示距离的数字的颜色，参数为距离
+function big_map_quest_info_view:gain_distance_show_color(distance)
+    local dis_color = ""
+    if math.floor(distance) + 1 <= 150 then
+        dis_color = "#4CE10BFF"
+    elseif math.floor(distance) + 1 <= 500 then
+        dis_color = "yellow"
+    else
+        dis_color = "red"
+    end
+    return dis_color
+end
+
+function big_map_quest_info_view:quest_award_show()
+    local quest_id = self.m_cur_quest_data:get_quest_id()
+    local exp, gold = 0, 0
+    for i, v in ipairs(dbc.quest[quest_id].gains) do
+        gold = gold + dbc.loot[v].money
+        exp = exp + dbc.loot[v].exp
+    end
+    self.m_frame:set_quest_exp(exp)
+    self.m_frame:set_quest_money(gold)
+end
+
+return big_map_quest_info_view

@@ -1,0 +1,15 @@
+local Frame = require("system.frame")
+local skill_ui_list_btn = class("skill_ui_list_btn", Frame)
+
+Event.decl(skill_ui_list_btn, "unlock_skill")
+Event.decl(skill_ui_list_btn, "up_cur_level_skill")
+Event.decl(skill_ui_list_btn, "up_max_level_skill")
+Event.decl(skill_ui_list_btn, "selected")
+Event.decl(skill_ui_list_btn, "unselected")
+
+function skill_ui_list_btn:doInit(param)
+
+
+end
+
+return skill_ui_list_btn

@@ -1,0 +1,123 @@
+local require_relative = REQUIRE_BASE(...)
+
+local Player = class("Player")
+
+local systems = {
+}
+
+for _,v in ipairs(systems) do
+	local path = "player/player_"..v
+	require_relative(path)
+end
+
+function Player:ctor()
+	print("Player:ctor")
+	self.__load = self.__load or nil
+	self.__save = self.__save or nil
+end
+
+function Player:sync()
+	-- 调用每个系统的初始化方法
+	for _,v in ipairs(systems) do
+		local name = "setup"..v
+		if (self[name]) then
+			self[name](self, self.data)
+		end
+	end
+end
+
+function Player:setup(data)
+	assert(type(data) == "table")
+	self.data = data
+
+	-- 调用每个系统的初始化方法
+	for _,v in ipairs(systems) do
+		local name = "setup"..v
+		if (self[name]) then
+			self[name](self, data)
+		end
+	end
+end
+
+function Player:onLogin()
+end
+
+function Player:onLogout()
+	self:exitMap()
+end
+
+function Player:getPid()
+	return self.data.pid
+end
+
+function Player:isInited()
+	return self.data.inited
+end
+
+function Player:getRoleName()
+	return self.data.name
+end
+
+function Player:getRoleType()
+	return self.data.type
+end
+
+function Player:canCreateRole(name, type)
+	if self:isInited() then
+		return false, "role_already_created"
+	end
+
+	if name == nil or name == "" then
+		return false, "role_name_empty"
+	end
+	if util.utf8len(name) > 12 then
+		return false, "role_name_too_long"
+	end
+
+	local cfg = dbc.role[type]
+	if cfg == nil then
+		return false, "role_type_invalid"
+	end
+
+	return true
+end
+
+function Player:createRole(name, type)
+	local ok, err = self:canCreateRole(name, type)
+	if not ok then return ok, err end
+
+	self.data.name = name
+	self.data.type = type
+	self.data.inited = true
+
+	return true
+end
+
+function Player:getInfo()
+	return {
+		name = self.data.name,
+		type = self.data.type,
+	}
+end
+
+function Player:enterMap()
+	service.map:enter(self:getPid(), {
+		type = self:getRoleType(),
+		name = self:getRoleName(),
+		pos = {0, 0, 0},
+	})
+end
+
+function Player:exitMap()
+	service.map:exit(self:getPid())
+end
+
+function Player:move(from, to)
+	service.map:player_action_move(self:getPid(), from, to)
+end
+
+function Player:skill(skill_id, target_id)
+	service.map:player_action_skill(self:getPid(), skill_id, target_id)
+end
+
+return Player

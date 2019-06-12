@@ -1,0 +1,18 @@
+local Frame = require("system.frame")
+local transmit = class("transmit", Frame)
+
+Attribute.decl(transmit, "trans_pos", nil)
+
+function transmit:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_big_map = self:getFrame("big_map")
+    self.m_trans_param = param
+end
+
+---- 传送点点击回调
+function transmit:on_transmit_btn()
+    self.m_big_map:refresh_trans_info(self.m_trans_param, self:get_trans_pos())
+end
+
+return transmit

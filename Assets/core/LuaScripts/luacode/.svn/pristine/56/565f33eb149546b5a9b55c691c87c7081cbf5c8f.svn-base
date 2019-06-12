@@ -1,0 +1,15 @@
+local Frame = require("system.frame")
+local backpack_list = class("backpack_list", Frame)
+
+function backpack_list:doInit(param)
+
+end
+
+function backpack_list:on_loaded()
+    --背包   temp
+    self:createChild("backpack_sub_list"..1, "%subsystem/backpack_equipment/backpack_sub_list", "weapon")
+    self:createChild("backpack_sub_list"..2, "%subsystem/backpack_equipment/backpack_sub_list", "armor")
+    self:createChild("backpack_sub_list"..3, "%subsystem/backpack_equipment/backpack_sub_list", "ring")
+end
+
+return backpack_list

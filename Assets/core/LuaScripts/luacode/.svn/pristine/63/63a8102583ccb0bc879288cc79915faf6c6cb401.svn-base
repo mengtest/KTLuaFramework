@@ -1,0 +1,101 @@
+local View = require("system.view")
+local spirit_info_view = class("spirit_info_view", View)
+
+function spirit_info_view:doInit()
+
+    self.m_stars_go_list = {}
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritInfo"), function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        ---- TODO 不知道为什么  创建出来的go大小并不是1600 900 的
+        go.transform.sizeDelta = Vector2(1600, 900)
+
+        -- 暂时是5颗星  以后有变再说
+        for i = 1, 5 do
+            local star = self["stars_gameObject"].transform:GetChild(i - 1)
+            table.insert(self.m_stars_go_list, star.gameObject)
+        end
+
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 技能
+            if string.find(name, "spirit_info_skill_btn") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self["skill_panel_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        -- 显示
+        self:subscribe(frame:on_event("show"), function(force_to_open)
+            self:show(force_to_open)
+        end)
+        -- 隐藏
+        self:subscribe(frame:on_event("hide"), function()
+            self:hide()
+        end )
+        -- 显示出战按钮
+        self:subscribe(frame:on_event("show_go_out_btn"), function()
+            self:show_go_out_btn()
+        end)
+        -- 隐藏出战按钮
+        self:subscribe(frame:on_event("hide_go_out_btn"), function()
+            self:hide_go_out_btn()
+        end )
+
+        -- 刷新星星
+        self:subscribe(frame:on_event("refresh_star"), function(sprite_data)
+            for i, v in ipairs(self.m_stars_go_list) do
+                if i <= dbc.sprite[sprite_data.tmpl].max_rating then
+                    v.transform.gameObject:SetActive(true)
+                else
+                    v.transform.gameObject:SetActive(false)
+                end
+                if i <= sprite_data.rating then
+                    v.transform:Find("star_hl").gameObject:SetActive(true)
+                else
+                    v.transform:Find("star_hl").gameObject:SetActive(false)
+                end
+            end
+        end )
+        -------------
+        frame:on_loaded()
+    end)
+end
+
+
+---- 显示自己
+function spirit_info_view:show(force_to_open)
+    if force_to_open then
+        self:getGO():SetActive(true)
+    else
+        -- 在这里判断一下强化界面是否打开  如果打开我就不打开
+        if self.m_mgr:getView("spirit_strengthen"):get_strengthen_is_active() then
+            self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.RETURN)
+            return
+        end
+        self:getGO():SetActive(true)
+    end
+end
+---- 隐藏自己
+function spirit_info_view:hide()
+    self:getGO():SetActive(false)
+end
+---- 显示出战按钮
+function spirit_info_view:show_go_out_btn()
+    self["go_out_GUIButton"].gameObject:SetActive(true)
+    self["recover_GUIButton"].gameObject:SetActive(false)
+end
+---- 隐藏出战按钮
+function spirit_info_view:hide_go_out_btn()
+    self["go_out_GUIButton"].gameObject:SetActive(false)
+    self["recover_GUIButton"].gameObject:SetActive(true)
+end
+return spirit_info_view

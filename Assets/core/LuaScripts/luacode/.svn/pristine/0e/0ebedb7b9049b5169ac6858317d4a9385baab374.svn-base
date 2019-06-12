@@ -1,0 +1,110 @@
+local Frame = require("system.frame")
+local backpack_sub_list = class("backpack_sub_list", Frame)
+
+---控制装备页的显示和隐藏
+Event.decl(backpack_sub_list, "show_go")
+Event.decl(backpack_sub_list, "hide_go")
+Event.decl(backpack_sub_list, "des_go")
+
+function backpack_sub_list:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_list = {}
+    self.m_item_list = {}
+    self.m_temp_list = { ["unique"] = 0, ["tmpl"] = 0, ["bound"] = 0, ["level"] = 0 }
+    self:on_init(param)
+end
+
+function backpack_sub_list:on_loaded()
+    --背包item   temp
+    for i = 1, 20 do
+        local send = { self.m_name, i }
+        if self.m_list[i] ~= nil then
+            send[3] = self.m_list[i]
+        else
+            send[3] = { ["unique"] = 0, ["tmpl"] = 0, ["bound"] = 0, ["level"] = 0 }
+        end
+        self.m_item_list[i] = self:createChild(self.m_name .. "_item_" .. i, "%subsystem/backpack_equipment/backpack_item", send)
+    end
+end
+
+------刷新数据   这里的list会传入3个参数   第一个是sublist数据   第二个是page_index  第三个是本页是否为末页 1表示末页
+function backpack_sub_list:on_refresh(list, index, parma)
+    self.m_list = nil
+    self.m_list = {}
+    local rec_list = list
+    local temp = index - 1
+    local begin_index = temp * 20 + 1
+    local end_index = 0
+
+    if parma == 1 then
+        end_index = #rec_list
+    else
+        end_index = begin_index + 19
+    end
+    for i = begin_index, end_index do
+        self.m_list[#self.m_list + 1] = rec_list[i]
+    end
+    self:refresh_sub_item()
+end
+
+------当刷新列表之后同时要刷新背包的item   参数应该只有一个wearable就ok
+function backpack_sub_list:refresh_sub_item()
+    for i = 1, #self.m_list do
+        --print(self.m_item_list[i], i, self.m_list[i]["tmpl"])
+        self.m_item_list[i]:change_item(self.m_list[i])
+    end
+
+    if #self.m_list >= 20 then
+        return
+    end
+
+    for i = #self.m_list + 1, #self.m_item_list do
+        self.m_item_list[i]:change_item(self.m_temp_list)
+    end
+end
+
+------通过传入的参数来设置当前page的list数据
+function backpack_sub_list:on_init(list)
+    -----1代表这个是当前类型的最后一个page
+    --if list[2] == 1 then
+    --    self.m_name = "weapon" .. list[3]
+    --elseif list[2] == 2 then
+    --    self.m_name = "armor" .. list[3]
+    --elseif list[2] == 3 then
+    --    self.m_name = "ring" .. list[3]
+    --end
+    local rec_list = list[1]
+    --Debug.LogError("index"..tostring(list[2]))
+    --Debug.LogError("list"..tostring(#list[1]))
+    --Debug.LogError("4 ...."..tostring(list[4]))
+    --Debug.LogError("i...."..tostring(list[3]))
+    local temp = list[3] - 1
+    local begin_index = temp * 20 + 1
+    local end_index = 0
+
+    if list[4] == 1 then
+        end_index = #rec_list
+    else
+        end_index = begin_index + 19
+    end
+    for i = begin_index, end_index do
+        self.m_list[#self.m_list + 1] = rec_list[i]
+    end
+end
+
+-----当增加页数时显示预加载的装备页
+function backpack_sub_list:show_go()
+    self:emit_event("show_go")
+end
+
+-----当减少页数时隐藏预加载的装备页
+function backpack_sub_list:hide_go()
+    self:emit_event("hide_go")
+end
+
+----销毁go
+function backpack_sub_list:des_go()
+    self:emit_event("des_go")
+end
+
+return backpack_sub_list

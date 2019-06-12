@@ -1,0 +1,35 @@
+local View = require("system.view")
+local skill_ui_list_view = class("skill_ui_list_view", View)
+
+function skill_ui_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self:load("ui/SkillShowList.prefab", function(go)
+        local frame = self:getFrame()
+        go.transform.localPosition = Vector3.one
+        go.transform.localScale = Vector3.one
+
+
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local skill_btn_id = tonumber(string.match(name, "%d+"))
+            ----设置界面布局
+            if string.find(name, "skill_ui_list_btn") then
+
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("skill_list/grid").transform
+
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+
+            end
+        end)
+        ------创建子物体
+        frame:on_loaded()
+    end)
+end
+
+return skill_ui_list_view

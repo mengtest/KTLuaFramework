@@ -1,0 +1,40 @@
+local Frame = require("system.frame")
+local quest_ui_list_item = class("quest_ui_list_item_view", Frame)
+
+-- 选择
+Event.decl(quest_ui_list_item, "selected")
+-- 未选择
+Event.decl(quest_ui_list_item, "unselected")
+-- 关注/取消关注
+Event.decl(quest_ui_list_item, "interest")
+-- 追踪
+Attribute.decl(quest_ui_list_item, "traced_column", 0)
+
+function quest_ui_list_item:doInit(quest_id)
+    self.m_quest_id = quest_id
+    --Debug.LogError(debug.traceback("这里id是多少:" .. quest_id))
+    Event_system:add_event_listener(EVENT_QUEST_ADD_TRACE, event_binder(self, self.add_trace))
+    Event_system:add_event_listener(EVENT_QUEST_DEL_TRACE, event_binder(self, self.del_trace))
+end
+-- 追踪
+function quest_ui_list_item:add_trace(quest_id)
+    local traced_quest_list = self:getFrame("quest_bar"):get_traced_quest_list()
+    for i, v in ipairs(traced_quest_list) do
+        --Debug.LogError(debug.traceback("这里id又是多少:" .. v:get_quest_id()))
+        if v:get_quest_id() == self.m_quest_id then
+            if i == 1 then
+                self:set_traced_column(1)
+            elseif i == 2 then
+                self:set_traced_column(2)
+            end
+        end
+    end
+end
+-- 不追踪
+function quest_ui_list_item:del_trace(quest_id)
+    if quest_id == self.m_quest_id then
+        self:set_traced_column(0)
+    end
+end
+
+return quest_ui_list_item

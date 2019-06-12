@@ -1,0 +1,289 @@
+local View = require("system.view")
+local designated_matching_view = class("designated_matching_view", View)
+
+function designated_matching_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    local dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_parent = param
+
+    self.m_choose_duty = nil
+    ----副本id
+    self.m_curr_challenge = nil
+    self.m_show_time = 0
+    self.m_begin = nil
+    self.m_is_random_matching = false
+    self.m_is_mathcing = false
+    self.m_cur_type = enum.shared.InstanceDiffcultyType.NORMAL
+
+    self.m_attack = false
+    self.m_cure = false
+    self.m_defense = false
+    local created = false
+    self:load(app:getAssetPathMgr().get_ui_view_asset("DesignatedMatching"), function(go)
+        local view_go = self:getGO()
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        self.m_selected_line = go.transform:Find("designated_dungeon_bg/left_btn_container/selected_line").transform
+        self.m_matching_text = go.transform:Find("matching_text").gameObject
+        self.m_no_matching_text = go.transform:Find("no_matching_text").gameObject
+        self.m_content = go.transform:Find("designated_dungeon_bg/center/ScrollView/Viewport/Content").transform
+        self.m_show_time_text = go.transform:Find("designated_dungeon_bg/right_bottom/time_show_text"):GetComponent(UI.Text)
+        self:on_show_normal()
+        self:subscribe(self.m_matching_manager:on_event("rec_matching_data"), function(challenge_num, is_maching, dungeon_id, time, duty, diff)
+            self:on_rec_matching_data(challenge_num, is_maching, dungeon_id, time, duty, diff)
+            if not created then
+                created = true
+                frame:on_loaded()
+            end
+        end)
+
+        self:init_duty()
+
+        self:subscribe(frame:on_event("show_normal"), function()
+            self:on_show_normal()
+        end)
+
+        self:subscribe(frame:on_event("show_hero"), function()
+            self:on_show_hero()
+        end)
+
+        self:subscribe(frame:on_event("show_diff"), function()
+            self:on_show_diff()
+        end)
+
+        self:subscribe(frame:on_event("attack_down"), function(val)
+            self:on_attack_down()
+        end)
+
+        self:subscribe(frame:on_event("cure_down"), function(val)
+            self:on_cure_down()
+        end)
+
+        self:subscribe(frame:on_event("defense_down"), function(val)
+            self:on_defense_down()
+        end)
+
+        self:subscribe(frame:on_event("matching"), function()
+            self:on_matching()
+        end)
+
+        self:subscribe(frame:on_event("selected_dungeon"), function(val)
+            self.m_curr_challenge = val
+        end)
+
+        self:subscribe(frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            --选择创建挂点以及设置位置和大小
+            local parent_transform = self.m_content
+            view_go.transform.parent = parent_transform
+            view_go:GetComponent(RectTransform).sizeDelta = Vector2(180, 40)
+            view_go.transform.localScale = Vector3.one
+        end)
+        self.m_matching_manager:req_matching_data()
+    end)
+end
+
+function designated_matching_view:doUpdate()
+    if self.m_begin and self.m_show_time_text ~= nil then
+        self.m_show_time = self.m_show_time + app:get_delta_time()
+        local result = math.floor(self.m_show_time)
+        if result >= 60 then
+            local sec = result % 60
+            local min = result / 60
+            min = math.floor(min)
+            self.m_show_time_text.text = "已排队" .. tostring(min) .. "分" .. tostring(sec) .. "秒"
+        else
+            self.m_show_time_text.text = "已排队" .. tostring(result) .. "秒"
+        end
+    end
+end
+
+function designated_matching_view:on_rec_matching_data(challenge_num, is_maching, dungeon_id, time, duty, diff)
+    -- 匹配主界面显示
+    self.m_parent:active_true()
+    if dungeon_id == 0 then
+        if is_maching == 1 then
+            self.m_is_random_matching = true
+            self:getFrame("quick_matching_main"):on_random_btn()
+        else
+            self.m_is_random_matching = false
+            self.m_is_mathcing = false
+            self.m_matching_text:SetActive(true)
+            self.m_no_matching_text:SetActive(false)
+            self.m_show_time_text.text = ""
+            self.m_begin = false
+        end
+        return
+    else
+        if is_maching == 1 then
+            self:getFrame("quick_matching_main"):on_designated_btn()
+            self.m_matching_text:SetActive(false)
+            self.m_no_matching_text:SetActive(true)
+            self.m_show_time = time
+            self.m_begin = true
+            self.m_is_mathcing = true
+            if duty == 1 then
+                self:on_defense_down()
+            elseif duty == 2 then
+                self:on_attack_down()
+            elseif duty == 3 then
+                self:on_cure_down()
+            end
+            --if diff == enum.shared.InstanceDiffcultyType.NORMAL then
+            --    self:on_show_normal()
+            --elseif diff == enum.shared.InstanceDiffcultyType.HEROIC then
+            --    self:on_show_hero()
+            --elseif diff == enum.shared.InstanceDiffcultyType.EPIC then
+            --    self:on_show_diff()
+            --end
+            -- 指定的副本有选中效果
+            self:getFrame():select_default_item(dungeon_id, diff)
+            self.m_is_random_matching = false
+        else
+            self.m_is_random_matching = false
+            self.m_is_mathcing = false
+            self.m_matching_text:SetActive(true)
+            self.m_no_matching_text:SetActive(false)
+            self.m_show_time_text.text = ""
+            self.m_begin = false
+        end
+    end
+end
+
+-----点击匹配按钮的回调
+function designated_matching_view:on_matching()
+    if self.m_is_mathcing == false then
+        if self.m_is_random_matching then
+            self:getFrame("float_hint_manager"):add_float("正在进行随机匹配", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+        if not self.m_curr_challenge then
+            self:getFrame("float_hint_manager"):add_float("请选择指定副本", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+        if not self.m_choose_duty then
+            self:getFrame("float_hint_manager"):add_float("请选择职责", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+        self.m_matching_manager:req_match_instance(enum.shared.InstanceMatchingType.POINT_OUT_MATCHING, self.m_choose_duty, self.m_cur_type, self.m_curr_challenge)
+    else
+        self.m_matching_manager:req_pause_matching()
+    end
+end
+
+function designated_matching_view:on_show_normal()
+    self.m_cur_type = enum.shared.InstanceDiffcultyType.NORMAL
+    self["normal_btn_GUIButton"].gameObject:SetActive(false)
+    self["normal_sel_GUIImage"].gameObject:SetActive(true)
+
+    self["hero_btn_GUIButton"].gameObject:SetActive(true)
+    self["hero_sel_GUIImage"].gameObject:SetActive(false)
+    self["diff_btn_GUIButton"].gameObject:SetActive(true)
+    self["diff_sel_GUIImage"].gameObject:SetActive(false)
+    self:selected_image_move(110)
+end
+
+function designated_matching_view:on_show_hero()
+    self.m_cur_type = enum.shared.InstanceDiffcultyType.HEROIC
+    self["hero_btn_GUIButton"].gameObject:SetActive(false)
+    self["hero_sel_GUIImage"].gameObject:SetActive(true)
+
+    self["normal_btn_GUIButton"].gameObject:SetActive(true)
+    self["normal_sel_GUIImage"].gameObject:SetActive(false)
+    self["diff_btn_GUIButton"].gameObject:SetActive(true)
+    self["diff_sel_GUIImage"].gameObject:SetActive(false)
+    self:selected_image_move(5)
+end
+
+function designated_matching_view:on_show_diff()
+    self.m_cur_type = enum.shared.InstanceDiffcultyType.EPIC
+    self["diff_btn_GUIButton"].gameObject:SetActive(false)
+    self["diff_sel_GUIImage"].gameObject:SetActive(true)
+
+    self["normal_btn_GUIButton"].gameObject:SetActive(true)
+    self["normal_sel_GUIImage"].gameObject:SetActive(false)
+    self["hero_btn_GUIButton"].gameObject:SetActive(true)
+    self["hero_sel_GUIImage"].gameObject:SetActive(false)
+    self:selected_image_move(-110)
+end
+
+function designated_matching_view:selected_image_move(target)
+    ShortcutExtensions.DOLocalMoveY(self.m_selected_line.gameObject.transform, target, 0.6, false)
+end
+
+function designated_matching_view:on_attack_down()
+    if not self.m_attack then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.DAMAGE
+    self["attack_sel_GUIImage"].gameObject:SetActive(true)
+    self["cure_sel_GUIImage"].gameObject:SetActive(false)
+    self["defense_sel_GUIImage"].gameObject:SetActive(false)
+end
+
+function designated_matching_view:on_cure_down()
+    if not self.m_cure then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.HEALER
+    self["attack_sel_GUIImage"].gameObject:SetActive(false)
+    self["cure_sel_GUIImage"].gameObject:SetActive(true)
+    self["defense_sel_GUIImage"].gameObject:SetActive(false)
+end
+
+function designated_matching_view:on_defense_down()
+    if not self.m_defense then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.TANK
+    self["attack_sel_GUIImage"].gameObject:SetActive(false)
+    self["cure_sel_GUIImage"].gameObject:SetActive(false)
+    self["defense_sel_GUIImage"].gameObject:SetActive(true)
+end
+
+-----初始化的时候处理一些职责相关的事情
+function designated_matching_view:init_duty()
+    local ret = self.m_matching_manager:deal_player_duty()
+    for i, v in ipairs(ret) do
+        if v == 1 then
+            self.m_defense = true
+        elseif v == 2 then
+            self.m_attack = true
+        elseif v == 3 then
+            self.m_cure = true
+        end
+    end
+    if not self.m_defense then
+        self["defense_img_GUIImage"].gameObject:SetActive(true)
+    end
+    if not self.m_attack then
+        self["attack_img_GUIImage"].gameObject:SetActive(true)
+    end
+    if not self.m_cure then
+        self["cure_img_GUIImage"].gameObject:SetActive(true)
+    end
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local special = role:get_specialization()
+    local duty = dbc.specialization[special].duty
+    if duty == 1 then
+        self:on_defense_down()
+    elseif duty == 2 then
+        self:on_attack_down()
+    elseif duty == 3 then
+        self:on_cure_down()
+    end
+end
+
+return designated_matching_view

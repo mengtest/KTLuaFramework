@@ -1,0 +1,306 @@
+
+local Frame = require("system.frame")
+local Quiz_manager = class("Quiz_manager", Frame)
+
+function Quiz_manager:doInit(params)
+    local ui_manager = app:get_ui_manager()
+    local params_ui = {
+        ["quiz_manager"] = self,
+    }
+    self.m_quiz_window = ui_manager:CreateUI("quiz_window", "%subsystem.quiz.quiz_window", params_ui, ui_manager.UI_Depth.ALERT)
+    
+    self.m_cur_quiz_host = nil  -- 问答功能的寄主
+    self.m_cur_quiz_other_host=nil --问答功能的临时寄主，七嘴八舌的对话参与者 by lijunfeng 2018/1/17
+    self.m_cur_quiz_audio = 0
+    self.m_quiz_id_list = {}
+    self.m_cur_quiz_id = 0
+    self.m_cur_index = 0
+    self.m_max_index = 0
+    self.m_is_quiz = true --是问答还是普通对话
+    self.m_is_arder=true --是否是休闲对话 by lijunfeng 2018/1/4
+    self.m_quest_id=0 --by lijunfeng 2018/1/29
+    self.m_on_complete = nil
+end
+-- by lijunfeng 2017/12/21
+function Quiz_manager:camera_forward(npc)
+    local world = self:getFrame("world")
+    local player_unit = world:get_main_player()
+    local npc_head_trs,flag = npc:get_bone("Bip001 Head")--by lijunfeng 2018/2/1
+
+    if not flag then
+        npc_head_trs,flag =npc:get_bone("Bip01 Head")--by lijunfeng 2018/2/1
+    end
+
+    if not flag then
+        print("无法找到正确骨骼")
+    end
+
+    local npc_pos=npc_head_trs and npc_head_trs.position or npc:get_pos() --如果是air_box的npc，则直接获取该坐标
+    local player_head_trs,flag2 = player_unit:get_bone_trs(HumanBodyBones.Head) --人形动画获取骨骼方式
+
+    if not flag2 then
+        player_head_trs,flag2= player_unit:get_bone("Bip001 Head")--by lijunfeng 2018/2/28 任务变身时获取方法应该不一样
+    end
+
+    if not flag2 then
+        player_head_trs,flag2= player_unit:get_bone("Bip01 Head")--by lijunfeng 2018/2/28
+    end
+
+    if not flag2 then
+        print("无法找到主角正确骨骼")
+    end
+
+    local target_pos=(npc_pos+player_head_trs.position)*0.5
+    local camera=world:getCamera()
+
+    camera:enter_gaze_mode(target_pos,2)
+end
+-- by lijunfeng 2017/12/21
+function Quiz_manager:camera_reset()
+    local world = self:getFrame("world")
+    local camera=world:getCamera()
+    camera:exit_gaze_mode(function()
+        app:get_ui_manager():ShowLowUIRootByName(app:get_ui_manager().UI_Depth.ALERT)
+    end)
+end
+--by lijunfeng 2018/2/2
+function Quiz_manager:start_quiz(quiz_host, quiz_id,quest_id)
+    if not dbc.quiz[quiz_id] then
+        return
+    end
+
+    if not self:is_quiz_available() then
+        return
+    end
+
+    self.m_is_quiz = true
+    self.m_is_arder=false
+    self.m_quest_id=quest_id
+    self:reset_quiz_host(quiz_host)--by lijunfeng 2018/2/2
+    self.m_cur_quiz_other_host=self.m_cur_quiz_host -- by lijunfeng 2018/1/18
+    self:reset_quiz_id(quiz_id)
+    self:quiz_rqt(self.m_cur_quiz_id, self.m_cur_index)
+end
+
+function Quiz_manager:start_talk(talk_host, talk_id,is_arder,quest_id)
+    if not dbc.talk[talk_id] then
+        return
+    end
+    if not self:is_quiz_available() then
+        return
+    end
+    self.m_is_quiz = false
+    self.m_is_arder=is_arder --by lijunfeng 2018/1/4
+    self.m_quest_id=quest_id --by lijunfeng 2018/1/29
+    self:reset_quiz_host(talk_host)
+    self:reset_quiz_id(talk_id)
+    self:talk_bgn(self.m_cur_index)
+end
+
+function Quiz_manager:stop_quiz()
+    if self.m_on_complete then
+        self.m_on_complete()
+        self.m_on_complete = nil
+
+        local event_id = self.m_is_quiz and dbc.quiz[self.m_quiz_id_list[self.m_max_index]].event_id or dbc.talk[self.m_quiz_id_list[self.m_max_index]].event_id
+
+        if event_id>0 then
+            -- 触发事件
+        end
+    end
+
+    self:stop_sound_effect()--by lijunfeng 2017/12/21
+
+    if not self.m_is_arder then
+        local quest_data=dbc.quest[self.m_quest_id]
+        local has_reward=quest_data.exp>0 or quest_data.gold>0 or quest_data.goods or quest_data.gains or false
+
+        if has_reward then
+            self.m_quiz_window:destroy_all_award_frame()
+        end
+    end
+
+    self.m_quiz_window:hide()
+    self:camera_reset()--by lijunfeng 2017/12/21
+    self.m_cur_quiz_host = nil
+    self.m_cur_quiz_other_host=nil--by lijunfeng 2018/1/17
+    self.m_cur_quiz_id = 0
+    self.m_cur_index = 0
+    self.m_max_index = 0
+    self.m_is_arder=false
+    self.m_quest_id=0
+end
+
+function Quiz_manager:set_on_complete(cb)
+    self.m_on_complete = cb
+end
+--对话下一步请求
+function Quiz_manager:quiz_rqt(quiz_id, cur_index)
+    print("问答题对话请求",quiz_id,cur_index)
+    self.m_cur_quiz_host:cell_call("quiz_rqt", quiz_id, cur_index)
+end
+--对话答案按钮按下请求0或1
+function Quiz_manager:quiz_rsp(answer_index)
+    print("问答题回答请求",answer_index)
+    self.m_cur_quiz_host:cell_call("quiz_rsp", self.m_cur_quiz_id, self.m_cur_index, answer_index)
+end
+-- by lijunfeng 2018/2/2
+function Quiz_manager:quiz_bgn(quiz_id, index, answer1, answer2, hint)
+    print("问答题服务器返回",quiz_id, index, answer1, answer2, hint)
+    local quiz_info = dbc.quiz[self.m_quiz_id_list[index + 1]]
+    print("host_name",quiz_info.host_name,dbc.creature[quiz_info.host_name].name)
+    local host_name=(quiz_info.host_name~=0 and dbc.creature[quiz_info.host_name].name) or "宿主"
+    local text_quiz = quiz_info.text
+    self.m_quiz_window:set_quiz_host_name(host_name)
+    self.m_quiz_window:refresh_quiz_info(text_quiz, answer1, answer2, hint)
+    self.m_quiz_window:show()
+    self:stop_sound_effect()--by lijunfeng 2017/12/21
+    self.m_cur_quiz_audio = (self.m_cur_quiz_audio == 0 and quiz_info.audio > 0) and app:get_sound_mgr():create(quiz_info.audio) or self.m_cur_quiz_audio
+    self:start_sound_effect() --by lijunfeng 2017/12/21
+    self:start_anim_effect(quiz_info.anim)
+end
+
+function Quiz_manager:talk_bgn(index)
+    self.m_cur_index = self.m_cur_index + 1
+    local talk_info = dbc.talk[self.m_quiz_id_list[self.m_cur_index]]
+    local world = self:getFrame("world")
+    local host_name=(talk_info.host_name~=0 and dbc.creature[talk_info.host_name].name) or world:get_main_player():get_name() or "宿主"    -- by lijunfeng 2018/1/17 增加对话时切换对象名称，并播放指定对象的动作功能
+    self.m_cur_quiz_other_host=(talk_info.host_name~=0 and self:getFrame("world"):get_giver_by_tid(talk_info.host_name)) or self.m_cur_quiz_host -- by lijunfeng 2018/1/17 增加对话时切换对象名称，并播放指定对象的动作功能
+    self.m_quiz_window:set_quiz_host_name(host_name)
+    self.m_quiz_window:refresh_quiz_feedback(talk_info.text)
+    print("对话索引",self.m_cur_index,self.m_max_index,host_name,talk_info.host_name,self.m_cur_quiz_other_host:get_tid())
+
+    if not self.m_is_arder then
+        local quest_data=dbc.quest[self.m_quest_id]
+        local has_reward=quest_data.exp>0 or quest_data.gold>0 or quest_data.goods or quest_data.gains or false
+
+        if has_reward and self.m_cur_index==self.m_max_index and self.m_quest_id>0 then
+            self.m_quiz_window:create_award_list(self.m_quest_id)
+        end
+    end
+
+    self.m_quiz_window:show()
+    self:stop_sound_effect()--by lijunfeng 2017/12/21
+    --   print("创建声音",talk_info.audio)
+    self.m_cur_quiz_audio = (self.m_cur_quiz_audio == 0 and talk_info.audio > 0) and app:get_sound_mgr():create(talk_info.audio) or self.m_cur_quiz_audio
+    self:start_sound_effect() --by lijunfeng 2017/12/21
+    self:start_anim_effect(talk_info.anim)
+end
+
+-- 服务器返回选择答案后的结果
+function Quiz_manager:quiz_end(quiz_id, index, is_correct)
+    --    print("对话结束")
+    local quiz_info = dbc.quiz[self.m_quiz_id_list[index + 1]]
+    local text_feedback = is_correct == 1 and quiz_info.right_feedback or quiz_info.wrong_feedback
+    local anim_feedback = is_correct == 1 and quiz_info.right_reaction or quiz_info.wrong_reaction
+    self.m_cur_index = index + 1
+    self.m_quiz_window:refresh_quiz_feedback(text_feedback)
+    self:start_anim_effect(anim_feedback)
+end
+
+function Quiz_manager:start_anim_effect(anim_feedback)
+    print("播放对话动作",anim_feedback)
+    if not anim_feedback or anim_feedback == "" then
+        return
+    end
+    print("播放对话动作2",anim_feedback)
+    local MEvent=require("common.util.mevent")
+    MEvent:dispatch(self,"show_talk_anim",{id=self.m_cur_quiz_other_host:get_id(),name="talk",anim=anim_feedback,trigger="talk"})  -- by lijunfeng 2018/1/17 增加对话时切换对象名称，并播放指定对象的动作功能
+end
+
+function Quiz_manager:stop_anim_effect()
+
+end
+
+function Quiz_manager:start_sound_effect()
+    --   print("播放当前声音",self.m_cur_quiz_audio)
+    if self.m_cur_quiz_audio~=0 then
+        app:get_sound_mgr():play(self.m_cur_quiz_audio)
+    end
+end
+
+function Quiz_manager:stop_sound_effect()
+    --   print("停止当前声音",self.m_cur_quiz_audio)
+    if self.m_cur_quiz_audio~=0 then
+        app:get_sound_mgr():stop(self.m_cur_quiz_audio)
+        app:get_sound_mgr():destroy(self.m_cur_quiz_audio)
+        self.m_cur_quiz_audio=0
+    end
+end
+
+function Quiz_manager:show_next_quiz()
+    --self.m_cur_index = self.m_cur_index + 1
+    self:stop_anim_effect()
+    --print("对话id，最大对话id",self.m_cur_index,self.m_max_index)
+    if self.m_cur_index >= self.m_max_index then
+        self:stop_quiz()
+    else
+        if self.m_is_quiz then
+            self:quiz_rqt(self.m_cur_quiz_id, self.m_cur_index)
+        else
+            self:talk_bgn(self.m_cur_index)
+        end
+    end
+end
+
+function Quiz_manager:is_quiz_available()
+    --  print("是否可对话",self.m_cur_quiz_host,self.m_cur_quiz_id)
+    if self.m_cur_quiz_host then return false end
+    if self.m_cur_quiz_id > 0 then return false end
+    return true
+end
+
+function Quiz_manager:reset_quiz_id(quiz_id)
+    self.m_cur_quiz_id = quiz_id
+    self.m_quiz_id_list = self.m_is_quiz and self:get_quiz_id_list(quiz_id, {})or self:get_talk_id_list(quiz_id, {})
+    self.m_max_index = #self.m_quiz_id_list
+    self.m_cur_index = self.m_max_index > 0 and 0 or 0
+end
+
+--by lijunfeng 2018/1/17 去掉设置宿主名，转移到talk_bgn中
+function Quiz_manager:reset_quiz_host(quiz_host)
+    self.m_cur_quiz_host = quiz_host
+end
+
+--取得指定问答id的问答链，返回表
+function Quiz_manager:get_quiz_id_list(quiz_id, quiz_id_list)
+    if #quiz_id_list > 100 then
+        utility.log:logError(utility.log.Mask.Global, "大哥，你确定你【Quiz】表的问答链没问题吗？都链接100条问答了。\n quiz_id = %s", quiz_id)
+    end
+    local quiz_info = dbc.quiz[quiz_id]
+    if quiz_info then
+        table.insert(quiz_id_list, quiz_id)
+    end
+    if quiz_info.another > 0 then
+        self:get_quiz_id_list(quiz_info.another, quiz_id_list)
+    end
+    if #quiz_id_list <= 0 then
+        utility.log:logError(utility.log.Mask.Global, "Error，当前quiz_id链接的问答链为空。\n quiz_id = %s", quiz_id)
+    end
+    return quiz_id_list
+end
+--取得指定对话id的对话链，返回表
+function Quiz_manager:get_talk_id_list(talk_id, talk_id_list)
+    if #talk_id_list > 100 then
+        utility.log:logError(utility.log.Mask.Global, "大哥，你确定你【Talk】表的问答链没问题吗？都链接100条问答了。\n talk_id = %s", talk_id)
+    end
+
+    local talk_info = dbc.talk[talk_id]
+    if talk_info then
+        table.insert(talk_id_list, talk_id)
+    end
+    if talk_info.another > 0 then
+        self:get_talk_id_list(talk_info.another, talk_id_list)
+    end
+    if #talk_id_list <= 0 then
+        utility.log:logError(utility.log.Mask.Global, "Error，当前talk_id链接的问答链为空。\n talk_id = %s", talk_id)
+    end
+    return talk_id_list
+end
+
+
+
+
+
+
+return Quiz_manager

@@ -1,0 +1,99 @@
+-- 角色行为状态 技能引导
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillChannel", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    --print("UnitActStateSkillSing:enter")
+    UnitActStateBase.enter(self)
+
+    -- cast_time 是释放技能时从服务器获取的
+    local cast_time = self.m_param.skill_queue_object.cast_time
+
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.SKILL_CHANNEL)
+
+    -- 计算状态剩余时间，日后会改从服务器获取
+    local duration = cast_time
+    assert(duration ~= nil, string.format("fail to get sing time of %d", self.m_unit:get_skill_id()))
+
+    self.m_end_time = app:get_server_time() + duration
+
+
+    self:check_special_start(self.m_param.skill_queue_object.spell_client_id)
+end
+
+
+function M:exit()
+     --print("UnitActStateSkillSing:exit")
+    self:check_special_exit(self.m_param.skill_queue_object.spell_client_id)
+
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+
+    --print("UnitActStateSkill:update")
+    UnitActStateBase.update(self)
+
+    local cc = self.m_unit:get_cc()
+    if cc == nil then
+        return
+    end
+
+    local server_time = app:get_server_time()
+
+    --------------------
+    -- 结束施法
+    if self.m_end_time <= server_time then
+        self.m_fsm:change_state(UAFsm.MAIN_ACT.MOVE)
+        self.m_unit:on_skill_channel_state_exit(self.m_param.skill_queue_object)
+        return
+    end
+
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+
+
+function M:check_special_start(spell_client_id)
+    local func = self["special_start_"..spell_client_id]
+    if(func ~= nil and type(func) == "function") then
+        func(self)
+    end
+end
+
+
+function M:special_start_913005()
+    self.m_unit:emit_event("run_function","show_hide_avatar",false)
+    
+end
+
+function M:check_special_exit(spell_client_id)
+    local func = self["special_end_"..spell_client_id]
+    if(func ~= nil and type(func) == "function") then
+        func(self)
+    end
+end
+
+
+function M:special_end_913005()
+    self.m_unit:emit_event("run_function","show_hide_avatar",true)
+
+end
+
+return M

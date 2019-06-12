@@ -1,0 +1,50 @@
+
+local View = require("system.view")
+local Quiz_window_view = class("Quiz_window_view", View)
+
+function Quiz_window_view:doInit()
+    self:load("ui/quiz.prefab", function(go)
+        self:init_with_go(go, nil)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+    end)
+end
+
+function Quiz_window_view:on_prepared()
+    self:hide()
+    local frame = self:getFrame()
+    self:subscribe(frame:on_event("show"), function ()
+        self:show()
+    end)
+    self:subscribe(frame:on_event("hide"), function ()
+        self:hide()
+    end)
+    self:subscribe(frame:on_event("switch_answer_mode"), function (flag)
+        self:switch_answer_mode(flag)
+    end)
+end
+
+function Quiz_window_view:show()
+    self:getGO():SetActive(true)
+    app:get_ui_manager():CloseLowUIRootByName(app:get_ui_manager().UI_Depth.ALERT)
+end
+
+function Quiz_window_view:hide()
+    self:getGO():SetActive(false)
+    app:get_ui_manager():ShowLowUIRootByName(app:get_ui_manager().UI_Depth.ALERT)
+end
+
+function Quiz_window_view:switch_answer_mode(flag)
+    Util_log:logError(Util_log.Mask.SJG_Quiz, "Quiz_window_view:switch_answer_mode(), flag = %s", tostring(flag))
+    self["img_next_GUIImage"].gameObject:SetActive(not flag)
+    self["btn_next_GUIButton"].gameObject:SetActive(not flag)
+    self["img_answer_pkg_GUIImage"].gameObject:SetActive(flag)
+end
+
+
+
+
+
+
+
+
+return Quiz_window_view

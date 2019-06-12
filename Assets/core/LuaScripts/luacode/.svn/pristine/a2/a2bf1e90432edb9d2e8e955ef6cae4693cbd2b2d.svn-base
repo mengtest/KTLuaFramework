@@ -1,0 +1,339 @@
+local View = require("system.view")
+local quest_ui_main_view = class("quest_ui_main_view", View)
+
+-- 刷新任务id列表
+Event.decl(quest_ui_main_view, "refresh_quest_id_list")
+function quest_ui_main_view:doInit()
+
+    self.m_frame = self:getFrame()
+    -- 当前存储的任务id列表
+    self.m_quest_id_list = {}
+    --Debug.LogError("doInit : " .. Util_string:get_string_by_tbl(self.m_quest_id_list) .. "\n" .. debug.traceback("doInit trace"))
+    -- 当前存储的主线任务id列表
+    self.m_main_quest_id_list = {}
+    -- 当前存储的支线任务id列表
+    self.m_side_quest_id_list = {}
+    -- 当前存储的区域任务id列表
+    self.m_area_quest_id_list = {}
+
+    self.m_ui_manager = app:get_ui_manager()
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+
+    self.m_target_btn = nil
+
+    self.m_btn_list = {}
+
+    self:load("ui/Quest.prefab", function(go)
+        local frame = self:getFrame()
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local return_btn = go.transform:Find("quest_bg/return_btn"):GetComponent(UI.Button)
+        local down_bg = go.transform:Find("quest_bg/down_bg").transform
+        self.m_scroll_bar = down_bg:Find("scrollbar"):GetComponent(UI.Scrollbar)
+        self.m_drag_area_container = go.transform:Find("quest_bg/drag_panel").gameObject:GetComponent("DragSkill")
+        ----------三个按钮下的选中和未选中需要显示的内容
+        -- 任务
+        self.m_quest_root = go.transform:Find("quest_bg/drag_panel/drag_area_container/quest_container")
+        -- 有任务背景
+        self.m_have_quest_bg = self.m_quest_root:Find("have_quest_bg")
+
+        -- quest_list坐标
+        self.m_quest_list_root = self.m_have_quest_bg:Find("quest_list")
+        -- quest_show坐标
+        self.m_quest_show_root = self.m_have_quest_bg:Find("quest_info")
+        -- 没有任务背景
+        self.m_no_quest_bg = self.m_quest_root:Find("no_quest_bg")
+
+        -- 日常
+        self.m_daily_root = go.transform:Find("quest_bg/drag_panel/drag_area_container/daily_container")
+        -- 成就
+        self.m_achievement_root = go.transform:Find("quest_bg/drag_panel/drag_area_container/achievement_container")
+        -- 任务类型
+        self.m_quest_type_root = go.transform:Find("quest_bg/drag_panel/drag_area_container/quest_container/have_quest_bg/quest_type")
+
+        ---- 选中 及 未选中状态
+        -----任务
+        self.m_quest_btn_root = down_bg:Find("btn_container/quest").transform
+        self.m_quest_btn_image = self.m_quest_btn_root:Find("quest_image").transform
+        self.m_quest_text_btn = self.m_quest_btn_image:Find("quest_text_btn"):GetComponent(UI.Button)
+        self.m_quest_selected = down_bg:Find("btn_container/quest/selected").transform
+        self:add_btn_list(self.m_quest_btn_root, self.m_quest_btn_image, self.m_quest_text_btn, self.m_quest_selected)
+        -----日常
+        self.m_daily_btn_root = down_bg:Find("btn_container/daily").transform
+        self.m_daily_btn_image = self.m_daily_btn_root:Find("daily_image").transform
+        self.m_daily_text_btn = self.m_daily_btn_image:Find("daily_text_btn"):GetComponent(UI.Button)
+        self.m_daily_selected = down_bg:Find("btn_container/daily/selected").transform
+        self:add_btn_list(self.m_daily_btn_root, self.m_daily_btn_image, self.m_daily_text_btn, self.m_daily_selected)
+        -----成就
+        self.m_achievement_btn_root = down_bg:Find("btn_container/achievement").transform
+        self.m_achievement_btn_image = self.m_achievement_btn_root:Find("achievement_image").transform
+        self.m_achievement_text_btn = self.m_achievement_btn_image:Find("achievement_text_btn"):GetComponent(UI.Button)
+        self.m_achievement_selected = down_bg:Find("btn_container/achievement/selected").transform
+        self:add_btn_list(self.m_achievement_btn_root, self.m_achievement_btn_image, self.m_achievement_text_btn, self.m_achievement_selected)
+        ---- 左侧主线
+        -- 主线按钮
+        self.m_main_quest_tog = self.m_quest_type_root:Find("main_quest_btn"):GetComponent(UI.Toggle)
+        self.m_main_quest_tog.gameObject:SetActive(false)
+        self.m_main_quest_tog_image = self.m_quest_type_root:Find("main_quest_btn"):GetComponent(UI.Image)
+        self.m_main_quest_tog_highlight_image = self.m_quest_type_root:Find("main_quest_btn_selected"):GetComponent(UI.Image)
+        ---- 左侧支线
+        -- 支线按钮
+        self.m_side_quest_tog = self.m_quest_type_root:Find("side_quest_btn"):GetComponent(UI.Toggle)
+        self.m_side_quest_tog.gameObject:SetActive(false)
+        self.m_side_quest_tog_image = self.m_quest_type_root:Find("side_quest_btn"):GetComponent(UI.Image)
+        self.m_side_quest_tog_highlight_image = self.m_quest_type_root:Find("side_quest_btn_selected"):GetComponent(UI.Image)
+        ---- 左侧区域
+        -- 区域按钮
+        self.m_area_quest_tog = self.m_quest_type_root:Find("area_quest_btn"):GetComponent(UI.Toggle)
+        self.m_area_quest_tog.gameObject:SetActive(false)
+        self.m_area_quest_tog_image = self.m_quest_type_root:Find("area_quest_btn"):GetComponent(UI.Image)
+        self.m_area_quest_tog_highlight_image = self.m_quest_type_root:Find("area_quest_btn_selected"):GetComponent(UI.Image)
+
+        -- 子frame布局
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 任务列表
+            if string.find(name, "quest_ui_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = self.m_quest_list_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            -- 任务信息
+            if string.find(name, "quest_ui_show") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = self.m_quest_show_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+        end)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function()
+            self.m_need_move = false
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function()
+            self:end_drag_callback()
+        end)
+
+
+        self.m_quest_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 0
+            self:click_btn_callback(self.m_quest_text_btn)
+        end)
+
+        self.m_daily_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 0.5
+            self:click_btn_callback(self.m_daily_text_btn)
+        end)
+
+        self.m_achievement_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 1
+            self:click_btn_callback(self.m_achievement_text_btn)
+        end)
+
+        return_btn.onClick:AddListener(function()
+            self.m_mgr:getView("quest_ui_main"):getGO():SetActive(false)
+        end)
+
+        ----temp
+        self:change_btn_to_big(self.m_quest_text_btn)
+
+        -- 创建子物体
+        frame:on_loaded()
+        self.m_have_quest_bg.gameObject:SetActive(false)
+        self.m_no_quest_bg.gameObject:SetActive(true)
+
+        Event_system:add_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+        Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+        Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+
+        self:refresh_all()
+
+    end)
+
+
+end
+
+---- 暂时这么搞，以后要改 现在在quest_ui_list_view里调用的
+function quest_ui_main_view:toggle_listener()
+
+    self.m_main_quest_tog_image.overrideSprite = self.m_main_quest_tog_highlight_image.sprite
+    self:getFrame():refresh_quest_id_list(self.m_main_quest_id_list)
+
+    -- 主线tog事件
+    self.m_main_quest_tog.onValueChanged:AddListener(function(is_on)
+        if is_on then
+            self.m_main_quest_tog_image.overrideSprite = self.m_main_quest_tog_highlight_image.sprite
+            self:getFrame():refresh_quest_id_list(self.m_main_quest_id_list)
+        else
+            self.m_main_quest_tog_image.overrideSprite = self.m_main_quest_tog_image.sprite
+            self:getFrame():del_quest_list(self.m_main_quest_id_list)
+        end
+    end)
+    -- 支线tog事件
+    self.m_side_quest_tog.onValueChanged:AddListener(function(is_on)
+        if is_on then
+            self.m_side_quest_tog_image.overrideSprite = self.m_side_quest_tog_highlight_image.sprite
+            self:getFrame():refresh_quest_id_list(self.m_side_quest_id_list)
+        else
+            self.m_side_quest_tog_image.overrideSprite = self.m_side_quest_tog_image.sprite
+            self:getFrame():del_quest_list(self.m_side_quest_id_list)
+        end
+
+    end)
+    -- 区域tog事件
+    self.m_area_quest_tog.onValueChanged:AddListener(function(is_on)
+        if is_on then
+            self.m_area_quest_tog_image.overrideSprite = self.m_area_quest_tog_highlight_image.sprite
+            self:getFrame():refresh_quest_id_list(self.m_area_quest_id_list)
+        else
+            self.m_area_quest_tog_image.overrideSprite = self.m_area_quest_tog_image.sprite
+            self:getFrame():del_quest_list(self.m_area_quest_id_list)
+        end
+    end)
+end
+
+-- 刷新任务列表
+function quest_ui_main_view:refresh_all()
+    local quest_list = self:getFrame("quest_manager"):get_quest_list()
+    for quest_id, quest_data in pairs(quest_list) do
+        if quest_id ~= 911 then
+            self:add_quest(quest_id, quest_data)
+        end
+    end
+end
+
+-- 监听任务列表的回调
+function quest_ui_main_view:add_quest(quest_id, quest_data)
+    self.m_quest_id_list[quest_id] = quest_id
+    self:refresh_quest_list_call_back(self.m_quest_id_list)
+
+end
+-- 监听新添加任务的回调
+function quest_ui_main_view:add_new_quest(quest_id)
+    self.m_quest_id_list[quest_id] = quest_id
+    self:refresh_quest_list_call_back(self.m_quest_id_list)
+
+end
+-- 监听删除任务的回调
+function quest_ui_main_view:del_quest(quest_id)
+    self.m_quest_id_list[quest_id] = nil
+    self:refresh_quest_list_call_back(self.m_quest_id_list)
+end
+
+-- 监听到quest_list的回调
+function quest_ui_main_view:refresh_quest_list_call_back(quest_id_list)
+    if #quest_id_list ~= 0 then
+        self.m_have_quest_bg.gameObject:SetActive(true)
+        self.m_no_quest_bg.gameObject:SetActive(false)
+    else
+        self.m_have_quest_bg.gameObject:SetActive(false)
+        self.m_no_quest_bg.gameObject:SetActive(true)
+    end
+    for i, v in pairs(quest_id_list) do
+        if dbc.quest[v].type == Enum_Quest.Quest_Type.Main then
+            table.insert(self.m_main_quest_id_list, v)
+            -- 主线图标显示
+            self.m_main_quest_tog.gameObject:SetActive(true)
+            self.m_main_quest_tog.isOn = true
+
+        elseif dbc.quest[v].type == Enum_Quest.Quest_Type.Side then
+            table.insert(self.m_side_quest_id_list, v)
+            -- 支线图标显示
+            self.m_side_quest_tog.gameObject:SetActive(true)
+
+        elseif dbc.quest[v].type == Enum_Quest.Quest_Type.Area then
+            table.insert(self.m_area_quest_id_list, v)
+            -- 区域图标显示
+            self.m_area_quest_tog.gameObject:SetActive(true)
+        end
+    end
+end
+
+
+
+function quest_ui_main_view:doDestroy()
+    Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+    Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:del_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+end
+
+
+
+
+function quest_ui_main_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+------结束拖拽的回调
+function quest_ui_main_view:end_drag_callback()
+    if self.m_scroll_bar.value <= 0.25 then
+        self.m_scroll_bar_target_value = 0
+        self.m_target_btn = self.m_quest_text_btn
+    elseif self.m_scroll_bar.value <= 0.75 then
+        self.m_scroll_bar_target_value = 0.5
+        self.m_target_btn = self.m_daily_text_btn
+    else
+        self.m_scroll_bar_target_value = 1
+        self.m_target_btn = self.m_achievement_text_btn
+    end
+    self:click_btn_callback(self.m_target_btn)
+end
+
+---确定了目标位置的回调
+function quest_ui_main_view:click_btn_callback(press_btn)
+    self:change_btn_to_big(press_btn)
+    self.m_need_move = true
+    self.m_move_speed = 0
+end
+
+-----按钮变大
+function quest_ui_main_view:change_btn_to_big(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn_and_text"] == press_btn then
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(200, 95)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            v["btn_no_selected"].transform.gameObject:SetActive(false)
+        else
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(85, 95)
+            v["selected_show"].transform.gameObject:SetActive(false)
+            v["btn_no_selected"].transform.gameObject:SetActive(true)
+        end
+    end
+end
+
+-----向按钮列表中添加内容
+function quest_ui_main_view:add_btn_list(root, btn_no_selected, btn_and_text, selected_show)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["root"] = root, ["btn_no_selected"] = btn_no_selected, ["btn_and_text"] = btn_and_text, ["selected_show"] = selected_show }
+end
+
+
+function quest_ui_main_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return quest_ui_main_view

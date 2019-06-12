@@ -1,0 +1,8 @@
+local row_0 = {['id']=11,['name']={0}}
+local row_1 = {['id']=22,['name']={0}}
+
+local datas = {
+	[11] = row_0,
+	[22] = row_1,
+}
+return datas

@@ -1,0 +1,10 @@
+local row_0 = {['id']=1,['times']=1,['boss_id']={200001}}
+local row_1 = {['id']=2,['times']=2,['boss_id']={200002}}
+local row_2 = {['id']=3,['times']=1,['boss_id']={200001}}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+}
+return datas

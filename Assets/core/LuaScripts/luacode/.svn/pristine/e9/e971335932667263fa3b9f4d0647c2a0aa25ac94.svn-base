@@ -1,0 +1,75 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/10 11:30
+---
+local Frame = require("system.frame")
+local threat_manager = class("threat_manager", Frame)
+
+Attribute.decl(threat_manager, "target_id", 0)
+Event.decl(threat_manager, "on_toggle")
+Event.decl(threat_manager, "refresh")
+
+function threat_manager:doInit()
+    self:local_log("threat_manager------------------>>threat_manager:doInit()")
+    self.m_threat_list = {}
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    self.m_role = kbe_mgr:get_entity(role_id)
+    self:subscribe(self.m_role:on_event_attr_set("target_id", true), function(target_id)
+        if target_id and target_id ~= 0 then
+            self:local_log("threat_manager------------------>>target_id : " .. tostring(target_id))
+            if self:getFrame("world"):getUnit(target_id) then
+                if self:getFrame("world"):getUnit(target_id):get_unit_class_name() == "Creature" then
+                    self:set_target_id(target_id)
+                    self:emit_event("refresh", self:get_threat_info(target_id))
+                else
+                    self:set_target_id(0)
+                end
+            end
+        else
+            self:set_target_id(0)
+        end
+    end)
+end
+
+-----更新仇恨列表
+function threat_manager:rec_threat_update(unit_id, threat_info)
+
+    self:local_log("threat_manager------------------>>unit_id : " .. unit_id)
+    for i, v in pairs(threat_info) do
+        self:local_log("threat_manager------------------>>entity_id : " .. v["entity_id"])
+        self:local_log("threat_manager------------------>>threat : " .. v["threat"])
+    end
+
+    self.m_threat_list[unit_id] = threat_info
+    if unit_id == self:get_target_id() then
+        self:emit_event("refresh", threat_info)
+    end
+end
+
+-----获取仇恨列表   若没有仇恨列表返回空表
+function threat_manager:get_threat_info(unit_id)
+    local threat_info = self.m_threat_list[unit_id]
+    if threat_info then
+        return threat_info
+    else
+        return {}
+    end
+end
+
+----获取当前选中的Creature的仇恨列表
+function threat_manager:get_current_threat_info()
+    return self.m_current_threat_info
+end
+
+function threat_manager:on_toggle(is_on)
+    self:emit_event("on_toggle", is_on)
+end
+
+function threat_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return threat_manager

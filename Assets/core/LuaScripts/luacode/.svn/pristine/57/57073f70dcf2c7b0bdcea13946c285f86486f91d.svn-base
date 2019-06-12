@@ -1,0 +1,32 @@
+--npc通常默认状态
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("interact_state_base")
+local M = class("InteractNormalState",UnitActStateBase)
+
+function M:initialize(fsm,mob_giver)
+	UnitActStateBase:initialize(fsm,mob_giver)
+end
+
+-- stateMachine接口
+function M:change_state(state_name)
+	UnitActStateBase:change_state(state_name)
+end
+
+-- state接口
+function M:update()
+	UnitActStateBase:update()
+	
+	--self:update_previous_interact()
+end
+
+
+function M:enter()
+	UnitActStateBase:enter()
+end
+
+function M:exit()
+	UnitActStateBase:exit()
+end
+
+
+return M

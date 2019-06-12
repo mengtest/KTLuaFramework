@@ -1,0 +1,124 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    local view_go = self:getGO()
+    local path = self.m_frame:get_sfx_path()
+    
+    self.m_update_func = nil
+    
+    
+    
+    if path == "" or path == "n" then
+        return
+    else
+        self:load(path, function(go)
+            go.transform.position = Vector3.zero
+            go.transform.eulerAngles = Vector3.zero
+            self.m_bullet = go
+            
+            self.m_start_pos = self.m_frame:get_pos()
+            
+            
+            self.m_projectile_type_cfg = self.m_frame:get_projectile_type_cfg()
+            
+            if (self.m_projectile_type_cfg ~= nil) then
+                self:select_projectile_type()
+            end
+            
+            -- 响应pos事件
+            self:subscribe(self.m_frame:on_event_pos_set(true), function(value)
+                view_go.transform.position = value
+            end)
+            
+            -- 响应eular事件
+            self:subscribe(self.m_frame:on_event_euler_set(true), function(value)
+                view_go.transform.eulerAngles = Vector3(0, value, 0)
+            end)
+        end)
+    end
+
+end
+
+function M:doUpdate()
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+end
+
+function M:select_projectile_type()
+    
+    if (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.WAGGLE) then
+        
+        self.m_update_func = self.waggle
+        
+        self.m_x_dis = self.m_projectile_type_cfg.param1
+        
+        self.m_x_speed = self.m_projectile_type_cfg.param2
+        
+        self.m_y_dis = self.m_projectile_type_cfg.param3
+        
+        self.m_y_speed = self.m_projectile_type_cfg.param4
+    
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.PARABOLA) then
+        
+        self.m_update_func = self.custom_curve
+         
+        self.m_curve_point_index = 1
+        
+        
+        self.m_point_count = self.m_frame:get_expected_time() / Time.deltaTime + 3
+
+        self:init_custom_curve()    
+    end
+end
+
+function M:waggle()
+    if (self.m_bullet ~= nil) then
+        local x = Mathf.Sin(self.m_frame:get_moved_dis() * (self.m_x_speed / self.m_frame:get_cfg().speed));
+        local y = Mathf.Sin(self.m_frame:get_moved_dis() * (self.m_y_speed / self.m_frame:get_cfg().speed));
+        self.m_bullet.transform.localPosition = self.m_bullet.transform.right * x * self.m_x_dis + self.m_bullet.transform.up * y * self.m_y_dis
+        
+        if (self.m_x_dis > 0) then
+            self.m_x_dis = self.m_x_dis - Time.deltaTime * self.m_frame:get_expected_time()
+        end
+        
+        if (self.m_y_dis > 0) then
+            self.m_y_dis = self.m_y_dis - Time.deltaTime * self.m_frame:get_expected_time()
+        end
+    end
+end
+
+function M:init_custom_curve()
+    self.m_curve_point = {}
+    
+    self.m_center = (self.m_start_pos + self.m_frame:get_target_pos()) * 0.5
+    self.m_center.y = self.m_frame:get_target_pos().y + self.m_projectile_type_cfg.param1
+    for i = 1, self.m_point_count, 1 do
+        local pos1 = Vector3.Lerp(self.m_start_pos, self.m_center, i / self.m_point_count)
+        local pos2 = Vector3.Lerp(self.m_center, self.m_frame:get_target_pos(), i / self.m_point_count)
+        local find = Vector3.Lerp(pos1, pos2, i / self.m_point_count)
+        table.insert(self.m_curve_point, find)
+    end
+
+end
+
+function M:custom_curve()
+    if (self.m_bullet ~= nil) then
+        
+        self:init_custom_curve()
+        
+        if (self.m_curve_point_index < #self.m_curve_point) then
+            self.m_bullet.transform.position = Vector3.Lerp(self.m_curve_point[self.m_curve_point_index], self.m_curve_point[self.m_curve_point_index + 1], 1)
+            self.m_curve_point_index = self.m_curve_point_index + 1;
+            self.m_bullet.transform:LookAt(self.m_curve_point[self.m_curve_point_index + 1])
+        else
+            --self.m_bullet.transform.position = Vector3.Lerp(self.m_bullet.transform.position, self.m_frame:get_target_pos(), 1)
+            self.m_bullet:SetActive(false)
+        end
+    end
+end
+
+
+
+return M

@@ -1,0 +1,10 @@
+local row_0 = {['id']=11,['name']='监神者营地',['condi']={1},['condi_param']={20},['dwlx']=2,['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=21,['map_id']=1004,['map_file']='res/map/ceshi.json',['diff_name']='',['des_one']='',['des_two']='',['time']=150,['chg_condi']={},['chg_val']={},['share_quest']={},['bind']=0,['reset_type']=0,['reset_time']={},['progresses']={},['prepare_time']=0,['boss_pos']={-90,545}}
+local row_1 = {['id']=12,['name']='监神者营地',['condi']={1},['condi_param']={13},['dwlx']=2,['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/ceshi.json',['diff_name']='普通',['des_one']='',['des_two']='',['time']=1800,['chg_condi']={},['chg_val']={},['share_quest']={200},['bind']=0,['reset_type']=0,['reset_time']={},['progresses']={410001},['prepare_time']=0,['boss_pos']={-90,545}}
+local row_2 = {['id']=13,['name']='监神者营地',['condi']={1},['condi_param']={12},['dwlx']=2,['mfdwrs']=2,['entry_condi']={0},['entry_param']={0},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='英雄',['des_one']='通关普通难度',['des_two']='',['time']=3600,['chg_condi']={1},['chg_val']={3},['share_quest']={201},['bind']=1,['reset_type']=1,['reset_time']={6,17,55,15},['progresses']={410011},['prepare_time']=0,['boss_pos']={-90,545}}
+
+local datas = {
+	[11] = row_0,
+	[12] = row_1,
+	[13] = row_2,
+}
+return datas

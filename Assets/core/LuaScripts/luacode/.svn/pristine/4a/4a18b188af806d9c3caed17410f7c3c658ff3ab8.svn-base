@@ -1,0 +1,65 @@
+local ObserverHost = require "system.observer_host"
+local BattlePreViewManager = class("BattlePreViewManager")
+
+BattlePreViewManager:include(ObserverHost)
+
+Event.decl(BattlePreViewManager, "role_enter")
+Event.decl(BattlePreViewManager, "role_exit")
+
+function BattlePreViewManager:initialize()
+    self.m_entity_map = {}
+end
+
+function BattlePreViewManager:update()
+    local delta = Time.deltaTime
+    for k, v in pairs(self.m_entity_map) do
+        if v.update then
+            v:update(delta)
+        end
+    end
+end
+
+function BattlePreViewManager:destroy()
+
+end
+
+function BattlePreViewManager:create_role(id, entity_type, is_main_player)
+    assert(self.m_entity_map[id] == nil)
+    local path = string.format("frame.bp.%s", entity_type)  
+    local cls = require(path)
+    local inst = cls:new(id)
+	
+    if is_main_player then
+        inst:set_is_main_player(true)
+    end
+
+    inst:on_init() 
+    self.m_entity_map[id] = inst
+end
+
+function BattlePreViewManager:destroy_role(id)
+    local inst = assert(self.m_entity_map[id])
+    
+    inst:on_destroy() 
+    self.m_entity_map[id] = nil
+end
+
+function BattlePreViewManager:enter_role(id)
+    local inst = assert(self.m_entity_map[id])
+    if inst.class.name == "BPCreature" then
+        self:emit_event("role_enter", inst)
+	end
+end
+
+function BattlePreViewManager:exit_role(id)
+    local inst = assert(self.m_entity_map[id])
+    if inst.class.name == "BPCreature" then
+        self:emit_event("role_exit", inst)
+	end
+end
+
+function BattlePreViewManager:get_entity(id) 
+    return self.m_entity_map[id]
+end
+
+return BattlePreViewManager

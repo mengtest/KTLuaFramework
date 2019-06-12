@@ -1,0 +1,40 @@
+local Frame = require("system.frame")
+local skill_ui_list = class("skill_ui_list", Frame)
+
+function skill_ui_list:doInit(param)
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    -----要生成的技能数据列表  这里从skill_ui_manager中获取未解锁的和已经学习的列表当中维护一个新的列表
+    self.m_skill_list = {}
+    self:refresh_skill_list()
+end
+
+function skill_ui_list:on_loaded()
+    self:load_skill_btn_list(#self.m_skill_list)
+end
+
+function skill_ui_list:load_skill_btn_list(num)
+    for k, v in ipairs(self.m_skill_list) do
+        self:createChild("skill_ui_list_btn"..v["id"], "%subsystem/skill_system_ui/skill_ui_list_btn")
+    end
+end
+
+------刷新技能列表中的数据
+function skill_ui_list:refresh_skill_list()
+    local master_info_list = self.m_skill_ui_manager:get_master_info_list()
+    -----state表示是否解锁  如果是解锁的话是1,，未解锁的话是0
+    for k, v in ipairs(master_info_list) do
+        local id = v["tmpl"]
+        local max_level = v["level"]
+        local curr_level = v["stat"]
+        self.m_skill_list[k] = {["id"] = id, ["max_level"] = max_level, ["curr_level"] = curr_level, ["state"] = 1}
+    end
+
+    -----如果是未解锁的状态的话  max_level  curr_level  的值均为0
+    local locked_skill_id_list =self.m_skill_ui_manager:get_locked_skill_id_list()
+    for k, v in ipairs(locked_skill_id_list) do
+        local id = v
+        self.m_skill_list[#self.m_skill_list + 1] = {["id"] = id, ["max_level"] = 0, ["curr_level"] = 0, ["state"] = 0}
+    end
+end
+
+return skill_ui_list

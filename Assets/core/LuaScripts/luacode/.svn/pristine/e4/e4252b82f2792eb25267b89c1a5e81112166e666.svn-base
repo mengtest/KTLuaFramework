@@ -1,0 +1,28 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/9/22 17:38
+---
+local BubbleInfo = { }
+Event.decl(BubbleInfo,"reset")
+Attribute.decl(BubbleInfo,"bubbletext"," ")
+Attribute.decl(BubbleInfo,"posbubble", function() return Vector3(0, 0, 0) end)
+function BubbleInfo:doInit(param)
+    local unit_id = param.enemy_id
+    --因为对话框是在主角上的，所以应先获取主角的位置main_unit
+     self.world = self:getFrame("world")
+    self.unit = self.world:getUnit(unit_id)
+    self.cc = self.unit:get_cc()
+
+    --对话泡泡在主角位置上的偏移量
+    self.offset = Vector3(0, self.cc.center.y + self.cc.height * 1.5,0)
+    self:subscribe(self.unit:on_event_pos_set(true), function(val)
+		self:set_posbubble(val + self.offset)
+	end)
+end
+function BubbleInfo:reset()
+    self:emit_event("reset")
+end
+
+return BubbleInfo
+
+

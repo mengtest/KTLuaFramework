@@ -1,0 +1,9 @@
+local Frame = require("system.frame")
+local backpack_equipment_main = class("backpack_equipment_main", Frame)
+
+function backpack_equipment_main:doInit(param)
+
+
+end
+
+return backpack_equipment_main

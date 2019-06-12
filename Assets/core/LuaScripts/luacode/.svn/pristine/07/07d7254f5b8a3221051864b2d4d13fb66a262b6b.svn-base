@@ -1,0 +1,35 @@
+local M = {}
+
+
+
+function M.check_special_buff(skill_id, combat, stack_num)
+    if (M.m_world == nil) then
+        M.m_world = app:getFrameMgr():getFrame("world")
+    end
+    local func = M["buff_" .. tostring(skill_id)]
+    if (func ~= nil) then
+        func(combat:get_id(), stack_num)
+    end
+end
+
+-- 热烈迸发
+function M.buff_2013(entity_id, stack_num)
+    if (stack_num == 2) then
+        if (M.m_last_entity_id ~= entity_id) then
+            M.m_unit = M.m_world:getUnit(entity_id)
+        end
+        M.m_unit:change_skill(2001, 2003)
+        M.m_unit:change_skill_state(2003,true,true)
+    else
+        if (M.m_last_entity_id ~= entity_id) then
+            M.m_unit = M.m_world:getUnit(entity_id)
+        end
+        M.m_unit:change_skill(2001, 2001)
+        M.m_unit:change_skill_state(2001,true,false)
+    end
+
+end
+
+
+
+return M

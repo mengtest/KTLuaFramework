@@ -1,0 +1,32 @@
+
+local Enum_Quest = {}
+
+-- 任务状态
+Enum_Quest.Quest_State = {
+    Invalid  = 0,   -- 未开启
+    Unlocked = 1,   -- 已解锁
+    Received = 2,   -- 已接取
+    Finished = 3,   -- 已完成
+}
+
+-- 任务类型
+Enum_Quest.Quest_Type = {
+    Special  = 0,   -- 特殊任务
+    Main = 1,   -- 主线任务
+    Area = 2,   -- 区域任务
+    Daily = 3,   -- 日常任务
+    World  = 4,   -- 世界任务
+    Specialization = 5,   -- 职业任务
+    Activity = 6,   -- 活动任务
+    Holiday = 7,   -- 节日任务
+    Side = 8 -- 支线任务(现放在这)
+}
+
+-- 追踪栏显示状态
+Enum_Quest.Quest_Bar_Tab = {
+    Hidden      = 0, -- 隐藏
+    World       = 1, -- 大世界中显示
+    Instance    = 2, -- 副本中显示
+}
+
+return Enum_Quest

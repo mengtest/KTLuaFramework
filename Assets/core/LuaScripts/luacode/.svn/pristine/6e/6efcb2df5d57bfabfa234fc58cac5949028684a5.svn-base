@@ -1,0 +1,149 @@
+local interact_obj_view = {}
+
+function interact_obj_view:doInit()
+    self.effect = nil
+    self.interact_obj_frame = self:getFrame()
+    
+    
+    self.interact_obj_frame:on_event_discoverable_set(true):subscribe(
+        function(val)
+            if (val == enum.shared.TreasureStatus.DISCOVERABLE_ALWAYS) then
+                self:getGO():SetActive(true)
+            elseif (val == enum.shared.TreasureStatus.DISCOVERABLE_DEPEND) then
+                local task_trigger = self.interact_obj_frame:get_task_trigger()
+                if (task_trigger == nil or task_trigger == false) then
+                    self:getGO():SetActive(false)
+                elseif (task_trigger == true) then
+                    self:getGO():SetActive(true)
+                end
+            end
+        end
+    )
+    self:loadPrefab()
+end
+
+function interact_obj_view:loadPrefab()
+    local data = self.interact_obj_frame:get_data();
+    if (data == nil) then
+        return
+    end
+    
+    local model_id = data.interact_obj_display_id
+    local path = app:get_model_mgr().GetPrefabPathById(model_id)
+    
+    if (path == nil) then return end
+    
+    self:load(
+        path,
+        function(go)
+            
+            app:get_model_mgr().LoadAppearanceSfx(model_id, go)
+            
+            --assert(self.effectParent.name == "effect")
+            self.interact_obj_frame:initGameObj(go)
+            
+            local animator = go:GetComponentInChildren(Animator)
+            local animator_override_ctrler = nil
+            local animationObject = nil
+            
+            if animator then
+                animator_override_ctrler = AnimatorOverrideController(animator.runtimeAnimatorController)
+                animator.runtimeAnimatorController = animator_override_ctrler
+                
+                local success_anim = app:get_model_mgr().GetAnimationPathById(model_id, data.success_anim)
+                
+                if (success_anim ~= nil and #success_anim > 0) then
+                    self:subscribe(app:getResMgr():rxLoad(success_anim), function(asset)
+                        animator_override_ctrler:setItem("success", asset)
+                    end)
+                end
+                
+                local normal_anim = app:get_model_mgr().GetAnimationPathById(model_id, data.normal_anim)
+                
+                if (normal_anim ~= nil and #normal_anim > 0) then
+                    self:subscribe(app:getResMgr():rxLoad(normal_anim), function(asset)
+                        animator_override_ctrler:setItem("normal", asset)
+                    end)
+                end
+            end
+            
+            
+            
+            self.interact_obj_frame:on_event_count_set(true):subscribe(
+                function(val)
+                    --Debug.LogError("on_event_count-->"..val)
+                    if (val < 0) then -- 不能采集了
+                        
+                        elseif (val == 0) then -- 刚采集完成
+                        -- 打开宝箱
+                        if (animator ~= nil) then
+                            animator:SetBool("success", true)
+                        end
+                        
+                        self:load_sfx(go, data)
+                        else -- 可以采集
+                            if (animator ~= nil) then
+                                animator:SetBool("success", false)
+                            end
+                    end
+                end
+        )
+        end
+)
+end
+
+function interact_obj_view:load_sfx(go, data)
+    local sfx = data.success_sfx
+    local sfx_mount = data.success_sfx_mount
+    local ktbone = go:GetComponent(KTBoneManager)
+    
+    
+    if type(sfx) == "table" then
+        if #sfx == 0 then
+            return
+        end
+    else
+        if sfx == nil or sfx == "" or sfx == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx)
+            sfx = t
+        end
+    end
+    
+    if type(sfx_mount) ~= "table" then
+        local t = {}
+        table.insert(t, sfx_mount)
+        sfx_mount = t
+    end
+    
+    for i, v in ipairs(sfx) do
+        local sfx_path = v
+        local mount_point = sfx_mount[i]
+        if mount_point == nil then
+            -- todo 使用正确的缺省挂载点
+            mount_point = "bottom"
+        end
+        
+        
+        self:load(sfx_path, function(sfx_prefab)
+            if (mount_point == "world") then 
+                sfx_prefab.transform.parent = go.transform.parent
+            else
+                if (ktbone ~= nil) then
+                    sfx_prefab.transform.parent = ktbone:GetBoneByName(mount_point)
+                else
+                    sfx_prefab.transform.parent = go.transform
+                end
+            end
+            sfx_prefab.transform.localPosition = Vector3.zero
+            sfx_prefab.transform.localEulerAngles = Vector3.zero
+            sfx_prefab.transform.localScale = Vector3.one
+        end)
+    
+    end
+
+end
+
+return interact_obj_view

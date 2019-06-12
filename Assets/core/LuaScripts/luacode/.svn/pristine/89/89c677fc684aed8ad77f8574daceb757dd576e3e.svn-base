@@ -1,0 +1,9 @@
+local Frame = require("system.frame")
+local skill_ui_list_btn = class("skill_ui_list_btn", Frame)
+
+function skill_ui_list_btn:doInit(param)
+
+
+end
+
+return skill_ui_list_btn

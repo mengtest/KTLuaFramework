@@ -1,0 +1,32 @@
+local Frame = require("system.frame")
+local skill_ui_main = class("skill_ui_main", Frame)
+
+-- 显示任务UI
+Event.decl(skill_ui_main, "show")
+-- 隐藏任务UI
+Event.decl(skill_ui_main, "hide")
+function skill_ui_main:doInit(param)
+
+
+end
+
+function skill_ui_main:on_loaded()
+
+    --技能信息
+    self:createChild("skill_ui_show", "%subsystem/skill_system_ui/skill_ui_show")
+    --技能配置
+    self:createChild("skill_ui_setting", "%subsystem/skill_system_ui/skill_ui_setting")
+    --技能列表
+    self:createChild("skill_ui_list", "%subsystem/skill_system_ui/skill_ui_list")
+
+end
+
+
+function skill_ui_main:show()
+    self:emit_event("show")
+end
+
+function skill_ui_main:hide()
+    self:emit_event("hide")
+end
+return skill_ui_main

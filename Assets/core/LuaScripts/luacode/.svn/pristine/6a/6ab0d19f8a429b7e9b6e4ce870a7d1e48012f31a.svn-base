@@ -1,0 +1,71 @@
+-- Unit行为状态机
+-- 帮助Unit的行为状态管理
+-- 但本身并不是frame
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")-- 状态 基类
+local M = class("UnitActFsm", UnitActStateBase)
+Enum_Battle = require("common.Enum.enum_battle")
+
+-- 兼namespace
+M.StateMove = require_relative("ua_state_move")-- 状态 移动
+M.StateJump = require_relative("ua_state_jump")-- 状态 跳跃
+M.StateDie = require_relative("ua_state_die")-- 状态 死亡
+M.StateClimb = require_relative("ua_state_climb")-- 状态 攀爬
+M.StateSkillSing = require_relative("ua_state_skill_sing")-- 状态 施法吟唱
+M.StateSkillChannel = require_relative("ua_state_skill_channel")-- 状态 施法引导
+M.StateInteract = require_relative("ua_state_interact")-- 状态 交互
+M.StateExhibition = require_relative("ua_state_exhibition")-- 状态 展示
+M.StateSkillJump = require_relative("ua_state_skill_jump")-- 状态 技能跳跃
+
+-- 状态常量
+M.MAIN_ACT = Enum_Battle.Unit_Main_Act
+
+
+-- 技能子状态
+M.SKILL_STATE =
+    {
+        CHANNEL = 1,
+    }
+
+
+-- 被动状态
+M.PASSIVE_STATE =
+    {
+        -- 战斗中
+        INBATTLE = 0,
+    }
+
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    
+    self.m_cur_passive_state = nil
+    
+    self.m_state_list[M.MAIN_ACT.MOVE] = M.StateMove(self, unit)
+    self.m_state_list[M.MAIN_ACT.JUMP] = M.StateJump(self, unit)
+    self.m_state_list[M.MAIN_ACT.DEAD] = M.StateDie(self, unit)
+    self.m_state_list[M.MAIN_ACT.SKILL_SING] = M.StateSkillSing(self, unit)
+    self.m_state_list[M.MAIN_ACT.SKILL_CHANNEL] = M.StateSkillChannel(self, unit)
+    self.m_state_list[M.MAIN_ACT.INTERACT] = M.StateInteract(self, unit)
+    self.m_state_list[M.MAIN_ACT.EXHIBITION] = M.StateExhibition(self, unit)
+    self.m_state_list[M.MAIN_ACT.SKILL_JUMP] = M.StateSkillJump(self, unit)
+    self.m_state_list[M.MAIN_ACT.CLIMB] = M.StateClimb(self,unit)
+
+end
+
+
+-- 切换被动状态
+function M:change_passive_state(value)
+    self.m_cur_passive_state = value
+-- Debug.LogError(self.m_cur_battle_state)
+end
+
+
+function M:change_move_state(move_state)
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:change_move_state(move_state)
+    end
+end
+
+
+return M

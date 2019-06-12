@@ -1,0 +1,265 @@
+local ViewComponent = require "system.view_component"
+local LookAtTarget = class("look_at_target", ViewComponent)
+
+local ANGLE_X_MIN       -- 水平方向注视最小夹角
+local DISTANCE      -- 注视范围
+local ANGLE_X_MAX       -- 水平方向注视最大夹角
+local HEAD_ANGLE_X_MAX       -- 水平方向扭头/身最大角度
+local ANGLE_Y       -- 仰/俯角最大夹角
+local ACTIVE_TIME     --  值越大，角色获得目标后从默认动画姿势转向目标的时间就越长（同时失去目标时，从目标转回默认动画姿势的时间也越长）
+local TURN_SPEED    -- (0, 1)，值越大角色扭头/身速度越快
+
+function LookAtTarget:initialize(view, game_object)
+    LookAtTarget.super.initialize(self, view, game_object)
+
+    --print("@@@@@@@@@@@@LookAtTarget:initialize")
+    ANGLE_X_MIN = 0        -- pacman 2017-12-13 这个值最好取0，不然效果不自然
+
+    -- 读取/重置参数
+    local setting = Resources.Load("settings/PlayerControllSetting")
+
+    DISTANCE = setting.LookAtDistance
+    ANGLE_X_MAX = setting.LookAtAngleXMax
+    HEAD_ANGLE_X_MAX = setting.LookAtHeadAngleXMax
+    ANGLE_Y = setting.LookAtAngleYMax
+    ACTIVE_TIME = setting.LookAtActiveTime
+    TURN_SPEED = setting.LookAtTurnSpeed
+
+    -- pacman 2017-12-12
+    self.m_target_pos = nil   -- 指定目标点位置，角色会尝试向这个位置去看
+    self.m_clamped_pos = nil    -- 经过限制的注视位置
+    self.m_cur_pos = nil        -- 实际的注视位置，在m_clamped_pos的基础上平滑得到的
+
+    self.m_is_looking = false
+    self.m_goal_weight = 0
+    self.m_smooth_weight_v = 0
+    self.m_smooth_body_weight = 0
+    self.m_smooth_head_weight = 0
+
+    -- 战斗注视初始参数
+    local player_ctrl_setting = Resources.Load("settings/PlayerControllSetting")
+    local lookat_param = {
+        headWeight = player_ctrl_setting.LookAtDefaultHeadWeight,
+        bodyWeight = player_ctrl_setting.LookAtDefaultBodyWeight,
+    }
+
+    self.m_look_at_param = lookat_param
+    self.m_default_look_at_param = lookat_param
+
+    self:init_with_view()
+end
+
+function LookAtTarget:set_look_at_param(param)
+    self.m_look_at_param = param
+    --print("&&&&&&&&&& set param", param.headWeight, param.bodyWeight)
+end
+
+function LookAtTarget:reset_look_at_param()
+    self.m_look_at_param = self.m_default_look_at_param
+    --print("&&&&&&&&&& reset", self.m_look_at_param.headWeight, self.m_look_at_param.bodyWeight)
+end
+
+function LookAtTarget:init_with_view()
+    self.m_unit = self.m_view:getFrame()    -- self.m_view是UnitView类型
+
+    local _animator = self.m_game_object:GetComponent(Animator)
+    if(_animator == nil) then _animator = self.m_game_object:GetComponentInChildren(Animator) end
+
+    self.m_animator = assert(_animator,"Animator does not exist: "..self.m_unit:get_id())
+    self.m_ik_ctrler = self.m_game_object:GetComponent(AnimatorIK) or self.m_game_object:AddComponent(AnimatorIK)
+
+    -- 获取头骨transform(应该只对humanoid有效)
+    self.m_head_tr = self.m_animator:GetBoneTransform(HumanBodyBones.Head)
+end
+
+
+-- 设置注视目标位置
+-- @ target_pos 注视目标位置
+-- @ unit_dir 注视者unit的dir属性
+function LookAtTarget:set_look_at_position(target_pos, unit_dir)
+    -- 按照从简单到复杂的顺序判断是否要取消注视 --
+
+    -- 头部到注视目标位置的距离 --
+    local vec_head_to_target = target_pos - self.m_head_tr.position
+    -- 距离超限则取消注视
+    if vec_head_to_target.magnitude > DISTANCE then
+        --print("distance out of range")
+        self:stop()
+        return
+    end
+
+    -- xz平面上角色到注视目标位置夹角 --
+    -- 角色的角度取unit.dir属性，而不是头部的
+    local vec_on_xz = Vector3.ProjectOnPlane(vec_head_to_target, Vector3.up)   -- 头部_目标连线在xz平面上的投影
+    local vec_unit_dir = Quaternion.AngleAxis(unit_dir, Vector3.up) * Vector3.forward
+    local angle_zx = Vector3.Angle(vec_on_xz, vec_unit_dir)
+    Debug.DrawLine(self.m_head_tr.position, target_pos, Color.white)    -- 头部到指定目标连线
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_on_xz, Color.white)   -- 头部-目标连线xz投影 正常
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_unit_dir * 5, Color.white)    -- 始于头部的角色前方向
+    --print("!!!!!!!!!!!!!!!", angle_zx)
+
+    -- xz平面上夹角越限则取消注视
+    if angle_zx > ANGLE_X_MAX or angle_zx < ANGLE_X_MIN then
+        Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_on_xz, Color.red)   -- 头部-目标连线xz投影 异常
+        self:stop()
+        return
+    end
+
+
+    -- 如果头部与目标之间有遮挡物，取消注视 --
+    local mask = LayerMask.NameToLayer("Role")
+    local is_hit, hit_info = Physics.Raycast(self.m_head_tr.position, vec_head_to_target, Slua.out, vec_head_to_target.magnitude, mask)
+    if is_hit then
+        Debug.DrawLine(self.m_head_tr.position, hit_info.point, Color.red)    -- 头部到遮挡点连线
+        print("target blocked")
+        self:stop()
+        return
+    end
+
+
+    -- 至此取消注视检查完毕 --
+    -- 处理角度限制 --
+    local vec_clamped = vec_head_to_target  -- 限制角度后的vec_head_to_target
+    local vec_clamped_xz = vec_on_xz        -- 限制角度后的vec_head_to_target_xz
+
+    -- xz平面角度限制
+    -- 限制到最大扭头角度
+    if angle_zx > HEAD_ANGLE_X_MAX then
+        local angle_back = angle_zx - HEAD_ANGLE_X_MAX  -- 往回转的角度
+        -- 往回转一下得到clamped ved在xz平面上的投影
+        vec_clamped_xz = Vector3.RotateTowards(vec_on_xz, vec_unit_dir, angle_back * math.pi / 180, 10000)
+
+        -- 用这个投影得到具体的旋转，这么做可以避免去纠结往哪个方向转
+        local rotation = Quaternion.FromToRotation(vec_on_xz, vec_clamped_xz)
+        vec_clamped = rotation * vec_head_to_target
+        Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_on_xz, Color.magenta)   -- 头部-目标连线xz投影 警报
+    end
+
+    -- 仰俯方向上头部到注视目标位置夹角 --
+    -- (水平方向上clamped过的)头部_目标连线与其水平投影的夹角
+    local angle_v = Vector3.Angle(vec_clamped_xz, vec_clamped)
+    --print("@@@@@@@@@@@@@", angle_v)
+
+    -- 仰俯方向上夹角越界的话，并不取消注视，而是限制角度
+    if angle_v > ANGLE_Y then
+        local angel_back = angle_v - ANGLE_Y
+        vec_clamped = Vector3.RotateTowards(vec_clamped, vec_clamped_xz, angel_back * math.pi / 180, 10000)     --往回转一下
+        Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_head_to_target, Color.magenta)   -- 头部到指定目标连线 警报
+    end
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_clamped, Color.yellow) -- 最终的限制后位置
+
+    self.m_clamped_pos = self.m_head_tr.position + vec_clamped
+
+    -- 启用
+    self:play()
+end
+
+
+function LookAtTarget:clear_look_at_position()
+    self:stop()
+end
+
+
+function LookAtTarget:update_look_at_position()
+    -- pacman 目前只对主角启用
+    local is_main_player = self.m_unit:get_is_main_player()
+    if is_main_player then
+        local target = self.m_unit:get_target()
+
+        if target ~= nil and target ~= self.m_unit then
+            -- 如果有目标且目标不是自己，向目标注视
+            -- pacman 2017-12-12 注视点临时取为"top"，不存在的话就取目标根对象向上1米
+            local aim_pos = target:get_bone("top") and (target:get_bone("top").position) or (self.m_view:get_client_position() + Vector3.up)
+            self:set_look_at_position(aim_pos, self.m_unit:get_dir())
+        else
+            -- 否则取消注视
+            self:clear_look_at_position()
+        end
+    end
+end
+
+
+function LookAtTarget:update()
+    if not self.m_head_tr or not self.m_ik_ctrler then
+        return
+    end
+
+    LookAtTarget.super.update(self)
+    self:update_look_at_position()
+
+    local ik_ctrler = self.m_ik_ctrler
+
+    -- 平滑处理总weight
+    if ik_ctrler.Weight ==  self.m_goal_weight then
+        -- do nothing
+        -- 小小的优化一下
+        if ik_ctrler.Weight == 0 then
+            self.m_ik_ctrler.ActiveLookAt = false
+        end
+    elseif math.abs(ik_ctrler.Weight - self.m_goal_weight) < 0.05 then
+        ik_ctrler.Weight = self.m_goal_weight
+        self.m_smooth_weight_v = 0
+    else
+        ik_ctrler.Weight, self.m_smooth_weight_v = Mathf.SmoothDamp(ik_ctrler.Weight, self.m_goal_weight, self.m_smooth_weight_v, ACTIVE_TIME)
+    end
+
+    -- 平滑处理BodyWeight、HeadWeight
+    -- 不必纠结其与总weight的关联，绝大多数情况下BodyWeight、HeadWeight的平滑只有在总weight不为0的时候才会看的到
+    if ik_ctrler.BodyWeight ~= self.m_look_at_param.bodyWeight then
+        if math.abs(ik_ctrler.BodyWeight - self.m_look_at_param.bodyWeight) < 0.03 then
+            ik_ctrler.BodyWeight = self.m_look_at_param.bodyWeight
+            self.m_smooth_body_weight = 0
+        else
+            ik_ctrler.BodyWeight, self.m_smooth_body_weight = Mathf.SmoothDamp(ik_ctrler.BodyWeight, self.m_look_at_param.bodyWeight, self.m_smooth_body_weight, ACTIVE_TIME)
+        end
+    end
+
+    if ik_ctrler.HeadWeight ~= self.m_look_at_param.headWeight then
+        if math.abs(ik_ctrler.HeadWeight - self.m_look_at_param.headWeight) < 0.03 then
+            ik_ctrler.HeadWeight = self.m_look_at_param.headWeight
+            self.m_smooth_head_weight = 0
+        else
+            ik_ctrler.HeadWeight, self.m_smooth_head_weight = Mathf.SmoothDamp(ik_ctrler.HeadWeight, self.m_look_at_param.headWeight, self.m_smooth_head_weight, ACTIVE_TIME)
+        end
+    end
+
+    -- 注视位置处理
+    if self.m_is_looking == false then
+        -- 注视功能停止时，注视位置立即设为眼前5米，搭配weight平滑处理效果还行
+        self.m_cur_pos = self.m_head_tr.position + self.m_head_tr.up * 5
+    else
+        -- 注视功能启用时，平滑注视位置
+        if (self.m_cur_pos - self.m_clamped_pos).magnitude < 0.02 then
+            self.m_cur_pos = self.m_clamped_pos
+        else
+            -- 简单的使用Vector3.SmoothDamp，可能会造成注视点从头部很近的地方划过，导致人物不自然的扭身/头
+            -- 为了更好的效果，用Slerp
+            local vec_slerp = Vector3.Slerp(self.m_cur_pos - self.m_head_tr.position, self.m_clamped_pos - self.m_head_tr.position, TURN_SPEED)
+            self.m_cur_pos = self.m_head_tr.position + vec_slerp
+        end
+    end
+
+    Debug.DrawLine(self.m_head_tr.position, self.m_cur_pos, Color.green)    -- 最终注视位置
+end
+
+
+-- 播放
+function LookAtTarget:play()
+    -- 重置参数
+    self.m_ik_ctrler.ActiveLookAt = true
+    self.m_is_looking = true
+    self.m_goal_weight = 1
+
+    self.m_ik_ctrler.EyesWeight = 1
+    self.m_ik_ctrler.ClampWeight = 0.5
+    self.m_ik_ctrler.LookAtPosition = self.m_cur_pos
+end
+
+-- 停止
+function LookAtTarget:stop()
+    self.m_is_looking = false
+    self.m_goal_weight = 0
+    --local ik_ctrler = self.m_ik_ctrler
+end
+
+return LookAtTarget

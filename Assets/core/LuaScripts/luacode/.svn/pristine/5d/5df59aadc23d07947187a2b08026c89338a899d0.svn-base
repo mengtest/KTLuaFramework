@@ -1,0 +1,185 @@
+local View = require("system.view")
+local equipment_tips_parent_view = class("equipment_tips_parent_view", View)
+
+function equipment_tips_parent_view:doInit(params)
+    self.m_ui_manager = app:get_ui_manager()
+    --装备栏的view
+    self.m_equipment_list_frame = self:getFrame("equipment_list")
+    --创建tips用到的参数
+    self.m_param_list = {}
+    --关闭tips需要同时隐藏的物体
+    self.m_need_close_obj = {}
+
+    self.m_max_height = params['max_height']
+
+    self:load("ui/EquipmentTipsParent.prefab", function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self.m_equipment_tips_parent_bg = go.transform:Find("equipment_tips_parent_bg")
+        self.m_equipment_tips_parent = self.m_equipment_tips_parent_bg:Find("equipment_tips_parent").gameObject:GetComponent("DragSkill")
+        self.m_parent_height = self.m_equipment_tips_parent.gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+        self.m_tips_left = go.transform:Find("equipment_tips_parent_bg/tips_left")
+        self.m_tips_right = go.transform:Find("equipment_tips_parent_bg/tips_right")
+
+        self.m_equipment_tips_parent.onClick = DragSkill_OnPointerClickHandler()
+        self.m_equipment_tips_parent.onClick:AddListener(function()
+            self:close_tips()
+        end)
+        self.m_equipment_tips_parent_bg.gameObject:SetActive(false)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            --view_go:AddComponent(UnityEngine.RectTransform)
+            if self.m_tips_left.childCount == 0 then
+                view_go.transform.parent = self.m_tips_left
+            else
+                view_go.transform.parent = self.m_tips_right
+            end
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+        self:getFrame():onload()
+    end)
+
+    ------响应点击背包装备事件
+    self:subscribe(self.m_equipment_list_frame:on_event("equip_info_list"), function(equip_list, objlist)
+        self:init_equipment_tips(equip_list)
+        --self.m_need_close_obj[1] = obj
+        --self.m_need_close_obj[2] = bright_image
+        for k,v in pairs(objlist) do
+            self.m_need_close_obj[k] = v
+        end
+    end)
+    ------响应点击装备栏装备事件
+    self:subscribe(self.m_equipment_list_frame:on_event("equip_info"), function(equip_list, equip_type, selected_show_obj, light)
+        self:click_equip_call_back(equip_list, equip_type)
+        self.m_need_close_obj[1] = selected_show_obj
+        self.m_need_close_obj[2] = light
+    end)
+end
+
+function equipment_tips_parent_view:click_equip_call_back(equip_list, equip_type)
+    self.m_child_frame_list = self:getFrame():get_child_frame_list()
+    self.m_equipment_tips_parent_bg.gameObject:SetActive(true)
+    for k, v in pairs(equip_list) do
+        local equip_tips_params = {}
+        equip_tips_params['wearable'] = v
+        equip_tips_params['need_show_button'] = 2
+        equip_tips_params['is_equip'] = true
+        equip_tips_params['max_height'] = self.m_max_height
+        equip_tips_params['not_show_lock'] = true
+        self.m_param_list['equip1'] = equip_tips_params
+    end
+    self.m_tips_left.gameObject:SetActive(true)
+    self.m_child_frame_list[1]:refresh_view(self.m_param_list['equip1'], equip_type)
+end
+
+------加载装备tips
+function equipment_tips_parent_view:init_equipment_tips(param)
+    --自己维护的表，为了记录传来的参数数量有多少， temp
+    local list = {}
+    for k, v in pairs(param) do
+        if string.find(k, "bag") then
+            list[1] = v
+        elseif string.find(k, "equip1") then
+            list[2] = v
+        else
+            list[3] = v
+        end
+    end
+    ------获取预加载的两个tips的frame，是一个list，1代表装备栏装备信息（左边），2代表背包装备信息（右边）
+    self.m_child_frame_list = self:getFrame():get_child_frame_list()
+    self.m_tips_choice = self:getFrame():get_m_tips_choice_frame()
+    --将承载tips的Panel显示
+    self.m_equipment_tips_parent_bg.gameObject:SetActive(true)
+    for k, v in pairs(param) do
+        local bag_equip_tips_params = {}
+        if string.find(k, "bag") then
+            bag_equip_tips_params['wearable'] = v
+            bag_equip_tips_params['need_show_button'] = 1
+            if #list > 1 then
+                bag_equip_tips_params['level_high'] = self:compare_equipment_level(list[1]['level'], list[2]['level'])
+            end
+            bag_equip_tips_params['max_height'] = self.m_max_height
+            self.m_param_list['bag'] = bag_equip_tips_params
+            self.m_tips_right.gameObject:SetActive(true)
+            self.m_child_frame_list[2]:refresh_view(bag_equip_tips_params)
+        elseif string.find(k, "equip1") then
+            bag_equip_tips_params['wearable'] = v
+            bag_equip_tips_params['need_show_button'] = false
+            bag_equip_tips_params['is_equip'] = true
+            if #list > 2 then
+                --打开装备选择按钮
+                self.m_tips_choice:refresh_view(list[2], list[3])
+            end
+            bag_equip_tips_params['level_high'] = self:compare_equipment_level(list[2]['level'], list[1]['level'])
+            bag_equip_tips_params['max_height'] = self.m_max_height
+            bag_equip_tips_params['not_show_lock'] = true
+            self.m_param_list['equip1'] = bag_equip_tips_params
+            self.m_tips_left.gameObject:SetActive(true)
+            self.m_child_frame_list[1]:refresh_view(bag_equip_tips_params)
+        else
+            bag_equip_tips_params['wearable'] = v
+            bag_equip_tips_params['is_equip'] = true
+            bag_equip_tips_params['level_high'] = self:compare_equipment_level(list[3]['level'], list[1]['level'])
+            bag_equip_tips_params['max_height'] = self.m_max_height
+            bag_equip_tips_params['not_show_lock'] = true
+            self.m_param_list['equip2'] = bag_equip_tips_params
+        end
+    end
+end
+
+------比较两件装备的等级，两两比较，返回值分别对应两件装备的等级比较结果  返回值 1-高  0-相等  -1-低
+function equipment_tips_parent_view:compare_equipment_level(level1, level2)
+    if level1 > level2 then
+        return 1, -1
+    elseif level1 == level2 then
+        return 0, 0
+    else
+        return -1, 1
+    end
+end
+
+function equipment_tips_parent_view:tips_choice_button_click_callback(equip_index)
+    local bag_equip_level = self.m_param_list.bag['wearable']['level']
+    local equi1_level = self.m_param_list.equip1['wearable']['level']
+    local equi2_level = self.m_param_list.equip2['wearable']['level']
+    if equip_index == 1 then
+        self.m_param_list.bag['level_high'], self.m_param_list.equip1['level_high'] = self:compare_equipment_level(bag_equip_level, equi1_level)
+        self.m_child_frame_list[2]:refresh_view(self.m_param_list.bag)
+        self.m_child_frame_list[1]:refresh_view(self.m_param_list.equip1)
+    elseif equip_index == 2 then
+        self.m_param_list.bag['level_high'], self.m_param_list.equip2['level_high'] = self:compare_equipment_level(bag_equip_level, equi2_level)
+        self.m_child_frame_list[2]:refresh_view(self.m_param_list.bag)
+        self.m_child_frame_list[1]:refresh_view(self.m_param_list.equip2)
+    end
+end
+
+function equipment_tips_parent_view:close_tips()
+    self.m_tips_left.gameObject:SetActive(false)
+    self.m_tips_right.gameObject:SetActive(false)
+    self.m_equipment_tips_parent_bg.gameObject:SetActive(false)
+    --self.m_mgr:getView(self.m_child_frame_list[1]:getFrameName()).m_select_button1_selected = true
+    --self.m_mgr:getView(self.m_child_frame_list[1]:getFrameName()).m_select_button2_selected = false
+    ------关闭背包栏或者装备栏的选中效果
+    for k, v in pairs(self.m_need_close_obj) do
+        v:SetActive(false)
+    end
+    --关闭并重置装备选择按钮
+    if self.m_tips_choice then
+        self.m_tips_choice:close_tips_choice()
+    end
+    for k,v in pairs(self.m_child_frame_list) do
+        self.m_mgr:getView(v:getFrameName()):close_self()
+    end
+end
+
+------控制改变显示背包装备的tips的参数
+function equipment_tips_parent_view:set_bag_tips_equipment_index(value)
+    self.m_mgr:getView(self.m_child_frame_list[2]:getFrameName()).m_put_on_equipment_index = value
+end
+
+return equipment_tips_parent_view

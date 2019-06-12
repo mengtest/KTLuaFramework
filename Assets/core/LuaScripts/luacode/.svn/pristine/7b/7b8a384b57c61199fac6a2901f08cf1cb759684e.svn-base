@@ -1,0 +1,307 @@
+local M = {}
+
+function M:doInit(parma)
+    self.m_name_text = nil
+    self.m_icon_img = nil
+    self.m_hp_per_text = nil
+    self.m_hp_slider = nil
+    self.m_parent = parma.parent
+    self:loadRes()
+end
+
+M.UNIT_TYPE = {
+	DIE = 0, -- 死亡
+	OFF_LINE= 1,-- 离线
+    BEING = 2, -- 正常
+    HP_FEW35 = 3, -- 血量少于35%
+    HP_FEW75 = 4, -- 血量少于75%
+}
+
+function M:is_res_loaded()
+    return self.m_res_loaded
+end
+
+function M:loadRes()
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("PlayerController"), function(loaded_go)
+        self.m_res_loaded = true
+
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find("Thumb").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_mine = go
+        local view = self:getGO()
+        --local go = self:init_with_go(template_go)
+        view.transform:SetParent(self.m_parent)
+        view.transform.localPosition = Vector3(0, 0, 0)
+        view.transform.localScale = Vector3.one
+        go.transform:SetParent(view.transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        ---用outlet来初始化各个组件
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+
+        local frame = self:getFrame()
+
+        local icon_bg_img = go_trsf.gameObject:GetComponent(UI.Image)
+        self.m_icon_bg_img = icon_bg_img
+        local icon_img = go_trsf:Find("icon").gameObject:GetComponent(UI.Image)
+        self.m_icon_img = icon_img
+        local name_text = go_trsf:Find("PlayerName").gameObject:GetComponent(UI.Text)
+        self.m_name_text = name_text
+        local hp_slider = go_trsf:Find("hp").gameObject:GetComponent(UI.Image)
+        self.m_hp_slider = hp_slider
+        local specialization_img = go_trsf:Find("specialization").gameObject:GetComponent(UI.Image)
+        self.m_specialization_img = specialization_img
+
+        local type_text = go_trsf:Find("type_text").gameObject:GetComponent(UI.Text)
+        self.m_type_text = type_text
+
+        self.m_type_text_obj = go_trsf:Find("type_text").gameObject
+        self.m_type_text_obj:SetActive(false)
+        self.unit_type = self.UNIT_TYPE.BEING
+        self.old_type = nil
+        self:subscribe(frame:on_event_state_set(true), function(new_state) -- 1是在线 0时不在线
+            if(new_state == 0) then
+                self.old_type = self.unit_type
+                self.unit_type = self.UNIT_TYPE.OFF_LINE
+                self.m_type_text.text = "离线"
+                self.m_type_text_obj:SetActive(true)
+            else
+                self.m_type_text_obj:SetActive(false)
+                if(self.old_type ~=nil) then
+                    self.unit_type = self.old_type
+                end
+            end
+            if(self.rclass_val~=nil) then
+                self:refresh_rclass(self.rclass_val)
+            end
+            if(self.specialization_val~=nil) then
+                self:refresh_specialization(self.specialization_val)
+            end
+            self:load_path_hp()
+
+        end)
+        -- 响应unit目标变化事件
+        self.m_unit = nil
+        self:subscribe(frame:on_event_unit_set(true), function(new_unit)
+            -- 尝试注销对旧unit的监听
+            if self.m_unit ~= nil then
+                -- 注销对旧unit的监听
+                print("-- 注销对旧unit的监听", self.m_unit:get_id())
+                self:unsubscribe(self.m_conn_name)
+                self:unsubscribe(self.m_rclass)
+
+                self:unsubscribe(self.m_specialization)
+                self:unsubscribe(self.m_conn_hp)
+                self:unsubscribe(self.m_conn_hp_max)
+            end
+
+            -- 尝试注册对新unit的监听
+            if new_unit == nil then
+                -- 对空目标的情况进行重绘
+                --self.m_mine:SetActive(false)
+            else
+                -- 注册对新unit的监听
+                -- hp
+                self.m_conn_name = self:subscribe(new_unit:on_event_name_set(true), function(val)
+                    self.m_name_text.text = tostring(val)
+                end)
+
+                -- 种族 职业监听
+                self.m_rclass = self:subscribe(new_unit:on_event_rclass_set(true), function(val)
+                    self.rclass_val = val
+                    self:refresh_rclass(val)
+                end)
+                -- 专精监听
+                self.m_specialization = self:subscribe(new_unit:on_event_specialization_set(true), function(val)
+                    self.specialization_val = val
+                    self:refresh_specialization(val)
+                end)
+
+                self.m_conn_hp = self:subscribe(new_unit:on_event_hp_set(true), function(val)
+                    if(new_unit:get_hp()<=0) then
+                        -- 死亡
+                        self.unit_type = self.UNIT_TYPE.DIE
+                        self:die()
+                        self:load_path_hp()
+                        return
+                    end
+
+
+                    self.per = new_unit:get_hp() / new_unit:get_hp_max()
+                    if(self.per<=0.75 and self.per>0.35) then -- 血量少于25%,修改血条样式
+                        if(self.unit_type ~= self.UNIT_TYPE.HP_FEW75) then
+                            self.unit_type = self.UNIT_TYPE.HP_FEW75
+                            self:load_path_hp()
+                            if(self.m_type_text~=nil) then
+                                self.m_type_text_obj:SetActive(false)
+                            end
+                        end
+
+                    elseif (self.per<=0.35) then
+                        if(self.unit_type ~= self.UNIT_TYPE.HP_FEW35) then
+                            self.unit_type = self.UNIT_TYPE.HP_FEW35
+                            self:load_path_hp()
+                            if(self.m_type_text~=nil) then
+                                self.m_type_text_obj:SetActive(false)
+                            end
+                        end
+                    else
+                    if(self.unit_type ~= self.UNIT_TYPE.BEING) then
+                        self.unit_type = self.UNIT_TYPE.BEING
+                        self:load_path_hp()
+                        if(self.rclass_val~=nil) then
+                            self:refresh_rclass(self.rclass_val)
+                        end
+                        if(self.specialization_val~=nil) then
+                            self:refresh_specialization(self.specialization_val)
+                        end
+                        if(self.m_type_text~=nil) then
+                            self.m_type_text_obj:SetActive(false)
+                        end
+                    end
+                    end
+                    self.m_hp_slider.fillAmount = self.per
+                end)
+
+                self.m_conn_hp_max = self:subscribe(new_unit:on_event_hp_max_set(true), function(val)
+                    self.per = new_unit:get_hp() / new_unit:get_hp_max()
+                    -- local temp = string.format("%d", per*100)
+                    self.m_hp_slider.fillAmount = self.per
+                end)
+
+                -- 记录新unit
+                self.m_unit = new_unit
+            end
+        end)
+
+    end)
+end
+
+function M:load_path_hp()
+    local icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('xuetiao')
+    if(self.unit_type == self.UNIT_TYPE.HP_FEW35) then
+        self.m_hp_slider.gameObject:SetActive(true)
+        icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('dixueliang')
+    elseif self.unit_type == self.UNIT_TYPE.HP_FEW75 then
+        self.m_hp_slider.gameObject:SetActive(true)
+        icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('xuetiao_huang')
+    elseif self.unit_type == self.UNIT_TYPE.BEING then
+        self.m_hp_slider.gameObject:SetActive(true)
+        icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('xuetiao')
+    elseif self.unit_type == self.UNIT_TYPE.DIE then
+        self.m_hp_slider.gameObject:SetActive(false)
+        return
+    elseif self.unit_type == self.UNIT_TYPE.OFF_LINE then
+        self.m_hp_slider.gameObject:SetActive(true)
+        icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('xuetiao_hui')
+    end
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_hp_slider.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+function M:die()
+    if(self.m_type_text~=nil) then
+        self.m_type_text.text = "死亡"
+        self.m_type_text_obj:SetActive(true)
+    end
+    self:refresh_rclass(self.rclass_val)
+    self:refresh_specialization(self.specialization_val)
+end
+
+function M:refresh_specialization(val)
+    local data = dbc.specialization[val].duty
+    local load_path = ""
+    if(self.unit_type == self.UNIT_TYPE.BEING or self.unit_type == self.UNIT_TYPE.HP_FEW35 or  self.unit_type == self.UNIT_TYPE.HP_FEW75) then
+        if data == enum.shared.InstanceMactchRoleDuty.TANK then -- 防御
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('tank')
+        elseif data == enum.shared.InstanceMactchRoleDuty.DAMAGE then -- 伤害
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('damage')
+        elseif data == enum.shared.InstanceMactchRoleDuty.HEALER then -- 治疗
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('healer')
+        end
+    else
+        if data == enum.shared.InstanceMactchRoleDuty.TANK then -- 防御
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('tank_disable')
+        elseif data == enum.shared.InstanceMactchRoleDuty.DAMAGE then -- 伤害
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('damage_disable')
+        elseif data == enum.shared.InstanceMactchRoleDuty.HEALER then -- 治疗
+            load_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('healer_disable')
+        end
+    end
+    self:subscribe(app:getResMgr():rxLoad(load_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. load_path)
+        else
+            self.m_specialization_img.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+function M:refresh_rclass(val)
+    local icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('healer_disable')
+    local icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('healer_disable')
+
+    if val == enum.shared.RoleClass.WARRIOR then -- 战士     牛魔 无
+
+    elseif val == enum.shared.RoleClass.MAGE then -- 法师     罗刹
+        if(self.unit_type == self.UNIT_TYPE.BEING or self.unit_type == self.UNIT_TYPE.HP_FEW35 or self.unit_type == self.UNIT_TYPE.HP_FEW75) then
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('mage')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('mage_bg')
+        else
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('mage_disable')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('disable_bg')
+        end
+
+    elseif val == enum.shared.RoleClass.PRIEST then-- 牧师     镜童
+        if(self.unit_type == self.UNIT_TYPE.BEING or self.unit_type == self.UNIT_TYPE.HP_FEW35 or self.unit_type == self.UNIT_TYPE.HP_FEW75) then
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('priest')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('priest_bg')
+        else
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('priest_disable')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('disable_bg')
+        end
+    elseif val == enum.shared.RoleClass.HUNTER then-- 猎人     玉狐 无
+
+    elseif val == enum.shared.RoleClass.DEMON_HUNTER then-- 恶魔猎手  灵猴
+        if(self.unit_type == self.UNIT_TYPE.BEING or self.unit_type == self.UNIT_TYPE.HP_FEW35 or self.unit_type == self.UNIT_TYPE.HP_FEW75) then
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('demon_hunter')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('demon_hunter_bg')
+        else
+            icon_path = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('demon_hunter_disable')
+            icon_path_bg = app:getAssetPathMgr().get_team_skilltarget_control_view_resource('disable_bg')
+        end
+    elseif val == enum.shared.RoleClass.ROGUE then-- 盗贼     龙女 无
+
+    elseif val == enum.shared.RoleClass.PALADIN then -- 圣骑士   天神 无
+
+    end
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_icon_img.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+    self:subscribe(app:getResMgr():rxLoad(icon_path_bg), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_icon_bg_img.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return M

@@ -1,0 +1,130 @@
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+local require_relative = REQUIRE_BASE(...)
+
+local Ua_state_base = require("frame.unit_act_state.ua_state_base")
+local Ua_state_skill_jump = class("Ua_state_skill_jump", Ua_state_base)
+
+Ua_state_skill_jump.Const = {}
+Ua_state_skill_jump.Const.h = 5
+Ua_state_skill_jump.Const.g1 = 60 * Vector3.up
+Ua_state_skill_jump.Const.g2 = 100 * Vector3.up
+
+function Ua_state_skill_jump:initialize(fsm, unit)
+    Ua_state_base.initialize(self, fsm, unit)
+    
+    UAFsm = require_relative("ua_state_machine")
+    self.m_cur_duration = 0
+    self.m_stage = 0 --对应于跳跃的四个阶段（起跳、滞空、翻滚、落地，1-4）
+end
+
+function Ua_state_skill_jump:enter()
+    Ua_state_base.enter(self)
+    Debug.LogError(self.m_param.skill_id)
+    local skill_id = self.m_param.skill_id
+
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.SKILL_JUMP)
+    self.m_cur_duration = 0   
+    self.m_ori_pos = self.m_unit:get_pos()
+    self.m_end_pos = self.m_param.targetV3
+    self.m_jump_type = self.m_param.type
+    self.m_cc = self.m_unit:get_cc()
+    -- 瞬移
+    if (self.m_jump_type == SharedEnum.SpellSpecialMoveType.TELEPORT) then
+        self.m_unit:emit_event("set_position", self.m_cc.transform.position)
+        self.m_unit:stop_skill_jump()
+    -- 跳跃
+    elseif (self.m_jump_type == SharedEnum.SpellSpecialMoveType.JUMP) then
+        self.m_stage = 1
+        self.m_unit:emit_event("cross_fade", "skill_jump_a", 0.2)
+        self.m_jump_param = Util_string:parse_to_list(dbc.spell[skill_id].jump_param)
+        local s_vec = self.m_end_pos - self.m_ori_pos
+        local h1, h2 = nil, nil
+        if s_vec.y > self.Const.h - 0.5 then
+            h1 = s_vec.y + 0.5
+            h2 = 0.5
+        else
+            h1 = self.Const.h
+            h2 = self.Const.h - s_vec.y
+        end
+        self.m_s = s_vec.magnitude
+        self.m_t1 = math.sqrt(2 * h1 / self.Const.g1.magnitude)
+        self.m_t2 = math.sqrt(2 * h2 / self.Const.g2.magnitude)
+        self.m_vv = math.sqrt(2 * h1 * self.Const.g1.magnitude) * Vector3.up
+        self.m_t = self.m_t1 + self.m_t2
+        self.m_vh = s_vec / self.m_t
+        self.m_td = Util_math:clamp(self.m_t - self.m_jump_param[2], 0, self.m_t)
+    end
+end
+
+function Ua_state_skill_jump:exit()
+    Ua_state_base.exit(self)
+end
+
+function Ua_state_skill_jump:update()
+    Ua_state_base.update(self)
+    local dt = app:get_delta_time()
+    self.m_cur_duration = self.m_cur_duration + dt
+
+    -- 瞬移
+    if (self.m_jump_type == SharedEnum.SpellSpecialMoveType.TELEPORT) then
+        
+    -- 跳跃
+    elseif (self.m_jump_type == SharedEnum.SpellSpecialMoveType.JUMP) then
+        Debug.LogError(self.m_cur_duration)
+        if self.m_stage == 0 then
+            elseif self.m_stage == 1 then
+            if self.m_cur_duration >= self.m_jump_param[1] then
+                self.m_unit:emit_event("cross_fade", "skill_jump_d", 0.2)
+                self.m_cur_duration = 0
+                self.m_stage = 2
+            end
+            elseif self.m_stage == 2 then
+                if not self.m_cc then
+                    return
+                end
+                
+                if self.m_cur_duration >= self.m_td then
+                    self.m_unit:emit_event("cross_fade", "skill_jump_b", 0.2)
+                    self.m_stage = 3
+                end
+                local g = self.m_cur_duration <= self.m_t1 and self.Const.g1 or self.Const.g2
+                self.m_vv = self.m_vv - g * dt
+                local vec = (self.m_vv + self.m_vh) * dt
+                self.m_cc:Move(vec)
+                self.m_unit:emit_event("set_position", self.m_cc.transform.position)
+            elseif self.m_stage == 3 then
+                if not self.m_cc then
+                    return
+                end
+                
+                if self.m_cur_duration >= self.m_t then
+                    self.m_unit:emit_event("cross_fade", "skill_jump_c", 0.2)
+                    self.m_cur_duration = 0
+                    self.m_stage = 4
+                end
+                local g = self.m_cur_duration <= self.m_t1 and self.Const.g1 or self.Const.g2
+                self.m_vv = self.m_vv - g * dt
+                local vec = (self.m_vv + self.m_vh) * dt
+                self.m_cc:Move(vec)
+                self.m_unit:emit_event("set_position", self.m_cc.transform.position)
+            elseif self.m_stage == 4 then
+                if self.m_cur_duration >= self.m_jump_param[3] then
+                    self.m_unit:stop_skill_jump()
+                    self.m_cc:Move(self.m_end_pos)
+                    self.m_unit:emit_event("set_position", self.m_cc.transform.position)
+                end
+            end
+    end
+end
+
+function Ua_state_skill_jump:change_move_state(move_state)
+
+end
+
+
+
+
+
+return Ua_state_skill_jump

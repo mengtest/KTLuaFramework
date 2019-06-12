@@ -1,0 +1,22 @@
+local row_0 = {['tmpl']=0,['text']='text',['audio']=0,['another']=0}
+local row_1 = {['tmpl']=1,['text']='对话文本1',['audio']=0,['another']=2}
+local row_2 = {['tmpl']=2,['text']='对话文本2',['audio']=0,['another']=3}
+local row_3 = {['tmpl']=3,['text']='对话文本3',['audio']=0,['another']=4}
+local row_4 = {['tmpl']=4,['text']='对话文本4',['audio']=0,['another']=5}
+local row_5 = {['tmpl']=5,['text']='对话文本5',['audio']=0,['another']=0}
+local row_6 = {['tmpl']=1003,['text']='对话文本1003',['audio']=0,['another']=1}
+local row_7 = {['tmpl']=1004,['text']='对话文本1004',['audio']=0,['another']=1}
+local row_8 = {['tmpl']=1005,['text']='对话文本1005',['audio']=0,['another']=1}
+
+local datas = {
+	[0] = row_0,
+	[1] = row_1,
+	[2] = row_2,
+	[3] = row_3,
+	[4] = row_4,
+	[5] = row_5,
+	[1003] = row_6,
+	[1004] = row_7,
+	[1005] = row_8,
+}
+return datas

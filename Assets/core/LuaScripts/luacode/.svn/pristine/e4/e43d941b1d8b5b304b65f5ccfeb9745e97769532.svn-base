@@ -1,0 +1,85 @@
+local M = {}
+
+--受击类型
+M.Enum_Damage = {
+	Dodge = 0,
+	Parry = 1,
+	Crit = 2,
+	Normal = 3
+}
+
+-- 动画事件类型
+M.Anim_Evt_Type = {
+	STRIKE = "strike",		-- 打击点
+	CAST = "cast",			-- 施展点
+	POSE = "pose",          -- 开始/结束pose动画
+	SHOOT = "shoot",        -- 过程特效出手  
+}
+
+-- 角色动作类型
+-- pacman 2017-09-26 日后把UnitActFsm中的常量都转移到这里
+M.Unit_Main_Act = {
+    MOVE = 0,
+    JUMP = 1,
+    DEAD = 2,
+    INTERACT = 4,
+    -- 陆续完善
+
+    SKILL_SING = 10,
+    SKILL_CHANNEL = 11,
+    EXHIBITION = 12,
+    SKILL_JUMP = 13,
+
+    -- 特殊
+    PLAY_CG = 21,
+}
+
+
+-- 技能 --
+-- 技能特效类别 表字段名
+M.Skill_Sfx_Type = {
+	SING = "sing_sfx",				-- 吟唱特效
+	INSTANT = "instant_sfx",		-- 施法出手特效
+	CAST = "cast_sfx",				-- 过程特效
+	HIT = "hit_sfx",				-- 受击特效
+	BUFF = "buff_sfx",				-- buff特效
+	AIM = "cast_sfx_aim",			-- 锁定特效
+	INSTANT_PROCESS = "instant_pro_sfx" -- 施法过程特效
+}
+
+-- 技能特效挂点 表字段名
+M.Skill_Mount_Point_Type = {
+	SING = "sing_mount_point",				-- 吟唱特效挂点
+	INSTANT = "instant_mount_point",		-- 施法出手特效挂点
+	CAST_START = "cast_start_mount_point",		-- 过程特效起始挂点
+	CAST_END = "cast_end_mount_point",			-- 过程特效结束挂点
+	HIT = "hit_mount_point",				-- 受击特效挂点
+	BUFF = "buff_mount_point",				-- buff特效挂点
+	AIM = "cast_sfx_aim_mount",			-- 锁定特效挂点
+	INSTANT_PROCESS = "instant_pro_mount_point" -- 施法过程特效挂点
+}
+
+-- 角色挂载点名称
+M.Mount_Point = {
+
+
+
+}
+
+
+-- 目标模式
+M.Skill_Target_Mode = {
+	NO = 0,					-- 无需目标
+	ENTITY = 1,				-- 需要目标对象
+	AREA = 2,				-- 选取区域
+	DIRECTION = 3,			-- 旋转方向
+}
+
+
+-- 是否要显示小队成员
+M.Skill_Show_Team_Member = {
+	NO = 0,				-- 显示
+	SHOW = 1,			-- 不显示
+}
+return M
+

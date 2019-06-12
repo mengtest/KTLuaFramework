@@ -1,0 +1,6 @@
+local row_0 = {['id']=1031,['model_id']=1001}
+
+local datas = {
+	[1031] = row_0,
+}
+return datas

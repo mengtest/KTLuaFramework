@@ -1,0 +1,369 @@
+local Frame = require("system.frame")
+local spirit_list = class("spirit_list", Frame)
+
+Attribute.decl(spirit_list, "inspiration_achieved", 0)  -- 分解获得
+Event.decl(spirit_list, "on_get_spirit_btn")  -- 前往获取
+Event.decl(spirit_list, "on_confirm_btn")  -- 确认更换
+Event.decl(spirit_list, "show")
+Event.decl(spirit_list, "hide")
+Event.decl(spirit_list, "change_list") -- 灵兽分解/融合/获取 的时候列表会发生改变，发个事件
+Event.decl(spirit_list, "lock_merge_spirit") -- 点击确定了融合的灵兽
+Event.decl(spirit_list, "refresh_view") -- 排序刷新界面
+
+
+
+spirit_list.ChildPageName = {
+    CHANGE_PAGE = "change_page",
+    NOTHING_PAGE = "nothing_page",
+    DECOMPOSE_PAGE = "decompose_page",
+    MERGE_PAGE = "merge_page"
+}
+function spirit_list:doInit()
+    -- btn 的frame列表
+    self.m_spirit_btn_list = {}
+    -- copy 的frame列表
+    self.m_copy_spirit_btn_list = {}
+    -- 多选的灵兽列表
+    self.m_choose_spirit_list = {}
+    -- 当前所显示的page
+    self.m_current_page = nil
+    -- 装备中的灵兽列表
+    self.m_equipped_spirit_data_list = {}
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self.m_spirit_list = self.m_inventory_mgr:gain_sprite_list()
+    -- 把已装备的灵兽也放到  self.m_spirit_list  这个表中
+    self.m_equipping_spirit_list = self.m_inventory_mgr:gain_equipping_sprite_dict()
+    if self.m_equipping_spirit_list ~= nil then
+        for i, v in pairs(self.m_equipping_spirit_list) do
+            self.m_spirit_list[#self.m_spirit_list + 1 ] = v
+        end
+    end
+
+
+    -- 当点击左侧槽位时
+    self:subscribe(self:getFrame("sprite"):on_event("change_slot"), function(spirit_data, slot)
+        if spirit_data == nil then
+            self:show(self.ChildPageName.CHANGE_PAGE)
+        else
+            self:hide()
+        end
+        self:refresh_list(spirit_data, slot)
+    end)
+
+
+    for i, v in pairs(self:getFrame("sprite"):get_slot_list()) do
+        if v:get_spirit_data() ~= nil then
+            table.insert(self.m_equipped_spirit_data_list, v:get_spirit_data())
+        end
+    end
+    -- 装备灵兽
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data,args)
+        self.m_equipped_spirit_data_list = {}
+        for i, v in pairs(self:getFrame("sprite"):get_slot_list()) do
+            if v:get_spirit_data() ~= nil then
+                table.insert(self.m_equipped_spirit_data_list, v:get_spirit_data())
+            end
+        end
+        for i, v in ipairs(self.m_spirit_btn_list) do
+            if v:get_unique() == spirit_data.unique then
+                -- 正常装备与升级装备
+                v:set_spirit_data(spirit_data)
+            end
+        end
+    end)
+
+    -- 灵兽分解成功
+    -- TODO::分解的两个参数列表  我个人认为用第一个就足够了  有待商榷
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_invert"), function(sprite_unique_list, sprite_id_list)
+        -- 将选中的灵兽表重置
+        self.m_choose_spirit_list = {}
+        for i, unique in ipairs(sprite_unique_list) do
+            for k, btn_frame in pairs(self.m_spirit_btn_list) do
+                if unique == btn_frame:get_unique() then
+                    utility.table:remove_by_val(self.m_spirit_btn_list, btn_frame)
+                    btn_frame:play_sfx()
+                    --self:destroyChild(btn_frame)
+                end
+            end
+        end
+        self:emit_event("change_list")
+    end)
+
+    -- 灵兽融灵成功
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_merge"), function(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list)
+        -- 将选中的灵兽表重置
+        self.m_choose_spirit_list = {}
+        for k, btn_frame in pairs(self.m_spirit_btn_list) do
+            if main_sprite_unique == btn_frame:get_unique() then
+                utility.table:remove_by_val(self.m_spirit_btn_list, btn_frame)
+                self:destroyChild(btn_frame)
+            end
+            for i, unique in ipairs(piece_sprite_unique_list) do
+                if unique == btn_frame:get_unique() then
+                    utility.table:remove_by_val(self.m_spirit_btn_list, btn_frame)
+                    self:destroyChild(btn_frame)
+                end
+            end
+        end
+        self:emit_event("change_list")
+    end)
+
+    -- TODO 取得新增灵兽需要做处理
+    self:subscribe(self.m_inventory_mgr:on_event("add_sprite"), function(data)
+        for i, v in ipairs(data) do
+            self.m_spirit_btn_list[#self.m_spirit_btn_list + 1] = self:createChild("spirit_list_btn" .. v.unique, "spirit_beast.spirit_list_btn", v)
+        end
+    end)
+end
+
+
+function spirit_list:on_loaded()
+
+    for i, v in ipairs(self.m_spirit_list) do
+        local spirit_data = v
+        self.m_spirit_btn_list[i] = self:createChild("spirit_list_btn" .. v.unique, "spirit_beast.spirit_list_btn", spirit_data)
+    end
+    self.m_selected_frame = self.m_spirit_btn_list[1]
+    self.m_selected_frame:emit_event("selected")
+    -- 初始化的时候默认展示  所选的槽位中的灵兽
+    self:refresh_list(self:getFrame("sprite"):get_selected_slot():get_spirit_data(), self:getFrame("sprite"):get_selected_slot():get_slot_id())
+
+end
+
+-- 点击切换所选
+function spirit_list:change_selected_btn(child)
+    for i, v in ipairs(self.m_equipped_spirit_data_list) do
+        if child:get_spirit_data() == v then
+            self:getFrame("float_hint_manager"):add_float("不能选择装备中的灵兽！")
+            return
+        end
+    end
+    if child == self.m_selected_frame then
+        return
+    else
+        if self.m_selected_frame ~= nil then
+            self.m_selected_frame:emit_event("unselected")
+        end
+    end
+    for k, v in ipairs(self.m_spirit_btn_list) do
+        if v == child then
+            self.m_selected_frame = child
+            child:emit_event("selected")
+            break
+        end
+    end
+end
+-- 点击多选
+function spirit_list:choose_selected_btn(child)
+    -- 如果点击多选的是装备中的
+    for i, v in ipairs(self.m_equipped_spirit_data_list) do
+        if child:get_spirit_data() == v then
+            self:getFrame("float_hint_manager"):add_float("不能分解装备中的灵兽哦！")
+            return
+        end
+    end
+
+    if child:get_is_selected() then
+        utility.table:remove_by_val(self.m_choose_spirit_list, child)
+        child:emit_event("unselected")
+    else
+        table.insert(self.m_choose_spirit_list, child)
+        child:emit_event("selected")
+    end
+
+    local achieve = 0
+    for i, v in ipairs(self.m_choose_spirit_list) do
+        if dbc.spirit[v:get_spirit_data().level * 10 + v:get_spirit_data().rating].invert == nil then
+            Debug.LogError(string.format("需要配表！！！！%s级%s星的灵兽没有配分解获得", v:get_spirit_data().level, v:get_spirit_data().rating))
+        end
+        achieve = dbc.spirit[v:get_spirit_data().level * 10 + v:get_spirit_data().rating].invert + achieve
+    end
+    self:set_inspiration_achieved(achieve)
+end
+-- 点击选择融合
+function spirit_list:choose_merge(child)
+    self:emit_event("lock_merge_spirit", child:get_spirit_data())
+    self:hide()
+    self:getFrame("spirit_strengthen"):show()
+end
+
+-- 点击更换的时候刷新列表中需要显示的灵兽[按照所选槽位的属性分]
+function spirit_list:refresh_list(spirit_data, slot)
+    self:sort_spirit_btn_list(self.m_spirit_btn_list)
+    local have_spirit = false
+    for i, v in ipairs(self.m_spirit_btn_list) do
+        if dbc.sprite[v:get_spirit_data().tmpl].slot == slot then
+            v:show()
+            have_spirit = true
+        else
+            v:hide()
+        end
+        -- 显示装备中
+        if spirit_data ~= nil and spirit_data == v:get_spirit_data() then
+            v:show_equip()
+        else
+            v:hide_equip()
+        end
+    end
+    if not have_spirit then
+        self:show(self.ChildPageName.NOTHING_PAGE)
+    end
+end
+-- 刷新分解的列表
+function spirit_list:refresh_decompose_list()
+
+    self:sort_spirit_btn_list(self.m_spirit_btn_list)
+    self.m_equipped_spirit_data_list = {}
+    self:set_inspiration_achieved(0)
+    for i, v in pairs(self:getFrame("sprite"):get_slot_list()) do
+        if v:get_spirit_data() ~= nil then
+            table.insert(self.m_equipped_spirit_data_list, v:get_spirit_data())
+        end
+    end
+    -- 显示所有的灵兽并且要显示装备中的灵兽
+    for i, v in ipairs(self.m_spirit_btn_list) do
+        v:show()
+        v:hide_equip()
+        -- 显示装备中
+        for i, spirit_data in ipairs(self.m_equipped_spirit_data_list) do
+            if spirit_data == v:get_spirit_data() then
+                v:show_equip()
+            end
+        end
+    end
+end
+-- 刷新融合的列表
+function spirit_list:refresh_merge_list(spirit_data_list)
+    self:sort_spirit_btn_list(self.m_spirit_btn_list)
+    -- 显示所有的灵兽并且要显示装备中的灵兽
+    for i, v in ipairs(self.m_spirit_btn_list) do
+        v:hide()
+        for key, val in ipairs(spirit_data_list) do
+            if v:get_spirit_data() == val then
+                v:show()
+            end
+        end
+    end
+end
+-- 获取当前选中的灵兽
+function spirit_list:get_current_select_spirit()
+    return self.m_selected_frame
+end
+-- 获取多选的灵兽列表
+function spirit_list:get_choose_spirit_list()
+    return self.m_choose_spirit_list
+end
+-- 获取列表中的所有灵兽的数据（不是frame哦）
+function spirit_list:get_all_spirit_data_list()
+    local spirit_data_list = {}
+    for i, v in ipairs(self.m_spirit_btn_list) do
+        table.insert(spirit_data_list, v:get_spirit_data())
+    end
+    return spirit_data_list
+end
+-- 获取当前显示的分页
+function spirit_list:get_current_page()
+    return self.m_current_page
+end
+-- 前往获取按钮
+function spirit_list:on_get_spirit_btn()
+    self:emit_event("on_get_spirit_btn")
+end
+
+-- 确认分解按钮
+function spirit_list:on_confirm_descompose()
+    -- 分解灵兽 给服务器传的第一个参数
+    local descompose_spirit_unique_list = ListObject()
+    -- 分解灵兽 给服务器传的第二个参数
+    local descompose_spirit_id_list = ListObject()
+    -- 从选择的灵兽中分解
+    if #self.m_choose_spirit_list == 0 then
+        self:getFrame("float_hint_manager"):add_float("请选择您要分解的灵兽！")
+        return
+    end
+    for i, v in ipairs(self.m_choose_spirit_list) do
+        descompose_spirit_unique_list:Add(v:get_unique())
+        descompose_spirit_id_list:Add(v:get_tmpl())
+    end
+    self.m_inventory_mgr:sprite_inverting_request_server(descompose_spirit_unique_list, descompose_spirit_id_list)
+
+end
+
+
+-- 确认更换按钮
+function spirit_list:on_confirm_btn()
+    if self:get_current_select_spirit() == nil then
+        self:getFrame("float_hint_manager"):add_float("请选择您要更换的灵兽！")
+        return
+    end
+    --  装备 给服务器发协议  装备灵兽
+    self.m_inventory_mgr:put_on_equipment_request_server(dbc.sprite[self:get_current_select_spirit():get_spirit_data().tmpl].slot,
+    self:get_current_select_spirit():get_spirit_data().unique,
+    self:get_current_select_spirit():get_spirit_data().tmpl,
+    enum.spirit_beast.UnequippingType.NORMAL)
+    self:emit_event("on_confirm_btn")
+end
+
+
+function spirit_list:show(page_name)
+    self.m_current_page = page_name
+    -- 要显示列表中每一个灵兽的时候，让玩家自己去选，我们不给选
+    for k, v in ipairs(self.m_spirit_btn_list) do
+        v:emit_event("unselected")
+    end
+    self.m_selected_frame = nil
+    self:emit_event("show", page_name)
+end
+function spirit_list:hide()
+    self:emit_event("hide")
+end
+
+-- 按品质 槽位 id 星级等级的顺序排列
+function spirit_list:sort_spirit_btn_list(list)
+    table.sort(list,
+    function(spirit1, spirit2)
+        -- 品质
+        local quality_a = dbc.sprite[spirit1:get_spirit_data().tmpl].quality
+        local quality_b = dbc.sprite[spirit2:get_spirit_data().tmpl].quality
+        if quality_a > quality_b then
+            return true
+        elseif quality_a < quality_b then
+            return false
+        else
+            -- 品质相同 槽位
+            local slot_a = dbc.sprite[spirit1:get_spirit_data().tmpl].slot
+            local slot_b = dbc.sprite[spirit2:get_spirit_data().tmpl].slot
+            if slot_a < slot_b then
+                return true
+            elseif slot_a > slot_b then
+                return false
+            else
+                -- 槽位相同 ID
+                local tmpl_a = spirit1:get_spirit_data().tmpl
+                local tmpl_b = spirit2:get_spirit_data().tmpl
+                if tmpl_a < tmpl_b then
+                    return true
+                elseif tmpl_a > tmpl_b then
+                    return false
+                else
+                    -- ID相同 等级
+                    local level_a = spirit1:get_spirit_data().level
+                    local level_b = spirit2:get_spirit_data().level
+                    if level_a > level_b then
+                        return true
+                    elseif level_b < level_b then
+                        return false
+                    end
+                end
+            end
+        end
+    end)
+    -- 排序完成后要刷新界面
+    self:emit_event("refresh_view")
+end
+function spirit_list:get_spirit_btn_list()
+    return self.m_spirit_btn_list
+end
+
+
+return spirit_list

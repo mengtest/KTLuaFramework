@@ -1,0 +1,54 @@
+local Frame = require("system.frame")
+local skill_ui_setting_btn = class("skill_ui_setting_btn", Frame)
+-- 技能id
+Attribute.decl(skill_ui_setting_btn, "skill_id", 0)
+-- 技能所在页面
+Attribute.decl(skill_ui_setting_btn, "cur_page", 0)
+-- 技能槽位
+Attribute.decl(skill_ui_setting_btn, "slot", 0)
+-- 客户端显示
+Attribute.calc(skill_ui_setting_btn, "client_cfg",
+function(self)
+    return dbc.spell_client[self:get_skill_id()]
+end,
+"skill_id")
+
+function skill_ui_setting_btn:doInit(slot)
+
+    self:set_slot(slot)
+    -- 主动技能 资讯列表
+    self.m_skill_info_list = {}
+
+    local skill_ui_manager = self:getFrame("skill_ui_manager")
+    local master_info_list = skill_ui_manager:get_master_info_list()
+    for i, v in ipairs(master_info_list) do
+        -- 已学习技能中的主动技能
+        if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+            table.insert(self.m_skill_info_list, v.tmpl, v.slot)
+            if self:get_slot() == v.slot[1] then
+                self:set_skill_id(v.tmpl)
+            end
+            ----TODO根据不同的page  v.slot所对应着不同的数据   set_slot() 应该是v.slot中所对应的那个【暂时直接设置成默认】
+        end
+    end
+    -- 监听发来的新学习技能列表
+    self:subscribe(skill_ui_manager:on_event("master_info_add"), function(skill_info)
+        for i, v in ipairs(skill_info) do
+            if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+                -- 维护自己的已学习主动技能的id列表
+                table.insert(self.m_skill_info_list, v.tmpl, v.slot)
+                if self:get_slot() == v.slot[1] then
+                    self:set_skill_id(v.tmpl)
+                end
+                ----TODO根据不同的page  v.slot所对应着不同的数据   set_slot() 应该是v.slot中所对应的那个【暂时直接设置成默认】
+            else
+                --print("这是被动")
+            end
+        end
+    end)
+
+end
+
+
+
+return skill_ui_setting_btn

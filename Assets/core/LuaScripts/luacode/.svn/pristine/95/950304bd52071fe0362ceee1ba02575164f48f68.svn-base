@@ -1,0 +1,20 @@
+local sect_elements_view = {}
+
+function sect_elements_view:doInit()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectElements"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+
+
+        self:subscribe(self.m_frame:on_event_talent_percent_num_set(true), function(percent)
+            local num = tonumber(string.match(percent, "%d+"))
+            self["talent_percent_GUIImage"].fillAmount = num / 100
+        end)
+    end)
+end
+
+
+
+return sect_elements_view

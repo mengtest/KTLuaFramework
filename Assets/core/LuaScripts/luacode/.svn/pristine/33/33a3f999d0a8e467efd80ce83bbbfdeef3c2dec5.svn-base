@@ -1,0 +1,17 @@
+local rows = {}
+rows[1] = {['id']=4001,['anim_name']='show',['transition_duration']=0.0,['trigger_info']='[{5:{"trigger_id":4002,"trigger_param":{}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+rows[2] = {['id']=4002,['anim_name']='show1',['transition_duration']=0.1,['trigger_info']='[]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+rows[3] = {['id']=6001,['anim_name']='show',['transition_duration']=0.0,['trigger_info']='[{5:{"trigger_id":6002,"trigger_param":{}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+rows[4] = {['id']=6002,['anim_name']='show1',['transition_duration']=0.1,['trigger_info']='[]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+rows[5] = {['id']=1001,['anim_name']='show',['transition_duration']=0.1,['trigger_info']='[{5:{"trigger_id":1002,"trigger_param":{}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+rows[6] = {['id']=1002,['anim_name']='show1',['transition_duration']=0.1,['trigger_info']='[]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+
+local datas = {
+	[4001] = rows[1],
+	[4002] = rows[2],
+	[6001] = rows[3],
+	[6002] = rows[4],
+	[1001] = rows[5],
+	[1002] = rows[6],
+}
+return datas

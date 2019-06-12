@@ -1,0 +1,424 @@
+
+local Quest_data = require("subsystem.quest.quest_data")
+--local Trigger_component = require("subsystem.trigger.trigger_component")
+
+local Frame = require("system.frame")
+local Quest_manager = class("Quest_manager", Frame)
+
+function Quest_manager:doInit()
+	self.m_unit = nil
+	self.m_quest_data_list = {}
+	self.m_precondition_quest_data_list = {}
+    self.m_prey_dict = {}
+
+    self.m_cur_map_id = -1
+    -- 数据格式
+--    self.m_area_condition_info_dict = {[
+--        [map_id] = {[
+--            [trigger_id] = {
+--                ["self_info"] = {
+--                    ["worldPosition"] = (Vector3)
+--                    ["worldRotation"] = (Vector3)
+--                    ["localScale"] = (Vector3)
+--                    ["radius"] = (float)
+--                },
+--                ["cond_info"] = {[
+--                    [quest_id] = {[condition_index]}
+--                ]},
+--                ["quest_info"] = {
+--                    [quest_id]
+--                }
+--            }
+--        ]}
+--    ]}
+    self.m_prevs_dict = {}
+    self.m_nexts_info_dict = {}
+    self.m_trigger_cmp_quest_dict = {}
+    
+    self.m_area_condition_info_dict = {}
+    self.m_trigger_cmp_dict = {}
+    self.m_trigger_go_dict = {}
+
+    Event_system:add_event_listener(EVENT_SCENE_LOADED, event_binder(self, self.on_scene_loaded))
+    Event_system:add_event_listener(EVENT_SCENE_UNLOADED, event_binder(self, self.on_scene_unloaded))
+end
+
+function Quest_manager:init()
+    self:req_quest_list()
+end
+
+function Quest_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+-- *------------------[S]Sever interface-----------------——*
+-- [S2C]
+
+-- 收到所有任务
+function Quest_manager:rec_quest_all(infos, nexts, prevs)
+    self:add_prevs(prevs)
+    self:filter_area_quest(nexts)
+    for i = 1, #infos do
+        local info = infos[i]
+        local quest_data = self:add_quest_data(info.tmpl)
+        if quest_data then
+            local finish_list = info.finishes
+            local condition_dict = quest_data:get_condition_dict()
+            for index, condition in pairs(condition_dict) do
+                condition:set_cur_param(finish_list[index].stats)
+            end
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+        end
+    end
+    
+    -- 临时
+    self:add_quest_data(911)
+end
+
+-- 收到后续任务
+function Quest_manager:rec_quest_jobs(infos, nexts, prevs)
+    self:local_log("Quest_manager:rec_quest_jobs,\n" .. Util_string:get_string_by_tbl(infos))
+    self:local_log("Quest_manager:rec_quest_jobs,\n" .. Util_string:get_string_by_tbl(nexts))
+    self:local_log("Quest_manager:rec_quest_jobs,\n" .. Util_string:get_string_by_tbl(prevs))
+    self:add_prevs(prevs)
+    self:filter_area_quest(nexts)
+    for i = 1, #infos do
+        local info = infos[i]
+        local quest_data = self:add_quest_data(info.tmpl)
+        if quest_data then
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+        end
+    end
+end
+
+-- 更新任务通过条件的状态
+function Quest_manager:rec_update_quest(id, index, cond)
+    local param = cond["stats"]
+    local quest_data = self.m_quest_data_list[id]
+    if quest_data then
+        quest_data:set_condition_cur_param(index, param)
+        
+        Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, id, index, param)
+    end
+end
+
+-- 移除指定任务
+function Quest_manager:rec_quest_remove(id)
+    self:del_prev(id)
+    self:del_quest_data(id)
+end
+
+------------------------------------------------------------
+-- [C2S]
+
+-- 接收任务，测试接口
+function Quest_manager:req_quest_test(id)
+	self:base_call("quest_test", id)
+end
+
+-- 完成任务
+function Quest_manager:req_complete_quest(id)
+	self:base_call("quest_done", id)
+end
+
+-- 请求所有任务列表
+function Quest_manager:req_quest_list()
+	self:base_call("quest_list")
+end
+
+-- 触发任务
+function Quest_manager:req_trigger_quest(id)
+    self:local_log("Quest_manager:req_trigger_quest, id = " .. id)
+	self:cell_call("quest_open_position", id)
+end
+
+-- 触发任务状态更新
+function Quest_manager:req_update_condition(quest_id, index, param)
+    self:cell_call("quest_cond_position", quest_id, index)
+end
+
+--放弃任务
+function Quest_manager:req_give_up_quest(id)
+	
+end
+
+-- *------------------[E]Sever interface-----------------——*
+
+function Quest_manager:cell_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function Quest_manager:base_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function Quest_manager:get_quest_list()
+	return self.m_quest_data_list
+end
+
+function Quest_manager:add_prey(creature_id)
+    local is_existed = self.m_prey_dict[creature_id]
+    if not is_existed then
+        self.m_prey_dict[creature_id] = true
+    end
+end
+
+function Quest_manager:del_prey(creature_id)
+    self.m_prey_dict[creature_id] = nil
+end
+
+function Quest_manager:get_prey_list()
+    --self.m_quest_data_list[]
+    local prey_list = {}
+    for creature_id, _ in pairs(self.m_prey_dict) do
+        table.insert(prey_list, creature_id)
+    end
+    return prey_list
+end
+
+function Quest_manager:add_prevs(prevs)
+    for i = 1, #prevs do
+        self.m_prevs_dict[prevs[i]] = true
+    end
+end
+
+function Quest_manager:del_prev(prev_id)
+    self.m_prevs_dict[prev_id] = nil
+end
+
+function Quest_manager:add_quest_data(quest_id)
+    if not self.m_quest_data_list[quest_id] then
+	    local quest_data = Quest_data:new(quest_id, self)
+	    self.m_quest_data_list[quest_id] = quest_data
+    end
+    if quest_id <= 0 then
+        print("received invalid quest id: " .. quest_id)
+        return nil
+    end
+    return self.m_quest_data_list[quest_id]
+end
+
+function Quest_manager:del_quest_data(quest_id)
+	local quest_data = self.m_quest_data_list[quest_id]
+	if quest_data then
+		self.m_quest_data_list[quest_id] = nil
+		Event_system:dispatch_event(EVENT_QUEST_DEL_QUEST, quest_id)
+	end
+end
+
+function Quest_manager:filter_area_quest(nexts)
+    for i = 1, #nexts do
+        local quest_data = dbc.quest[nexts[i]]
+        if quest_data.begin == 2 and self.m_cur_map_id == quest_data.begin_params[1] then
+            local key_pre_name = "prev"
+            local temp_info = {}
+            for index = 1, 4 do
+                local key_name = "prev" .. index
+                if quest_data[key_name] > 0 then
+                    -- temp_info[quest_data[key_name]] (true：未完成，false or nil：完成)
+                    temp_info[quest_data[key_name]] = self.m_prevs_dict[quest_data[key_name]] or false
+                end
+            end
+            self.m_nexts_info_dict[nexts[i]] = temp_info
+            self:filter_area_quest_info(nexts[i])
+        end
+    end
+end
+
+function Quest_manager:add_area_quest_info(map_id, trigger_id, quest_id)
+    local info = self.m_area_condition_info_dict
+    if not info[map_id] then
+        info[map_id] = {}
+    end
+    info = info[map_id]
+    local temp_info = info
+    if not info[trigger_id] then
+        info[trigger_id] = {["quest_info"] = {}}
+    end
+    info = info[trigger_id]["quest_info"]
+    if not info[quest_id] then
+        info[quest_id] = true
+        if self.m_cur_map_id ~= -1 then
+            local is_succeed, func_enter = self:register_area_quest_func(map_id, trigger_id, quest_id)
+            if is_succeed then
+                info[quest_id] = func_enter
+            end
+        end
+    end
+end
+
+function Quest_manager:register_area_quest_func(map_id, trigger_id, quest_id)
+    local this = self
+    local func_enter = nil
+    if trigger_id == 9999 then
+        func_enter = function ()
+            app:logError("post suicide")
+            local unit = this:getFrame("world"):getUnit(app:getKBESDK():get_player_id())
+            unit:suicide()
+        end
+    else
+        func_enter = function ()
+            this:req_trigger_quest(quest_id)
+        end
+    end
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+function Quest_manager:add_area_condition_info(map_id, trigger_id, quest_id, index)
+    local info = self.m_area_condition_info_dict
+    if not info[map_id] then
+        info[map_id] = {}
+    end
+    info = info[map_id]
+    local temp_info = info
+    if not info[trigger_id] then
+        info[trigger_id] = {["cond_info"] = {}}
+    end
+    info = info[trigger_id]["cond_info"]
+    if not info[quest_id] then
+        info[quest_id] = {}
+    end
+    info = info[quest_id]
+    if not info[index] then
+        info[index] = true
+        if self.m_cur_map_id ~= -1 then
+            local is_succeed, func_enter = self:register_area_condition_func(map_id, trigger_id, quest_id, index)
+            if is_succeed then
+                info[index] = func_enter
+            end
+        end
+    end
+end
+
+function Quest_manager:register_area_condition_func(map_id, trigger_id, quest_id, index)
+    local this = self
+    local func_enter = function ()
+        this:req_update_condition(quest_id, index, nil)
+    end
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+function Quest_manager:del_area_condition_info(map_id, trigger_id, quest_id, index)
+    local info = self.m_area_condition_info_dict[map_id]
+    if not info then
+        return
+    end
+    info = info[trigger_id]
+    if not info then
+        return
+    end
+    local quest_layer = info["cond_info"]
+    info = quest_layer[quest_id]
+    local func_enter = info[index]
+    if func_enter then
+        self:getFrame("world"):unregister_area_trigger_enter_func(map_id, trigger_id, func_enter)
+    end
+end
+
+function Quest_manager:del_area_quest_info(map_id, trigger_id, quest_id)
+    local info = self.m_area_condition_info_dict[map_id]
+    if not info then
+        return
+    end
+    info = info[trigger_id]
+    if not info then
+        return
+    end
+    local quest_layer = info["quest_info"]
+    quest_layer[quest_id] = nil
+end
+
+-- 过滤前置任务未全部达成的后续任务
+-- 将除了起始接取任务之外无未完成条件的任务信息添加至info
+function Quest_manager:filter_area_quest_info(quest_id)
+    local next_info = self.m_nexts_info_dict[quest_id]
+    local rst = true
+    for next_quest_id, flag in pairs(next_info) do
+        if flag then
+            rst = false
+            break
+        end
+    end
+    if rst then
+        local params = dbc.quest[quest_id].begin_params
+        self:add_area_quest_info(params[1], params[2], quest_id)
+    end
+end
+
+function Quest_manager:create_trigger(map_id, info)
+    local this = self
+    local map_id = self.m_cur_map_id
+    for trigger_id, info_1 in pairs(self.m_area_condition_info_dict[map_id] or {}) do
+        for _, quest_info in pairs(info_1) do
+            for quest_id, v in pairs(quest_info) do
+                if type(v) ~= "function" then
+                    self:register_area_quest_func(map_id, trigger_id, quest_id)
+                end
+            end
+        end
+        for _, cond_info in pairs(info_1) do
+            for quest_id, index_info in pairs(cond_info) do
+                for index, v in pairs(index_info) do
+                    if type(v) ~= "function" then
+                        self:register_area_condition_func(map_id, trigger_id, quest_id, index)
+                    end
+                end
+            end
+        end
+    end
+end
+
+function Quest_manager:destroy_trigger(trigger_id)
+    local trigger_cmp = self.m_trigger_cmp_dict[trigger_id]
+    if trigger_cmp then
+        trigger_cmp:destroy()
+        self.m_trigger_cmp_dict[trigger_id] = nil
+    end
+    local trigger_go = self.m_trigger_go_dict[trigger_id]
+    if trigger_go then
+        Object.Destroy(trigger_go)
+        self.m_trigger_go_dict[trigger_id] = nil
+    end
+end
+
+function Quest_manager:create_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(true)
+    end
+end
+
+function Quest_manager:destroy_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(false)
+    end
+end
+
+function Quest_manager:on_scene_loaded(world)
+    self.m_cur_map_id = world:get_map_id()
+
+    for map_id, info in pairs(self.m_area_condition_info_dict) do
+        self:create_trigger(map_id, info)
+    end
+    
+end
+
+function Quest_manager:on_scene_unloaded()
+    self.m_cur_map_id = -1
+    
+    for _, info in pairs(self.m_area_condition_info_dict) do
+        for trigger_id, _ in ipairs(info) do
+            self:destroy_trigger(trigger_id)
+        end
+    end
+end
+
+return Quest_manager
+

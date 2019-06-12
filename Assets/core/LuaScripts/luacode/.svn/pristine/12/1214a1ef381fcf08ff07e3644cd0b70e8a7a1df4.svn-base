@@ -1,0 +1,128 @@
+
+local M = {}
+
+function M:doInit()
+	local ui_manager = app:get_ui_manager()
+	self:createChild("world")
+	ui_manager:CreateUI("loading","loading_ui.loading",nil,ui_manager.UI_Depth.ALERT)
+	self.m_quest_manager = self:createChild("quest_manager", "%subsystem.quest.quest_manager", nil)
+    self.m_quiz_manager = self:createChild("quiz_manager", "%subsystem.quiz.quiz_manager", nil)
+    --self.m_team_manager = self:createChild("team_manager", "team.team_manager", nil)
+	self.m_dungeon_manager = self:createChild("dungeon_manager", "dungeon.dungeon_manager", nil)
+	self.m_matching_manager = self:createChild("matching_manager", "team.team_quick_matching.matching_manager", nil)
+    self.m_skill_ui_manager = self:createChild("skill_ui_manager", "skill_system_ui.skill_ui_manager", nil)
+	self.m_inventory_manager = self:createChild("inventory_manager", "%subsystem.backpack_equipment.inventory_manager", nil)
+	self.m_suit_manager = self:createChild("suit_manager","%subsystem.backpack_equipment.ware_house.suit_manager")
+	self.m_map_manager = self:createChild("map_manager", "%subsystem.map.map_manager", nil)
+	--self.m_quest_manager:rec_quest(1)
+	ui_manager:CreateUI("head_overlay","head_overlay",nil,ui_manager.UI_Depth.NORMAL)
+	ui_manager:CreateUI("popup_text_overlay","%subsystem/popup_text/popup_text_overlay",nil,ui_manager.UI_Depth.NORMAL)
+	ui_manager:CreateUI("boss_show","boss_show",{name = "", des = ""}, ui_manager.UI_Depth.HIGH)
+	ui_manager:CreateUI("interact_tip","interact_tip",nil, ui_manager.UI_Depth.HUD)
+	
+
+	self:createChild("kbe.world_watcher_kbe")
+
+	self.m_sdk = app:getKBESDK()
+	local id = self.m_sdk:get_player_id()
+	local map_id = self.m_sdk:get_player_map_id()
+	print("enter game", id, map_id)
+
+	local world = self:getFrame("world")
+	local unit  = world:getUnit(id)
+
+	world:set_map_id(map_id)
+	self:subscribe(self.m_sdk:on_event("map_change"), function(val)
+		world:set_map_id(val)
+	end)
+
+	local ui_main = ui_manager:CreateUI("ui_main", nil, unit,ui_manager.UI_Depth.NORMAL)
+	--local sidebar = ui_manager:CreateUI("sidebar","sidebar.sidebar", nil, ui_manager.UI_Depth.NORMAL)
+	local threat_manager = ui_manager:CreateUI("threat_manager","threat_manager", nil, ui_manager.UI_Depth.NORMAL)
+	local float_hint_manager = ui_manager:CreateUI("float_hint_manager","float_hint.float_hint_manager", nil, ui_manager.UI_Depth.NORMAL)
+	ui_manager:CreateUI("team_mgr_bar","team.team_bar.team_mgr_bar", nil, ui_manager.UI_Depth.NORMAL)
+
+	self.m_lp_unit = unit
+
+  
+  -- 临时
+  self.m_time = self.m_time or os.time()
+  self.m_create_test_unit = false
+  unit:set_team({unit})
+end
+
+function M:getLocalPlayerUnit()
+	return self.m_lp_unit
+end
+
+function M:doUpdate()
+	--TODO:: Delete 测试代码
+	-- 临时创建一些本地角色，测试团队加血用
+	--[[
+	if not self.m_create_test_unit then
+	    if os.time() - self.m_time > 10 then
+            self.m_sdk:entity_base_call(self.m_sdk:get_player_id(),"quest_list")
+			local member_count = {5}
+		    local world = self:getFrame("world")
+			local player_controller = self:getFrame("player_controller")
+
+	    	local id = 123000
+	    	local pos = Vector3(331.3, 19.24, 91)
+			for i = 1, 1 do
+				for j = 1, member_count[i] do
+
+					local unit
+					if i == 1 and j == 1 then 
+						unit = self.m_lp_unit
+					else
+						unit = world:addUnit(id , 1001, string.format("团队测试%d_%d", i, j), pos)
+						unit:set_move_state(0)
+						id = id + 1
+						pos.z = pos.z + 0.5
+					end
+
+					player_controller:add_team_member(i, j, unit)
+
+				end
+			end
+
+			-- 测试用npc
+			local npc = world:addUnit(id , 1001, "NPC", Vector3(883, 14.2, 116.4))
+			npc:set_move_state(0)
+			player_controller:add_npc(npc)
+
+			self.m_create_test_unit = true
+
+	    end
+	end
+	]]
+
+	-------------------
+
+    if Input.GetKeyDown(KeyCode.G) then
+	elseif Input.GetKeyDown(KeyCode.M) then
+		self.m_sdk:entity_cell_call(self.m_sdk:get_player_id(),"active_talent_specialization", 12)
+    elseif Input.GetKeyDown(KeyCode.N) then
+        self.m_sdk:entity_cell_call(self.m_sdk:get_player_id(),"active_talent_specialization", 13)
+    elseif Input.GetKeyDown(KeyCode.P) then
+		local world = self:getFrame("world")
+		local player = world:getUnit(self.m_sdk:get_player_id())
+		player:emit_event("run_function","transfiguration",0) 
+		
+	elseif Input.GetKeyDown(KeyCode.K) then
+
+	elseif Input.GetKeyDown(KeyCode.I) then
+	elseif Input.GetKeyDown(KeyCode.O) then
+	elseif Input.GetKeyDown(KeyCode.Y) then 
+
+	end
+
+	local pos = self.m_lp_unit:get_pos()
+	local dir = self.m_lp_unit:get_dir()
+
+	if not self.m_lp_unit:get_dead() then
+		self.m_sdk:player_update(pos,  Vector3(0, 0, dir))
+	end
+end
+
+return M

@@ -1,0 +1,34 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/8 11:30
+---
+local View = require("system.view")
+local team_invate_item_view = class("team_invate_item_view", View)
+
+function team_invate_item_view:doInit()
+    self.m_frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamInvateItem"), function(go)
+
+        go.transform.localScale = Vector3.one
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        go.transform.localPosition = Vector3.zero
+
+        self:subscribe(self.m_frame:on_event("is_show_selected"), function(is_show)
+            self["selected_gameObject"]:SetActive(is_show)
+        end)
+        self:subscribe(self.m_frame:on_event("set_toggle_is_on"), function(is_on)
+            self:set_toggle_is_on(is_on)
+        end)
+
+        self["toggle_GUIToggle"].group = self:getFrame("team_mgr_bar"):get_toggle_invate_group()
+        self:set_toggle_is_on(true)
+    end)
+end
+
+function team_invate_item_view:set_toggle_is_on(is_on)
+    self["toggle_GUIToggle"].isOn = is_on
+end
+
+return team_invate_item_view

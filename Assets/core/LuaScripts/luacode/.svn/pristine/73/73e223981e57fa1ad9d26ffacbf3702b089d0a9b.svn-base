@@ -1,0 +1,41 @@
+local View = require("system.view")
+local big_map_boss_view = class("big_map_boss_view", View)
+
+function big_map_boss_view:doInit(param)
+    self.m_show_list = param
+    self:load_prefab("ui/BigMap.prefab",function(loaded_go)
+        self.m_res_loaded = true
+        local template_go = loaded_go.transform:Find("map/boss_list/boss_icon_bg").gameObject
+        local go = Object.Instantiate(template_go)
+
+        self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+        local frame = self:getFrame()
+
+        ----默认显示boss的范围圆圈
+        self.m_quest_boss_area = go.transform:Find("quest_boss_area").gameObject
+        self.m_quest_boss_area:SetActive(true)
+
+        self.m_boss_die = go.transform:Find("boss_die")
+        local dungeon_manager = self:getFrame("dungeon_manager")
+        -----在dungeon_manager中获取服务器返回的副本进度列表
+        local progress = dungeon_manager:gain_dungeon_progress()
+        for k,v in pairs(progress) do
+            if v == 200010 or 400001 or 500003 then
+                self.m_boss_die.gameObject:SetActive(true)
+                ------死亡时取消范围圆圈显示
+                self.m_quest_boss_area:SetActive(false)
+                break
+            end
+        end
+    end)
+end
+
+return big_map_boss_view

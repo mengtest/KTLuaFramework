@@ -1,0 +1,70 @@
+﻿
+local Quest_condition_base = class("Quest_condition_base")
+
+function Quest_condition_base:initialize(quest_id, index, quest_manager)
+    local data = dbc.quest[quest_id]
+    local index_str = tostring(index)
+
+    local tp_param_name = string.format("finish%s_params", index_str)
+    local aim_area_name = string.format("finish%s_area", index_str)
+    local per_weight_name = string.format("finish%s_weight", index_str)
+    local finish_desc_name = string.format("finish%s_desc", index_str)
+    
+    self.m_cur_param = 0
+    self.m_tbl_params = data[tp_param_name]
+    self.m_aim_param = data[tp_param_name][2]
+    self.m_aim_area = data[aim_area_name]
+    self.m_per_weight = data[per_weight_name]
+    self.m_finish_desc = data[finish_desc_name]
+    self.m_is_passed = false
+    self.m_quest_manager = quest_manager
+    
+    self:on_initialize(quest_id, index, quest_manager)
+end
+
+function Quest_condition_base:on_judge()
+    return self.m_is_passed
+end
+
+function Quest_condition_base:set_cur_param(cur_param)
+    self.m_cur_param = cur_param["stats"][1] or -1
+    self.m_is_passed = cur_param["done"] == SharedEnum.QuestCond.NONE
+end
+
+function Quest_condition_base:get_cur_weight()
+    return self.m_cur_param * self.m_per_weight
+end
+
+function Quest_condition_base:get_aim_weight()
+    Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Quest_condition_base:get_aim_weight() self.m_aim_param = %s, self.m_per_weight = %s", tostring(self.m_aim_param), tostring(self.m_per_weight)))
+    return self.m_aim_param * self.m_per_weight
+end
+
+function Quest_condition_base:get_aim_info()
+    --local dis, dir = 65536, Vector3.forward
+    if self.m_is_passed then
+        Util_log:logError(Util_log.Mask.SJG_Temp, "is_passed")
+        return nil, nil
+    end
+    
+    local dis, dir = nil, nil
+    local world = self.m_quest_manager:getFrame("world")
+    local area_data = world:get_area_data(self.m_aim_area[1], self.m_aim_area[2])
+    if area_data then
+        local own_pos = world:get_main_player():get_pos()
+        local vec = (area_data.worldPosition - own_pos)
+        dis = vec.magnitude
+        dir = vec.normalized
+    end
+    return dis, dir
+end
+
+function Quest_condition_base:get_aim_area()
+    return self.m_aim_area
+end
+
+function Quest_condition_base:get_finish_desc()
+    return self.m_finish_desc
+end
+
+return Quest_condition_base

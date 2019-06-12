@@ -1,0 +1,18 @@
+--套装选择界面frame
+local Frame = require("system.frame")
+local fashion_select = class("fashion_select", Frame)
+
+function fashion_select:doInit()
+
+    --存储所有的套装卡片
+    self.m_child_frame_list = {}
+
+end
+--循环加载套装卡片
+function fashion_select:on_loaded()
+    for i = 1, 12 do
+        self.m_child_frame_list[i] = self:createChild("fashion_select_card_" .. i, "%subsystem/backpack_equipment/ware_house/fashion_select_card")
+    end
+end
+
+return fashion_select

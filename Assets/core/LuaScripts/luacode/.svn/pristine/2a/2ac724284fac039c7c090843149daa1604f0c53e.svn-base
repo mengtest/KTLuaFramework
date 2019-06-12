@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local fashionable_dress_info_show = class("fashionable_dress_info_show", Frame)
+
+function fashionable_dress_info_show:doInit()
+
+end
+
+return fashionable_dress_info_show

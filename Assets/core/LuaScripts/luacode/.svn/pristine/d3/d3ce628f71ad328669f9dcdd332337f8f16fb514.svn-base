@@ -1,0 +1,50 @@
+local M = class("Account")
+
+function M:initialize(id)
+	self.m_id = id
+end
+
+function M:on_init()
+	print("Account:on_init")
+	self:base_call("req_role_list")
+end
+
+function M:on_destroy()
+	print("Account:on_destroy")
+end
+
+function M:base_call(method, ...)
+	print("Account:base_call", method, ...)
+	app:getKBESDK():entity_base_call(self.m_id, method, ...)
+end
+
+function M:resp_role_list(role_info_list)
+	print("Account::resp_role_list", role_info_list)
+	if #role_info_list == 0 then
+		print("role list is empty. try to create role")
+		--self:base_call("req_create_role", 0, "test")
+        local create_role = app:doCreateRole()
+        create_role:set_account(self)
+	else
+		for _,role_info in ipairs(role_info_list) do
+			print(role_info.dbid, role_info.name, role_info.class, role_info.level)
+		end
+		print("enter game with first role", role_info_list[1].dbid)
+		self:base_call("req_enter_game", role_info_list[1].dbid)
+	end
+end
+
+function M:req_create_role(class_id)
+    self:base_call("req_create_role", class_id, "test")
+end
+
+function M:resp_create_role(ret_code, role_info)
+	if ret_code == 0 then
+		print("create role ok. enter game", role_info.dbid)
+		self:base_call("req_enter_game", role_info.dbid)
+	else
+		print("create role fail", ret_code)
+	end
+end
+
+return M

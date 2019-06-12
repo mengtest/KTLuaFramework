@@ -1,0 +1,29 @@
+local Frame = require("system.frame")
+local inventory_manager = class("inventory_manager", Frame)
+
+function inventory_manager:doInit(param)
+
+
+end
+
+function inventory_manager:init()
+    self:local_log("inventory_manager  初始化")
+end
+
+function inventory_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function inventory_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function inventory_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return inventory_manager

@@ -1,0 +1,12 @@
+local View = require("system.view")
+local backpack_equipment_main_view = class("backpack_equipment_main_view", View)
+
+function backpack_equipment_main_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self:load("UI/EquipmentBackpack.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+    end)
+end
+
+return backpack_equipment_main_view

@@ -1,0 +1,28 @@
+local View = require("system.view")
+local big_map_world_view = class("big_map_world_view", View)
+
+function big_map_world_view:doInit()
+    self.m_big_map = self:getFrame("big_map")
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigWorldMap"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+    end)
+    self:subscribe(self.m_big_map:on_event("change_world_map"), function(map_id)
+        self:refresh(map_id)
+    end)
+end
+
+function big_map_world_view:refresh(map_id)
+    local go_name = string.format("biaozhi_%d_gameObject",map_id)
+    local parent = self[go_name]
+    if parent then
+        self["player_icon_gameObject"]:SetActive(true)
+        self["player_icon_gameObject"].transform:SetParent(parent.transform)
+        self["player_icon_gameObject"].transform.localPosition = Vector3.zero
+    else
+        self["player_icon_gameObject"]:SetActive(false)
+    end
+end
+
+return big_map_world_view

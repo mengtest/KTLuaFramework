@@ -1,0 +1,10 @@
+local row_0 = {['id']=12,['progress_point']={1001},['boss_id']={200001}}
+local row_1 = {['id']=13,['progress_point']={1001},['boss_id']={200001}}
+local row_2 = {['id']=14,['progress_point']={1001},['boss_id']={200001}}
+
+local datas = {
+	[12] = row_0,
+	[13] = row_1,
+	[14] = row_2,
+}
+return datas

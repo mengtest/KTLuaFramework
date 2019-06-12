@@ -1,0 +1,9 @@
+local M = { }
+
+M.Interact_Triggered_Type = {
+   NEED_CLICK = 1,
+   NO_NEED_CLICK = 2,
+   IMMEDIATELY = 3,
+}
+
+return M

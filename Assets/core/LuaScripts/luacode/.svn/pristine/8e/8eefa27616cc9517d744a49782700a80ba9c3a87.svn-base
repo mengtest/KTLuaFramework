@@ -1,0 +1,20 @@
+
+local View = require("system.view")
+local dungeon_confirm_progress_view = class("dungeon_confirm_progress_view", View)
+
+function dungeon_confirm_progress_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self:load("ui/Confirmdungeonprogress.prefab",function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        local accept_btn = go.transform:Find("confirm_dungeon_progress/accept_btn"):GetComponent(UI.Button)
+        self.tip_text = go.transform:Find("confirm_dungeon_progress/tip_bg_image/tip_image/content_text"):GetComponent(UI.Text)
+
+        accept_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_confirm_progress")
+            ---接受的话就开始
+            --self.tip_text.text = "woaini"
+        end)
+    end)
+end
+
+return dungeon_confirm_progress_view

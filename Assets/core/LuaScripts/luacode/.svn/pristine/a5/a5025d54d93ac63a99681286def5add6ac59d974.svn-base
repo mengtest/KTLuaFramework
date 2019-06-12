@@ -1,0 +1,34 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/3 19:52
+---
+local View = require("system.view")
+local team_mgr_bar_view = class("team_mgr_bar_view", View)
+
+function team_mgr_bar_view:doInit()
+
+    self.m_frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamBar"), function(go)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self:getView(name)
+            local view_go = view:getGO()
+            local parent_trs = self["grid_gameObject"].transform
+            view_go.transform.parent = parent_trs
+            view_go.transform.localPosition = Vector3.zero
+
+            self.m_frame:set_toggle_group(self["grid_gameObject"].transform:GetComponent("UnityEngine.UI.ToggleGroup"))
+        end)
+
+        self:subscribe(self.m_frame:on_event("is_show_head"), function(is_show)
+            self["head_gameObject"]:SetActive(is_show)
+        end)
+
+        app:get_team_mgr():req_team_info()
+    end)
+
+end
+
+return team_mgr_bar_view

@@ -1,0 +1,85 @@
+local View = require("system.view")
+local quick_matching_main_view = class("quick_matching_main_view", View)
+
+function quick_matching_main_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_matching_manager = self:getFrame("matching_manager")
+    local frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Matching"), function(go)
+        self.m_ui_manager:AdaptResolution(frame:getFrameName(), go)
+        self:getGO().gameObject:SetActive(false)
+        -----随机副本面板挂点
+        self.m_random_panel_container = go.transform:Find("bg/random_container").transform
+        -----指定副本面板挂点
+        self.m_designated_panel_container = go.transform:Find("bg/designated_container").transform
+
+        self.m_random_nor = go.transform:Find("btn_container/random_btn/random_normal").transform
+        self.m_random_sel = go.transform:Find("btn_container/random_btn/random_selected").transform
+
+        self.m_designated_nor = go.transform:Find("btn_container/designated_btn/designated_normal").transform
+        self.m_designated_sel = go.transform:Find("btn_container/designated_btn/designated_selected").transform
+
+        self.m_team_nor = go.transform:Find("btn_container/team_btn/team_normal").transform
+        self.m_team_sel = go.transform:Find("btn_container/team_btn/team_selected").transform
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+
+            if string.find(name, "random_matching") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_random_panel_container.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "designated_matching") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_designated_panel_container.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        self:subscribe(self.m_frame:on_event("show_random"), function()
+            self:on_show_random()
+        end)
+
+        self:subscribe(self.m_frame:on_event("show_designated"), function()
+            self:on_show_designated()
+        end)
+
+        frame:on_loaded(self)
+    end)
+end
+
+----显示
+function quick_matching_main_view:active_true()
+    self:getGO().gameObject:SetActive(true)
+end
+
+function quick_matching_main_view:on_show_random()
+    self.m_random_panel_container.gameObject:SetActive(true)
+    self.m_random_nor.gameObject:SetActive(false)
+    self.m_random_sel.gameObject:SetActive(true)
+    self.m_designated_nor.gameObject:SetActive(true)
+    self.m_designated_sel.gameObject:SetActive(false)
+    self.m_designated_panel_container.gameObject:SetActive(false)
+end
+
+function quick_matching_main_view:on_show_designated()
+    self.m_random_panel_container.gameObject:SetActive(false)
+    self.m_random_nor.gameObject:SetActive(true)
+    self.m_random_sel.gameObject:SetActive(false)
+    self.m_designated_nor.gameObject:SetActive(false)
+    self.m_designated_sel.gameObject:SetActive(true)
+    self.m_designated_panel_container.gameObject:SetActive(true)
+end
+
+return quick_matching_main_view

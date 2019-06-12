@@ -1,0 +1,72 @@
+local Frame = require("system.frame")
+local fashionable_dress_list = class("fashionable_dress_list", Frame)
+
+----定义子物体卡片被点击时的事件
+Event.decl(fashionable_dress_list, "card_click")
+
+function fashionable_dress_list:doInit()
+    self.m_child_frame_list = {}
+    self.m_fashions = dbc.fashion_dress
+end
+
+function fashionable_dress_list:on_loaded()
+    --获取角色职业
+    local role_type = self:get_role():get_rclass()
+    --当前角色种族对应的所有的套装
+    local show_fashions = {}
+    for k, v in pairs(self.m_fashions) do
+        if v['role'] == role_type then
+            show_fashions[#show_fashions + 1] = v
+        end
+    end
+    --将表根据id由小到大排序
+    table.sort(show_fashions, function(a, b)
+        return a.id < b.id
+    end)
+    --获取当前种族的所有时装
+    local show_fashion_dress = {}
+    for i = 1, #show_fashions do
+        if show_fashions[i]['type'] == 0 then
+            show_fashion_dress[#show_fashion_dress + 1] = show_fashions[i]
+        end
+    end
+    for i = 1, #show_fashion_dress do
+        if not self.m_child_frame_list[1] then
+            self.m_child_frame_list[1] = {}
+        end
+        local params = { ['index'] = i, ['info'] = show_fashion_dress[i] }
+        self.m_child_frame_list[1][#self.m_child_frame_list[1] + 1] = self:createChild("fashion_select_card_one_" .. i, "backpack_equipment/ware_house/fashion_select_card", params)
+    end
+    for i = 25, 25 do
+        if not self.m_child_frame_list[2] then
+            self.m_child_frame_list[2] = {}
+        end
+        self.m_child_frame_list[2][#self.m_child_frame_list[2] + 1] = self:createChild("fashion_select_card_two_" .. i, "backpack_equipment/ware_house/fashion_select_card", i)
+    end
+    for i = 29, 29 do
+        if not self.m_child_frame_list[3] then
+            self.m_child_frame_list[3] = {}
+        end
+        self.m_child_frame_list[3][#self.m_child_frame_list[3] + 1] = self:createChild("fashion_select_card_three_" .. i, "backpack_equipment/ware_house/fashion_select_card", i)
+    end
+    for i = 33, 33 do
+        if not self.m_child_frame_list[4] then
+            self.m_child_frame_list[4] = {}
+        end
+        self.m_child_frame_list[4][#self.m_child_frame_list[4] + 1] = self:createChild("fashion_select_card_four_" .. i, "backpack_equipment/ware_house/fashion_select_card", i)
+    end
+end
+
+function fashionable_dress_list:get_role()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    return role
+end
+
+function fashionable_dress_list:gain_child_frame_list()
+    return self.m_child_frame_list
+end
+
+return fashionable_dress_list

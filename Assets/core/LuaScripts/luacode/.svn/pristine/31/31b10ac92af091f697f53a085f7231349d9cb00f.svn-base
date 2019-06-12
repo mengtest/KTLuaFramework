@@ -1,0 +1,255 @@
+local rows = {}
+rows[1] = {['id']=100001,['group']='BGM/Map',['name']='beijingyinyue.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[2] = {['id']=100101,['group']='BGM/Area',['name']='Area_001.wav',['is_3d']=false,['max_dis']=10.0,['volume']=1.0,['loop_times']=1}
+rows[3] = {['id']=100102,['group']='BGM/Area',['name']='Area_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[4] = {['id']=100103,['group']='Role',['name']='not_enough_mana.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[5] = {['id']=100104,['group']='BGM/Map',['name']='shandong.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[6] = {['id']=100105,['group']='BGM/Map',['name']='qiao.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[7] = {['id']=100106,['group']='BGM/Map',['name']='zhandou.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=0.5,['loop_times']=0}
+rows[8] = {['id']=100107,['group']='BGM/Map',['name']='dashengyuan.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[9] = {['id']=100108,['group']='BGM/Map',['name']='laoshufeng.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[10] = {['id']=100109,['group']='BGM/Map',['name']='lianhuahu.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[11] = {['id']=100110,['group']='BGM/Map',['name']='piaoliu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[12] = {['id']=100111,['group']='BGM/Map',['name']='glz_bgm.wav',['is_3d']=false,['max_dis']=0.0,['volume']=0.6,['loop_times']=0}
+rows[13] = {['id']=100011,['group']='BGM/Area',['name']='A_01.wav',['is_3d']=false,['max_dis']=0.0,['volume']=0.8,['loop_times']=0}
+rows[14] = {['id']=100012,['group']='BGM/Area',['name']='P1_01.wav',['is_3d']=false,['max_dis']=0.0,['volume']=0.8,['loop_times']=0}
+rows[15] = {['id']=100013,['group']='BGM/Area',['name']='map_glz_lihua_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[16] = {['id']=100014,['group']='BGM/Area',['name']='map_glz_lihua_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[17] = {['id']=100015,['group']='BGM/Area',['name']='map_glz_hunyan_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[18] = {['id']=100016,['group']='BGM/Area',['name']='map_glz_hunyan_002.wma',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[19] = {['id']=100017,['group']='BGM/Area',['name']='map_glz_hunyan_003.wav',['is_3d']=false,['max_dis']=0.0,['volume']=0.2,['loop_times']=0}
+rows[20] = {['id']=100201,['group']='Role/Talk',['name']='1.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[21] = {['id']=100202,['group']='Role/Talk',['name']='2.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[22] = {['id']=100203,['group']='Role/Talk',['name']='3.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[23] = {['id']=100204,['group']='Role/Talk',['name']='4.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[24] = {['id']=100205,['group']='Role/Talk',['name']='5.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[25] = {['id']=100206,['group']='Role/Talk',['name']='6.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[26] = {['id']=100207,['group']='Role/Talk',['name']='7.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[27] = {['id']=100208,['group']='Role/Talk',['name']='8.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[28] = {['id']=100209,['group']='Role/Talk',['name']='9.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[29] = {['id']=100210,['group']='Role/Talk',['name']='10.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[30] = {['id']=100211,['group']='Role/Talk',['name']='11.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[31] = {['id']=100212,['group']='Role/Talk',['name']='12.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[32] = {['id']=100213,['group']='Role/Talk',['name']='13.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[33] = {['id']=100214,['group']='Role/Talk',['name']='14.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[34] = {['id']=100215,['group']='Role/Talk',['name']='15.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[35] = {['id']=100216,['group']='Role/Talk',['name']='16.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[36] = {['id']=100217,['group']='Role/Talk',['name']='17.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[37] = {['id']=100218,['group']='Role/Talk',['name']='18.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[38] = {['id']=100219,['group']='Role/Talk',['name']='19.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[39] = {['id']=100220,['group']='Role/Talk',['name']='20.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[40] = {['id']=100221,['group']='Role/Talk',['name']='21.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[41] = {['id']=100222,['group']='Role/Talk',['name']='22.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[42] = {['id']=100223,['group']='Role/Talk',['name']='23.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[43] = {['id']=100224,['group']='Role/Talk',['name']='24.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[44] = {['id']=100225,['group']='Role/Talk',['name']='25.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[45] = {['id']=100226,['group']='Role/Talk',['name']='26.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[46] = {['id']=100227,['group']='Role/Talk',['name']='27.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[47] = {['id']=100254,['group']='Role/Talk',['name']='54.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[48] = {['id']=100255,['group']='Role/Talk',['name']='55.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[49] = {['id']=100256,['group']='Role/Talk',['name']='56.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[50] = {['id']=100257,['group']='Role/Talk',['name']='57.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[51] = {['id']=100258,['group']='Role/Talk',['name']='58.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[52] = {['id']=100228,['group']='Role/Talk',['name']='28.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[53] = {['id']=100301,['group']='Effect',['name']='dashudaoxia.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[54] = {['id']=100302,['group']='Effect',['name']='huoyan.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[55] = {['id']=100303,['group']='Effect',['name']='baozha.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[56] = {['id']=110301,['group']='Effect',['name']='lc_wind_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[57] = {['id']=110302,['group']='Effect',['name']='lc_fix_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[58] = {['id']=110303,['group']='Effect',['name']='lc_gethit.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[59] = {['id']=110304,['group']='Effect',['name']='lc_fix_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=6.0,['loop_times']=1}
+rows[60] = {['id']=110305,['group']='Effect',['name']='lc_star_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=6.0,['loop_times']=1}
+rows[61] = {['id']=110306,['group']='Effect',['name']='lc_mo_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[62] = {['id']=110307,['group']='Effect',['name']='lc_burn_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[63] = {['id']=110308,['group']='Effect',['name']='lc_fix_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=5}
+rows[64] = {['id']=110309,['group']='Effect',['name']='lc_wind_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[65] = {['id']=110310,['group']='Effect',['name']='lc_wind_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[66] = {['id']=110311,['group']='Effect',['name']='lc_gr_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[67] = {['id']=110312,['group']='Effect',['name']='lc_gethit.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[68] = {['id']=110313,['group']='Effect',['name']='lc_pho_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[69] = {['id']=110314,['group']='Effect',['name']='lc_gethit.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[70] = {['id']=110315,['group']='Effect',['name']='lc_fix_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[71] = {['id']=110316,['group']='Effect',['name']='lc_gethit.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[72] = {['id']=110317,['group']='Effect',['name']='lc_wind_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[73] = {['id']=110318,['group']='Effect',['name']='lc_star_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[74] = {['id']=110319,['group']='Effect',['name']='lc_fix_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[75] = {['id']=110320,['group']='Effect',['name']='lc_hot_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[76] = {['id']=110321,['group']='Effect',['name']='lc_fix_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[77] = {['id']=110322,['group']='Effect',['name']='lc_shanxian_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[78] = {['id']=110601,['group']='Effect',['name']='jt_jt_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=12.0,['loop_times']=2}
+rows[79] = {['id']=110602,['group']='Effect',['name']='jt_yuhe_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[80] = {['id']=110603,['group']='Effect',['name']='jt_all_sj.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[81] = {['id']=110604,['group']='Effect',['name']='jt_zhiliao_mu .wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[82] = {['id']=110605,['group']='Effect',['name']='jt_ling_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[83] = {['id']=110606,['group']='Effect',['name']='jt_zls_ling_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=3}
+rows[84] = {['id']=110607,['group']='Effect',['name']='jt_zldy_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[85] = {['id']=110608,['group']='Effect',['name']='jt_zldy_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[86] = {['id']=110609,['group']='Effect',['name']='jt_zldy_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[87] = {['id']=110610,['group']='Effect',['name']='jt_jing_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[88] = {['id']=110611,['group']='Effect',['name']='jt_all_sj.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[89] = {['id']=110612,['group']='Effect',['name']='jt_yuhe_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[90] = {['id']=110613,['group']='Effect',['name']='jt_daoyan_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=12.0,['loop_times']=1}
+rows[91] = {['id']=110614,['group']='Effect',['name']='jt_yuhe_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[92] = {['id']=110615,['group']='Effect',['name']='jt_zldy_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[93] = {['id']=110616,['group']='Effect',['name']='jt_yuhe_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[94] = {['id']=110617,['group']='Effect',['name']='jt_ling_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[95] = {['id']=110618,['group']='Effect',['name']='jt_yuhe_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[96] = {['id']=110619,['group']='Effect',['name']='jt_ling_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[97] = {['id']=110620,['group']='Effect',['name']='jt_zls_ling_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[98] = {['id']=111201,['group']='Effect',['name']='mk_mo_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[99] = {['id']=111202,['group']='Effect',['name']='mk_xianji_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[100] = {['id']=111203,['group']='Effect',['name']='mk_mo_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[101] = {['id']=111204,['group']='Effect',['name']='lc_gr_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[102] = {['id']=111205,['group']='Effect',['name']='mk_polie_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[103] = {['id']=111206,['group']='Effect',['name']='mk_dyh_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[104] = {['id']=111207,['group']='Effect',['name']='jt_all_sj.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[105] = {['id']=111301,['group']='Effect',['name']='mk_mo_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[106] = {['id']=111302,['group']='Effect',['name']='mk_sha_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=6.0,['loop_times']=1}
+rows[107] = {['id']=111303,['group']='Effect',['name']='mk_sha_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[108] = {['id']=111304,['group']='Effect',['name']='mk_dan_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[109] = {['id']=111305,['group']='Effect',['name']='mk_all_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=6.0,['loop_times']=1}
+rows[110] = {['id']=111306,['group']='Effect',['name']='mk_mo_be.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[111] = {['id']=111307,['group']='Effect',['name']='mk_all_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=6.0,['loop_times']=3}
+rows[112] = {['id']=111308,['group']='Effect',['name']='mk_xnzr_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[113] = {['id']=111309,['group']='Effect',['name']='mk_xnzr_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[114] = {['id']=111310,['group']='Effect',['name']='mk_xnzr_la.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[115] = {['id']=111311,['group']='Effect',['name']='lc_gr_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[116] = {['id']=111312,['group']='Effect',['name']='mk_xieneng_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[117] = {['id']=111313,['group']='Effect',['name']='mk_eye_mu.wav',['is_3d']=false,['max_dis']=0.0,['volume']=3.0,['loop_times']=1}
+rows[118] = {['id']=111314,['group']='Effect',['name']='eqianattack.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[119] = {['id']=111315,['group']='Effect',['name']='gunbangattack_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[120] = {['id']=111316,['group']='Effect',['name']='hansheng_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[121] = {['id']=111317,['group']='Effect',['name']='hansheng_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[122] = {['id']=111318,['group']='Effect',['name']='hansheng_003.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[123] = {['id']=111319,['group']='Effect',['name']='hansheng_004.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[124] = {['id']=111320,['group']='Effect',['name']='gunbangattack_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[125] = {['id']=111321,['group']='Effect',['name']='fly_huoqiu_001',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+
+local datas = {
+	[100001] = rows[1],
+	[100101] = rows[2],
+	[100102] = rows[3],
+	[100103] = rows[4],
+	[100104] = rows[5],
+	[100105] = rows[6],
+	[100106] = rows[7],
+	[100107] = rows[8],
+	[100108] = rows[9],
+	[100109] = rows[10],
+	[100110] = rows[11],
+	[100111] = rows[12],
+	[100011] = rows[13],
+	[100012] = rows[14],
+	[100013] = rows[15],
+	[100014] = rows[16],
+	[100015] = rows[17],
+	[100016] = rows[18],
+	[100017] = rows[19],
+	[100201] = rows[20],
+	[100202] = rows[21],
+	[100203] = rows[22],
+	[100204] = rows[23],
+	[100205] = rows[24],
+	[100206] = rows[25],
+	[100207] = rows[26],
+	[100208] = rows[27],
+	[100209] = rows[28],
+	[100210] = rows[29],
+	[100211] = rows[30],
+	[100212] = rows[31],
+	[100213] = rows[32],
+	[100214] = rows[33],
+	[100215] = rows[34],
+	[100216] = rows[35],
+	[100217] = rows[36],
+	[100218] = rows[37],
+	[100219] = rows[38],
+	[100220] = rows[39],
+	[100221] = rows[40],
+	[100222] = rows[41],
+	[100223] = rows[42],
+	[100224] = rows[43],
+	[100225] = rows[44],
+	[100226] = rows[45],
+	[100227] = rows[46],
+	[100254] = rows[47],
+	[100255] = rows[48],
+	[100256] = rows[49],
+	[100257] = rows[50],
+	[100258] = rows[51],
+	[100228] = rows[52],
+	[100301] = rows[53],
+	[100302] = rows[54],
+	[100303] = rows[55],
+	[110301] = rows[56],
+	[110302] = rows[57],
+	[110303] = rows[58],
+	[110304] = rows[59],
+	[110305] = rows[60],
+	[110306] = rows[61],
+	[110307] = rows[62],
+	[110308] = rows[63],
+	[110309] = rows[64],
+	[110310] = rows[65],
+	[110311] = rows[66],
+	[110312] = rows[67],
+	[110313] = rows[68],
+	[110314] = rows[69],
+	[110315] = rows[70],
+	[110316] = rows[71],
+	[110317] = rows[72],
+	[110318] = rows[73],
+	[110319] = rows[74],
+	[110320] = rows[75],
+	[110321] = rows[76],
+	[110322] = rows[77],
+	[110601] = rows[78],
+	[110602] = rows[79],
+	[110603] = rows[80],
+	[110604] = rows[81],
+	[110605] = rows[82],
+	[110606] = rows[83],
+	[110607] = rows[84],
+	[110608] = rows[85],
+	[110609] = rows[86],
+	[110610] = rows[87],
+	[110611] = rows[88],
+	[110612] = rows[89],
+	[110613] = rows[90],
+	[110614] = rows[91],
+	[110615] = rows[92],
+	[110616] = rows[93],
+	[110617] = rows[94],
+	[110618] = rows[95],
+	[110619] = rows[96],
+	[110620] = rows[97],
+	[111201] = rows[98],
+	[111202] = rows[99],
+	[111203] = rows[100],
+	[111204] = rows[101],
+	[111205] = rows[102],
+	[111206] = rows[103],
+	[111207] = rows[104],
+	[111301] = rows[105],
+	[111302] = rows[106],
+	[111303] = rows[107],
+	[111304] = rows[108],
+	[111305] = rows[109],
+	[111306] = rows[110],
+	[111307] = rows[111],
+	[111308] = rows[112],
+	[111309] = rows[113],
+	[111310] = rows[114],
+	[111311] = rows[115],
+	[111312] = rows[116],
+	[111313] = rows[117],
+	[111314] = rows[118],
+	[111315] = rows[119],
+	[111316] = rows[120],
+	[111317] = rows[121],
+	[111318] = rows[122],
+	[111319] = rows[123],
+	[111320] = rows[124],
+	[111321] = rows[125],
+}
+return datas

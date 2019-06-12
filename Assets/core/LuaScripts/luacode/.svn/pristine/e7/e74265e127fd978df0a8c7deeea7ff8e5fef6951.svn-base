@@ -1,0 +1,18 @@
+local Frame = require("system.frame")
+local spirit_handbook_card = class("spirit_handbook_card", Frame)
+Attribute.decl(spirit_handbook_card, "id", 0)
+Event.decl(spirit_handbook_card, "selected")
+Event.decl(spirit_handbook_card, "unselected")
+
+function spirit_handbook_card:doInit()
+    self:set_is_add_rect_trans(true)
+end
+
+function spirit_handbook_card:on_spirit_btn()
+    local id = self:get_id()
+    self:getFrame("spirit_handbook_list"):change_selected_btn(self)
+    self:getFrame("spirit_handbook_list"):select_card(id)
+end
+
+
+return spirit_handbook_card

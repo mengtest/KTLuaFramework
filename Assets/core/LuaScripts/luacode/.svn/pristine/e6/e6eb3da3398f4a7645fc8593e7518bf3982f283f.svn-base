@@ -1,0 +1,28 @@
+local row_0 = {['tmpl']=700001,['name']='传送门',['type']=3,['count']=0,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70002,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_1 = {['tmpl']=700002,['name']='水平死亡面',['type']=4,['count']=0,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70003,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=3,['cost']='1;1;1'}
+local row_2 = {['tmpl']=700003,['name']='宝箱',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70001,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_3 = {['tmpl']=700004,['name']='空采集物',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_4 = {['tmpl']=700005,['name']='雷叉',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70006,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_5 = {['tmpl']=700006,['name']='捆绑的猴子',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70008,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_6 = {['tmpl']=700007,['name']='黄色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_7 = {['tmpl']=700008,['name']='绿色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_8 = {['tmpl']=700009,['name']='蓝色魂石',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_9 = {['tmpl']=700010,['name']='魂镜容器',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_10 = {['tmpl']=700011,['name']='三藏的凡尘',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+local row_11 = {['tmpl']=700012,['name']='魂镜蓄能池',['type']=0,['count']=1,['time']=3,['dist']=2,['func_call']=0,['func_params']={},['interact_obj_display_id']=70005,['operate_skill_id']=1,['operate_state_flags']=1000,['triggered_type']=2,['cost']='1;1;1'}
+
+local datas = {
+	[700001] = row_0,
+	[700002] = row_1,
+	[700003] = row_2,
+	[700004] = row_3,
+	[700005] = row_4,
+	[700006] = row_5,
+	[700007] = row_6,
+	[700008] = row_7,
+	[700009] = row_8,
+	[700010] = row_9,
+	[700011] = row_10,
+	[700012] = row_11,
+}
+return datas

@@ -1,0 +1,27 @@
+local Frame = require("system.frame")
+local backpack_list = class("backpack_list", Frame)
+
+function backpack_list:doInit(param)
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+    local equip_list = self.m_inventory_manager:gain_equipment_list()
+    -----所有装备的数据  在这里需要将他们进行分类，并且需要将这些分类按顺序进行显示
+    self.m_unequipment_list = {}
+    self.m_weapon_list = {}
+    self.m_armor_list = {}
+    self.m_ring_list = {}
+    for i, v in pairs(equip_list) do
+        self.m_unequipment_list[i] = v
+    end
+
+
+
+end
+
+function backpack_list:on_loaded()
+    --背包   temp
+    self:createChild("backpack_sub_list"..1, "%subsystem/backpack_equipment/backpack_sub_list", "weapon")
+    self:createChild("backpack_sub_list"..2, "%subsystem/backpack_equipment/backpack_sub_list", "armor")
+    self:createChild("backpack_sub_list"..3, "%subsystem/backpack_equipment/backpack_sub_list", "ring")
+end
+
+return backpack_list

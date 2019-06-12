@@ -1,0 +1,102 @@
+local sect_equipment_level_detail = {}
+
+
+
+function sect_equipment_level_detail:doInit()
+    self.m_inventory_manager = app:getFrameMgr():getFrame("inventory_manager")
+    -- 左侧的装备目标frame
+    self.m_sect_equipment_target = app:getFrameMgr():getFrame("sect_equipment_target")
+    -- 这个列表的 key 是 字符串的装备名称  value是info
+    self.m_equipping_ori_dict = self.m_inventory_manager:gain_equiping_dic()
+    self.m_equipping_dict = self:change_equipping_dict_key(self.m_equipping_ori_dict)
+
+
+    --佩戴装备
+    self:subscribe(self.m_inventory_manager:on_event("equipped"), function(wearable_info, equip_type)
+        self:change_equipment(wearable_info, equip_type)
+    end)
+    --卸下装备
+    self:subscribe(self.m_inventory_manager:on_event("unequipped"), function(equip_type)
+        self:change_equipment(nil, equip_type)
+    end)
+
+    self:set_is_add_rect_trans(true)
+end
+
+function sect_equipment_level_detail:change_equipping_dict_key(list)
+    local temp_list = {}
+    -- 转换成正常key为 enum.shared.WearableTarget 枚举中的装备类型
+    for i, v in pairs(list) do
+        local key = self.m_inventory_manager:get_equip_type(i)
+        temp_list[key + 1] = v
+    end
+    return temp_list
+end
+function sect_equipment_level_detail:on_loaded()
+    self.m_equipment_frame_list = {}
+    -- 创建15个装备
+    for i, v in ipairs(self.m_equipping_dict) do
+        local frame = self:createChild("sect_equipment_item" .. (i - 1), "sect.sect_equipment_item", { type = i - 1, info = v })
+        self.m_equipment_frame_list[i] = frame
+    end
+
+    local average_level = self:get_equip_average_level()
+    -- 设置左侧装等项的平均装等
+    self.m_sect_equipment_target:set_current_level(average_level)
+
+end
+
+-- 更换装备（包含穿戴和删除）
+function sect_equipment_level_detail:change_equipment(wearable_info, equip_type)
+    -- 修改本脚本中维护的装备列表
+    for i, v in ipairs(self.m_equipping_dict) do
+        if i == equip_type + 1 then
+            if wearable_info then
+                for index, value in pairs(wearable_info) do
+                    v[index] = value
+                end
+            else
+                v.tmpl = 0
+            end
+        end
+    end
+    -- 设置每一个装备的值
+    for i, v in ipairs(self.m_equipment_frame_list) do
+        if equip_type == i - 1 then
+            if wearable_info then
+                v:refresh_equipment_data(wearable_info)
+            else
+                v:refresh_equipment_data(nil)
+            end
+
+        end
+    end
+    local average_level = self:get_equip_average_level()
+    -- 设置左侧装等项的平均装等
+    self.m_sect_equipment_target:set_current_level(average_level)
+
+end
+
+
+--获取角色平均装等数值
+function sect_equipment_level_detail:get_equip_average_level()
+    local average_level = 0
+    local count = 0     --装备计数
+    local level_sum = 0
+    for type_enum, equip_info in ipairs(self.m_equipping_dict) do
+        count = count + 1
+        if equip_info["tmpl"] ~= 0 then
+            level_sum = level_sum + dbc.item[equip_info.tmpl].level_label + equip_info.enhanced_level
+        end
+    end
+
+    if count == 0 then
+        average_level = -1
+        return
+    end
+
+    average_level = utility.math:GetPreciseDecimal(level_sum / count, 1)
+    return average_level
+end
+
+return sect_equipment_level_detail

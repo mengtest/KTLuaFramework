@@ -1,0 +1,20 @@
+--临时使用，以免以后正式启用多语言时找不到哪里用过汉字
+
+local M = class("I18nMgr")
+
+local cn ={
+  in_combat = "进入战斗",
+  out_combat = "脱离战斗",
+  collect = "采集",
+  climb = "攀爬",
+  carry = "携带",
+  transfer = "传送",
+  interacting = "正在交互中，请稍后..",
+  interact_break = "交互打断...",
+}
+
+function M:get_text(text_name)
+    return cn[text_name] --by lijunfeng 修复bug
+end
+
+return M

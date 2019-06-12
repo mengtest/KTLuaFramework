@@ -1,0 +1,19 @@
+local Frame = require("system.frame")
+local skill_ui_list = class("skill_ui_list", Frame)
+
+function skill_ui_list:doInit(param)
+    self.m_skill_list = {}
+
+end
+
+function skill_ui_list:on_loaded()
+    self:load_skill_btn_list(5)
+end
+
+function skill_ui_list:load_skill_btn_list(num)
+    for i = 1, num do
+        self:createChild("skill_ui_list_btn"..i, "%subsystem/skill_system_ui/skill_ui_list_btn")
+    end
+end
+
+return skill_ui_list

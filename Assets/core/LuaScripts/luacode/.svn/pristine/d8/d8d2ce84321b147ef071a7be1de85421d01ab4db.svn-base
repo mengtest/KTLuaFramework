@@ -1,0 +1,32 @@
+local sect_talent_view = {}
+
+function sect_talent_view:doInit()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectTalent"), function(go)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+        -- 显示
+        self:subscribe(self.m_frame:on_event("show"), function()
+            self:show()
+        end)
+        -- 隐藏
+        self:subscribe(self.m_frame:on_event("hide"), function()
+            self:hide()
+        end )
+        self:hide()
+    end)
+end
+
+---- 显示自己
+function sect_talent_view:show()
+    self:getGO():SetActive(true)
+end
+---- 隐藏自己
+function sect_talent_view:hide()
+    self:getGO():SetActive(false)
+end
+
+
+return sect_talent_view

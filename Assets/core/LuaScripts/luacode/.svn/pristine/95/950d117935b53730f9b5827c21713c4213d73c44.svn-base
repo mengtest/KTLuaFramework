@@ -1,0 +1,171 @@
+local M = {}
+
+Attribute.decl(M, "id", nil)
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(M, "dir", function() return 0 end)
+Attribute.decl(M, "belongs_to", 0)-- 吸收者/拾取者
+Attribute.decl(M, "spawned_by", 0)-- 产生者/拥有者
+
+Event.decl(M,"show_view")
+
+function M:doInit(param)
+    local kbe_creature = param
+    
+    self:set_id(kbe_creature:get_id())
+    self:set_pos(kbe_creature:get_pos())
+    self:set_dir(kbe_creature:get_dir())
+
+    self:subscribe(kbe_creature:on_event_spawned_by_set(), function(val)
+        self:set_spawned_by(val)
+    end)
+
+    self:subscribe(kbe_creature:on_event_belongs_to_set(), function(val)
+        self:set_belongs_to(val)
+    end)
+
+    
+    self.m_world = self:getFrame("world")
+    
+    
+    self.m_update_func = nil
+end
+
+function M:get_model_id()
+    return 20011
+end
+
+function M:del(func)
+    self.m_del_event = func
+    if (self.m_is_adsorb == true) then
+        local tid = 200011 -- 赵鹏的能量球 我能怎么办 我也很绝望啊。。。
+        local start_func = self["special_del_start_" .. tostring(tid)]
+        local update_func = self["special_del_update_" .. tostring(tid)]
+        
+        if (update_func ~= nil and type(update_func) == "function") then
+            if (start_func ~= nil and type(start_func) == "function") then
+                start_func(self)
+            end
+            self.m_update_func = update_func
+        end
+    else
+        func(self)
+    end
+end
+
+function M:doUpdate()
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+end
+
+-- 掉落/产生
+function M:spawn(id)
+
+    local world = self.m_world
+
+    local player_id = world:get_main_player():get_id() 
+
+    -- 赵鹏在产生时候给归属者 你怕不怕 啊 怕不怕
+    if(self:get_belongs_to() ~= world:get_main_player():get_id()) then
+        return
+    end
+
+    self:set_spawned_by(id)
+
+    local tid = 200011 -- 赵鹏的能量球 我能怎么办 我也很绝望啊。。。
+    local start_func = self["special_show_start_" .. tostring(tid)]
+    local update_func = self["special_show_update_" .. tostring(tid)]
+
+    if (update_func ~= nil and type(update_func) == "function") then
+        if (start_func ~= nil and type(start_func) == "function") then
+            start_func(self)
+        end
+        self.m_update_func = update_func
+    end
+
+    self:emit_event("show_view")
+end
+
+-- 拾取/吸收
+function M:adsorb(id)
+    self:set_belongs_to(id)
+    self.m_is_adsorb = true
+end
+
+
+
+
+-- 灵魂碎片出现
+function M:special_show_start_200011()
+    self.m_start_time = Time.time
+    self.m_anima_time = 1.0
+
+    local spawned = self.m_world:getUnit(self:get_spawned_by())
+
+    local target_pos = self:get_pos()
+
+    local start_pos = spawned:get_pos()
+
+    self:set_pos(start_pos)
+
+    self.m_point_count = 50
+
+
+    self:init_custom_curve(200011,start_pos,target_pos)
+end
+
+-- 灵魂碎片出现
+function M:special_show_update_200011()
+
+    self:custom_curve()
+end
+
+
+
+-- 灵魂碎片消失
+function M:special_del_start_200011()
+    self.m_start_time = Time.time
+    self.m_anima_time = 0.5
+    local start_pos = self:get_pos()
+    self.m_point_count = 50
+    local target = self.m_world:getUnit(self:get_belongs_to())
+
+    self:subscribe(target:on_event_pos_set(true), function(value)
+        local target_pos = value
+        self:init_custom_curve(200011,start_pos,target_pos)
+    end)
+end
+
+-- 灵魂碎片消失
+function M:special_del_update_200011()
+    self:custom_curve()
+end
+
+
+function M:init_custom_curve(type,start_pos,target_pos)
+    self.m_curve_point = {}
+    
+    local user_data = KTBezier.getLinePoint(start_pos, target_pos, self.m_point_count, dbc.projectile_type[type].custom)
+    
+    for info in foreach(user_data) do
+        table.insert(self.m_curve_point, info)
+    end
+end
+
+function M:custom_curve()
+    local ttt = Time.time - self.m_start_time
+    
+    local percent = ttt / self.m_anima_time
+    
+    local index = math.ceil(self.m_point_count * percent)
+    
+    if (index <= self.m_point_count) then
+        self:set_pos(self.m_curve_point[index])
+    else
+        if(self.m_del_event ~= nil) then
+            self.m_del_event(self)
+        end
+    end
+end
+
+return M

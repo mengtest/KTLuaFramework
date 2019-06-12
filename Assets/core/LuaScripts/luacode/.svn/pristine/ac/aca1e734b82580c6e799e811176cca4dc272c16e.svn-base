@@ -1,0 +1,576 @@
+local M = {}
+
+
+function M:doInit(param)
+    self.m_parent = param.parent
+    self.m_is_special = param.special
+    self.m_unit = param.unit
+    
+    self.m_cur_cd_mode = nil -- 当前绘制的cd
+    
+    self.m_down_handler = nil -- 外部回调 按钮按下
+    self.m_up_handler = nil -- 外部回调 按钮抬起
+    self.m_swipe_handler = nil -- 外部回调 按钮拖动
+    
+    
+    self.m_res_loaded = false
+    self:loadRes()
+
+end
+
+
+-- view所需资源是否加载完毕
+function M:is_res_loaded()
+    return self.m_res_loaded
+end
+
+-- 获取图标组件
+function M:get_icon()
+    return self.m_btn_image
+end
+
+
+
+function M:loadRes()
+    local prefab_path = "ui/SkillBtn.prefab"
+    if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+        prefab_path = "ui/SpecialSkillBtn.prefab"
+    end
+    
+    self:load(prefab_path, function(go)
+        self.m_res_loaded = true
+        self.m_ui_asset = go:GetComponent(SkillBtnUIAsset)
+        
+        local btn_down_scale = 1
+        local btn_up_revert_scale_time = 0.2
+        if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then btn_down_scale = 1.5 else btn_down_scale = 1.2 end
+        if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then btn_up_revert_scale_time = 0.5 else btn_up_revert_scale_time = 0.2 end
+        
+        local view = self:getGO()
+        view.transform:SetParent(self.m_parent)
+        view:AddComponent(RectTransform)
+        view.transform.localPosition = Vector3(0, 0, 0)
+        view.transform.localScale = Vector3.one
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+        
+        local go_trsf = go.transform
+        go:SetActive(true)
+        
+        local frame = self:getFrame()
+        local skill_data = frame:get_skill_data()
+                
+        
+        -- 获取组件 --
+        local etc_btn = self.m_ui_asset.EtcBtn -- 按钮
+        self.m_etc_btn = etc_btn
+        local btn_image = self.m_ui_asset.EtcBtnImage -- 按钮sprite
+        self.m_btn_image = btn_image
+        
+        -- 抬起时 点击特效
+        self.m_click_sfx = nil
+        
+        if (self.m_is_special ~= Enum_UI_SkillBtnType.special_skill) then
+            self:load_sfx("sfx/skill/prefab/ui/ui_dianjifankui.prefab", etc_btn.transform, "m_click_sfx")
+        end
+        
+        
+        local quick_swipe = self.m_ui_asset.EtcBtn.gameObject:GetComponent(QuickSwipe)-- swipe控件
+        self.m_quick_swipe = quick_swipe
+        
+        local cd_go = self.m_ui_asset.CoolDown
+        
+        local cooldown_image = cd_go:GetComponent(UI.Image)-- cd雷达图
+        self.m_cooldown_image = cooldown_image
+
+        
+        local remain_time_txt = self.m_ui_asset.CdTime -- cd倒计时
+        
+        self.m_remain_time_txt = remain_time_txt
+        
+        local icon_image = self.m_ui_asset.SkillIcon -- 技能图标
+        icon_image.enabled = false
+        --self.m_icon_image = icon_image
+        
+        if (self.m_is_special ~= Enum_UI_SkillBtnType.special_skill) then
+            self.m_ui_asset.ChargeImage.enabled = false -- 充能条
+            self.m_ui_asset.ChargeImageBack.enabled = false -- 充能条背景
+            self.m_ui_asset.CdCircle.enabled = false -- 不可充能技能的cd环
+        end
+        
+        
+        
+        -- 技能冷却/充能完成特效
+        self.m_cd_sfx = nil
+        
+        if (self.m_is_special ~= Enum_UI_SkillBtnType.special_skill) then
+            self:load_sfx("sfx/skill/prefab/ui/ui_lengquewancheng01.prefab", etc_btn.transform, "m_cd_sfx")
+        end
+        
+        -- 技能冷却/充能过程特效
+        self.m_cd_process_sfx = nil  
+            if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+                self:load_sfx("sfx/skill/prefab/ui/ui_dazhao_chongneng.prefab", etc_btn.transform,"m_cd_process_sfx")
+            else
+                self:load_sfx("sfx/skill/prefab/ui/ui_chongneng_huodian.prefab", etc_btn.transform,"m_cd_process_sfx")
+            end
+
+        -- 技能高亮/激活特效
+        self.m_high_light_sfx = nil
+        
+        
+        if (self.m_is_special ~= Enum_UI_SkillBtnType.special_skill) then
+            self:load_sfx("sfx/skill/prefab/ui/ui_jihuo_shiyan1.prefab", etc_btn.transform,"m_high_light_sfx")
+        end
+        
+        
+        local mask = self.m_ui_asset.Mask -- 禁用遮罩
+        
+        local mana_not_enough_mask = self.m_ui_asset.ManaNotEnoughMask -- rjy 2017.10.28 技能消耗
+        
+        local playerControllerView = self:getView("player_controller")
+        
+        -- 交互事件 ---
+        -- 按钮按下
+        etc_btn.onDown = ETCButton_OnDownHandler()
+        etc_btn.onDown:AddListener(function()
+            playerControllerView:on_skill_btn_down(self)
+            view.transform.localScale = Vector3(btn_down_scale, btn_down_scale, btn_down_scale)
+        end)
+        
+        -- 按钮抬起
+        etc_btn.onUp = ETCButton_OnUPHandler()
+        etc_btn.onUp:AddListener(function()
+            if (self.m_click_sfx ~= nil) then 
+                self.m_click_sfx.gameObject:SetActive(true) 
+                self.m_click_sfx:Play() 
+            end
+            playerControllerView:on_skill_btn_up(self)
+            ShortcutExtensions.DOScale(view.transform, 1, btn_up_revert_scale_time)
+        end)
+        
+        -- 按钮拖动
+        quick_swipe.onSwipeAction = QuickSwipe.OnSwipeAction()
+        quick_swipe.onSwipeAction:AddListener(function(gesture)
+            playerControllerView:on_skill_btn_swipe(gesture, self)
+        end)
+        
+        -- 注册数据事件 --
+        -- 技能模板
+
+        self:subscribe(frame:on_event_change_skill_data(), function()
+            skill_data = frame:get_skill_data()
+            local client_cfg = skill_data:get_client_cfg()
+            -- 绘制图标
+            local icon_path = client_cfg.icon
+            self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                    --print("-------------", asset_ref.asset)
+                    local tex = asset_ref.asset
+                    if (tex == nil) then
+                        Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                    else
+                        icon_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                        icon_image.enabled = true
+                    end
+             
+            end)
+            
+            local icon_cd_path = client_cfg.cd_icon
+            self:subscribe(app:getResMgr():rxLoad(icon_cd_path), function(asset_ref)
+                local tex = asset_ref.asset
+                if (tex == nil) then
+                    Debug.LogError("找不到这个cd_icon啊---->" .. icon_cd_path)
+                else
+                    cooldown_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                    cooldown_image.enabled = true
+                end
+            end)
+        end)
+
+        frame:emit_event("change_skill_data")
+        
+        if (self.m_is_special ~= Enum_UI_SkillBtnType.special_skill) then
+        self:subscribe(skill_data:on_event_max_charges_set(true), function(val)
+            self.m_ui_asset.ChargeImage.enabled = false -- 充能条
+            self.m_ui_asset.ChargeImageBack.enabled = false -- 充能条背景
+            self.m_ui_asset.CdCircle.enabled = false -- 不可充能技能的cd环
+
+               -- 初始化充能槽
+               if skill_data:is_type_charge() then
+                    self:subscribe(app:getResMgr():rxLoad("ui/Icons/skill/skillshow/cd_bar_"..tostring(val).."_fill.png"), function(asset_ref)
+                        local tex = asset_ref.asset
+                        self.m_ui_asset.ChargeImage.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                        self.m_ui_asset.ChargeImage.enabled = true
+                        self.m_ui_asset.ChargeImage.transform.localEulerAngles = Vector3.zero
+                        if(val == 3) then
+                            self.m_ui_asset.ChargeImage.transform.localEulerAngles = Vector3(0,0,-64)
+                        end
+                    end)
+
+                    self:subscribe(app:getResMgr():rxLoad("ui/Icons/skill/skillshow/cd_bar_"..tostring(val)..".png"), function(asset_ref)
+                        local tex = asset_ref.asset
+                        self.m_ui_asset.ChargeImageBack.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                        self.m_ui_asset.ChargeImageBack.enabled = true
+                        self.m_ui_asset.ChargeImageBack.transform.localEulerAngles = Vector3.zero
+                    end)
+                else
+                    self:subscribe(app:getResMgr():rxLoad("ui/Icons/skill/skillshow/cd_bar_1_fill.png"), function(asset_ref)
+                        local tex = asset_ref.asset
+                        self.m_ui_asset.CdCircle.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                        self.m_ui_asset.CdCircle.enabled = true
+                        self.m_ui_asset.CdCircle.fillAmount = 0
+                    end)
+                end
+        end)
+        end
+
+        -- 开始/结束绘制公共cd
+        self:subscribe(skill_data:on_event_is_g_cd_set(true), function(is_start)
+            if is_start then
+                -- 公共cd开始 --
+                if self.m_cur_cd_mode == SharedEnum.SpellModOp.GLOBAL_COOLDOWN then
+                    -- 正在绘制【公共cd】则返回
+                    return
+                elseif self.m_cur_cd_mode == SharedEnum.SpellModOp.COOLDOWN then
+                    -- 正常触发【公cd】的时候恰巧我在【自cd】 --
+                    -- 继续【自cd】
+                    if skill_data:get_g_cd_end_time() > skill_data:get_cd_end_time() then
+                        -- 如果【公共cd】更晚结束，禁用交互 --
+                        self:enable_user_interactive(false)
+                    else
+                        return
+                    end
+                    -- todo 这里设计需求有待明确，充能cd期间(可用充能>1，技能可用)，发生公共cd怎么处理？
+                    -- 好像不用处理啊。。。
+                    return
+                end
+                -- 禁用交互
+                self:enable_user_interactive(false)
+                -- 显示深色雷达图 暂时用prefab来决定 如果有需求我再修改 -- clz
+                --cooldown_image.color = Color.red
+                --cd_go:SetActive(true)
+                -- 隐藏cd倒计时
+                if (remain_time_txt ~= nil) then
+                    remain_time_txt.gameObject:SetActive(false)
+                end
+                -- 开始绘制
+                self.m_cur_cd_mode = SharedEnum.SpellModOp.GLOBAL_COOLDOWN
+            
+            else
+                -- 公共cd结束 --
+                -- 已停止绘制则返回
+                if self.m_cur_cd_mode ~= SharedEnum.SpellModOp.GLOBAL_COOLDOWN then
+                    return
+                else
+                    -- 启用交互
+                    self:enable_user_interactive(true)
+                    -- 隐藏雷达图
+                    --cd_go:SetActive(false)
+                    -- 应该不需要设置隐藏 将数值修改为0即可  方便实现两种按钮的cd机制  --clz
+                    if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+                        self.m_cooldown_image.fillAmount = 1
+                    else
+                        self.m_cooldown_image.fillAmount = 0
+                    end
+                    
+                    -- 结束绘制
+                    self.m_cur_cd_mode = nil
+               
+                end
+            end
+        end)
+        
+        
+        -- 开始/结束绘制cd
+        self:subscribe(skill_data:on_event_is_cooldown_set(true), function(is_start)
+            if is_start then
+                -- 【cd】开始 -- 暂时用prefab来决定 如果有需求我再修改 -- clz
+                --cooldown_image.color = Color.red
+                -- 禁用交互
+                self:enable_user_interactive(false)
+                -- 显示雷达图
+                --cd_go:SetActive(true)
+                -- 显示cd倒计时
+                if (remain_time_txt ~= nil) then
+                    remain_time_txt.gameObject:SetActive(true)
+                end
+                -- 开始绘制
+                self.m_cur_cd_mode = SharedEnum.SpellModOp.COOLDOWN
+                
+                if (self.m_is_special == Enum_UI_SkillBtnType.special_skill and self.m_cd_process_sfx ~= nil) then
+                    self.m_cd_process_sfx.gameObject:SetActive(true)
+                    self.m_cd_process_sfx:Play()
+                end
+            
+            else
+                -- 【cd】结束 --
+                -- 已停止绘制则返回
+                if self.m_cur_cd_mode ~= SharedEnum.SpellModOp.COOLDOWN then
+                    return
+                else
+                    -- 启用交互
+                    self:enable_user_interactive(true)
+                    -- 隐藏雷达图
+                    --cd_go:SetActive(false)
+                    if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+                        self.m_cooldown_image.fillAmount = 1
+                    else
+                        self.m_cooldown_image.fillAmount = 0
+                    end
+                    
+                    if (self.m_cd_process_sfx ~= nil) then
+                        self.m_cd_process_sfx.gameObject:SetActive(false)
+                    end
+                    
+                    -- 隐藏cd倒计时
+                    if (remain_time_txt ~= nil) then
+                        remain_time_txt.gameObject:SetActive(false)
+                    end
+                    -- 结束绘制
+                    self.m_cur_cd_mode = nil
+                    -- 播放特效
+                    if(self.m_cd_sfx ~= nil) then
+                        self.m_cd_sfx.gameObject:SetActive(true) 
+                        self.m_cd_sfx:Play()
+                        slua_timer.addDelayEvent(2,function()
+                            self.m_cd_sfx.gameObject:SetActive(false)
+                        end)
+                    end
+                end
+            end
+        end)
+        
+
+        -- 充满一格  播放特效
+        self:subscribe(skill_data:on_event_charged_count_set(true), function(new_v, old_v)
+            if old_v == nil then
+                old_v = new_v
+            end
+            if new_v > old_v then
+                if(self.m_cd_sfx ~= nil) then
+                    self.m_cd_sfx.gameObject:SetActive(true) 
+                    self.m_cd_sfx:Play()
+                    slua_timer.addDelayEvent(2,function()
+                        self.m_cd_sfx.gameObject:SetActive(false)
+                    end)
+                end
+            end
+        end)
+        
+        
+        self:subscribe(frame:on_event_can_use_set(true), function(val)
+            if (val == true) then
+                mask:SetActive(false)
+                go:GetComponent(CanvasGroup).blocksRaycasts = true;
+            else
+                mask:SetActive(true)
+                go:GetComponent(CanvasGroup).blocksRaycasts = false;
+            end
+        end)
+        
+        self:subscribe(frame:on_event_highLight_set(), function(val)
+            if (val == true) then
+                self.m_high_light_sfx.gameObject:SetActive(true)
+                self.m_high_light_sfx:Play()
+            else
+                self.m_high_light_sfx.gameObject:SetActive(false)
+            end
+        end)
+        
+        -- rjy 2017.10.28 技能消耗
+        self:subscribe(frame:on_event_have_enough_mana_set(true), function(is_enough)
+            if is_enough then
+                mana_not_enough_mask:SetActive(false)
+            --print("法力充足")
+            else
+                mana_not_enough_mask:SetActive(true)
+            --print("skill_ctr_btn_view:法力值不足。。。。。。")
+            end
+        end)
+        -- rjy 2017.11.07 施法距离
+        local skill_cfg = dbc.spell[skill_data:get_id()]
+        local cast_dist = skill_cfg.cast_dist
+        local skill_mgr = app:getSkillMgr()
+        local skill_effect_cfg_list = skill_mgr:get_effect_cfg_list(skill_data:get_id())
+        self:subscribe(self.m_unit:on_event_target_distance_set(true), function(dist)
+            if skill_mgr:is_target_type_target(skill_effect_cfg_list) then
+                if dist > cast_dist then
+                    -- 在施法距离外
+                    mana_not_enough_mask:SetActive(true)
+                    frame:set_is_target_in_range(false)
+                else
+                    -- 在施法距离内
+                    mana_not_enough_mask:SetActive(false)
+                    frame:set_is_target_in_range(true)
+                end
+            else
+                mana_not_enough_mask:SetActive(false)
+                frame:set_is_target_in_range(true)
+            end
+        end)
+    end)
+end
+
+
+
+function M:doUpdate()
+    
+    if not self.m_res_loaded then
+        return
+    end
+    
+    local frame = self:getFrame()
+    local skill_data = frame:get_skill_data()
+    
+    if (skill_data == nil) then
+        return
+    end
+    --print("&&&&&&&&&&&&&&&", self.m_cur_cd_mode)
+    if self.m_cur_cd_mode == SharedEnum.SpellModOp.COOLDOWN then
+        -- 绘制cd --
+        -- 计算时间/百分比
+        local duration = skill_data:get_cooldown()
+        local end_time = skill_data:get_cd_end_time()
+        local server_time = app:get_server_time()
+        local remain_time = self:get_remain_time(end_time, server_time)
+        local remain_percent = remain_time / duration
+        
+        -- 雷达图
+        if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+            remain_percent = 1 - remain_percent
+            self.m_cd_process_sfx.gameObject:SetActive(true)
+            self.m_cd_process_sfx.gameObject.transform.localEulerAngles = Vector3(0,0,engle)
+        end
+        
+        self.m_cooldown_image.fillAmount = remain_percent
+
+        
+        -- 倒计时文字
+        if (self.m_remain_time_txt ~= nil) then
+            if(remain_time<1) then
+                self.m_remain_time_txt.text = Util_math:GetPreciseDecimal(remain_time, 1)
+            else
+                self.m_remain_time_txt.text = math.ceil(remain_time)
+            end
+        end
+    
+    elseif self.m_cur_cd_mode == SharedEnum.SpellModOp.GLOBAL_COOLDOWN then
+        -- 绘制公共cd --
+        -- 计算时间/百分比
+        local duration = skill_data:get_global_cooldown_time()
+        local end_time = skill_data:get_g_cd_end_time()
+        local server_time = app:get_server_time()
+        local remain_time = self:get_remain_time(end_time, server_time)
+        local remain_percent = remain_time / duration
+        
+        -- 雷达图
+        if (self.m_is_special == Enum_UI_SkillBtnType.special_skill) then
+            remain_percent = 1 - remain_percent
+        end
+        
+        self.m_cooldown_image.fillAmount = remain_percent
+    end
+    
+    -- 充能环
+    local is_charging = skill_data:get_is_charging()
+    if is_charging then
+        local duration = skill_data:get_cooldown()  -- 冷却时间
+        local charge_slot_end_time = skill_data:get_charge_cd_end_time() -- 充能cd结束时间 时间戳
+        local server_time = app:get_server_time() -- 服务器时间
+        local charge_slot_remain_time = self:get_remain_time(charge_slot_end_time, server_time)
+        local charge_slot_remain_percent = (duration - charge_slot_remain_time) / duration -- 百分比 低->高
+
+        local cur_count = skill_data:get_charged_count()
+
+        
+        local range = self:get_charge_data()
+
+        local value = Mathf.Lerp(range[1],range[2],charge_slot_remain_percent)
+
+        self.m_ui_asset.ChargeImage.fillAmount = value
+
+        local engle = Mathf.Lerp(0,-360,value)
+        if(skill_data:get_max_charges() ==3 ) then
+            engle = Mathf.Lerp(-66,-426,value)
+        end
+        self.m_cd_process_sfx.gameObject:SetActive(true)
+        self.m_cd_process_sfx.gameObject.transform.localEulerAngles = Vector3(0,0,engle)
+    elseif(skill_data:get_max_charges()>1 and self.m_cd_process_sfx ~= nil) then
+        self.m_cd_process_sfx.gameObject:SetActive(false)
+    end
+
+end
+
+
+-- 开启/关闭用户交互
+function M:enable_user_interactive(enabled)
+    if enabled then
+        self.m_etc_btn.enabled = true
+        self.m_quick_swipe.enabled = true
+    else
+        self.m_etc_btn.enabled = false
+        self.m_btn_image.enabled = true -- disable ETCButton时会自动disable关联Image
+        self.m_quick_swipe.enabled = false
+    end
+end
+
+-- 计算cd百分比
+function M:get_remain_time(end_time, server_time)
+    local remain_time = end_time - server_time
+    if remain_time < 0 then
+        remain_time = 0
+    end
+    return remain_time
+end
+
+-- 加载特效
+function M:load_sfx(path, parent,cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+        
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager:GetDepthName("player_controller"))
+        
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+        
+        if (cache == nil) then return end
+        self[cache] = component
+    end)
+end
+
+
+
+M.charge_data_list = {
+    {},                                             -- 留空 方便理解
+    {{0.01,0.483},{0.507,0.99}},                    -- 2层
+    {{0.01,0.312},{0.33,0.632},{0.650,0.996}},      -- 3层
+    {{0.01,0.24},{0.26,0.494},{0.51,0.739},{0.755,0.989}}, -- 4层
+    {{0.01,0.184},{0.20,0.388},{0.41,0.594},{0.609,0.797},{0.815,0.990}} -- 5层
+}
+
+
+function M:get_charge_data()
+    local skill_data = self:getFrame():get_skill_data()
+
+    local max_count = skill_data:get_max_charges()
+
+    local cur_count = skill_data:get_charged_count()
+
+    local range = M.charge_data_list[max_count][cur_count+1]
+
+    return range
+end
+
+return M

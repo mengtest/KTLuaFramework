@@ -1,0 +1,45 @@
+local Frame = require("system.frame")
+local skill_ui_setting_list_btn = class("skill_ui_setting_list_btn", Frame)
+
+-- 技能id
+Attribute.decl(skill_ui_setting_list_btn, "skill_id", 0)
+-- 技能当前等级
+Attribute.decl(skill_ui_setting_list_btn, "cur_level", 0)
+-- 技能当前所在槽位
+Attribute.decl(skill_ui_setting_list_btn, "slot", 0)
+-- 客户端显示
+Attribute.calc(skill_ui_setting_list_btn, "client_cfg",
+function(self)
+    return dbc.spell_client[self:get_skill_id()]
+end,
+"skill_id")
+
+function skill_ui_setting_list_btn:doInit(param)
+    local skill_ui_manager = self:getFrame("skill_ui_manager")
+    local skill_id = param.skill_id
+    local cur_level = param.cur_level
+    ----TODO这个槽位信息以后会根据 page_id 来变    暂时只取第一条数据
+    local cur_slot = param.slot_info[1]
+    --print(cur_slot)
+    self:set_skill_id(skill_id)
+    self:set_cur_level(cur_level)
+    self:set_slot(cur_slot)
+
+
+    -- 接收服务器升级信息，本地维护（等级 + 1）
+    self:subscribe(skill_ui_manager:on_event("skill_curr_level_up"), function(skill_id)
+        if self:get_skill_id() == skill_id then
+            self:set_cur_level(self:get_cur_level() + 1)
+        end
+    end)
+    ---- 接收服务器换槽位信息，本地维护（换槽位）
+    self:subscribe(skill_ui_manager:on_event("change_slot"), function(skill_id, changed_slot)
+        if self:get_skill_id() == skill_id then
+            self:set_slot(changed_slot)
+        end
+    end)
+
+end
+
+
+return skill_ui_setting_list_btn

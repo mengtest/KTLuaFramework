@@ -1,0 +1,85 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)    
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.bp.bp_unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)   
+    self.m_unit:set_main_act(enum.battle.Unit_Main_Act.Auto_Move)
+
+    startPos = self.m_unit:get_pos()
+
+    endPos = self.m_param.target.position
+
+
+    self.m_update_func = nil
+
+    -- 暂时先只考虑跳跃 而且是抛物线跳跃 之后按照需求扩展
+    if(self.m_param.type == "jump") then
+        self.m_curve_point_index = 1
+        self.m_point_count = 1 / Time.deltaTime
+        self.m_curve_point = {}
+        
+        self.m_center = (startPos + endPos) * 0.5
+        self.m_center.y = math.max(startPos.y,endPos.y) + 3
+        for i = 1, self.m_point_count, 1 do
+            local pos1 = Vector3.Lerp(startPos, self.m_center, i / self.m_point_count)
+            local pos2 = Vector3.Lerp(self.m_center, endPos, i / self.m_point_count)
+            local find = Vector3.Lerp(pos1, pos2, i / self.m_point_count)
+            table.insert(self.m_curve_point, find)
+        end
+
+        self.m_update_func = self["jump_update"]
+    else
+        
+    end
+end
+
+
+function M:exit()
+    self.m_update_func  = nil
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+    
+    if(self.m_update_func~=nil) then
+        self:m_update_func()
+    end
+end
+
+
+function M:change_move_state(move_state)
+    
+end
+
+function M:jump_update()
+    if (self.m_curve_point_index < #self.m_curve_point) then
+        local next_pos = self.m_curve_point[self.m_curve_point_index + 1]
+        self.m_unit:lookAt(next_pos)
+        
+            self.m_unit:set_pos(next_pos)
+        
+            self.m_unit:emit_event("set_position", next_pos)
+          
+        self.m_curve_point_index = self.m_curve_point_index + 1;
+    else
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+    end
+
+    
+end
+
+return M

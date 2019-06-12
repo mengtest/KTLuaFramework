@@ -1,0 +1,6 @@
+local Component = class("Component")
+
+function Component:initialize()
+end
+
+return Component

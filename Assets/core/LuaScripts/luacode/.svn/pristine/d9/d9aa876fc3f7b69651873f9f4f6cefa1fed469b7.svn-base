@@ -1,0 +1,121 @@
+local View = require("system.view")
+local spirit_merge_view = class("spirit_upgrade_view", View)
+
+function spirit_merge_view:doInit()
+    self.m_stars_go_list = {}
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritMerge"), function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        ---- TODO 不知道为什么  创建出来的go大小并不是1600 900 的
+        go.transform.sizeDelta = Vector2(1600, 900)
+        -- 暂时是5颗星  以后有变再说
+        for i = 1, 5 do
+            self["m_star_sfx" .. i] = nil
+            local star = self["stars_gameObject"].transform:GetChild(i - 1)
+
+            self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_lingshou_xingxing"), star, "m_star_sfx" .. i)
+            table.insert(self.m_stars_go_list, star.gameObject)
+        end
+
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "spirit_merge_btn") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self:getGO().transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3(-206, -53, 0)
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+        -- 刷新星星
+        self:subscribe(frame:on_event("refresh_star"), function(sprite_data)
+            for i, v in ipairs(self.m_stars_go_list) do
+                if i <= dbc.sprite[sprite_data.tmpl].max_rating then
+                    v.transform.gameObject:SetActive(true)
+                else
+                    v.transform.gameObject:SetActive(false)
+                end
+                if i <= sprite_data.rating then
+                    v.transform:Find("star_hl").gameObject:SetActive(true)
+                else
+                    v.transform:Find("star_hl").gameObject:SetActive(false)
+                end
+            end
+            -- 满星了之后
+            if sprite_data.rating == dbc.sprite[sprite_data.tmpl].max_rating then
+                self["full_stars_gameObject"]:SetActive(true)
+                self["no_full_stars_gameObject"]:SetActive(false)
+            else
+                self["full_stars_gameObject"]:SetActive(false)
+                self["no_full_stars_gameObject"]:SetActive(true)
+            end
+        end )
+
+        -- 播放星星特效
+        self:subscribe(frame:on_event("play_sfx"), function(args)
+            if args == enum.spirit_beast.UnequippingType.MERGE then
+                local old_data = frame:get_spirit_data(false)
+                local new_data = frame:get_spirit_data(true)
+                local pre_rating = old_data.rating
+                local new_rating = new_data.rating
+                if new_rating - pre_rating == 1 then
+                    -- 一次只升了一星
+                    self["m_star_sfx" .. new_rating].gameObject.transform.parent.gameObject:SetActive(true)
+                    self["m_star_sfx" .. new_rating]:Play()
+                    slua_timer.addDelayEvent(2, function()
+                        self["m_star_sfx" .. new_rating].gameObject.transform.parent.gameObject:SetActive(false)
+                        self["m_star_sfx" .. new_rating]:Stop()
+                    end)
+                else
+                    -- 一次升了好几星
+                    for i = new_rating - pre_rating - 1, new_rating do
+                        self["m_star_sfx" .. i].gameObject.transform.parent.gameObject:SetActive(true)
+                        self["m_star_sfx" .. i]:Play()
+                        slua_timer.addDelayEvent(2, function()
+                            self["m_star_sfx" .. i].gameObject.transform.parent.gameObject:SetActive(false)
+                            self["m_star_sfx" .. i]:Stop()
+                        end)
+                    end
+                end
+            end
+        end)
+        -------------
+        frame:on_loaded()
+    end)
+end
+
+
+function spirit_merge_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go.transform:GetChild(0):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+
+return spirit_merge_view

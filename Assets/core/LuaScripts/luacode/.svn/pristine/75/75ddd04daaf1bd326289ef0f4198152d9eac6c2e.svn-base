@@ -1,0 +1,62 @@
+local dungeon_join_view = {}
+
+function dungeon_join_view:doInit()
+    self.ui_manager = app:get_ui_manager()
+    self:load("ui/DungeonJoinSelect.prefab",function(go)
+        self.ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        local root =  go.transform:Find("dungeon_join_select").transform
+        ---关闭按钮
+        local close_btn = root:Find("bg/close_btn"):GetComponent(UnityEngine.UI.Button)
+        ---进入副本
+        local join_btn = root:Find("join_btn"):GetComponent(UnityEngine.UI.Button)
+        ---选择副本难度按钮
+        local level_btn_parent = root:Find("level_btn")
+        local normal_btn = level_btn_parent:Find("normal_btn"):GetComponent(UnityEngine.UI.Button)
+        local hero_btn = level_btn_parent:Find("hero_btn"):GetComponent(UnityEngine.UI.Button)
+        local epic_btn = level_btn_parent:Find("epic_btn"):GetComponent(UnityEngine.UI.Button)
+        local fairyland_btn = level_btn_parent:Find("fairyland_btn"):GetComponent(UnityEngine.UI.Button)
+        ---显示副本难度信息（要求）的text
+        local show_text_parent = root:Find("content_tip_image/top_tip")
+        local level_tip_text = show_text_parent:Find("level_tip_text"):GetComponent(UI.Text)
+        local level_text = show_text_parent:Find("level_text"):GetComponent(UI.Text)
+        local hero_tip_text = show_text_parent:Find("hero_tip_text"):GetComponent(UI.Text)
+        local hero_text = show_text_parent:Find("hero_text"):GetComponent(UI.Text)
+        ---秘境显示的内容
+        local fairyland_parent = root:Find("content_tip_image/fairyland_tip")
+        local fairyland_key = fairyland_parent:Find("key_bg_image/key_image"):GetComponent(UI.Image)
+        local tip_text = fairyland_parent:Find("have_key/tip_text"):GetComponent(UI.Text)
+        local word_text = fairyland_parent:Find("have_key/word_text"):GetComponent(UI.Text)
+        ---条件不足时显示的内容
+        local condition_tip_text = root:Find("content_tip_image/condition_not_tip/tip_bg_image/tip_image/content_text"):GetComponent(UI.Text)
+
+
+        close_btn.onClick:AddListener(function()
+            --print("关闭UI")
+            self.ui_manager:DestroyUI("dungeon_join")
+        end)
+
+        join_btn.onClick:AddListener(function()
+            --print("进入副本")
+            self.ui_manager:DestroyUI("dungeon_join")
+        end)
+
+        normal_btn.onClick:AddListener(function()
+            --print("响应了普通按钮")
+        end)
+
+        hero_btn.onClick:AddListener(function()
+            --print("响应了hero_btn按钮")
+        end)
+
+        epic_btn.onClick:AddListener(function()
+            --print("响应了epic_btn按钮")
+        end)
+
+        fairyland_btn.onClick:AddListener(function()
+            --print("响应了fairyland_btn按钮")
+        end)
+
+    end)
+end
+
+return dungeon_join_view

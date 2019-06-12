@@ -1,0 +1,28 @@
+
+local Quest_condition = class("Quest_condition")
+
+function Quest_condition:initialize(go)
+	self.m_go = go
+	self.m_rect = go.transform:GetComponent(RectTransform)
+	self.m_rate_text = self.m_rect:Find("txt_rate"):GetComponent(UnityEngine.UI.Text)
+	
+	--self.m_finish_desc = ""
+	--self.m_cur_param = ""
+	--self.m_finish_param = ""
+end
+
+function Quest_condition:set_finish_desc(desc)
+	local text = self.m_rect:Find("txt_desc"):GetComponent(UnityEngine.UI.Text)
+	text.text = desc
+end
+
+function Quest_condition:refresh_param(fixed_param)
+    self.m_rate_text.text = fixed_param
+end
+
+
+
+
+
+
+return Quest_condition

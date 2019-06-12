@@ -1,0 +1,240 @@
+local ResMgr 	= require "system.res_mgr"
+local FrameMgr 	= require "system.frame_mgr"
+local ViewMgr  	= require "system.view_mgr"
+local SkillMgr	= require "system.skill_mgr"
+local BattleMgr = require "system.battle_mgr"
+--local HFSM_test = require "common.util.hfsm.HFSM_test"
+
+-- local Protocol      = require "network.protocol"
+-- local Session 		= require "network.session"
+-- local ClientSession = require "network.client_session"
+
+local KBESDK = require "system.kbe_sdk"
+
+-- 全局常量
+-- 日志输出级别
+LOG_LEVEL_NONE  = 0 -- 不输出日志
+LOG_LEVEL_ERROR = 1 -- 错误日志
+LOG_LEVEL_WARN  = 2 -- 警告日志
+LOG_LEVEL_INFO  = 3 -- 信息日志
+LOG_LEVEL_DEBUG = 4 -- 调试日志
+
+local UnityApplication = Application 	-- UnityEngine.Application
+
+local Application = class("Application")
+
+function Application:initialize()
+	math.randomseed(os.time())
+	self.m_log_level = LOG_LEVEL_DEBUG
+
+	self.m_kbe_sdk = KBESDK:new()
+	-- local SceneManager = SceneManagement.SceneManager
+	-- local s = SceneManager.GetSceneByName("Runtime")
+	-- if not s:IsValid() then
+	-- 	s = SceneManager.CreateScene("Runtime")
+	-- 	SceneManager.SetActiveScene(s)
+
+	-- 	local cam = GameObject():AddComponent(UnityEngine.Camera)
+	-- 	cam.gameObject.tag  = "MainCamera"
+	-- 	cam.gameObject.name = "Main Camera"
+
+	-- 	local ui = GameObject()
+	-- 	ui.name = "UIRoot"
+	-- 	ui:AddComponent("UnityEngine.EventSystems.StandaloneInputModule")
+
+	-- 	-- 初始化ETC
+	-- 	local etc = GameObject():AddComponent(HedgehogTeam.EasyTouch.EasyTouch)
+	-- 	etc.name = "EasyTouch"
+	-- end
+
+	-- local s = SceneManager.GetSceneByName("entry")
+	-- if s:IsValid() then
+	-- 	SceneManager.UnloadSceneAsync(s)
+	-- end
+
+	self.m_res_mgr      = ResMgr:new()
+	self.m_frame_mgr    = FrameMgr:new()
+	self.m_view_mgr     = ViewMgr:new(self.m_frame_mgr)
+	self.m_skill_mgr 	= SkillMgr:new()
+	self.m_battle_mgr 	= BattleMgr:new()
+	--self.m_hfsm_test = HFSM_test:new()
+
+    -- 这里的相机先删掉了，以后会出现在应该出现的地方
+	
+    self.ui_manager = self:createFrame("ui_manager","ui_manager",nil
+	,{FrameMgr = self.m_frame_mgr,ViewMgr = self.m_view_mgr})
+    self.m_curve_storage = GameObject.Find("AnimationCurveStorage"):GetComponent(CurveStorage)
+
+    
+end
+
+local function log_join(...)
+	local args = {...}
+	for k,v in pairs(args) do args[k] = tostring(v) end
+	return table.concat(args, "\t")
+end
+
+function Application:logDebug(...)
+	if self.m_log_level >= LOG_LEVEL_DEBUG then
+		Debug.Log(log_join(...))
+	end
+end
+
+function Application:logInfo(...)
+	if self.m_log_level >= LOG_LEVEL_INFO then
+		Debug.Log(log_join(...))
+	end
+end
+
+function Application:logWarn(...)
+	if self.m_log_level >= LOG_LEVEL_WARN then
+		Debug.LogWarning(log_join(...))
+	end
+end
+
+function Application:logError(...)
+	if self.m_log_level >= LOG_LEVEL_ERROR then
+		Debug.LogError(log_join(...))
+	end
+end
+
+function Application:getFrameMgr()
+	return self.m_frame_mgr
+end
+
+function Application:getSkillMgr()
+	return self.m_skill_mgr
+end
+
+function Application:getBattleMgr()
+	return self.m_battle_mgr
+end
+
+function Application:createFrame(...) 	return self.m_frame_mgr:createFrame(...) end
+function Application:getFrame(...) 		return self.m_frame_mgr:getFrame(...) end
+function Application:destroyFrame(...) 	return self.m_frame_mgr:destroyFrame(...) end
+function Application:getView(...) 		return self.m_view_mgr:getView(...) end
+
+function Application:getResMgr()
+	return self.m_res_mgr
+end
+
+function Application:getClientSession()
+	return self.m_client_session
+end
+
+function Application:getPlayer()
+	return self.m_player
+end
+
+function Application:getKBESDK()
+	return self.m_kbe_sdk
+end
+
+function Application:asyncExec(func)
+	coroutine.wrap(func)()
+end
+
+function Application:tryExclusiveRpc(func)
+	assert(type(func) == "function")
+	local co = coroutine.create(function()
+		if self.m_exclusive_rpc == nil then
+			self.m_exclusive_rpc = func
+			func()
+			self.m_exclusive_rpc = nil
+		end
+	end)
+	coroutine.resume(co)
+end
+
+function Application:start()
+	-- self.m_player = Player:new()
+	-- local session = Session:new(Protocol:new())
+	-- self.m_client_session = ClientSession:new(self.m_player, session, Remote)
+
+	-- self:doLauncher()
+	self:doLogin()
+end
+
+function Application:doRestart()
+	self:logDebug("Application:doRestart")
+	KTGame.instance:Restart()
+end
+
+function Application:doLauncher()
+	self:logDebug("Application:doLauncher")
+	self:createFrame("launcher")
+end
+
+function Application:doLogin()
+	self:logDebug("Application:doLogin")
+	self.ui_manager:CreateUI("login", "login", nil, self.ui_manager.UI_Depth.NORMAL)
+end
+
+function Application:doCreateRole()
+	self:logDebug("Application:doCreateRole")
+    self:destroyFrame("login")
+    --self:createFrame("create_role")
+    local create_role = self.ui_manager:CreateUI("create_role", "create_role", nil, self.ui_manager.UI_Depth.NORMAL)
+    return create_role
+end
+
+function Application:doGameWithoutNetwork(name)
+	self:logDebug("Application:doGameWithoutNetwork")
+	self:createFrame("game", "game_without_network", nil, name)
+end
+
+function Application:doGameWithNetwork()
+	self:logDebug("Application:doGameWithNetwork")
+	self:createFrame("game", "game_with_network")
+end
+
+function Application:doGameWithKBE()
+	self:logDebug("Application:doGameWithKBE")
+	self:createFrame("game", "kbe.game_with_kbe")
+end
+
+function Application:doReturnLogin()
+	self:logDebug("Application:doReturnLogin")
+	local game = self:getFrame("game")
+	if game then
+		self:destroyFrame(game)
+		self:doLogin()
+	end
+end
+
+-- 由KTGame(MonoBehaviour).update驱动
+function Application:update()
+	-- self.m_client_session:update()
+	self.m_res_mgr:update()
+	self.m_frame_mgr:update()
+	self.m_view_mgr:update()
+	self.m_skill_mgr:update()
+	self.m_battle_mgr:update()
+	--self.m_hfsm_test:update()
+    
+    if Input.GetKeyDown(KeyCode.M) then
+        local team_manager = self.m_frame_mgr:getFrame("team_manager")
+        local members = team_manager:get_member_dict()
+        self:logError(Util_string:get_string_by_tbl(members))
+    end
+end
+
+
+function Application:get_delta_time()
+	return Time.deltaTime
+end
+
+function Application:get_server_time()
+	return Time.time
+end
+
+function Application:get_ui_manager()
+	return self.ui_manager
+end
+
+function Application:get_curve_storage()
+    return self.m_curve_storage
+end
+
+return Application

@@ -1,0 +1,186 @@
+local View = require("system.view")
+local spirit_handbook_view = class("spirit_handbook_view", View)
+
+function spirit_handbook_view:doInit()
+    --self.m_ui_manager = app:get_ui_manager()
+    -- 记录开始拖拽时鼠标所在位置的X坐标
+    self.m_mouse_X = 0
+    -- 拖拽过程中鼠标位置的X坐标
+    self.m_dragging_mouse_X = 0
+    -- 拖拽过程中的event_data
+    self.m_dragging_event_data = nil
+    -- 是否需要移动
+    self.m_need_move = false
+    -- 就是个标志
+    self.m_flag = false
+    -- 移动速度
+    self.m_move_speed = 0
+    -- 移动时间
+    self.m_move_time = 0.2
+    -- 滑动条的值
+    self.m_scroll_bar_target_value = 0
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritHandbook"), function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        ---- TODO 不知道为什么  创建出来的go大小并不是1600 900 的
+        go.transform.sizeDelta = Vector2(1600, 900)
+
+        -- 滑动条
+        self.m_scroll_bar = self["scroll_bar_GUIScrollbar"]
+        -- 图鉴列表节点
+        self.m_list_root = self["handbook_list_root_gameObject"].transform
+        -- 图鉴模型节点
+        self.m_model_root = self["handbook_model_root_gameObject"].transform
+        -- 图鉴信息节点
+        self.m_info_root = self["handbook_info_root_gameObject"].transform
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 列表
+            if string.find(name, "spirit_handbook_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_list_root
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            -- 模型
+            if string.find(name, "spirit_handbook_model_show") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_model_root
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            -- 信息
+            if string.find(name, "spirit_handbook_info") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_info_root
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+
+        self:subscribe(self:getFrame():on_event("move"), function(num)
+            self:click_btn_callback(num)
+        end)
+
+        -- DragSkill
+        self.m_drag_root = self["drag_root_gameObject"]:GetComponent("DragSkill")
+        self.m_drag_root.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_root.onBeginDrag:AddListener(function(event_data)
+            self.m_mouse_X = event_data.position.x
+            self.m_need_move = false
+        end)
+
+        self.m_drag_root.onDrag = DragSkill_OnDragHandler()
+        self.m_drag_root.onDrag:AddListener(function(event_data)
+            self.m_dragging_mouse_X = event_data.position.x
+            self.m_dragging_event_data = event_data
+        end)
+
+        self.m_drag_root.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_root.onEndDrag:AddListener(function(event_data)
+            self.m_mouse_X = 0
+            self.m_dragging_mouse_X = 0
+            self:end_drag_callback()
+            self.m_flag = false
+        end)
+
+        -- 拖拽Image
+        self.m_drag_image = self["drag_root_gameObject"]:GetComponent(UI.Image)
+        -- Scroll Rect
+        self.m_drag_scroll_rect = self["drag_root_gameObject"]:GetComponent(UI.ScrollRect)
+
+        self:getFrame():on_loaded()
+    end)
+end
+
+function spirit_handbook_view:end_drag_callback()
+    if self.m_scroll_bar.value <= 0.5 then
+        self.m_scroll_bar_target_value = 0
+    else
+        self.m_scroll_bar_target_value = 1
+    end
+    self:click_btn_callback(self.m_scroll_bar_target_value)
+end
+
+-- 点击主界面的下边按钮这个也要动
+function spirit_handbook_view:click_btn_callback(num)
+    self.m_need_move = true
+    self.m_move_speed = 0
+    self.m_scroll_bar_target_value = num
+    if num == 0 then
+        self["left_GUIButton"].gameObject:SetActive(false)
+        self["right_GUIButton"].gameObject:SetActive(true)
+    elseif num == 1 then
+        self["left_GUIButton"].gameObject:SetActive(true)
+        self["right_GUIButton"].gameObject:SetActive(false)
+    end
+end
+
+
+function spirit_handbook_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+
+    if self.m_scroll_bar then
+        if self.m_scroll_bar.value == 0 then
+            if self.m_mouse_X < self.m_dragging_mouse_X then
+                if self.m_dragging_event_data then
+                    self:can_drag(false)
+                    --if not self.m_flag then
+                    --    local function func(drag_handler)
+                    --        print("123123123123123123", drag_handler)
+                    --        print(self.m_dragging_event_data)
+                    --        drag_handler:OnDrag(self.m_dragging_event_data)
+                    --    end
+                    --    --self:pass_event(self.m_dragging_event_data, EventSystems.ExecuteEvents.pointerEnterHandler)
+                    --    self:pass_event(self.m_dragging_event_data, func)
+                    --    self.m_flag = true
+                    --end
+                end
+            end
+        end
+    end
+end
+
+
+function spirit_handbook_view:can_drag(flag)
+    self.m_drag_image.raycastTarget = flag
+    self.m_drag_scroll_rect.enabled = flag
+end
+
+-- TODO 想用事件穿透来做  不过遇到了瓶颈  暂时放一下，用上面那个方法
+function spirit_handbook_view:pass_event(event_data, func)
+    local results = ListRaycastResult()
+    EventSystems.EventSystem.current:RaycastAll(event_data, results)
+    local current = event_data.pointerCurrentRaycast.gameObject
+    for result in foreach(results) do
+        if current ~= result.gameObject then
+            print(current, result.gameObject)
+            EventSystems.ExecuteEvents.Execute(result.gameObject, event_data, func)
+            break
+        end
+    end
+end
+
+return spirit_handbook_view

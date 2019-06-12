@@ -1,0 +1,52 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/12/11 16:16
+---
+local LuaQueue = require("common.util.lua_queue")
+local Frame = require("system.frame")
+local float_hint = class("float_hint", Frame)
+
+function float_hint:doInit()
+    self.m_wait_queue = LuaQueue:new(20)
+
+    self.m_flag_list = {}
+    self.m_flag_list[1] = { ["flag"] = false, ["offset_y"] = 30, ["end_y"] = 130, ["duration"] = 1.5 }
+    self.m_flag_list[2] = { ["flag"] = false, ["offset_y"] = 70, ["end_y"] = 170, ["duration"] = 1.5 }
+    self.m_flag_list[3] = { ["flag"] = false, ["offset_y"] = 110, ["end_y"] = 210, ["duration"] = 1.5 }
+end
+
+--创建飘字
+function float_hint:create_scroll_text(params, depth)
+    depth = depth or app:get_ui_manager().UI_Depth.HIGH
+    local perlin_float = UnityEngine.Mathf.PerlinNoise(Util_math:random_float(-1024, 1024), Util_math:random_float(-1024, 1024))
+    return app:get_ui_manager():CreateUI("scroll_text_" .. tostring(perlin_float), "scroll_text", params, depth)
+end
+
+--添加飘字
+function float_hint:add_float(str, depth)
+    local is_float = false
+    for i = 1, 3 do
+        if self.m_flag_list[i]["flag"] == false then
+            self.m_flag_list[i]["flag"] = true
+            is_float = true
+            local param = { ["offset_y"] = self.m_flag_list[i]["offset_y"], ["end_y"] = self.m_flag_list[i]["end_y"], ["duration"] = self.m_flag_list[i]["duration"] }
+            local scroll_text = self:create_scroll_text(param, depth)
+            scroll_text:set_attr("msg", str)
+            slua_timer.addDelayEvent(self.m_flag_list[i]["duration"], function()
+                self.m_flag_list[i]["flag"] = false
+            end)
+            break
+        end
+    end
+
+    if is_float == false then
+        self.m_wait_queue:pushQueue({ ["str"] = str, ["depth"] = depth })
+        slua_timer.addDelayEvent(1.5, function()
+            local param = { ["offset_y"] = self.m_flag_list[1]["offset_y"], ["end_y"] = self.m_flag_list[1]["end_y"], ["duration"] = self.m_flag_list[1]["duration"] }
+            local scroll_text = self:create_scroll_text(param, depth)
+            scroll_text:set_attr("msg", str)
+        end)
+    end
+end
+
+return float_hint

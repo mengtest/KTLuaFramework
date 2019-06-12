@@ -1,0 +1,450 @@
+-- 游戏场景主相机控制
+local M = class("Camera")
+--by lijunfeng 2017/12/21
+M.CameraState = {
+    normal = 0,
+    forward = 1,
+    back = 2,
+}
+
+-- 这些参数会在Camera:init阶段更新
+local LOOK_DIST_MIN = 0.15
+local LOOK_DIST_MAX = 15
+local ROTATE_SENSITIVITY_H = 0.3        -- 水平灵敏度
+local ROTATE_SENSITIVITY_V = 0.3        -- 垂直灵敏度
+local SMOOTH_TIME = 0.05        -- 平滑时间
+local INIT_PITCH = 25            -- 初始pitch角度
+local PITCH_MIN = -60            -- 最小pitch角度
+local PITCH_MAX = 60        -- 最小pitch角度
+local ZOOM_SENSITIVITY = 0.01        -- 拉近/拉远速度
+local GAP = 0.1                -- 相机绕过阻挡物时与阻挡物之间的缝隙，避免破面穿帮
+
+local SMOOTH_NORMAL = 3
+local SMOOTH_FORWARD = 3
+local SMOOTH_BACK = 5
+
+Attribute.decl(M, "euler_angle", function()
+    return Vector3(INIT_PITCH, 0, 0)
+end)
+Attribute.decl(M, "lookat_position", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "look_distance", 6, 5)
+Attribute.decl(M, "is_swiping_start_over_func_area", false)
+Attribute.decl(M, "position", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "gaze_mode", false) --交互注视模式
+
+-- pacman 2017-12-07 发现clac属性不能set，想从attribute.att_clac层面解决，简单尝试无果
+-- 于是把原先的position拆为position_calc，position两个部分
+Attribute.calc(M, "position_calc", function(self)
+    return self:get_lookat_position() - self.m_ts.forward * self:get_look_distance()
+end, "euler_angle", "lookat_position", "look_distance")
+
+Event.decl(M, "operated")
+
+
+function M:initialize()
+    Attribute.init(self)
+
+    -- 获取场景中的主相机 没有则创建
+    local cam = UnityEngine.Camera.main
+    if cam == nil then
+        cam = GameObject():AddComponent(UnityEngine.Camera)
+        cam.gameObject.tag = "MainCamera"
+        cam.gameObject.name = "Main Camera"
+    end
+
+    self.m_cam = cam
+    self.m_ts = cam.gameObject.transform
+    self.m_hitRenderers = {}
+    self.m_design_pixel_width = 1600
+    self.m_design_pixel_height = 900
+    self.m_actual_pixel_width = nil
+    self.m_actual_pixel_height = nil
+
+    self:init()
+    self:init_pixel_info()
+
+    self:on_event_euler_angle_set(true):subscribe(function(value)
+        self.m_ts.eulerAngles = value
+    end)
+    self:on_event_position_set(true):subscribe(function(value)
+        self.m_ts.position = value
+        self.m_ts:LookAt(self:get_lookat_position())
+    end)
+
+    -- pacman 2017-12-07
+    self:on_event_position_calc_set(true):subscribe(function(value)
+        self:set_position(value)
+    end)
+
+end
+
+function M:init()
+
+    -- 读取/重置参数
+    local setting = Resources.Load("settings/CameraSettings")
+    LOOK_DIST_MIN = setting.MinLookDist
+    LOOK_DIST_MAX = setting.MaxLookDist
+    ROTATE_SENSITIVITY_H = setting.RotateSensitivityH
+    ROTATE_SENSITIVITY_V = setting.RotateSensitivityV
+    SMOOTH_TIME = setting.SmoothTime
+    INIT_PITCH = setting.InitPitch
+    self:set_euler_angle(Vector3(INIT_PITCH, 0, 0))
+    PITCH_MIN = setting.MinPitch
+    PITCH_MAX = setting.MaxPitch
+    ZOOM_SENSITIVITY = setting.PinchSensitivity
+    GAP = setting.Gap
+
+
+    self.m_cam.orthographic = false
+    -- 直接以主场景为主
+    -- self.m_cam.fieldOfView = 60
+    -- self.m_cam.nearClipPlane = 0.3
+    -- self.m_cam.farClipPlane = 600
+
+    local euler = self:get_euler_angle()
+    self.m_goal_yaw = euler.y        -- local y轴角度目标值
+    self.m_yaw_velocity = 0            -- local y轴角度 dampSmooth用变量
+    self.m_goal_pitch = euler.x        -- local x轴角度目标值
+    self.m_pitch_velocity = 0            -- local x轴角度 dampSmooth用变量
+    self.m_distance = self:get_look_distance()            -- 当前距离值
+    self.m_goal_distance = self:get_look_distance()            -- 目标距离值
+    self.m_distance_velocity = 0                            -- 距离值 dampSmooth用变量
+    self.m_is_blocked = false
+    self.m_shake_action = nil       -- pacman 2017-12-07 震屏动作
+    self.m_gaze_state = nil -- by lijunfeng 2017/12/21
+end
+
+function M:change_goal_yaw(value)
+    self.m_goal_yaw = value
+end
+-- by lijunfeng 2017/12/20
+function M:change_goal_pitch(value)
+    self.m_goal_pitch = value
+end
+
+function M:fetch_goal_yaw()
+    return self.m_goal_yaw
+end
+
+
+
+function M:fetch_unity_camera()
+    return self.m_cam
+end
+
+function M:init_pixel_info()
+    local pixel_width = self.m_cam.pixelWidth
+    local pixel_height = self.m_cam.pixelHeight
+    local design_scale = self.m_design_pixel_width / self.m_design_pixel_height
+    local actual_scale = pixel_width / pixel_height
+    local scale_coef = design_scale / actual_scale
+    self.m_actual_pixel_width, self.m_actual_pixel_height = self.m_design_pixel_width, self.m_design_pixel_height * scale_coef
+end
+
+function M:get_pixel_width()
+    return self.m_actual_pixel_width
+end
+
+function M:get_pixel_height()
+    return self.m_actual_pixel_height
+end
+
+function M:pickRoleLayerFromScreenPos(pos)
+    local ray = self.m_cam:ScreenPointToRay(pos)
+    local mask = LayerMask.GetMask("Role")
+    local ok, hit = Physics.Raycast(ray, Slua.out, Mathf.Infinity, mask)
+    if ok then
+        return hit.collider.gameObject
+    end
+end
+
+
+function M:pickFromScreenPos(pos)
+    local ray = self.m_cam:ScreenPointToRay(pos)
+    local mask = LayerMask.GetMask("Terrain")
+    local ok, hit = Physics.Raycast(ray, Slua.out, Mathf.Infinity, mask)
+    return ok and hit.point
+end
+
+function M:worldToScreenPoint(pos)
+    local delta_angle = utility.math:get_delta_angle(self.m_ts.forward, pos - self.m_ts.position)
+    return self.m_cam:WorldToScreenPoint(pos), delta_angle < 90
+end
+
+function M:worldToUIScreenPoint(pos)
+    local delta_angle = utility.math:get_delta_angle(self.m_ts.forward, pos - self.m_ts.position)
+    local screenPos = self.m_cam:WorldToScreenPoint(pos)
+    local result = app:get_ui_manager():GetUICamera():ScreenToWorldPoint(screenPos)
+    return result, delta_angle < 90
+end
+
+function M:checkFront(pos)
+    local delta_angle = utility.math:get_delta_angle(self.m_ts.forward, pos - self.m_ts.position)
+    return delta_angle < 90
+end
+
+function M:lookAt(pos)
+    self:set_lookat_position(pos)
+end
+
+
+function M:trackUnit(unit)
+    if self.m_track then
+        self.m_track:unsubscribe()
+        self.m_track = nil
+    end
+
+    -- pacman 2018-01-10 从creature表中读取被注视unit的【默认相机距离】然后应用
+    local creature_cfg = unit:getCfg()
+    assert(creature_cfg ~= nil)
+    local camera_dist = creature_cfg.default_camera_dist
+    self:set_look_distance(camera_dist)
+    self.m_distance = self:get_look_distance()            -- 当前距离值
+    self.m_goal_distance = self:get_look_distance()            -- 目标距离值
+
+    
+    self.m_track = unit:on_event_pos_set(true):subscribe(function(pos)
+        -- 【相机注视点高度
+        if(self.m_is_cg_state ~= true) then
+            local lookat_height = creature_cfg.camera_lookat_height
+            self:lookAt(pos + Vector3(0, lookat_height, 0))
+        end
+    end)
+    assert(self.m_track)
+
+    self.m_goal_yaw = unit:get_dir()
+    local euler = self:get_euler_angle()
+    self:set_euler_angle(Vector3(euler.x, unit:get_dir(), euler.z))
+end
+
+function M:pauseTrackUnit()
+    if self.m_track then
+        self.m_track:unsubscribe()
+        self.m_track = nil
+    end
+end
+
+function M:in_cg_state(bool,player)
+    if(bool == true) then
+        self.m_is_cg_state = true
+    else
+        self.m_is_cg_state = false
+        self:trackUnit(player)        
+    end
+end
+
+-- lijunfeng 2017/12/20
+function M:enter_gaze_mode(pos, dist)
+    self.m_pre_rotation = self.m_ts.rotation
+    self.m_pre_lookat_pos = self:get_lookat_position()
+    self.m_pre_lookat_dist = self:get_look_distance()
+
+    self.m_target_pos = pos
+    self.m_target_dist = dist
+    self:set_gaze_mode(true)
+    self.m_gaze_state = self.CameraState.forward
+end
+-- lijunfeng 2017/12/20
+function M:update_gaze_mode()
+    if self.m_gaze_state == self.CameraState.normal then
+        local target_rotation = Quaternion.Euler(self.m_goal_pitch, self.m_goal_yaw, 0)
+        local target_pos = self.m_target_pos - target_rotation * Vector3(0, 0, self.m_target_dist)
+        self.m_ts.rotation = Quaternion.Lerp(self.m_ts.rotation, target_rotation, SMOOTH_NORMAL * Time.deltaTime)
+        self.m_ts.position = Vector3.Lerp(self.m_ts.position, target_pos, SMOOTH_NORMAL * Time.deltaTime)
+    elseif self.m_gaze_state == self.CameraState.forward then
+        local target_rotation = Quaternion.Euler(self.m_goal_pitch, self.m_goal_yaw, 0)
+        local target_pos = self.m_target_pos - target_rotation * Vector3(0, 0, self.m_target_dist)
+        self.m_ts.rotation = Quaternion.Lerp(self.m_ts.rotation, target_rotation, SMOOTH_FORWARD * Time.deltaTime)
+        self.m_ts.position = Vector3.Lerp(self.m_ts.position, target_pos, SMOOTH_FORWARD * Time.deltaTime)
+
+        if Vector3.Distance(self.m_ts.position, target_pos) <= 0.01 then
+            self.m_gaze_state = self.CameraState.normal
+        end
+    elseif self.m_gaze_state == self.CameraState.back then
+        local target_rotation = Quaternion.Euler(self.m_goal_pitch, self.m_goal_yaw, 0)
+        local target_pos = self.m_target_pos - target_rotation * Vector3(0, 0, self.m_target_dist)
+        self.m_ts.rotation = Quaternion.Lerp(self.m_ts.rotation, target_rotation, SMOOTH_BACK * Time.deltaTime)
+        self.m_ts.position = Vector3.Lerp(self.m_ts.position, target_pos, SMOOTH_BACK * Time.deltaTime)
+
+        if Vector3.Distance(self.m_ts.position, target_pos) <= 0.5 then
+            self.m_gaze_state = self.CameraState.normal
+            self:set_gaze_mode(false)
+            if self.m_callback ~= nil then
+                self.m_callback()
+                self.m_callback = nil
+            end
+        end
+    end
+end
+-- lijunfeng 2017/12/20
+function M:exit_gaze_mode(func)
+    self.m_target_pos = self.m_pre_lookat_pos
+    self.m_target_dist = self.m_pre_lookat_dist
+    self.m_gaze_state = self.CameraState.back
+    self.m_callback = func
+end
+-- lijunfeng 2017/12/20
+function M:update_normal_mode()
+    -- 先旋转角度
+    local euler = self:get_euler_angle()
+    local smoothed_yaw, yaw_velocity = Mathf.SmoothDampAngle(euler.y, self.m_goal_yaw, self.m_yaw_velocity, SMOOTH_TIME);
+    self.m_yaw_velocity = yaw_velocity
+    local smoothed_pitch, pitch_velocity = Mathf.SmoothDampAngle(euler.x, self.m_goal_pitch, self.m_pitch_velocity, SMOOTH_TIME)
+    self.m_pitch_velocity = pitch_velocity
+    -- print(self:get_euler_angle().y, self.m_goal_yaw, self:get_euler_angle().y == self.m_goal_yaw)
+    self:set_euler_angle(Vector3(smoothed_pitch, smoothed_yaw, euler.z))
+
+    -- 相机与目标之间是否有障碍物
+    local lookat_pos = self:get_lookat_position()
+    local lookat_dist = self:get_look_distance() or 0 -- by lijunfeng 2018/1/24 参数可能为nil，针对技能预览
+    local mask = LayerMask.GetMask("Terrain")
+
+    local ok, hitinfo = Physics.Raycast(lookat_pos, self:get_position() - lookat_pos, Slua.out, lookat_dist + GAP, mask)
+    -- print("#############", ok, hitinfo.transform and hitinfo.transform.name or "nothing" , hitinfo.point)
+
+    if ok then
+        -- 如果是【可以阻碍镜头】的物体
+        if not self.m_is_blocked then
+            self.m_is_blocked = true
+        end
+
+        self.m_goal_distance = Vector3.Distance(lookat_pos, hitinfo.point) - GAP
+        -- print("#####################")
+        -- print(self:get_lookat_position(), hitinfo.point, self.m_ts.position)
+        -- Debug.DrawLine(lookat_pos, Vector3.MoveTowards(lookat_pos, hitinfo.point, self.m_distance), Color.red, 1000, false)
+
+        -- 其他类型的物体
+    else
+        -- 镜头是否需要后退
+        if self.m_is_blocked then
+            -- 退后时是否有障碍物
+            local ok, hitinfo = Physics.Raycast(lookat_pos, self.m_ts.position - lookat_pos, Slua.out, self.m_distance + GAP, mask)
+            if ok then
+                -- 退到障碍物位置
+                self.m_goal_distance = Vector3.Distance(lookat_pos, hitinfo.point) - GAP
+            else
+                -- 无障碍物则退后到预定位置
+                self.m_goal_distance = self.m_distance
+                self.m_is_blocked = false
+            end
+        else
+            self.m_goal_distance = self.m_distance
+        end
+    end
+
+    -- 距离
+    if self.m_is_blocked then
+        -- 贴着环境的边的时候，就不做平滑处理了，避免相机越过环境表面
+        self:set_look_distance(self.m_goal_distance)
+    else
+        local smooth_dist, distance_velocity = Mathf.SmoothDamp(lookat_dist, self.m_goal_distance or 0, self.m_distance_velocity or 0, SMOOTH_TIME) -- by lijunfeng 2018/1/24 参数可能为nil，针对技能预览
+        self.m_distance_velocity = distance_velocity
+        self:set_look_distance(smooth_dist)
+    end
+end
+
+function M:update()
+    if(self.m_is_cg_state == true) then
+        return  -- 主相机进入cg状态 不接受任何操作
+    end
+
+    -- lijunfeng 2017/12/20
+    if self:get_gaze_mode() then
+        self:update_gaze_mode()
+    else
+        self:update_normal_mode()
+    end
+
+    -- pacman 2017-12-07 清除震屏action
+    if self.m_shake_action ~= nil then
+        self.m_shake_action:update()
+    end
+
+
+    -- 屏蔽这部分逻辑
+    -- Android环境显示有问题
+
+    -- -- 角色被挡住时透视
+    -- if (#self.m_hitRenderers > 0) then
+    -- 	for _, renderer in pairs(self.m_hitRenderers) do
+    -- 		local tmpColor = renderer.material.color
+    -- 		tmpColor.a = 1.0
+    -- 		renderer.material.color = tmpColor
+    -- 	end
+    -- 	self.m_hitRenderers = {}
+    -- end
+    -- local aim = (self.m_ts.position - self:get_lookat_position()).normalized
+    -- local hits = Physics.RaycastAll(self:get_lookat_position(), aim, self:get_look_distance())
+    -- for hit in Slua.iter(hits) do
+    -- 	local renderer = hit.transform:GetComponent("Renderer")
+    -- 	if renderer and not util.contain(self.m_hitRenderers, renderer) then
+    -- 		table.insert(self.m_hitRenderers, renderer)
+    -- 		renderer.material.shader = Shader.Find("Transparent/Diffuse")
+    -- 		local tempColor = renderer.material.color
+    -- 		tempColor.a = 0.6
+    -- 		renderer.material.color = tempColor
+    -- 	end
+    -- end
+
+end
+
+-- pacman 2017-11-21
+function M:handle_swipe(gesture)
+    local swipe = gesture.swipeVector
+    local goal_pitch = self.m_goal_pitch - swipe.y * ROTATE_SENSITIVITY_V
+    goal_pitch = Mathf.Clamp(goal_pitch, PITCH_MIN, PITCH_MAX)
+    local goal_yaw = self.m_goal_yaw + swipe.x * ROTATE_SENSITIVITY_H
+    goal_yaw = utility.func.clamp_angle_360(goal_yaw)
+
+    self.m_goal_pitch = goal_pitch
+    self.m_goal_yaw = goal_yaw
+
+    self:emit_event("operated", true)
+end
+
+
+-- pacman 2017-11-21
+function M:handle_pinch(gesture)
+    local dist = self.m_distance
+    dist = dist - gesture.deltaPinch * ZOOM_SENSITIVITY
+    self.m_distance = Mathf.Clamp(dist, LOOK_DIST_MIN, LOOK_DIST_MAX)
+    self:emit_event("operated", true)
+end
+
+-- pacman 2017-12-07 震屏(目前只是沿y轴震动)
+-- @ duration 震屏持续时间
+-- @ times 一共震动多少次
+-- @ amplitude 振幅(米)
+-- @ end_scale 结束时的振幅缩放比例
+function M:shake(duration, times, amplitude, end_scale)
+    -- 同一时间只能存在一个震屏效果，用新的替换旧的
+    if self.m_shake_action ~= nil then
+        self.m_shake_action:close()
+        self.m_shake_action = nil
+    end
+
+    local CameraAction = require("frame.action.camera_action")
+    self.m_shake_action = CameraAction.ShakeOnY(self, duration, times, amplitude, end_scale)
+    self.m_shake_action:onExit(function()
+        -- 强制发事件复位相机到正确位置
+        self:set_attr("position", self:get_position(), true)
+        self.m_shake_action = nil       -- 清除action变量
+    end)
+
+end
+
+-- 根据指定id读取配置，进行震动
+function M:screen_shake(id)
+    local duration = dbc.shake_camera[id].param[1]
+    local times = dbc.shake_camera[id].param[2]
+    local amplitude = dbc.shake_camera[id].param[3]
+    local end_scale = dbc.shake_camera[id].param[4]
+    self:shake(duration, times, amplitude, end_scale)
+end
+
+
+return M

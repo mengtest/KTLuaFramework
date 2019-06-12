@@ -1,0 +1,58 @@
+﻿
+local Frame = require("system.frame")
+local Sidebar = class("Sidebar", Frame)
+
+Attribute.decl(Sidebar, "is_leader", false)
+
+function Sidebar:doInit(param)
+	self.m_frame_dict = {}
+	--self.m_quest_bar_frame = nil
+	self.m_team_bar_frame = nil
+	self.m_cur_frame_name = nil
+    self.m_toggle_group = nil
+	
+	self:set_is_dont_create_go_automatic(true)
+end
+
+function Sidebar:on_prepared()
+	--local param_quest_bar = nil
+	local param_team_bar = nil
+	--self.m_quest_bar_frame = self:createChild("quest_bar", "%subsystem.quest.quest_bar.quest_bar", param_quest_bar)
+	self.m_team_bar_frame = self:createChild("team_bar", "team.team_bar.team_bar", param_team_bar)
+	--self.m_frame_dict["quest_bar"] = self.m_quest_bar_frame
+	self.m_frame_dict["team_bar"] = self.m_team_bar_frame
+	
+	self:toggle("team_bar")
+end
+
+function Sidebar:init_quest_bar()
+
+end
+
+function Sidebar:init_team_bar()
+
+end
+
+function Sidebar:toggle(tab_name)
+	if tab_name == self.m_cur_frame_name then
+		return
+	end
+	local selected_frame = self.m_frame_dict[tab_name]
+	if not selected_frame then
+		return
+	end
+	for name, frame in pairs(self.m_frame_dict) do
+		if frame == selected_frame then
+			frame:show()
+		else
+			frame:hide()
+		end
+	end
+	self.m_cur_frame_name = tab_name
+end
+
+function Sidebar:get_toggle_group()
+    return self.m_toggle_group
+end
+
+return Sidebar

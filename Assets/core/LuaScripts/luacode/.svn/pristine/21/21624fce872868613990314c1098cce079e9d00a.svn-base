@@ -1,0 +1,16 @@
+local row_0 = {['tmpl']=100001,['text']='你也想去救猴们？',['audio']=100201,['anim']='leisure_test_1',['prompt']=0,['answer_right']='是的！',['answer_wrong']='不小心走错地',['right_feedback']='你可想过后果？',['right_reaction']='leisure_test_1',['wrong_feedback']='那你从哪来回哪去。',['wrong_reaction']='leisure_test_1',['another']=100002}
+local row_1 = {['tmpl']=100002,['text']='我们的力量太弱小，做不可能赢的事只是自取灭亡。',['audio']=100202,['anim']='leisure_test_2',['prompt']=1,['answer_right']='我们有大圣力量',['answer_wrong']='那也得打',['right_feedback']='大圣的力量？',['right_reaction']='leisure_test_2',['wrong_feedback']='那你会害了大家的！',['wrong_reaction']='leisure_test_2',['another']=100003}
+local row_2 = {['tmpl']=100003,['text']='传言中虽说我们都继承了大圣的力量，可大圣的力量在哪里？',['audio']=100203,['anim']='leisure_test_3',['prompt']=0,['answer_right']='就在我们心中',['answer_wrong']='我也不知道',['right_feedback']='心中？',['right_reaction']='leisure_test_3',['wrong_feedback']='没力量我们有什么资本战斗呢？',['wrong_reaction']='leisure_test_3',['another']=100004}
+local row_3 = {['tmpl']=100004,['text']='监神者也是因为这个传言而来的，所以这个传言就是个祸害啊！',['audio']=100204,['anim']='leisure_test_4',['prompt']=1,['answer_right']='传言会成真',['answer_wrong']='传言是祸害',['right_feedback']='希望如你所愿！',['right_reaction']='leisure_test_4',['wrong_feedback']='那我们还有什么力量？',['wrong_reaction']='leisure_test_4',['another']=100005}
+local row_4 = {['tmpl']=100005,['text']='那你说我们现在应该怎么办？',['audio']=100205,['anim']='leisure_test_5',['prompt']=1,['answer_right']='召集猴群反抗',['answer_wrong']='听流元帅您的',['right_feedback']='如今也只能这样了',['right_reaction']='leisure_test_5',['wrong_feedback']='嗯，我想我们陷入了困境',['wrong_reaction']='leisure_test_5',['another']=0}
+local row_5 = {['tmpl']=100006,['text']='你找我有什么事？我正烦着呢？别惹我！',['audio']=100206,['anim']='leisure_test_6',['prompt']=0,['answer_right']='去救被抓的猴子',['answer_wrong']='认错人了',['right_feedback']='就你这小不点？我先看看你几斤几两？',['right_reaction']='leisure_test_6',['wrong_feedback']='走开走开，别烦我！',['wrong_reaction']='leisure_test_6',['another']=0}
+
+local datas = {
+	[100001] = row_0,
+	[100002] = row_1,
+	[100003] = row_2,
+	[100004] = row_3,
+	[100005] = row_4,
+	[100006] = row_5,
+}
+return datas

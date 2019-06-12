@@ -1,0 +1,1517 @@
+local UnitAction = require "frame.unit_action"
+local require_relative = REQUIRE_BASE(...)
+
+local M = {}
+
+-- doInit 时重置
+local PLAYER_CAMERA_YAW_THRESHOLD = 0.5 -- 镜头复位:角度容差(度)
+local CAMERA_RESET_WAIT_TIME = 2 -- 镜头复位:等待时长
+local CAMERA_RESET_SPEED = 90 -- 镜头复位速度
+local SHOW_TEAM_THUMBS_TIME = 0.5 -- 增益技能显示小队头像时间
+local XMODE_TURN_SPEED = 180      -- x操作模式转身速度
+local XMODE_DURATION = 3.5          -- x操作模式持续时间
+
+local Unit = require_relative("unit")
+local MOVE_STATE = Unit.MOVE_STATE
+
+--Attribute.decl(M, "cur_skill_id", 0)
+Attribute.decl(M, "cur_skill_data", nil)-- 当前操纵中的技能
+Attribute.decl(M, "show_team_thumbs", false)
+Attribute.decl(M, "cur_skill_layer", 1)-- 当前显示中的技能图层  1主; 2副
+Attribute.decl(M, "target_skill_layer", 1)-- 要显示的技能图层  1主; 2副
+Attribute.decl(M, "interact_btn_name", nil)
+Attribute.decl(M, "interact_btn_time", 2)
+Attribute.decl(M, "interact_btn_tip", nil)
+
+----------------------
+-- pacman 2017-11-08 多控制方式相关
+Attribute.decl(M, "player_controll_type", Enum_Battle.Player_Controll_Type.ALL_DIRECTION)       -- 角色操作类型
+Attribute.decl(M, "is_sync_dir_enabled", function() return false end)       -- 是否开启【转镜头同时改变主角色朝向】功能
+Attribute.decl(M, "is_camera_auto_reset_enabled", function() return false end)       -- 是否开启【移动中相机自动复位】功能
+Attribute.decl(M, "is_in_x_mode", function() return false end)       -- 是否出于【x-mode】中
+----------------------
+
+
+
+Attribute.decl(M, "is_show_move_panel", true) -- 是否显示移动面板
+Attribute.decl(M, "is_show_battle_panel", true) -- 是否显示战斗面板
+
+
+Event.decl(M, "move")
+Event.decl(M, "skill")
+Event.decl(M, "reset")
+Event.decl(M, "show_skill_layer")
+Event.decl(M, "widget_loaded")
+Event.decl(M, "team_member_change")
+Event.decl(M, "switch_interact_btn")
+
+
+
+
+function M:doInit(unit)
+    -- 读取/重置参数
+    local setting = Resources.Load("settings/PlayerControllSetting")
+    PLAYER_CAMERA_YAW_THRESHOLD = setting.PlayerCameraYawThreshold
+    CAMERA_RESET_WAIT_TIME = setting.CameraResetWaitTime
+    CAMERA_RESET_SPEED = setting.CameraResetSpeed
+    SHOW_TEAM_THUMBS_TIME = setting.ShowTeamThumbsTime
+    XMODE_TURN_SPEED = setting.XModeTurnSpeed
+    XMODE_DURATION = setting.XModeDuration
+
+    self.m_unit = unit
+    self.m_battle_mgr = app:getBattleMgr()
+    self.m_skill_mgr = app:getSkillMgr()
+
+    self.m_new_target = nil
+    self.m_new_target_dist = nil
+    self.m_is_all_selected = false
+    self.m_selected = true
+    self.m_world = self:getFrame("world")
+    self.m_attacked_list = nil
+    self.m_thumb_view_list = {}
+    self.m_team_manager = self:getFrame("team_manager")
+
+    self.m_x_mode_end_time = nil    -- pacman 2017-11-15    x-mode结束时间
+    self.m_force_stop_moving = false    -- pacman 2017-11-16    强制停止移动旗标
+
+    self.m_cam = self:getFrame("world"):getCamera()
+    self.m_reset_camera_cd = 0
+    -- 重置相机倒计时
+    self.m_is_reseting_camera = false   -- 重置中
+    self.m_cam_operated = false         -- 这一帧中相机是否有被操作
+    self:subscribe(self.m_cam:on_event_operated(), function()
+        self.m_cam_operated = true
+    end)
+
+    self.m_joystick_input = nil     -- 最新的摇杆输入
+    self.m_input_when_force_stopped = nil         -- 强制停止移动时的输入
+
+    -- pacman 2017-11-09 操作方式切换
+    self:subscribe(self:on_event_player_controll_type_set(true), function(controll_type)
+        if controll_type == Enum_Battle.Player_Controll_Type.WOW_8D then    -- wow模式
+            self:set_is_sync_dir_enabled(true)              -- 开启 转镜头同时改变主角色朝向
+            self:set_is_camera_auto_reset_enabled(true)     -- 开启 移动中相机自动复位
+        elseif controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION then -- 万向移动
+            self:set_is_sync_dir_enabled(false)             -- 关闭 转镜头同时改变主角色朝向
+            self:set_is_camera_auto_reset_enabled(false)     -- 关闭 移动中相机自动复位
+        elseif controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION_SP then -- 特殊万向移动
+            self:set_is_sync_dir_enabled(false)             -- 关闭 转镜头同时改变主角色朝向
+            self:set_is_camera_auto_reset_enabled(false)     -- 关闭 移动中相机自动复位
+        elseif  controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION_X then       -- x万向
+            self:set_is_sync_dir_enabled(false)             -- 关闭 转镜头同时改变主角色朝向
+            self:set_is_camera_auto_reset_enabled(false)     -- 关闭 移动中相机自动复位
+        elseif controll_type == Enum_Battle.Player_Controll_Type.CLIMB then             -- 攀爬
+            self:set_is_sync_dir_enabled(false)             -- 关闭 转镜头同时改变主角色朝向
+            self:set_is_camera_auto_reset_enabled(false)     -- 关闭 移动中相机自动复位
+        else
+            Debug.LogError(string.format("player_conroller: invalid controll type %s", controll_type))
+        end
+
+        -- xmode移动开关
+        if controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION_SP then -- 特殊万向移动
+            self.m_unit:emit_event("anim_trigger", "x_mode_in")       -- 开启x-mode移动动画
+            self.m_unit:emit_event("anim_param", "x_mode", "bool", true)
+        else
+            self.m_unit:emit_event("anim_param", "x_mode", "bool", false)
+        end
+
+
+    end)
+
+
+    self:add_unit_event_listener()
+
+end
+
+
+function M:add_unit_event_listener()
+    -- 挨打时自动把攻击者选为当前目标
+    self:subscribe(self.m_unit:on_event("be_hit"), function(attacker_id, skill_id, hit_outcome, damage)
+        -- 如果是主角，且没有目标
+        if self.m_unit:get_target() == nil then
+            print("被攻击了")
+            -- 判断技能是否坏技能
+            local spell_cfg = dbc.spell[skill_id]
+            if not spell_cfg.is_positive then
+                -- 获取施法者
+                local attacker = self.m_world:getUnit(attacker_id)
+                attacker:set_is_Selected(true)
+                -- 把该施法者记录为本unit的目标
+                self.m_unit:set_target(attacker)
+            end
+        else
+
+        end
+    end)
+
+    -- start_skill 事件
+    -- 2017-11-15 pacman 临时用该事件延续x-mode(取消倒计时)
+    self:subscribe(self.m_unit:on_event("start_skill"), function(skill_id)
+        --print(">>>>>>>>>>>>>>>> start_sill, x-mode", self:get_is_in_x_mode())
+        if self:get_is_in_x_mode() then
+            self.m_x_mode_end_time = nil    -- 用空值表示不在倒计时状态
+        end
+    end)
+
+    -- instant_skill 事件
+    self:subscribe(self.m_unit:on_event("instant_skill"), function(skill_id)
+        --print(">>>>>>>>>>>>>>>> instant_skill, x-mode", self:get_is_in_x_mode())
+
+        -- pacman 2017-11-16 经与策划确认，开始施法时不再判断朝向，等到出手环节时再判断朝向看是否帮助玩家自动转向
+        local skill_cfg = dbc.spell[skill_id]
+        local skill_client_cfg_list = self.m_skill_mgr:get_effect_cfg_list(skill_id)
+
+        -- 检查该技能是否需要自动转身: 【需要指定目标的】+【负面】技能
+        if self.m_skill_mgr:is_target_type_target(skill_client_cfg_list) and skill_cfg.is_positive == false then
+            -- pacman 2017-11-17 经策划要求，需求变动如下
+            -- 在非xmode时检查是否自动转身；如果已经是xmode，那么所有的instant_skill都会触发转身
+            local unit = self.m_unit
+            local target_id = unit:get_skill_act_info().target_id
+            local world = self:getFrame("world")
+            local target = world:getUnit(target_id)
+            local angle = Util_math:get_angle_pdp(unit:get_pos(), unit:get_dir(), target:get_pos())
+
+            if self:get_is_in_x_mode() then
+                -- 直接转身
+                self:rotate_to_target(unit, target, angle / XMODE_TURN_SPEED)
+            else
+                -- 如果夹角大于90度，开启自动转身
+                if angle >= 90 then
+                    self:set_is_in_x_mode(true) -- 启动x-mode
+                    self:rotate_to_target(unit, target, angle / XMODE_TURN_SPEED)
+                end
+            end
+        end
+
+        -- pacman 2017-11-15 临时用该事件启动x-mode的结束倒计时
+        if self:get_is_in_x_mode() then
+            self.m_x_mode_end_time = app:get_game_time() + XMODE_DURATION
+        end
+    end)
+end
+
+
+function M:on_loaded()
+
+    --创建队内玩家的view    myself
+    local team_dic = self.m_team_manager:get_member_dict()
+
+    local num = 0
+    for k, v in pairs(team_dic) do
+        num = num + 1
+        self.m_teammember_list[num] = { k, v["entity_id"], v["state"] }
+    end
+
+
+    self:subscribe(
+    self.m_team_manager:on_event_add_member(),
+    function(db_id, data)
+        print("成员入队了》》》》》》》》》》》》》》》》》")
+        self:refresh_set_teamunit()
+    end)
+    self:subscribe(
+    self.m_team_manager:on_event_del_member(),
+    function(db_id)
+        print("成员离队了》》》》》》》》》》》》》》》》》")
+        self:refresh_set_teamunit()
+    end)
+    self:subscribe(
+    self.m_team_manager:on_event_login(),
+    function(db_id)
+        print("成员上线了》》》》》》》》》》》》》》》》》")
+        self:refresh_set_teamunit()
+    end)
+    self:subscribe(
+    self.m_team_manager:on_event_logout(),
+    function(db_id)
+        print("成员下线了》》》》》》》》》》》》》》》》》")
+        self:refresh_set_teamunit()
+    end)
+
+    self:Client_Test("Treasure", Vector3(92.28, 60.88, 94.76), 700001)
+    self:Client_Test("Treasure", Vector3(-125.908, 174.5, 522.6638), 700002)
+end
+
+function M:change_skill_btn_state(skill_id, can_use, is_highLight)
+    for i, v in ipairs(self.m_skill_btn_list) do
+        if (v:get_skill_data():get_id() == skill_id) then
+            v:change_btn_state(can_use, is_highLight)
+        end
+    end
+end
+
+function M:change_skill_btn_skill_data(ori_skill_id,new_skill_id)
+    for i, v in ipairs(self.m_skill_btn_list) do
+        if (v:get_skill_data():get_id() == ori_skill_id) then
+            --Debug.LogError("更换技能:"..tostring(ori_skill_id).." -->"..tostring(new_skill_id))
+            v:change_skill_data(self.m_unit:get_skill(new_skill_id))
+            return
+        end
+    end
+end
+
+
+function M:create_skill_btn_list(pos_list, container)
+    -- 在没有角色技能管理系统之前，在此临时配置各职业的技能
+    local specialization = self.m_unit:get_specialization()
+
+    local default_skill_id_list = {}
+
+    -- 临时增加几个好厉害技能测试
+    local special_skill_id_list = {}
+
+    if specialization == SharedEnum.TalentSpecialization.DEMON_HUNTER_VENGEANCE then
+        -- 灵猴(战士)技能
+        default_skill_id_list = { 912001, 912001, 912002, 912003, 912004, 912005, --11个测试技能
+            912006, 912007, 912008, 912009, 912010
+        }
+
+    elseif specialization == SharedEnum.TalentSpecialization.MAGE_FIRE then
+        -- 罗刹(法师)技能
+        default_skill_id_list = { 903001, 903008, 903002, 903006, 903004, 903005, --11个测试技能
+            9030011, 9030012, 9030013, 9030014, 9030015,903001
+        }
+        special_skill_id_list = { 903007, 903019, 903022 }
+    elseif SharedEnum.TalentSpecialization.PRIEST_HOLY then
+        default_skill_id_list = { 906001, 906003, 906004, 906005, 906006, 906007, --11个测试技能
+            906008, 906011, 906012, 906001, 906004
+        }
+    else
+        logError("!!!!!!!! invalid specialization type", type)
+
+    end
+
+
+
+    -- 创建技能按钮
+    self.m_skill_btn_list = {}
+    local skill_num = 0
+    for i, v in ipairs(default_skill_id_list) do
+        skill_num = skill_num + 1
+        local skill_id = v
+        local param = { id = skill_id,
+            unit = self.m_unit,
+            parent = pos_list[skill_num],
+            special = Enum_UI_SkillBtnType.normal_skill}
+        local skill_btn = self:createChild("skill_btn_" .. i, "skill_controll_btn",param)
+        self.m_skill_btn_list[skill_num] = skill_btn
+    end
+
+    -- 创建好厉害技能按钮
+    self.m_special_skill_btn_list = {}
+    for i, v in ipairs(special_skill_id_list) do
+        skill_num = skill_num + 1
+        local skill_id = v
+        local skill_btn = self:createChild("special_skill_btn_" .. i, "skill_controll_btn",
+        { id = skill_id,
+            unit = self.m_unit,
+            parent = container,
+            special = Enum_UI_SkillBtnType.special_skill})
+
+        self.m_skill_btn_list[skill_num] = skill_btn
+    end
+
+end
+
+function M:create_team_Thumb_list(pos_list)
+    self.m_teammember_list = {}
+    for i = 1, 5 do
+        self.m_thumb_view_list[i] = self:createChild("Thumb_view_" .. i, "team_skilltarget_controll", { parent = pos_list[i] })
+
+        if #self.m_teammember_list > 0 then
+            if i <= #self.m_teammember_list then
+                self.m_thumb_view_list[i]:set_unit(self.m_world:getUnit(self.m_teammember_list[i][2]))
+            end
+        end
+    end
+end
+
+function M:get_skill_btn_list()
+    return self.m_skill_btn_list
+end
+-----重新获取组队成员的字典
+function M:refresh_set_teamunit()
+    local team_dic = self.m_team_manager:get_member_dict()
+    local num = 0
+    ---------
+    self.m_teammember_list = {}
+    for k, v in pairs(team_dic) do
+        num = num + 1
+        self.m_teammember_list[num] = { k, v["entity_id"], v["state"] }
+        --print("刷新后状态为》》》》》》》》》》》》》》》》》》》》",v["state"])
+    end
+    for i = 1, #self.m_teammember_list do
+        if #self.m_teammember_list > 0 then
+            if i <= #self.m_teammember_list then
+                --print("重新设置了对象》》》》》》》》》",i)
+                --print("重新设置对象的id为",self.m_teammember_list[i][2])
+                self.m_thumb_view_list[i]:set_unit(self.m_world:getUnit(self.m_teammember_list[i][2]))
+            end
+        end
+    end
+    self:emit_event("team_member_change")
+end
+
+
+--获取技能按钮的fram列表
+function M:get_skill_btn_list()
+    local ret_list = {}
+    for k, v in pairs(self.m_skill_btn_list) do
+        ret_list[k] = v
+    end
+    return ret_list
+end
+
+--获取小队列表
+function M:get_team_member_list()
+    local ret_list = {}
+    for k, v in pairs(self.m_teammember_list) do
+        ret_list[k] = v
+        --print(">>>>>>>>>>>>>>>>>>>>>>>>>>>",k)
+    end
+    return ret_list
+end
+
+
+-- 处理跳跃
+function M:handle_jump()
+    if (self:is_interact_state()) then
+        self:handle_other_with_interact(true)
+        return
+    end
+    -- print("PlayerController:handle_jump")
+    self.m_unit:set_to_jump(true)
+end
+
+M.obj_id = 200001
+
+function M:Client_Test(...)
+    local funcs = { ... }
+    if (funcs[1] == "Treasure") then
+        -- clz test for interactObj
+        local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+        -- clz test for interactObj
+        kbe_mgr:on_entity_init(M.obj_id, "Treasure")
+        if (funcs[2] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "pos", funcs[2])
+        end
+        if (funcs[3] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "tmpl", funcs[3])
+        end
+
+        kbe_mgr:on_entity_property_set(M.obj_id, "discoverable", 1)
+        kbe_mgr:on_entity_property_set(M.obj_id, "count", 100)
+        -- clz test for interactObj
+        kbe_mgr:on_entity_enter(M.obj_id)
+    elseif (funcs[1] == "creature") then
+        -- clz test for creature
+        local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+        -- clz test for creature
+        kbe_mgr:on_entity_init(M.obj_id, "Creature")
+        if (funcs[2] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "pos", funcs[2])
+        end
+        if (funcs[3] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "tid", funcs[3])
+        end
+        if (funcs[4] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "dir", funcs[4])
+        end
+        if (funcs[5] ~= nil) then
+            kbe_mgr:on_entity_property_set(M.obj_id, "name", funcs[5])
+        end
+        -- clz test for creature
+        kbe_mgr:on_entity_enter(M.obj_id)
+    end
+    M.obj_id = M.obj_id + 1
+end
+
+
+
+-- 处理切换目标
+function M:handle_switch_target()
+
+    if (self:is_interact_state()) then
+        self:handle_other_with_interact(false)
+        return
+    end
+
+    self.allunitTable = self.m_world:getUnitMap()
+    local old_target = self.m_unit:get_target()
+
+    local targetlist = self.m_world:getDisUnit(self.m_unit, 10)
+    local renwuidList = self:getFrame("quest_manager"):get_prey_list()
+    local bossList = {}
+    local jingyinList = {}
+    local putongList = {}
+    local renwuList = {}
+    local diduiList = {}
+    local allList = {}
+    local isrenwuguai = false
+    ---获取到在攻击范围内的unit
+    if #targetlist == 0 then
+        --如果在范围内没有，设置为没有目标状态
+        self.m_unit:set_target(nil)
+        for _, v in pairs(self.allunitTable) do
+            v:set_is_Selected(false)
+        end
+    else --如果在范围内有，根据优先级判断
+        for _, v in pairs(targetlist) do
+            isrenwuguai = false
+            -- 获取unit的unit_type
+            local cfg = v:getCfg()
+            local unit_type = cfg.unit_type
+            local renwuMonsterId = cfg.id
+            if self.m_battle_mgr:is_enemy(v) then
+                diduiList[#diduiList + 1] = v
+            elseif #renwuidList ~= 0 then
+                for i = 1, #renwuidList do
+                    if renwuMonsterId == renwuList[i] then
+                        renwuList[#renwuList + 1] = v
+                        isrenwuguai = true
+                        break
+                    end
+                end
+                if not isrenwuguai then
+                    if unit_type == 4 then
+                        bossList[#bossList + 1] = v
+                    elseif unit_type == 3 then
+                        jingyinList[#jingyinList + 1] = v
+                    elseif unit_type == 2 then
+                        putongList[#putongList + 1] = v
+                    end
+                end
+            elseif unit_type == 4 then
+                bossList[#bossList + 1] = v
+            elseif unit_type == 3 then
+                jingyinList[#jingyinList + 1] = v
+            elseif unit_type == 2 then
+                putongList[#putongList + 1] = v
+            end
+        end
+        -------此处代码可以重构，当前没有选择目标
+        if old_target == nil then
+            self.m_selected = false
+            allList[1] = { #diduiList, diduiList }
+            allList[2] = { #renwuList, renwuList }
+            allList[3] = { #bossList, bossList }
+            allList[4] = { #jingyinList, jingyinList }
+            allList[5] = { #putongList, putongList }
+
+            for i = 1, #allList do
+                if allList[i][1] > 0 then
+                    self.m_selected = self:nontarget_List_CallBack(allList[i][2])
+                end
+                if self.m_selected then
+                    break
+                end
+            end
+
+            self.m_unit:set_target(self.m_new_target)
+            local aa = self.m_new_target:getCfg().unit_type
+            --for _, v in pairs(targetlist) do
+            --    print(v:get_id(), v:get_is_Selected())
+            --end
+            --print("攻击角色类型为" .. aa)
+            ------------------------------------------------------------------
+        else --当前有了选择的目标
+            self.m_selected = true
+            --这个用于判断   如果在当前切换目标列表之外的unit全部设置为没有被选中过
+            local isSame = false
+            for _, v in pairs(self.allunitTable) do
+                for j = 1, #targetlist do
+                    if v == targetlist[j] then
+                        --print("相同不需要重新设置")
+                        isSame = true
+                        break
+                    end
+                end
+                if isSame ~= true then
+                    --print("设置为没有被选中过")
+                    v:set_is_Selected(false)
+                end
+                isSame = false
+            end
+            if self.m_unit:get_in_combat() == 1 then
+                --进入战斗状态
+                allList[1] = { #diduiList, diduiList }
+                allList[2] = { #renwuList, renwuList }
+                allList[3] = { #bossList, bossList }
+                allList[4] = { #jingyinList, jingyinList }
+                allList[5] = { #putongList, putongList }
+                self:have_target_findnext(allList)
+            else --没有进入战斗状态
+                allList[1] = { #diduiList, diduiList }
+                allList[2] = { #renwuList, renwuList }
+                allList[3] = { #bossList, bossList }
+                allList[4] = { #jingyinList, jingyinList }
+                allList[5] = { #putongList, putongList }
+                self:have_target_findnext(allList)
+            end
+            self.m_unit:set_target(self.m_new_target)
+            local aa = self.m_new_target:getCfg().unit_type
+            --for _, v in pairs(targetlist) do
+            --    print(v:get_is_Selected())
+            --end
+            --print("攻击角色类型为" .. aa)
+        end
+    end
+end
+
+function M:reset()
+    self:emit_event("reset")
+end
+
+function M:on_skill_btn_down(skill_data)
+    --print("---------on_skill_btn_down", skill_data:get_id())
+    if (self:is_interact_state()) then
+        self:handle_other_with_interact(false)
+        return
+    end
+
+    -- 记录按钮按下的时间
+    self.m_btn_pressed_time = os.time()
+
+    local skill_id = skill_data:get_id()
+    self:set_cur_skill_data(skill_data)-- 记录为当前操作中的技能
+    self.m_is_skill_btn_down = true
+    self.m_unit:set_skill_id(skill_id)-- 记录为角色当前使用的技能id
+    self.m_unit:set_skill_valid(true)-- 显示技能为可用
+
+
+    local client_cfg = skill_data:get_client_cfg()
+
+    -- 区域型技能开始选择技能目标
+    if
+    client_cfg.target_mode == Enum_Battle.Skill_Target_Mode.AREA or
+    client_cfg.target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION
+    then
+        self.m_unit:emit_event("show_skill_idctr", true, skill_id)
+    end
+end
+
+-- 抬起技能按钮
+function M:on_skill_btn_up(is_in_cancel_area, is_in_skilltarget)
+
+    if (self:is_interact_state()) then
+        self:handle_other_with_interact(false)
+        return
+    end
+
+    local unit = self.m_unit
+    local skill_data = self:get_cur_skill_data()
+    local skill_id = skill_data:get_id()
+    local skill_cfg = skill_data:get_cfg()
+    local skill_client_cfg = skill_data:get_client_cfg()
+    local skill_effect_cfg_list = skill_data:get_effect_cfg()
+
+    --print("---------on_skill_btn_up", skill_id)
+    self.m_is_skill_btn_down = false
+    unit:emit_event("show_skill_idctr", false, skill_id)-- 隐藏技能指示器
+
+    -- 是否关闭【小队头像】
+    if skill_client_cfg.show_team_member == Enum_Battle.Skill_Show_Team_Member.SHOW then
+        if self:get_show_team_thumbs() then
+            self:set_show_team_thumbs(false)
+        end
+    end
+
+    -- 取消技能
+    if is_in_cancel_area then
+        -- 取消技能
+        -- 目前什么都不用做
+        return
+    end
+
+    -- todo 更多检查 --
+    -- 读条中释放检查
+    local unit_main_act = unit:get_main_act()
+    if unit_main_act == Enum_Battle.Unit_Main_Act.SKILL_SING or
+    unit_main_act == Enum_Battle.Unit_Main_Act.SKILL_CHANNEL
+    --正在吟唱或者正在引导
+    then
+        -- 不是 读条中释放 类型
+        if not skill_cfg.can_cast_while_casting then
+            print(skill_id, "正在施法中")
+            return
+        end
+    end
+
+    -- 启动技能流程 --
+    -- 是否为瞬移技能
+    local teleport_bool, teleport_dist = self.m_skill_mgr:is_teleport_skill(skill_effect_cfg_list)
+    if teleport_bool then
+        local euler_y = unit:get_dir();
+        local vec3 = unit:get_pos()
+        local actual_fwd = Quaternion.AngleAxis(euler_y, Vector3.up) * Vector3.forward * teleport_dist;
+        local mask = LayerMask.GetMask("Terrain")
+        local cc = unit:get_cc()
+        local ok, hitinfo = Physics.Raycast(vec3 + Vector3(0, cc.height * 0.3, 0), actual_fwd, Slua.out, teleport_dist, mask)
+
+        if ok then
+            actual_fwd = Quaternion.AngleAxis(euler_y, Vector3.up) * Vector3.forward * hitinfo.distance;
+        end
+        self:check_use_skill_while_moving(unit, skill_cfg)
+        self:emit_event_skill(skill_id, 0, actual_fwd + vec3, 0)-- 广播
+
+        -- pacman 2017-11-14 这里只负责主玩家开始释放技能，根据新的协议流程，主玩家在此处提前开始吟唱
+        --unit:cast_skill(skill_id, 0, actual_fwd + vec3, 0)-- 开始角色释放技能
+        --unit:start_skill_state_sing(skill_id)
+
+        return
+    end
+
+
+    -- 不需要指定目标的技能
+    if self.m_skill_mgr:is_target_type_none(skill_effect_cfg_list) then
+        self:check_use_skill_while_moving(unit, skill_cfg)
+        self:emit_event_skill(skill_id, 0, Vector3.zero, 0)-- 广播
+
+        -- pacman 2017-11-14 这里只负责主玩家开始释放技能，根据新的协议流程，主玩家在此处提前开始吟唱
+        --unit:cast_skill(skill_id, 0, Vector3.zero, 0)-- 开始角色释放技能
+        --unit:start_skill_state_sing(skill_id)
+
+        return
+    end
+
+    -- 需要指定释放位置或者角度的技能
+    if self.m_skill_mgr:is_target_type_dest_area(skill_effect_cfg_list) or
+    self.m_skill_mgr:is_target_type_dir(skill_effect_cfg_list)
+    then
+        --print("**********", self.m_unit:get_skill_area_pos())
+        self:check_use_skill_while_moving(unit, skill_cfg)
+        self:emit_event_skill(skill_id, 0, unit:get_skill_area_pos(), unit:get_skill_dir())-- 广播
+
+        -- pacman 2017-11-14 这里只负责主玩家开始释放技能，根据新的协议流程，主玩家在此处提前开始吟唱
+        --unit:cast_skill(skill_id, 0, unit:get_skill_area_pos(), unit:get_skill_dir())-- 开始角色释放技能
+        --unit:start_skill_state_sing(skill_id)
+        return
+    end
+
+
+
+    -- 其余即为需要指定目标的技能
+    -- 指向性增益技能目标特殊处理 见《斗战神操作设计》修正8.0 --
+    local target = unit:get_target()
+    if skill_cfg.is_positive then
+        --print("------------retarget", skill_id)
+        -- 以下情况保持当前目标状态，对自己释放该技能
+        if is_in_skilltarget ~= false then
+            local team_dic = self.m_team_manager:get_member_dict()
+            local db_id = self.m_teammember_list[is_in_skilltarget][1]
+            print(db_id)
+            local target_entity_id = nil
+            for k, v in pairs(team_dic) do
+                --print(k)
+                if k == db_id then
+                    target_entity_id = v["entity_id"]
+                    --print("确定了增益技能释放的对象>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", target_entity_id)
+                    break
+                end
+            end
+            if target_entity_id ~= nil then
+                local temptarget = self.m_world:getUnit(target_entity_id)
+                unit:set_target(temptarget)
+                --print("确定了增益技能释放的对象>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", temptarget)
+                --self.m_world:getUnit(self.m_teammember_list[is_in_skilltarget][2]):set_is_Selected(true)
+                target = unit:get_target()
+            end
+        else
+            if target == nil or -- 没有目标
+            self.m_battle_mgr:is_enemy(target)-- 目标是敌方
+            then
+                target = unit
+            end
+        end
+    end
+
+    -- 条件检查
+    if target == nil then
+        print(skill_id, "需要一个目标")
+    elseif target:is_dead() then
+        print(skill_id, "目标已经死亡")
+    elseif not self.m_battle_mgr:is_target_in_range(unit, target, skill_id) then
+        print(skill_id, "目标距离太远")
+    else
+        -- pacman 2017-11-15 判断技能是否需要朝向判定
+        -- 目前 【需要指定目标的】【负面】技能都需要做朝向判定
+        -- pacman 2017-11-16 经与策划确认，开始施法时不再判断朝向，等到出手环节时再判断朝向看是否帮助玩家自动转向
+        -- 也就是说，360度无死角启动施法
+        self:check_use_skill_while_moving(unit, skill_cfg)
+        self:emit_event_skill(skill_id, target:get_id(), target:get_pos(), unit:get_skill_dir())    -- 发协议
+
+        -- pacman 2017-11-14 这里只负责主玩家开始释放技能，根据新的协议流程，主玩家在此处提前开始吟唱
+        --unit:cast_skill(skill_id, target:get_id(), target:get_pos(), unit:get_skill_dir())-- 开始角色释放技能
+        --unit:start_skill_state_sing(skill_id)
+    end
+end
+
+-- 移动施法处理
+function M:check_use_skill_while_moving(unit, skill_cfg)
+    local can_move = skill_cfg.can_cast_while_moving
+    -- 不可移动施法类型，且主玩家正在移动中
+    if not can_move and unit:get_move_state() ~= MOVE_STATE.IDLE then
+        self.m_force_stop_moving = true
+        self.m_input_when_force_stopped = self.m_joystick_input
+        unit:set_move_state(MOVE_STATE.IDLE)
+    end
+end
+
+
+-- 操作unit转向target
+function M:rotate_to_target(unit, target, duration)
+    local dir_vtr = target:get_pos() - unit:get_pos()
+    local dir_vtr_xz = Vector3.ProjectOnPlane(dir_vtr, Vector3.up)
+    local target_dir = math.atan2(dir_vtr_xz.x, dir_vtr_xz.z) * 180 / math.pi
+    self:rotate_to_dir(unit, target_dir, duration)
+end
+
+-- 操作unit进入转身行为
+function M:rotate_to_dir(unit, target_dir, duration)
+    local rotate_action = UnitAction.ActionRotateToDir(unit, target_dir, duration)
+
+    -- 进入行为
+    rotate_action:onEnter(function()
+        -- 切换操作模式
+        --print("-------------onEnter")
+        self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION_SP)
+    end)
+
+    -- 退出行为
+    rotate_action:onExit(function()
+        -- 退出时切换操作模式
+        --print("-------------onExit")
+        -- pacman 2017-11-16 经与策划确认，整个x-mode期间都是用ALL_DIRECTION_SP模式，故而屏蔽下行代码
+        --self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION_X)
+    end)
+
+    unit:set_action(rotate_action)
+end
+
+
+
+
+-- 拖动技能按钮
+function M:on_skill_btn_swipe(gesture)
+    local swipe = gesture.swipeVector
+    -- print(">>>>>>>>>>>>>>>>", swipe)
+    local skill_data = self:get_cur_skill_data()
+    local skill_id = skill_data:get_id()
+    local skill_cfg = skill_data:get_cfg()
+    local skill_client_cfg = skill_data:get_client_cfg()
+
+    -- 技能【目标类型】决定拖动操作模式 --
+    if skill_client_cfg.target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+        -- 选取区域 --
+        -- 手势位移沿相机x,z轴投射到世界xz平面上
+        -- 相机x轴在世界xz平面上的投影方向
+        local projected_camera_axis_x = Vector3.ProjectOnPlane(self.m_cam:fetch_unity_camera().transform.right, Vector3.up).normalized
+        local move_x = projected_camera_axis_x * 0.02 * swipe.x
+
+        -- 相机z轴在世界xz平面上的投影方向
+        local projected_camera_axis_z = Vector3.ProjectOnPlane(self.m_cam:fetch_unity_camera().transform.forward, Vector3.up).normalized
+        local move_z = projected_camera_axis_z * 0.02 * swipe.y
+
+        self.m_unit:emit_event("move_skill_area", move_x + move_z, skill_cfg)
+    elseif skill_client_cfg.target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+        -- 旋转角度 --
+        local delta_yaw = swipe.x * 0.2
+        self.m_unit:emit_event("yaw_skill_area", delta_yaw, skill_cfg)
+    elseif skill_client_cfg.show_team_member == Enum_Battle.Skill_Show_Team_Member.SHOW then
+        self:set_show_team_thumbs(true)
+        -- 马上显示队员列表
+    end
+end
+
+function M:doUpdate()
+    local delta_time = app.get_delta_time()
+    local unit = self.m_unit
+
+    -- pacman 2017-11-21 调试功能：从键盘切换操作方式
+    ----[[
+    if Input.GetKeyDown(KeyCode.Keypad1) then
+        self:set_player_controll_type(Enum_Battle.Player_Controll_Type.WOW_8D)
+    elseif Input.GetKeyDown(KeyCode.Keypad2) then
+        self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION)
+    elseif Input.GetKeyDown(KeyCode.Keypad3) then
+        self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION_SP)
+    elseif Input.GetKeyDown(KeyCode.Keypad4) then
+        self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION_X)
+    end
+    --]]
+
+    -- pacman 2017-11-09 某些操作模式下不需要开启此功能
+    if self:get_is_camera_auto_reset_enabled() then
+        self:handle_camera_auto_rest(delta_time)
+    end
+
+    -- 治疗技能显示小队列表
+    -- pacman 2017-11-06 从写法上看应该是废弃代码
+    --local skill_id = unit:get_skill_id()
+    --if self.m_is_skill_btn_down and skill_id == 1004 and (not self:get_show_team_thumbs()) then
+    --    if os.time() - self.m_btn_pressed_time > SHOW_TEAM_THUMBS_TIME then
+    --        self:set_show_team_thumbs(true)
+    --    end
+    --end
+
+    self:handle_x_mode(delta_time)
+
+    self.m_cam_operated = false     -- 进入下一帧之前复位标识
+end
+
+
+-- 处理相机自动复位(旋转到玩家当前角度)
+function M:handle_camera_auto_rest(delta_time)
+    local unit = self.m_unit
+    local cam = self.m_cam
+    local cam_euler = cam:get_euler_angle()
+    local unit_dir = unit:get_dir()
+    local input = self.m_joystick_input
+
+    -- 相机自动复位(对齐到玩家角度)
+    -- 是否启动自动复位倒计时
+    local enable_reset = true
+    if math.abs(cam_euler.y - unit_dir) < PLAYER_CAMERA_YAW_THRESHOLD then
+        -- 没有摇杆输入
+        -- print("@@@@@@@@@@@ camera unit same dir")
+        enable_reset = false
+    elseif input.x == 0 and input.y == 0 then
+        -- print("@@@@@@@@@@@ no input")
+        enable_reset = false
+    elseif self.m_cam_operated then
+        -- print("@@@@@@@@@@@ camera operated")
+        enable_reset = false
+    end
+
+
+    -- 计算相机自动复位倒计时
+    if enable_reset then
+        self.m_reset_camera_cd = self.m_reset_camera_cd + delta_time
+    else
+        self.m_reset_camera_cd = 0
+        if self.m_is_reseting_camera then
+            self.m_is_reseting_camera = false
+        end
+    end
+
+    -- 判断开启复位操作
+    if self.m_reset_camera_cd > CAMERA_RESET_WAIT_TIME then
+        if not self.m_is_reseting_camera then
+            self.m_is_reseting_camera = true
+        end
+    end
+
+    -- 执行复位操作
+    if self.m_is_reseting_camera then
+        local new_yaw = Mathf.MoveTowardsAngle(cam_euler.y, unit_dir, CAMERA_RESET_SPEED * delta_time)
+        cam:change_goal_yaw(new_yaw)
+    end
+
+    -- print("#########", self.m_reset_camera_cd)
+
+end
+
+-- 2017-11-15 pacman 处理x-mode
+function M:handle_x_mode(delta_time)
+    --print("~~~~~~~~~~~~~~~~~~~~~", self:get_is_in_x_mode(), self.m_x_mode_end_time, app:get_game_time(), self:get_player_controll_type())
+
+    -- 倒计时检查
+    if self:get_is_in_x_mode() and self.m_x_mode_end_time ~= nil then
+        if self.m_x_mode_end_time <= app:get_game_time() then
+            -- x-mode结束
+            self:set_is_in_x_mode(false)
+            self.m_x_mode_end_time = nil
+
+            -- 切换回正常操作模式
+            self:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION)
+            --print("!!!!!!!!!!!!!! x-mode stop !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        end
+    end
+
+end
+
+
+
+function M:handle_change_skill_layer(skill_layer_code)
+    self:set_target_skill_layer(skill_layer_code)
+
+    self:check_change_skill_layer()
+end
+
+function M:check_change_skill_layer()
+    local target_layer_code = self:get_target_skill_layer()
+    local cur_skill_layer = self:get_cur_skill_layer()
+    local is_any_skill_btn_down = self.m_is_skill_btn_down
+
+    if (not self.m_is_skill_btn_down) and (target_layer_code ~= cur_skill_layer) then
+        -- print("^^^^^^^^^^^^^ show_skill_layer", target_layer_code)
+        self:set_cur_skill_layer(target_layer_code)
+        self:emit_event_show_skill_layer(target_layer_code)
+    end
+end
+
+---吴哥原来的
+--function M:add_team_member(team_no, member_no, unit)
+--    self.m_group = self.m_group or {}
+--
+--    -- if unit:get_team() ~= nil then
+--    --     self.m_group[team_no] = unit:get_team()
+--    -- else
+--    --     self.m_group[team_no] = self.m_group[team_no] or {}
+--    -- end
+--
+--    self.m_group[team_no] = self.m_group[team_no] or {}
+--
+--    local team = self.m_group[team_no]
+--    team[member_no] = unit
+--    unit:set_team(team)
+--
+--    self:emit_event("add_member", team_no, member_no, unit)
+--end
+------------------------------
+function M:add_npc(unit)
+    self.m_npc = unit
+end
+
+function M:get_npc()
+    return self.m_npc
+end
+
+function M:on_skill_btn_swipe_into_cancel_area()
+    self.m_unit:set_skill_valid(false)
+end
+
+function M:on_skill_btn_swipe_out_cancel_area()
+    self.m_unit:set_skill_valid(true)
+end
+
+-- 这里控制是否显示交互按钮,同时也定义了显示名称和交互逻辑
+function M:show_interact_btn(name, func, callback, frame)
+    self.interact_btnfunc = func
+    self.interact_frame = frame
+    self.interact_func_callback = callback
+    self:set_attr_and_event("interact_btn_name", name)
+
+end
+
+-- 这里是执行交互逻辑
+function M:on_interact_btn()
+    assert(self.interact_btnfunc)
+    assert(self.interact_frame)
+
+    self.interact_btnfunc(self.interact_frame)
+end
+
+function M:set_interact_btn_callback(cb_func)
+    self.m_interact_btn_callback = cb_func
+end
+
+function M:on_interact()
+    if self.m_interact_btn_callback then
+        self.m_interact_btn_callback()
+    end
+end
+
+function M:get_cur_interact_discoverable()
+    return self.interact_frame:get_discoverable()
+end
+-- 采集完成
+function M:on_interact_finish(is_success)
+    assert(self.interact_func_callback)
+
+    self.interact_func_callback(self.interact_frame, is_success)
+end
+
+-- 反正这里有就借用一下
+function M:get_main_player_unit()
+    return self.m_unit
+end
+
+-- 获取是否处于交互状态
+function M:is_interact_state()
+    local b = self.m_unit:is_interact_state()
+    return b
+end
+
+-- 交互状态下其他操作处理
+function M:handle_other_with_interact(is_break)
+    local tip = ""
+    if is_break == true then
+        tip = lang.interact_break
+        self:on_interact_finish(false)
+        self:set_attr_and_event("interact_btn_time", 0)
+    else
+        tip = lang.interacting
+    end
+    self:set_attr_and_event("interact_btn_tip", tip)
+    slua_timer.removeTimerEvent(slua_timer.EVENT_LIST.Interact_Tip)
+    slua_timer.addTimerEvent(
+    slua_timer.EVENT_LIST.Interact_Tip,
+    2,
+    0,
+    function()
+        self:set_attr_and_event("interact_btn_tip", "")
+    end
+    )
+end
+
+function M:nontarget_List_CallBack(no_list)
+    if #no_list == 1 then
+        self.m_new_target = no_list[1]
+        return true
+    else
+        self.m_new_target_dist = Vector3.Distance(self.m_unit:get_pos(), no_list[1]:get_pos())
+        for k, v in pairs(no_list) do
+            local dist = Vector3.Distance(self.m_unit:get_pos(), v:get_pos())
+            if dist <= self.m_new_target_dist then
+                self.m_new_target_dist = dist
+                self.m_new_target = v
+            end
+        end
+        self.m_new_target:set_is_Selected(true)
+        return true
+    end
+    return false
+end
+
+--返回True代表在当前的列表中选中了要攻击的目标，如果返回false表示没有选中要攻击的目标
+function M:havetarget_List_CallBack(have_list)
+    self.m_is_all_selected = false
+    local ischoosed = false
+    local no_selected_list = {}
+    if #have_list == 1 then
+        if not have_list[1]:get_is_Selected() then
+            self.m_new_target = have_list[1]
+            self.m_new_target:set_is_Selected(true)
+            return true
+        else
+            return false
+        end
+    else
+        --self.m_new_target_dist = Vector3.Distance(self.m_unit:get_pos(), have_list[1]:get_pos())
+        self.m_is_all_selected = true
+        for i = 1, #have_list do
+            if have_list[i]:get_is_Selected() ~= true then
+                self.m_is_all_selected = false
+                no_selected_list[#no_selected_list + 1] = have_list[i]
+            end
+        end
+        if self.m_is_all_selected then
+            return false
+        end
+        self.m_new_target_dist = Vector3.Distance(self.m_unit:get_pos(), no_selected_list[1]:get_pos())
+        for _, v in pairs(no_selected_list) do
+            if v:get_is_Selected() ~= true then
+                local dist = Vector3.Distance(self.m_unit:get_pos(), v:get_pos())
+                if dist <= self.m_new_target_dist then
+                    self.m_new_target_dist = dist
+                    self.m_new_target = v
+                    ischoosed = true
+                end
+            end
+        end
+        if ischoosed then
+            self.m_new_target:set_is_Selected(true)
+        end
+        return ischoosed
+    end
+end
+
+function M:have_target_findnext(allList)
+    local i = 1
+    self.m_selected = false
+    while i <= #allList do
+        if allList[i][1] > 0 then
+            self.m_selected = self:havetarget_List_CallBack(allList[i][2])
+            if self.m_selected then
+                break
+            end
+        end
+        if i == #allList then
+            for _, v in pairs(self.allunitTable) do
+                v:set_is_Selected(false)
+            end
+        end
+        i = i + 1
+        if i == #allList + 1 then
+            i = 1
+        end
+    end
+end
+
+
+---------------------------
+-- pacman 2017年11月8日 多种操作方式
+-- 先笼统写在本类里，待功能完成再看如何重构
+-- 恰好这多种操作方式都可以基于move_state来实现
+---------------------------
+
+function M:if_handle_interact(move_state)
+    if (move_state ~= 0 and self:is_interact_state()) then
+        self:handle_other_with_interact(true)
+        return true
+    else
+        return false
+    end
+end
+
+--------------------
+-- 处理(摇杆)输入
+--------------------
+function M:handle_input(input)
+
+    -- pacman 2017-11-16 加入过滤输入处理
+    -- 强制停止移动
+    if self.m_force_stop_moving then
+        -- 检查本次输入是否比强制停止时记录的输入有变化
+        local input_old = self.m_input_when_force_stopped
+        local threshold = 0.05
+        --print("??????????????????????????", input.x, input.y, input.z, input_old.x, input_old.y, input_old.z)
+
+        -- 每个轴向的输入都没有超过阈值
+        if math.abs(input_old.x - input.x) < threshold
+        and math.abs(input_old.y - input.y) < threshold
+        and math.abs(input_old.z - input.z) < threshold
+        then
+            -- 归零输入
+            input.x = 0
+            input.y = 0
+            input.z = 0
+        else
+            -- 否则结束【强制停止移动】状态
+            self.m_force_stop_moving = false
+        end
+    end
+
+    self.m_joystick_input = input
+
+    local controll_type = self:get_player_controll_type()
+    if controll_type == Enum_Battle.Player_Controll_Type.WOW_8D then    -- wow风格
+        self:handle_input_wow(input)
+    elseif controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION then  -- 普通万向
+        self:handle_input_all(input)
+    elseif controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION_SP then     -- 特殊万向移动(不操作角色朝向)
+        self:handle_input_all_sp(input)
+    elseif controll_type == Enum_Battle.Player_Controll_Type.ALL_DIRECTION_X then     -- x万向移动
+        self:handle_input_all_x(input)
+    elseif controll_type == Enum_Battle.Player_Controll_Type.CLIMB then     -- 攀爬
+        self:handle_input_climb(input)
+    end
+
+end
+
+-- 处理(摇杆)输入:WOW风格8向
+function M:handle_input_wow(input)
+    local ms = self:get_move_state_from_input_wow(input)
+    if self:if_handle_interact(ms) then
+        return
+    end
+
+    -- 改变unit move_state
+    self.m_unit:change_move_state(ms)
+
+    -- 计算unit 移动方向/面朝方向/移动速度
+    local angle_8d = Unit.get_angle8d_from_move_state(self.m_unit:get_move_state())
+    -- 移动状态
+    if angle_8d ~= nil then
+        -- 移动方向由unit.dir和move_state综合决定
+        local move_dir = self.m_unit:get_dir() + angle_8d
+        self.m_unit:set_move_dir(move_dir)
+
+        -- 面朝方向
+        -- 这种模式下 unit的面朝方向是由（在特殊区域）拖拽相机所决定的，不需计算
+
+        -- 移动速度
+        -- 如果是后退移动，速度要衰减
+        local move_speed = self.m_unit:get_move_speed()
+        if self.m_unit:get_back() then
+            move_speed = move_speed* Unit.BACK_SPEED_SCALE
+        end
+        self.m_unit:set_actural_move_speed(move_speed)
+    else
+        -- 非移动状态
+        -- 不用关心 移动方向/面朝方向/移动速度等问题
+    end
+
+end
+
+-- 处理(摇杆)输入:万向移动
+function M:handle_input_all(input)
+    local ms = self:get_move_state_from_input_all(input)
+
+    if self:if_handle_interact(ms) then
+        return
+    end
+
+    -- 改变unit move_state
+    self.m_unit:change_move_state(ms)
+
+    -- 计算unit 移动方向/面朝方向/移动速度
+    if ms ~= MOVE_STATE.IDLE then
+        -- 移动状态下
+        -- joystick输入角度
+        -- 颠倒一下atan2的参数顺序，恰好是我们想要的角度值：正上为0，顺时针为正
+        local input_angle = math.atan2(input.x, input.y) * 180 / math.pi
+
+        -- 移动方向是相机角度加上jotstick输入的偏移方向
+        local move_dir = input_angle + self.m_cam:get_euler_angle().y
+        self.m_unit:set_move_dir(move_dir)
+
+        -- 面朝方向就是移动方向
+        self.m_unit:set_target_dir(move_dir)
+
+        -- 移动速度没有变化
+        local move_speed = self.m_unit:get_move_speed()
+        self.m_unit:set_actural_move_speed(move_speed)
+    else
+        -- 非移动状态
+        -- 不用关心 移动方向/面朝方向/移动速度等问题
+    end
+end
+
+-- 处理(摇杆)输入:特殊万向移动(不操作角色朝向)
+function M:handle_input_all_sp(input)
+    local ms = self:get_move_state_from_input_all_sp(input)
+    if self:if_handle_interact(ms) then
+        return
+    end
+
+    -- 改变unit move_state
+    self.m_unit:change_move_state(ms)
+
+    -- 计算unit 移动方向/面朝方向/移动速度
+    if ms ~= MOVE_STATE.IDLE then
+        -- 移动状态下
+        -- joystick输入角度
+        -- 颠倒一下atan2的参数顺序，恰好是我们想要的角度值：正上为0，顺时针为正
+        local input_angle = math.atan2(input.x, input.y) * 180 / math.pi
+
+        -- 移动方向是相机角度加上jotstick输入的偏移方向
+        local move_dir = input_angle + self.m_cam:get_euler_angle().y
+        self.m_unit:set_move_dir(move_dir)
+
+        -- 不改变面朝方向
+        --self.m_unit:set_target_dir(move_dir)
+
+        -- pacman 2017-11-18 根据移动方向与角色朝向的角度来控制 blendtree 参数
+        local unit_dir = self.m_unit:get_dir()
+        unit_dir = func.clamp_angle_0_360(unit_dir)
+        local move_dir_2 = func.clamp_angle_0_360(move_dir)
+        local a = move_dir_2 - unit_dir
+        self.m_unit:emit_event("anim_param", "xmode_x", "float", math.sin(math.rad(a)))
+        self.m_unit:emit_event("anim_param", "xmode_y", "float", math.cos(math.rad(a)))
+        --print("-----------------", move_dir_2, unit_dir, math.sin(math.rad(a)), math.cos(math.rad(a)))
+
+        -- 移动速度没有变化
+        local move_speed = self.m_unit:get_move_speed()
+        self.m_unit:set_actural_move_speed(move_speed)
+    else
+        -- 非移动状态
+        -- 不用关心 移动方向/面朝方向/移动速度等问题
+
+        -- pacman 2017-11-18  blendtree 参数
+        self.m_unit:emit_event("anim_param", "xmode_x", "float", 0)
+        self.m_unit:emit_event("anim_param", "xmode_y", "float", 0)
+    end
+end
+
+-- 处理(摇杆)输入:X万向移动
+function M:handle_input_all_x(input)
+    local ms = self:get_move_state_from_input_all_x(input)
+    if self:if_handle_interact(ms) then
+        return
+    end
+
+    -- 改变unit move_state
+    self.m_unit:change_move_state(ms)
+
+    -- 计算unit 移动方向/面朝方向/移动速度
+    if ms ~= MOVE_STATE.IDLE then
+        -- 移动状态下 --
+        -- joystick输入角度
+        -- 颠倒一下atan2的参数顺序，恰好是我们想要的角度值：正上为0，顺时针为正
+        local input_angle = math.atan2(input.x, input.y) * 180 / math.pi
+
+        -- 移动方向是相机角度加上jotstick输入的偏移方向
+        local move_dir = input_angle + self.m_cam:get_euler_angle().y
+        self.m_unit:set_move_dir(move_dir)
+
+        -- 面朝方向由move_state和移动方向决定
+        if ms == MOVE_STATE.FORWARD then
+            -- 前移时，面朝方向就是移动方向
+            self.m_unit:set_target_dir(move_dir)
+        elseif ms == MOVE_STATE.BACK then
+            -- 后退时，面朝方向与移动方向相反
+            local dir = func.clamp_angle_0_360(move_dir - 180)
+            self.m_unit:set_target_dir(dir)
+        end
+
+        -- 移动速度没有变化
+        local move_speed = self.m_unit:get_move_speed()
+        self.m_unit:set_actural_move_speed(move_speed)
+
+    else
+        -- 非移动状态
+        -- 不用关心 移动方向/面朝方向/移动速度等问题
+    end
+
+end
+
+-- 处理(摇杆)输入:攀爬
+function M:handle_input_climb(input)
+    local ms = self:get_move_state_from_input_climb(input)
+    if self:if_handle_interact(ms) then
+        return
+    end
+
+    -- 改变unit move_state
+    self.m_unit:change_move_state(ms)
+
+    -- 计算unit 移动方向/面朝方向/移动速度
+    -- 2017-11-13 pacman 待确定
+
+end
+
+
+-----------------------
+-- input -> move_state
+-----------------------
+-- 输入转换为move_state:WOW风格8向
+function M:get_move_state_from_input_wow(input)
+    local axis_x = input.x
+    local axis_y = input.y
+    local axis_z = input.z  -- 暂未使用
+    if axis_x ~= 0 then
+        local tan = axis_y / axis_x
+        if axis_x > 0 then
+            if tan < -2.41421 then
+                -- tan(-90 + 45/2)
+                return MOVE_STATE.BACK
+            elseif tan < -0.41421 then
+                -- tan(-45/2)
+                return MOVE_STATE.R_BACK
+            elseif tan < 0.41421 then
+                -- tan(45/2)
+                return MOVE_STATE.RIGHT
+            elseif tan < 2.41421 then
+                -- tan(90 - 45/2)
+                return MOVE_STATE.R_FORWARD
+            else
+                return MOVE_STATE.FORWARD
+            end
+        else
+            if tan < -2.41421 then
+                -- tan(90 + 45/2)
+                return MOVE_STATE.FORWARD
+            elseif tan < -0.41421 then
+                -- tan(180 - 45/2)
+                return MOVE_STATE.L_FORWARD
+            elseif tan < 0.41421 then
+                -- tan(180 + 45/2)
+                return MOVE_STATE.LEFT
+            elseif tan < 2.41421 then
+                -- tan(-90 - 45/2)
+                return MOVE_STATE.L_BACK
+            else
+                return MOVE_STATE.BACK
+            end
+        end
+    elseif axis_y ~= 0 then
+        if axis_y > 0 then
+            return MOVE_STATE.FORWARD
+        else
+            return MOVE_STATE.BACK
+        end
+    else
+        return MOVE_STATE.IDLE
+    end
+end
+
+-- 输入转换为move_state:万向移动
+function M:get_move_state_from_input_all(input)
+    local axis_x = input.x
+    local axis_y = input.y
+    local axis_z = input.z  -- 暂未使用
+
+    -- 万向移动下，move_state只有两个值
+    -- 不移动;向前移动
+    if axis_x == 0 and axis_y == 0 then
+        return MOVE_STATE.IDLE
+    else
+        return MOVE_STATE.FORWARD
+    end
+end
+
+-- 输入转换为move_state:特殊万向移动
+function M:get_move_state_from_input_all_sp(input)
+    local axis_x = input.x
+    local axis_y = input.y
+    local axis_z = input.z  -- 暂未使用
+
+    -- joystick输入角度
+    -- 颠倒一下atan2的参数顺序，恰好是我们想要的角度值：正上为0，顺时针为正
+    local input_angle = math.atan2(input.x, input.y) * 180 / math.pi
+
+    if axis_x == 0 and axis_y == 0 then
+        return MOVE_STATE.IDLE
+    else
+        local unit_dir = self.m_unit:get_dir()
+        -- 输入角度加上相机朝向得到移动方向
+        local move_dir = input_angle + self.m_cam:get_euler_angle().y
+        local smaller_angle = func.smaller_angle(move_dir, unit_dir)
+
+        if math.floor(smaller_angle) <= 90 then
+            return MOVE_STATE.FORWARD
+        else
+            return MOVE_STATE.BACK
+        end
+    end
+end
+
+-- 输入转换为move_state:X万向移动
+function M:get_move_state_from_input_all_x(input)
+    local axis_x = input.x
+    local axis_y = input.y
+    local axis_z = input.z  -- 暂未使用
+
+    -- joystick输入角度
+    -- 颠倒一下atan2的参数顺序，恰好是我们想要的角度值：正上为0，顺时针为正
+    local input_angle = math.atan2(input.x, input.y) * 180 / math.pi
+
+    if axis_x == 0 and axis_y == 0 then
+        return MOVE_STATE.IDLE
+    else
+        local unit_dir = self.m_unit:get_dir()
+        -- 输入角度加上相机朝向得到移动方向
+        local move_dir = input_angle + self.m_cam:get_euler_angle().y
+        local smaller_angle = func.smaller_angle(move_dir, unit_dir)
+
+        if math.floor(smaller_angle) <= 90 then
+            return MOVE_STATE.FORWARD
+        else
+            return MOVE_STATE.BACK
+        end
+    end
+
+end
+
+-- 输入转换为move_state:攀爬
+function M:get_move_state_from_input_climb(input)
+    local axis_x = input.x
+    local axis_y = input.y
+    local axis_z = input.z  -- 暂未使用
+
+    -- 此模式下，move_state有三个值
+    -- 不移动;向前移动;后退移动
+    if axis_x == 0 and axis_y == 0 then
+        return MOVE_STATE.IDLE
+    else
+        if axis_y >= 0 then
+            return MOVE_STATE.FORWARD
+        else
+            return MOVE_STATE.BACK
+        end
+    end
+end
+
+return M

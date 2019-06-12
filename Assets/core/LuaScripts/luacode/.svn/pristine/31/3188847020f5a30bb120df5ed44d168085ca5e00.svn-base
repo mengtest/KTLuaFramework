@@ -1,0 +1,313 @@
+local View = require("system.view")
+local backpack_list_view = class("backpack_list_view", View)
+
+function backpack_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_backpack_main = self.m_mgr:getView("backpack_equipment_main")
+
+    -- 是否需要移动
+    self.m_need_move = false
+    -- 移动速度
+    self.m_move_speed = 0
+    -- 移动时间
+    self.m_move_time = 0.2
+    -- 滑动条的值
+    self.m_scroll_bar_target_value = 0
+    -- 按钮列表
+    self.m_btn_list = {}
+    -- 当前选中的按钮
+    self.m_curr_selected_btn = nil
+    -- 开始拖拽的位置
+    self.m_drag_begin_pos = nil
+    -- 结束拖拽的位置
+    self.m_drag_end_pos = nil
+    -- 当前所在页对象
+    self.m_curr_item = nil
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BackpackEquip"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local left_btn_container = go.transform:Find("backpack/left_btn_container").transform
+        self.m_weapon_btn = left_btn_container:Find("weapon_btn"):GetComponent(UI.Button)
+        self.m_weapon_image = left_btn_container:Find("weapon_image").transform
+        self:add_btn_list(self.m_weapon_btn, self.m_weapon_image, -303)
+        self.m_armor_btn = left_btn_container:Find("armor_btn"):GetComponent(UI.Button)
+        self.m_armor_image = left_btn_container:Find("armor_image").transform
+        self:add_btn_list(self.m_armor_btn, self.m_armor_image, -423)
+        self.m_ring_btn = left_btn_container:Find("ring_btn"):GetComponent(UI.Button)
+        self.m_ring_image = left_btn_container:Find("ring_image").transform
+        self:add_btn_list(self.m_ring_btn, self.m_ring_image, -544)
+        self.m_selected_image = left_btn_container:Find("selected_image").transform
+        self.m_drag_area_container = go.transform:Find("backpack/scroll_view").gameObject:GetComponent("DragSkill")
+        self.m_scroll_bar = go.transform:Find("backpack/scroll_view/scrollbar"):GetComponent(UI.Scrollbar)
+        local sub_list_parent = go.transform:Find("backpack/scroll_view/viewport/content").transform
+        self.m_weapon_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_weapon_btn, nil)
+            self.m_backpack_main:hide_tips()
+        end)
+
+        self.m_armor_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_armor_btn, nil)
+            self.m_backpack_main:hide_tips()
+        end)
+
+        self.m_ring_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_ring_btn, nil)
+            self.m_backpack_main:hide_tips()
+        end)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function(eventdata)
+            self.m_drag_begin_pos = eventdata.position
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function(eventdata)
+            self:on_end_drag_call_back(eventdata)
+
+        end)
+
+        self.m_frame:on_loaded()
+        local temp_list = self.m_frame:gain_sub_backpack()
+        self.m_curr_item = temp_list[1][1]
+        self:click_btn_callback(self.m_weapon_btn, 1)
+
+        self:subscribe(self.m_frame:on_event("del_sub_list"), function(del_frame)
+            if self.m_curr_item == del_frame then
+                local list = self.m_frame:gain_sub_backpack()
+                for i, v in ipairs(list) do
+                    for key, value in ipairs(v) do
+                        if del_frame == value then
+                            assert(key ~= 1, key)
+                            self:on_page_up()
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+end
+
+function backpack_list_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.05) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        -- 在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+-- 点击左侧按钮的回调  目前这些计算长度会先写死
+function backpack_list_view:click_btn_callback(press_btn, value)
+    self.m_curr_selected_btn = press_btn
+    self.m_need_move = true
+    self.m_move_speed = 0
+    if value == nil then
+        local sub_list = self.m_frame:gain_sub_backpack()
+        local page_sum = #sub_list[1] + #sub_list[2] + #sub_list[3] - 3
+        local content_len = page_sum * 510 - 595
+        local moved_len = 0
+        if press_btn == self.m_weapon_btn then
+            local cur_scroll_bar = 1
+            self.m_curr_item = sub_list[1][1]
+            self:change_btn_to_selected(self.m_weapon_btn, cur_scroll_bar)
+        elseif press_btn == self.m_armor_btn then
+            moved_len = (#sub_list[1] - 2) * 510 + 467.5
+            local scroll_bar_moved_value = moved_len / content_len
+            local cur_scroll_bar = 1 - scroll_bar_moved_value
+            self.m_curr_item = sub_list[2][1]
+            self:change_btn_to_selected(self.m_armor_btn, cur_scroll_bar)
+        elseif press_btn == self.m_ring_btn then
+            moved_len = (#sub_list[1] - 2 + #sub_list[2] - 1) * 510 + 467.5
+            local scroll_bar_moved_value = moved_len / content_len
+            local cur_scroll_bar = 1 - scroll_bar_moved_value
+            self.m_curr_item = sub_list[3][1]
+            self:change_btn_to_selected(self.m_ring_btn, cur_scroll_bar)
+        end
+    else
+        self:change_btn_to_selected(press_btn, value)
+    end
+end
+
+-- 按钮高亮
+function backpack_list_view:change_btn_to_selected(press_btn, value)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn"] == press_btn then
+            v["btn"].transform.gameObject:SetActive(false)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            self:selected_image_move(v["pos"])
+            self.m_scroll_bar_target_value = value
+        else
+            v["btn"].transform.transform.gameObject:SetActive(true)
+            v["selected_show"].transform.gameObject:SetActive(false)
+        end
+    end
+end
+
+-- 向按钮列表中添加内容
+function backpack_list_view:add_btn_list(btn, selected_show, pos)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["btn"] = btn, ["selected_show"] = selected_show, ["pos"] = pos }
+end
+
+function backpack_list_view:selected_image_move(target)
+    ShortcutExtensions.DOLocalMoveY(self.m_selected_image.gameObject.transform, target, 0.6, false)
+end
+
+function backpack_list_view:on_end_drag_call_back(eventdata)
+    self.m_drag_end_pos = eventdata.position
+    -- 向下
+    if self.m_drag_end_pos.y > self.m_drag_begin_pos.y then
+        self:on_page_down()
+        -- 向上滑
+    elseif self.m_drag_end_pos.y < self.m_drag_begin_pos.y then
+        self:on_page_up()
+    end
+end
+
+-- 当页签向下的时候
+function backpack_list_view:on_page_up()
+    local sub_list = self.m_frame:gain_sub_backpack()
+    local page_sum = #sub_list[1] + #sub_list[2] + #sub_list[3] - 3
+    local content_len = page_sum * 510 - 595
+    -- Debug.LogError("content_len" .. tostring(content_len))
+    local page_sum_len = 0
+    for i = 1, 3 do
+        for key, value in ipairs(sub_list[i]) do
+            if value == self.m_curr_item then
+                -- Debug.LogError("key    i   " .. tostring(key) .. tostring(i))
+                -- 如果是当前类的最后一页
+                local moved_len = 0
+                -- 如果是最后一类
+                if i == 3 then
+                    if key == 1 then
+                        -- Debug.LogError("切换选中页  3max_key")
+                        moved_len = 467.5 + (#sub_list[1] + #sub_list[2] - 4 ) * 510
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页  1max_key" .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_armor_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[2][#sub_list[2] - 1]
+                    else
+                        moved_len = (key + #sub_list[1] + #sub_list[2] - 5) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页  3" .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_ring_btn, cur_scroll_bar)
+                        -- 那么将当前的item 设置为新一类的第一页
+                        self.m_curr_item = sub_list[i][key - 1]
+                    end
+                    -- 如果是第一类
+                elseif i == 1 then
+                    -- 如果第一类的第一页是最后一页
+                    if key == 1 then
+                        return
+                    else
+                        moved_len = 467.5 + (key - 2) * 510
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        self:click_btn_callback(self.m_weapon_btn, cur_scroll_bar)
+                        -- Debug.LogError("切换选中页  1" .. tostring(cur_scroll_bar))
+                        self.m_curr_item = sub_list[i][key - 1]
+                    end
+                elseif i == 2 then
+                    if key == 1 then
+                        moved_len = (#sub_list[1] - 3) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页 2max_key " .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_weapon_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[1][#sub_list[1] - 1]
+                    else
+                        moved_len = (#sub_list[1] - 4 + key) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- print(key,cur_scroll_bar,moved_len,content_len,page_sum)
+                        -- Debug.LogError("切换选中页  2" .. tostring(cur_scroll_bar) .. tostring(moved_len))
+                        self:click_btn_callback(self.m_armor_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[i][key - 1]
+                    end
+                end
+                return
+            end
+        end
+    end
+end
+
+-- 当页签向上的时候
+function backpack_list_view:on_page_down()
+    local sub_list = self.m_frame:gain_sub_backpack()
+    local page_sum = #sub_list[1] + #sub_list[2] + #sub_list[3] - 3
+    local content_len = page_sum * 510 - 595
+    -- Debug.LogError("content_len" .. tostring(content_len))
+    local page_sum_len = 0
+    for i = 1, 3 do
+        for key, value in ipairs(sub_list[i]) do
+            if value == self.m_curr_item then
+                local max_key = #sub_list[i] - 1
+                -- Debug.LogError("key    i   " .. tostring(key) .. tostring(i))
+                -- 如果是当前类的最后一页
+                local moved_len = 0
+                -- 如果是最后一类
+                if i == 3 then
+                    -- 最后一类的最后一页  则不能继续滑动  return掉
+                    if key == max_key then
+                        -- Debug.LogError("切换选中页  3max_key")
+                        return
+                    else
+                        moved_len = (key + #sub_list[1] + #sub_list[2] - 3) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页  3" .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_ring_btn, cur_scroll_bar)
+                        -- 那么将当前的item 设置为新一类的第一页
+                        self.m_curr_item = sub_list[i][key + 1]
+                    end
+                    -- 如果是第一类
+                elseif i == 1 then
+                    -- 如果第一类的第一页是最后一页
+                    if key == max_key then
+                        moved_len = 467.5 + (#sub_list[1] - 2) * 510
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页  1max_key" .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_armor_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[i + 1][1]
+                    else
+                        moved_len = 467.5 + (key - 1) * 510
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        self:click_btn_callback(self.m_weapon_btn, cur_scroll_bar)
+                        -- Debug.LogError("切换选中页  1" .. tostring(cur_scroll_bar))
+                        self.m_curr_item = sub_list[i][key + 1]
+                    end
+                elseif i == 2 then
+                    if key == max_key then
+                        moved_len = (#sub_list[1] + #sub_list[2] - 3) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页 2max_key " .. tostring(cur_scroll_bar))
+                        self:click_btn_callback(self.m_ring_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[i + 1][1]
+                    else
+                        moved_len = (#sub_list[1] - 2 + key) * 510 + 467.5
+                        local scroll_bar_moved_value = moved_len / content_len
+                        local cur_scroll_bar = 1 - scroll_bar_moved_value
+                        -- Debug.LogError("切换选中页  2" .. tostring(cur_scroll_bar) .. tostring(moved_len))
+                        self:click_btn_callback(self.m_armor_btn, cur_scroll_bar)
+                        self.m_curr_item = sub_list[i][key + 1]
+                    end
+                end
+                return
+            end
+        end
+    end
+end
+
+return backpack_list_view

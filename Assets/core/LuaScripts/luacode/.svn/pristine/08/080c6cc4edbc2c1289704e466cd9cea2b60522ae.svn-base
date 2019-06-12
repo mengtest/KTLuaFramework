@@ -1,0 +1,60 @@
+
+--local Frame = require("system.frame")
+--local Look_at_target = class("look_at_target", Frame)
+local Look_at_target = class("look_at_target")
+
+Look_at_target.Const = {}
+Look_at_target.Const.Look_at_min_angle_x = 10
+Look_at_target.Const.Look_at_max_angle_x = 80
+Look_at_target.Const.Look_at_cancel_angle_x = 100
+Look_at_target.Const.Look_at_min_angle_y = 0
+
+--function Look_at_target:doInit(params)
+--
+--end
+
+--function Look_at_target:initialize(root_go, head_tr)
+--    self.m_animator_ik = root_go:AddComponent(AnimatorIK)
+--    self.m_root_tr = root_go.transform
+--    self.m_head_tr = head_tr
+--end
+
+function Look_at_target:set_root_and_head(root_go, head_tr)
+    self.m_animator_ik = root_go:GetComponent(AnimatorIK) or root_go:AddComponent(AnimatorIK)
+    self.m_root_tr = root_go.transform
+    self.m_head_tr = head_tr
+end
+
+function Look_at_target:set_look_at_position(pos)
+    if not self.m_root_tr then
+        return
+    end
+    
+    local fwd = self.m_root_tr.forward
+    local dir = pos - self.m_head_tr.position
+    local angle_x = Util_math:get_delta_angle_in_xz(fwd, dir)
+    local angle_y = Util_math:get_delta_angle_between_xz(dir)
+
+    local is_in_sight = angle_x >= self.Const.Look_at_min_angle_x and angle_x <= self.Const.Look_at_cancel_angle_x and angle_y >= self.Const.Look_at_min_angle_y
+    if is_in_sight then
+        if angle_x > self.Const.Look_at_max_angle_x then
+            local delta_angle_x = angle_x - self.Const.Look_at_max_angle_x
+            pos = Quaternion.AngleAxis(delta_angle_x, Util_math:get_projection_vector(Vector3.Cross(dir, fwd), Vector3.up)) * dir + self.m_head_tr.position
+        end
+        self.m_animator_ik:SetLookAtPosition(pos)
+        Util_log:logError(Util_log.Mask.SJG_Look, "pos = " .. tostring(pos))
+    else
+        self.m_animator_ik:ClearLookAtPosition()
+    end
+end
+
+
+
+
+
+
+
+
+
+
+return Look_at_target

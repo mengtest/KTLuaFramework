@@ -1,0 +1,104 @@
+local View = require("system.view")
+local quest_ui_show_view = class("quest_ui_show_view", View)
+
+function quest_ui_show_view:doInit(param)
+
+    self:load("ui/QuestShow.prefab", function(go)
+        local frame = self:getFrame()
+        self.m_quest_id = frame:get_quest_id()
+        local ui_manager = app:get_ui_manager()
+        go.transform.localPosition = Vector3.one
+        go.transform.localScale = Vector3.one
+
+        -- 不会用 outlet 的
+        self.m_give_up_btn = go.transform:Find("quest_show/give_up_btn"):GetComponent(UI.Button)
+        self.m_quest_finished_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_finished_icon"):GetComponent(UI.Image)
+        self.m_quest_accepted_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_accepted_icon"):GetComponent(UI.Image)
+        self.m_quest_failed_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_failed_icon"):GetComponent(UI.Image)
+        self.m_stat_txt = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_stat_text"):GetComponent(UI.Text)
+
+        ----还有一个奖励图标
+        self.m_reward_goods = go.transform:Find("quest_show/quest_detail_column/quest_reward/goods")
+
+
+        -- 状态图标
+        self:subscribe(frame:on_event_quest_stat_set(true), function(stat)
+            if stat == "已接取" then
+                self.m_stat_txt.color = Color.white
+                self.m_quest_accepted_icon.gameObject:SetActive(true)
+                self.m_quest_finished_icon.gameObject:SetActive(false)
+                self.m_quest_failed_icon.gameObject:SetActive(false)
+            elseif stat == "失败" then
+                self.m_stat_txt.color = Color.red
+                self.m_quest_accepted_icon.gameObject:SetActive(false)
+                self.m_quest_finished_icon.gameObject:SetActive(false)
+                self.m_quest_failed_icon.gameObject:SetActive(true)
+            elseif stat == "已完成" then
+                self.m_stat_txt.color = Color.green
+                self.m_quest_accepted_icon.gameObject:SetActive(false)
+                self.m_quest_finished_icon.gameObject:SetActive(true)
+                self.m_quest_failed_icon.gameObject:SetActive(false)
+            end
+        end)
+        -- 是否有奖励[临时这么搞]
+        self:subscribe(frame:on_event_quest_id_set(true), function(quest_id)
+            if quest_id == 0 then
+                return
+            end
+            local item_id_list = {}
+            -- 根据任务id检索到  gains  字段
+            for i, v in ipairs(dbc.quest[quest_id].gains) do
+                -- 从 loot 表的相应行取到 item_id
+                for key, id in ipairs(dbc.loot[v].item_id) do
+                    local info = {}
+                    info["id"] = id
+                    info["level"] = dbc.loot[v].item_level[key]
+                    item_id_list[#item_id_list + 1] = info
+                end
+            end
+            if #item_id_list ~= 0 then
+                self.m_reward_goods.gameObject:SetActive(true)
+                for i = 1, 3 do
+                    self.m_reward_goods:Find("item" .. i).gameObject:SetActive(false)
+                end
+                for i, v in ipairs(item_id_list) do
+                    self.m_reward_goods:Find("item" .. i).gameObject:SetActive(true)
+                    local item_img = self.m_reward_goods:Find("item" .. i):GetComponent(UI.Image)
+                    local item_icon = self.m_reward_goods:Find("item" .. i .. "/goods_icon"):GetComponent(UI.Image)
+                    local level_txt = self.m_reward_goods:Find("item" .. i .. "/level/level_txt"):GetComponent(UI.Text)
+                    level_txt.text = v["level"]
+                    -- 通过 item_id  从 item  表中取 bag_icon      通过 quality  取底图
+                    local item_icon_path = dbc.item[v["id"]].bag_icon
+                    local quality = dbc.item[v["id"]].quality
+                    local bg_path = dbc.equip_quality_client[quality].backpack_icon
+                    self:load_sprite(bg_path, item_img)
+                    self:load_sprite(item_icon_path, item_icon)
+
+                end
+            else
+                self.m_reward_goods.gameObject:SetActive(false)
+            end
+
+        end)
+
+        -- 放弃按钮
+        self.m_give_up_btn.onClick:AddListener(function()
+            ui_manager:CreateUI("quest_ui_give_up", "%subsystem.quest.quest_ui.quest_ui_give_up", self.m_quest_id, ui_manager.UI_Depth.ALERT)
+        end)
+
+    end)
+end
+-- 加载图片
+function quest_ui_show_view:load_sprite(icon_path, icon_image)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        --print("-------------", asset_ref.asset)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            icon_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return quest_ui_show_view

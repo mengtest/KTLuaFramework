@@ -1,0 +1,29 @@
+local Frame = require("system.frame")
+local equipment_tips_parent = class("equipment_tips_parent", Frame)
+
+function equipment_tips_parent:doInit()
+    --在这里存储创建的tips的frame
+    self.m_child_frame_list = {}
+    self.m_tips_choice_frame = nil
+end
+
+function equipment_tips_parent:onload()
+    for i = 1, 2 do
+        self.m_child_frame_list[i] = self:createChild("equipment_tips_" .. i, "%subsystem.backpack_equipment.equipment_tips")
+    end
+    self:create_tips_choice_child_frame()
+end
+
+function equipment_tips_parent:get_child_frame_list()
+    return self.m_child_frame_list
+end
+
+function equipment_tips_parent:create_tips_choice_child_frame()
+    self.m_tips_choice_frame = self.m_child_frame_list[1]:createChild("equip_chioce", "%subsystem.backpack_equipment.equipment_tips_choice")
+end
+
+function equipment_tips_parent:get_m_tips_choice_frame()
+    return self.m_tips_choice_frame
+end
+
+return equipment_tips_parent

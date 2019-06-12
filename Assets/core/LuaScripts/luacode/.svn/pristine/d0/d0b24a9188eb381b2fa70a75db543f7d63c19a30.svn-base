@@ -1,0 +1,118 @@
+local Frame = require("system.frame")
+local quest_ui_sub_list = class("quest_ui_sub_list", Frame)
+
+Event.decl(quest_ui_sub_list, "refresh_data")
+Event.decl(quest_ui_sub_list, "des_go")
+
+function quest_ui_sub_list:doInit(parma)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_item_list = {}
+    self.m_type = parma[1]
+    self.m_index = parma[5]
+    self.m_type_list = parma[6]
+end
+
+function quest_ui_sub_list:on_loaded(isfive, show_item_num, par)
+    local parent_frame_name = self:getFrameName()
+    if self.m_type == 1 then
+        if isfive == 0 then
+            for i = 1, 4 do
+                local num = (self.m_index - 2 ) * 4 + 5 + i
+                local send = {}
+                send[3] = par
+                if self.m_type_list[num] ~= nil then
+                    send[2] = self.m_type_list[num]
+                else
+                    send[2] = nil
+                end
+                if i <= show_item_num then
+                    send[1] = 1
+                    self.m_item_list[num] = self:createChild(parent_frame_name .. "item" .. num, "quest/quest_ui/quest_ui_list_item", send)
+                else
+                    send[1] = 0
+                    self.m_item_list[num] = self:createChild(parent_frame_name .. "item" .. num, "quest/quest_ui/quest_ui_list_item", send)
+                end
+            end
+        else
+            for i = 1, 5 do
+                local send = {}
+                send[3] = par
+                if self.m_type_list[i] ~= nil then
+                    send[2] = self.m_type_list[i]
+                else
+                    send[2] = nil
+                end
+                if i <= show_item_num then
+                    send[1] = 1
+                    self.m_item_list[i] = self:createChild(parent_frame_name .. "item" .. i, "quest/quest_ui/quest_ui_list_item", send)
+                else
+                    send[1] = 0
+                    self.m_item_list[i] = self:createChild(parent_frame_name .. "item" .. i, "quest/quest_ui/quest_ui_list_item", send)
+                end
+            end
+        end
+    else
+        for i = 1, 4 do
+            local num = (self.m_index - 1) * 4 + i
+            local send = {}
+            send[3] = par
+            if self.m_type_list[num] ~= nil then
+                send[2] = self.m_type_list[num]
+            else
+                send[2] = nil
+            end
+            if i <= show_item_num then
+                send[1] = 1
+                self.m_item_list[num] = self:createChild(parent_frame_name .. "item" .. num, "quest/quest_ui/quest_ui_list_item", send)
+            else
+                send[1] = 0
+                self.m_item_list[num] = self:createChild(parent_frame_name .. "item" .. num, "quest/quest_ui/quest_ui_list_item", send)
+            end
+        end
+    end
+end
+
+-- 刷新数据  传入的数据要和item初始化刷新的时候保持一致  [1]表示是否显示  [2]表示quest_data
+function quest_ui_sub_list:refresh_item_data(list)
+    self.m_type_list = list
+    --todo
+    local is_show = (self.m_index - 2) * 4 + 5
+    if list[is_show] then
+        self:refresh(1)
+    else
+        self:refresh(0)
+    end
+    for i, v in pairs(self.m_item_list) do
+        if list[i] then
+            local send = {}
+            send[1] = 1
+            send[2] = list[i]
+            v:refresh_view(send)
+        else
+            local send = {}
+            send[1] = 0
+            send[2] = nil
+            v:refresh_view(send)
+        end
+    end
+end
+
+-- 刷新自身View显示
+function quest_ui_sub_list:refresh(data)
+    self:emit_event("refresh_data", data)
+end
+
+function quest_ui_sub_list:gain_item_list()
+    return self.m_item_list
+end
+
+function quest_ui_sub_list:des_go()
+    self:emit_event("des_go")
+end
+
+function quest_ui_sub_list:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return quest_ui_sub_list
+

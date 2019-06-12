@@ -1,0 +1,108 @@
+local Frame = require("system.frame")
+local skill_ui_manager = class("skill_ui_manager", Frame)
+
+function skill_ui_manager:doInit()
+
+end
+
+function skill_ui_manager:init()
+    self:local_log("skill_ui_manager  初始化")
+    print("skill_ui_manager  ")
+    self:req_master_list()
+end
+
+-- *------------------[S]Sever interface-----------------——*
+-- [S2C]
+-- 收到所有技能
+function skill_ui_manager:rec_master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+    print("rec_master_all可用位置标志位", flags)
+    print("rec_master_all页面编号", page)
+    for i, v in ipairs(master_info) do
+        print("rec_master_all已学习技能资讯列表", v)
+    end
+    for i, v in ipairs(unlocked_skill_id_list) do
+        print("rec_master_all已解锁技能ID列表", v)
+    end
+    for i, v in ipairs(locked_skill_id_list) do
+        print("rec_master_all未解锁技能ID列表", v)
+    end
+
+end
+
+-- 取得新增已学习技能(参数为列表)
+function skill_ui_manager:rec_master_learnt(master_info)
+    for i, v in ipairs(master_info) do
+        print("rec_master_learnt已学习技能资讯列表", v)
+    end
+end
+
+-- 取得新增已解锁技能(参数为id列表)
+function skill_ui_manager:rec_master_available(available_id_list)
+    for i, v in ipairs(available_id_list) do
+        print("rec_master_available已解锁技能ID列表", v)
+    end
+end
+-- 更新技能等级
+function skill_ui_manager:rec_master_level(skill_id)
+    print("rec_master_level技能id", skill_id)
+
+end
+-- 更新技能状态
+function skill_ui_manager:rec_master_stat(skill_id)
+    print("rec_master_stat技能id", skill_id)
+
+end
+-- 更新技能页面
+function skill_ui_manager:rec_master_page(page_id)
+    print("rec_master_page页面id", page_id)
+
+end
+-- 更新技能位置
+function skill_ui_manager:rec_master_slot(skill_id, slot)
+    print("rec_master_slot技能id", skill_id)
+    print("rec_master_slot位置编号", slot)
+end
+--------------------------------------------------------------
+-- [C2S]
+-- 请求技能列表
+function skill_ui_manager:req_master_list()
+    self:cell_call("master_list")
+end
+
+-- 请求学习技能
+function skill_ui_manager:req_master_learn(skill_id)
+    self:cell_call("master_learn", skill_id)
+end
+
+-- 切换技能页面
+function skill_ui_manager:req_master_switch(page_id)
+    self:cell_call("master_switch", page_id)
+end
+
+-- 交换技能位置
+function skill_ui_manager:req_master_swap(source_skill_id, target_skill_id, source_skill_slot, target_skill_slot)
+    self:cell_call("master_swap", source_skill_id, target_skill_id, source_skill_slot, target_skill_slot)
+end
+
+
+
+-- *------------------[E]Sever interface-----------------——*
+
+function skill_ui_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function skill_ui_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function skill_ui_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+
+return skill_ui_manager

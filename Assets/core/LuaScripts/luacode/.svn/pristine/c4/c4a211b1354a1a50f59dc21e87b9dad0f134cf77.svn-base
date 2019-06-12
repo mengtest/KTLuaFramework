@@ -1,0 +1,244 @@
+﻿local M = class("SkillData")
+
+
+-------------------------
+-- Attribute & Event
+-------------------------
+Attribute.decl(M, "id", -1)        -- 技能id
+
+-- cooldown
+Attribute.decl(M, "cooldown", 0)            -- cd时长
+Attribute.decl(M, "is_cooldown", false)        -- 是否正在cd中
+Attribute.decl(M, "cd_end_time", 0)            -- cd结束时间
+
+-- 公共cd
+Attribute.decl(M, "global_cooldown_time", 0)    -- 公共cd时长
+Attribute.decl(M, "is_g_cd", false)                -- 是否正在公共cd中
+Attribute.decl(M, "g_cd_end_time", 0)            -- 公共cd结束时间
+
+-- 充能
+Attribute.decl(M, "max_charges", 1)     -- 最大充能数
+
+-- 消耗
+Attribute.decl(M, "cost_type", 0)     -- rjy 2017.10.28 技能消耗 消耗类型
+Attribute.decl(M, "cost_num", 0)    -- rjy 2017.10.28 技能消耗 消耗数量
+
+-- 充能
+Attribute.decl(M, "charged_count", 0)        -- 已充数量
+Attribute.decl(M, "charge_cd_end_time", 0) -- 充能cd结束时间
+Attribute.decl(M, "is_charging", function()  -- 正在充能
+    return false
+end)
+--Attribute.decl(M, "charge_arrow_end_time", 0) -- 充能箭头cd结束时间
+
+--释放
+Attribute.decl(M, "cast_dist", 0)
+Attribute.decl(M, "cast_time", 0)
+
+--技能模版
+Attribute.calc(M, "cfg",function(self)return dbc.spell[self:get_id()]end,"id") -- 基本数据
+--Attribute.calc(M, "effect_cfg",function(self)return self.m_skill_mgr:get_effect_cfg_list(self:get_id())end,"id")-- 技能效果数据
+
+function M:wrap_set_max_charges(val)
+    -- wrap setter
+    if val < 1 then
+        val = 1
+    end
+    self:set_max_charges(val)
+end
+
+
+function M:wrap_set_charged_count(val)
+    -- wrap setter
+    if val < 0 then
+        val = 0
+    elseif val > self:get_max_charges() then
+        val = self:get_max_charges()
+    end
+    self:set_charged_count(val)
+end
+
+
+
+
+
+
+-- 客户端显示
+function M:get_client_cfg()
+    return dbc.spell_client[self:get_id()]
+end
+
+
+function M:initialize(dbc_spell) 
+    Attribute.init(self)
+
+    self.m_skill_mgr = app:get_skill_mgr()
+
+    -- 动态数据
+    self:set_id(dbc_spell.id) -- id
+    self:set_cooldown(0) -- 冷却
+    self:set_cast_dist(dbc_spell.castDistance) -- 释放距离
+    self:set_global_cooldown_time(0) -- 公共冷却
+    self:set_cast_time(dbc_spell.castTime) -- 释放时间
+    self:set_cost_type(0)   --rjy 2017.10.28 (消耗相关)  消耗类型
+    self:set_cost_num(0)     --rjy 2017.10.28 (消耗相关)  消耗值
+    self:wrap_set_max_charges(1) -- 最大充能
+    self:wrap_set_charged_count(1) -- 充能次数
+    
+    self.m_add_list = {}
+end
+
+
+
+function M:start_cd()
+    local cd_time = self:get_cooldown()
+
+    -- 正常情况下这里不会遇到【正在公共cd】的情况
+
+    -- cd为0， 先忽略
+    if cd_time == 0 then
+        return
+    end
+
+--[[    -- 开始cd
+    self:set_cd_end_time(app:get_server_time() + cd_time)   -- 重置cd
+    self:set_attr_and_event("is_cooldown", true)
+
+    -- 充能技能的自cd
+    if self:is_type_charge() then
+        self:set_cd_end_time(self:get_charge_cd_end_time())
+    end
+--]]
+
+end
+
+function M:start_charge_cd()
+
+  --  local charge_time = self:get_cooldown()
+
+  --  self:set_charge_cd_end_time(app:get_server_time() + charge_time)
+    --self:set_charge_arrow_end_time(app:get_server_time() + charge_time)
+end
+
+
+function M:start_g_cd()
+    -- print("=============start_g_cd")
+  --[[  local g_cd_time = self:get_global_cooldown_time()
+
+
+    -- 公共cd为0，先忽略
+    if g_cd_time == 0 then
+        return
+    end
+
+
+    -- 应该不会发生两个公共cd相遇
+    if self:get_is_g_cd() then
+        -- 重置公共cd
+        self:set_g_cd_end_time(app:get_server_time() + g_cd_time)
+        return
+    end
+
+
+    self:set_g_cd_end_time(app:get_server_time() + g_cd_time)
+    self:set_is_g_cd(true)--]]
+end
+
+
+function M:update()
+  --[[  local server_time = app:get_server_time()
+    local charge_time = self:get_cooldown()
+
+    -- 充能处理
+    if self:get_is_charging() then
+        -- 判断充能是否到期(即冲完了一格)
+        if server_time >= self:get_charge_cd_end_time() then
+            -- 是
+            -- 充能 +1
+            -- 本地 充能递增
+            local charged_count = self:get_charged_count()
+            self:wrap_set_charged_count(charged_count + 1)
+            -- 检查是否充满所有格？
+            charged_count = self:get_charged_count()
+            if charged_count == self:get_max_charges() then
+                -- 是，停止充能cd
+                self:set_is_charging(false)
+            else
+                -- 否，开始新充能cd
+                self:start_charge_cd()
+            end
+        else
+            -- 否
+            -- 什么都不做
+        end
+    end
+
+
+
+    -- 判断cd是否到期
+    if self:get_is_cooldown() then
+        if server_time >= self:get_cd_end_time() then
+            -- 结束cd
+            --self:set_is_cooldown(false)
+            self:set_attr_and_event("is_cooldown", false)
+        end
+    end
+
+    -- 判断公共cd是否到期
+    if self:get_is_g_cd() then
+        if server_time >= self:get_g_cd_end_time() then
+            self:set_is_g_cd(false)
+        end
+    end--]]
+end
+
+-- 本技能是否【充能类型】
+function M:is_type_charge()
+    return self:get_max_charges() > 1
+end
+
+function M:add_value(dbcValue,spell_mod_op,spell_mod_type,addValue)   
+    if(self.m_add_list[spell_mod_op] == nil) then
+        self.m_add_list[spell_mod_op] = {0,0}
+    end
+
+    if(spell_mod_type == enum.shared.SpellModType.FLAT) then
+        self.m_add_list[spell_mod_op][1] = self.m_add_list[spell_mod_op][1] + addValue
+    elseif(spell_mod_type == enum.shared.SpellModType.PCT) then
+        self.m_add_list[spell_mod_op][2] = self.m_add_list[spell_mod_op][2] + addValue * 0.0001
+    end
+
+    dbcValue = dbcValue + self.m_add_list[spell_mod_op][1]
+    dbcValue = dbcValue + dbcValue * self.m_add_list[spell_mod_op][2]
+
+    return dbcValue
+end
+
+function M:add_spell_mod(spell_mod_op,spell_mod_type,value)
+    local cfg = self:get_cfg()
+    -- 施法距离
+    if(spell_mod_op == enum.shared.SpellModOp.CAST_DIST) then
+        local result = self:add_value(cfg.cast_dist,spell_mod_op,spell_mod_type,value)
+        self:set_cast_dist(result)
+    -- 施法时间
+    elseif(spell_mod_op == enum.shared.SpellModOp.CAST_TIME) then
+        local result = self:add_value(cfg.cast_time,spell_mod_op,spell_mod_type,value)
+        self:set_cast_time(result)
+    -- 冷却时间
+--    elseif(spell_mod_op == enum.shared.SpellModOp.COOLDOWN) then
+--[[        local result = self:add_value(cfg.cooldown,spell_mod_op,spell_mod_type,value)
+        self:set_cooldown(result)--]]
+    -- 公共冷却时间
+--[[    elseif(spell_mod_op == enum.shared.SpellModOp.GLOBAL_COOLDOWN) then
+        local result = self:add_value(cfg.global_cooldown_time,spell_mod_op,spell_mod_type,value)
+        self:set_global_cooldown_time(result)--]]
+    -- 消耗
+--[[    elseif(spell_mod_op == enum.shared.SpellModOp.COST) then
+        local result = self:add_value(cfg.cost_num,spell_mod_op,spell_mod_type,value)
+        self:set_cost_num(result)--]]
+    end 
+end
+
+
+
+return M

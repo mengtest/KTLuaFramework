@@ -1,0 +1,47 @@
+local rows = {}
+rows[1] = {['id']=0,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[2] = {['id']=1,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[3] = {['id']=2,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[4] = {['id']=3,['weapon']={'models/Role/weapon/luocha/huofa_weapon_01.prefab'},['weapon_mount']={'weapon_hand_r_1'},['sfx']={},['blade']={}}
+rows[5] = {['id']=4,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[6] = {['id']=5,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[7] = {['id']=6,['weapon']={'models/Role/weapon/jingtong/jingtong@cibei_weapon_01.prefab'},['weapon_mount']={'weapon_hand_r_1'},['sfx']={'sfx/skill/prefab/weapon/dj_jingzi.prefab'},['blade']={}}
+rows[8] = {['id']=7,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[9] = {['id']=8,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[10] = {['id']=9,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[11] = {['id']=10,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[12] = {['id']=11,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[13] = {['id']=12,['weapon']={'models/Role/weapon/linghou/juling_weapon_01.prefab'},['weapon_mount']={'weapon_hand_r_1'},['sfx']={},['blade']={}}
+rows[14] = {['id']=13,['weapon']={'models/Role/weapon/linghou/kuanglie_weapon_01.prefab'},['weapon_mount']={'weapon_hand_r_1'},['sfx']={},['blade']={'sfx/skill/prefab/pc/linghou/dao_guan_tuo_wei.prefab'}}
+rows[15] = {['id']=14,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[16] = {['id']=15,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[17] = {['id']=16,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[18] = {['id']=17,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[19] = {['id']=18,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[20] = {['id']=19,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+rows[21] = {['id']=20,['weapon']={},['weapon_mount']={},['sfx']={},['blade']={}}
+
+local datas = {
+	[0] = rows[1],
+	[1] = rows[2],
+	[2] = rows[3],
+	[3] = rows[4],
+	[4] = rows[5],
+	[5] = rows[6],
+	[6] = rows[7],
+	[7] = rows[8],
+	[8] = rows[9],
+	[9] = rows[10],
+	[10] = rows[11],
+	[11] = rows[12],
+	[12] = rows[13],
+	[13] = rows[14],
+	[14] = rows[15],
+	[15] = rows[16],
+	[16] = rows[17],
+	[17] = rows[18],
+	[18] = rows[19],
+	[19] = rows[20],
+	[20] = rows[21],
+}
+return datas

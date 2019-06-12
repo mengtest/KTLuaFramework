@@ -1,0 +1,71 @@
+---
+--- Created by lijunfeng
+--- DateTime: 2018/2/27 14:14
+---
+local M = { }
+
+function M:doInit(param)
+    self:load(app:getAssetPathMgr().top_hint_resource("top_hint_image"), function(go)
+        print("hint资源加载完毕")
+        self.m_image = go
+        local func_set_top = function(go)
+            local image_tr = go.transform
+            local npc_tr=self:getGO().transform
+            image_tr.parent = npc_tr
+
+            self:subscribe(self:getFrame():on_event_offset_set(true), function(value)
+                print("设置hint位置")
+                image_tr.localPosition = value
+            end)
+
+            self:subscribe(self:getFrame():on_event_scale_set(true), function(value)
+                print("设置hint缩放")
+                image_tr.localScale = value
+            end)
+        end
+
+        func_set_top(self.m_image)
+
+        self:subscribe(self:getFrame():on_event_interact_state_set(true), function(value)
+            print("设置hint颜色",value)
+            self:change_color(value)
+        end)
+    end)
+end
+
+-- by lijunfneg 2018/2/27 改变hint颜色
+function M:change_color(npc_state)
+    local icon_path=""
+
+    if npc_state == enum.quest.Quest_Npc_State.Yellow_Exclamation then
+        icon_path=app:getAssetPathMgr().top_hint_resource("yellow_exclamation")
+    elseif npc_state == enum.quest.Quest_Npc_State.Red_Exclamation then
+        icon_path=app:getAssetPathMgr().top_hint_resource("red_exclamation")
+    elseif npc_state == enum.quest.Quest_Npc_State.Blue_Question then
+        icon_path=app:getAssetPathMgr().top_hint_resource("blue_question")
+    elseif npc_state == enum.quest.Quest_Npc_State.Yellow_Question then
+        icon_path=app:getAssetPathMgr().top_hint_resource("yellow_question")
+    elseif npc_state == enum.quest.Quest_Npc_State.None then
+        print("你确定头上有状态？")
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            local image_tr = self.m_image.transform
+            print("设置hint,sprite",image_tr:FindChild("Image"):GetComponent("MeshRenderer").sharedMaterials[1]==nil)
+            image_tr:FindChild("Image"):GetComponent("MeshRenderer").sharedMaterials[1]:SetTexture("_MainTex",tex);
+        end
+    end)
+end
+
+function M:doDestroy()
+    if self.m_image then
+        Object.DestroyImmediate(self.m_image)
+    end
+end
+
+return M

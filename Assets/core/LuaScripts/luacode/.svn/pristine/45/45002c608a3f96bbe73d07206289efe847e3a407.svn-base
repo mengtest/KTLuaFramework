@@ -1,0 +1,77 @@
+local View = require("system.view")
+local quest_ui_sub_list_view = class("quest_ui_sub_list_view", View)
+
+function quest_ui_sub_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("QuestList"), function(go)
+        self.m_res_loaded = true
+        self.m_template_tr = self:getParent():getGO().transform:GetChild(0):Find("root/ScrollView/Viewport/Content/plot/spec").transform
+        self.m_root = self:getParent():getGO().transform:GetChild(0):Find("root/ScrollView/Viewport/Content").transform
+        local type = param[1]
+        local is_five = param[2]
+        local is_show = param[3]
+        local show_item_num = param[4]
+        local goes = self:on_load_prefab(type)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            -- 选择创建挂点以及设置位置和大小
+            local parent_transform = goes.transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+        self:subscribe(self.m_frame:on_event("des_go"), function()
+            Object.Destroy(goes.gameObject)
+        end)
+        -- 1是5个  0是4个
+        if is_five == 1 then
+            frame:on_loaded(1, show_item_num, goes)
+        else
+            frame:on_loaded(0, show_item_num, goes)
+        end
+        -- 0隐藏  1显示
+        if is_show == 0 then
+            goes.gameObject:SetActive(false)
+        else
+            goes.gameObject:SetActive(true)
+        end
+        if show_item_num == 0 then
+            goes.transform:Find("none").gameObject:SetActive(true)
+        end
+        self:subscribe(frame:on_event("refresh_data"), function(data)
+            self:on_refresh(goes, data)
+        end)
+    end)
+end
+
+function quest_ui_sub_list_view:on_load_prefab(index)
+    local go = Object.Instantiate(self.m_template_tr)
+    local parent = nil
+    if index == 1 then
+        parent = self.m_root:Find("plot").transform
+    elseif index == 2 then
+        parent = self.m_root:Find("normal").transform
+    elseif index == 3 then
+        parent = self.m_root:Find("dungeon").transform
+    elseif index == 4 then
+        parent = self.m_root:Find("activity").transform
+    end
+    assert(parent ~= nil)
+    go = self:init_with_go(go, parent)
+    return go
+end
+
+-- 刷新数据
+function quest_ui_sub_list_view:on_refresh(go, data)
+    if data == 1 then
+        go.transform:Find("none").gameObject:SetActive(false)
+    else
+        go.transform:Find("none").gameObject:SetActive(true)
+    end
+end
+
+return quest_ui_sub_list_view

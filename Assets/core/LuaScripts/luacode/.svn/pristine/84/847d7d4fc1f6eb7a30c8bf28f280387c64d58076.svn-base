@@ -1,0 +1,41 @@
+local View = require("system.view")
+local transmit_view = class("transmit_view", View)
+
+function transmit_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+    self.m_map_manager = self:getFrame("map_manager")
+
+    self:load_prefab("ui/BigMap.prefab", function(loaded_go)
+        self.m_res_loaded = true
+        self.m_id = param["id"]
+        local template_go = loaded_go.transform:Find("map/transmit_list/transmit_item").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_transmit = go.transform:Find("transmit_btn_use").gameObject
+        self.m_transmit_no = go.transform:Find("transmit_btn_no").gameObject
+        self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        go:SetActive(true)
+        if param["is_lock"] == 0 then
+            self.m_transmit_no:SetActive(true)
+            self.m_transmit:SetActive(false)
+        else
+            self.m_transmit_no:SetActive(false)
+            self.m_transmit:SetActive(true)
+        end
+        self.m_transmit:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            self.m_map_manager:req_transform(self.m_id)
+            self.m_ui_manager:DestroyUI("big_map")
+        end)
+
+        self.m_transmit_no:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            self:getFrame("float_hint"):add_float("传送点未解锁", self.m_ui_manager.UI_Depth.ALERT)
+        end)
+    end)
+end
+
+return transmit_view

@@ -1,0 +1,57 @@
+local M=class("Giver")
+
+Attribute.decl(M,"tmpl",nil)
+Attribute.decl(M,"pos",function() return Vector3(0,0,0) end)
+Attribute.decl(M,"dir",function() return 0 end)
+Attribute.decl(M,"quiz",0)
+
+Event.decl(M,"dialog_bgn")
+Event.decl(M,"quiz_bgn")
+Event.decl(M,"quiz_end")
+
+function M:initialize(id)
+    Attribute.init(self)
+    self.m_id=id
+end
+
+function M:on_init(type)
+end
+
+function M:on_destroy()
+end
+
+function M:set_property(name,value)
+    self:set_attr(name,value)
+    self:emit_event("on_event_"..name.."_set",value)
+end
+
+function M:get_id()
+    return self.m_id
+end
+
+function M:update(delta)
+end
+
+function M:dialog_bgn(tkt)
+    self:emit_event("dialog_bgn", tkt)
+end
+
+function M:quiz_bgn(quiz_id, index, answer1, answer2, hint)
+    utility.log:logError(utility.log.Mask.SJG_Quiz, " quiz_id = %s,\n index = %s,\n answer1 = %s,\n answer2 = %s,\n hint = %s", quiz_id, index, answer1, answer2, hint)
+    self:emit_event("quiz_bgn", quiz_id, index, answer1, answer2, hint)
+end
+
+function M:quiz_end(quiz_id, index, is_correct)
+    utility.log:logError(utility.log.Mask.SJG_Quiz, utility.string:get_string_by_tbl({quiz_id, index, is_correct}))
+    self:emit_event("quiz_end", quiz_id, index, is_correct)
+end
+
+function M:cell_call(method_name, ...)
+	app:getKBESDK():entity_cell_call(self.m_id, method_name, ...)
+end
+
+function M:base_call(method_name, ...)
+	app:getKBESDK():entity_base_call(self.m_id, method_name, ...)
+end
+
+return M

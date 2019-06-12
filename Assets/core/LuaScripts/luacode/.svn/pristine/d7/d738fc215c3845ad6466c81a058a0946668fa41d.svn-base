@@ -1,0 +1,22 @@
+
+local view = require("system.view")
+
+local Giver_view = class("Giver_view", view)
+
+function Giver_view:doInit()
+    local giver = self:getFrame()
+    local cfg = giver:get_cfg()
+    local model_id = cfg.model_id
+    local model_path = model_mgr.GetPrefabPathById(model_id)
+    self:load(model_path, function (go)
+        local tr = go.transform
+        self:subscribe(giver:on_event_attr_set("pos", true), function (pos)
+            tr.position = pos
+        end)
+        self:subscribe(giver:on_event_attr_set("dir", true), function (dir)
+            tr.rotation = Quaternion.AngleAxis(dir, Vector3.up)
+        end)
+    end)
+end
+
+return Giver_view

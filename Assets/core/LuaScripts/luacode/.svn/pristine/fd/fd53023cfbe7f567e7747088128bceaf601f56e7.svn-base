@@ -1,0 +1,174 @@
+local Frame = require("system.frame")
+local talent = class("talent", Frame)
+
+-- 天赋id
+Attribute.decl(talent, "talent_id", -1)
+-- 是否锁定
+Attribute.decl(talent, "is_locked", true)
+-- 是否学习
+Attribute.decl(talent, "is_learned", false)
+-- 是否启用
+Attribute.decl(talent, "is_enabled", false)
+-- 为了获取图标
+Attribute.calc(talent, "client_cfg",
+function(self)
+    return dbc.spell_client[self:get_talent_id()]
+end,
+"talent_id")
+-- 获取排除标识同组技能  --》  用于激活天赋时更换技能的逻辑
+local function get_same_group_skill_list(skill_id)
+    local list = {}
+    local exclusion = dbc.spell_ui[skill_id].exclusion
+    local group_num = utility.math:get_integer_part(exclusion / 100)
+
+    for id, skill_info in pairs(dbc.spell_ui) do
+        if utility.math:get_integer_part(skill_info.exclusion / 100) == group_num then
+            table.insert(list, skill_info.exclusion, skill_info)
+        end
+    end
+    return list
+end
+
+-- 获取一下player_controller
+local function get_player_controller()
+    if app:getFrameMgr():getFrame("player_controller") then
+        if (talent.m_playerController == nil) then
+            talent.m_playerController = app:getFrameMgr():getFrame("player_controller")
+        end
+    else
+        return nil
+    end
+    return talent.m_playerController
+end
+
+
+function talent:doInit(param)
+    self:set_is_add_rect_trans(true)
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    ---- 设置天赋的一些属性
+    self:set_talent_id(param.id)
+    self:set_is_locked(param.is_locked)
+    self:set_is_learned(param.is_learned)
+    self:set_is_enabled(param.is_enabled)
+
+
+    -- 监听天赋学习
+    self:subscribe(self.m_skill_ui_manager:on_event("master_info_add"), function(master_info)
+        if master_info.tmpl == self:get_talent_id() then
+            self:set_is_learned(true)
+        end
+    end)
+    -- 监听天赋解锁
+    self:subscribe(self.m_skill_ui_manager:on_event("unlock_talent"), function(talent_id)
+        if talent_id == self:get_talent_id() then
+            self:set_is_locked(false)
+        end
+    end)
+    -- 监听天赋启用
+    self:subscribe(self.m_skill_ui_manager:on_event("master_enabled"), function(talent_id)
+        if talent_id == self:get_talent_id() then
+            self:set_is_enabled(true)
+            --print("激活的技能", self:get_talent_id())
+        elseif self:get_group_num() == self:get_group_num(talent_id) then
+            self:set_is_enabled(false)
+            --print("未激活的技能", self:get_talent_id())
+        end
+    end)
+
+    self:subscribe(self:on_event_is_enabled_set(true), function(is_enabled)
+        if is_enabled then
+            if dbc.spell_ui[self:get_talent_id()].passivity_skill == enum.ui.Enum_UI_SkillType.SPECIAL_SKILL then
+                -- 创建这个大招
+                get_player_controller():create_special_skill(self:get_talent_id())
+            else
+                self:change_skill(self:get_talent_id())
+            end
+        else
+            if dbc.spell_ui[self:get_talent_id()].passivity_skill == enum.ui.Enum_UI_SkillType.SPECIAL_SKILL then
+                -- 删除这个大招
+                get_player_controller():delete_special_skill(self:get_talent_id())
+            else
+                self:restore_skill(self:get_talent_id())
+            end
+
+        end
+    end)
+
+end
+
+
+function talent:change_skill(talent_id)
+    local id = talent_id
+    local same_group_skill_list = {}
+
+    for i, v in pairs(dbc.spell_ui) do
+        if dbc.spell_ui[talent_id].dependence ~= 0 and v.dependence == dbc.spell_ui[talent_id].dependence and v.exclusion ~= 0 then
+            --print(dbc.spell_ui[id].name)
+            for _, btn_frame in pairs(get_player_controller():get_skill_btn_list()) do
+                if (btn_frame:get_skill_data() ~= nil) and (v.exclusion - dbc.spell_ui[btn_frame:get_skill_data():get_id() ].exclusion == 1) then
+                    id = i
+                end
+            end
+        end
+    end
+    --print(dbc.spell_ui[id].name)
+    same_group_skill_list = get_same_group_skill_list(id)
+    for i, info in pairs(same_group_skill_list) do
+        if dbc.spell_ui[id].exclusion > dbc.spell_ui[info.id].exclusion then
+            -- 普通技能  换  普通技能 主动之间的替换
+            if dbc.spell_ui[id].passivity_skill == enum.ui.Enum_UI_SkillType.ACTIVE_SKILL then
+                get_player_controller():change_skill_btn_skill_data(info.id, id)
+                if dbc.spell_ui[id].high_light_sfx == 1 then
+                    get_player_controller():change_skill_btn_state(id, true, true)
+                end
+            elseif dbc.spell_ui[id].passivity_skill == enum.ui.Enum_UI_SkillType.PASSIVE_SKILL then
+                get_player_controller():change_skill_btn_skill_data(info.id, nil)
+            end
+
+        end
+    end
+end
+function talent:restore_skill(talent_id)
+    local id = talent_id
+    local same_group_skill_list = {}
+    for i, v in pairs(dbc.spell_ui) do
+        if dbc.spell_ui[talent_id].dependence ~= 0 and v.dependence == dbc.spell_ui[talent_id].dependence and v.exclusion ~= 0 then
+            for _, btn_frame in pairs(get_player_controller():get_skill_btn_list()) do
+                if (btn_frame:get_skill_data() ~= nil) and (i == btn_frame:get_skill_data():get_id() ) then
+                    id = i
+                end
+            end
+        end
+    end
+    same_group_skill_list = get_same_group_skill_list(id)
+    for i, info in pairs(same_group_skill_list) do
+        if dbc.spell_ui[id].exclusion ~= 0 and dbc.spell_ui[id].exclusion > dbc.spell_ui[info.id].exclusion then
+            -- 普通技能  换  普通技能
+            get_player_controller():change_skill_btn_skill_data(id, info.id)
+            get_player_controller():change_skill_btn_state(info.id, true, false)
+        end
+    end
+end
+
+function talent:get_group_num(talent_id)
+    local group_num = ""
+    if talent_id == nil then
+        group_num = string.sub(dbc.spell_ui[self:get_talent_id()].is_talent, -4, -3)
+    else
+        group_num = string.sub(dbc.spell_ui[talent_id].is_talent, -4, -3)
+    end
+    return tonumber(group_num)
+end
+
+function talent:get_talent_num(talent_id)
+    local talent_num = ""
+    if talent_id == nil then
+        talent_num = string.sub(dbc.spell_ui[self:get_talent_id()].is_talent, -2, -1)
+    else
+        talent_num = string.sub(dbc.spell_ui[talent_id].is_talent, -2, -1)
+    end
+    return tonumber(talent_num)
+end
+
+
+return talent

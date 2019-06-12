@@ -1,0 +1,223 @@
+local ProjectileAction = class("ProjectileAction")
+
+local function time_get_now()
+    return Time.time
+end
+
+function ProjectileAction:initialize(projectile)
+    self.m_projectile = projectile
+    self.m_co_run = nil
+    self.m_cb_enter = nil
+    self.m_cb_exit = nil
+    self.m_cb_precondition = nil
+end
+
+
+function ProjectileAction:start()
+    if self.m_cb_enter then
+        self.m_cb_enter()
+    end
+end
+
+
+function ProjectileAction:close()
+    if self.m_projectile then
+        self.m_projectile = nil
+        if self.m_cb_exit then
+            self.m_cb_exit()
+        end
+    end
+end
+
+
+function ProjectileAction:update()
+    if self.m_cb_precondition then
+        if not self.m_cb_precondition() then
+            self:close()
+            return false
+        end
+    end
+    
+    if self.m_co_run then
+        coroutine.resume(self.m_co_run)
+        
+        if coroutine.status(self.m_co_run) ~= "dead" then
+            return true
+        end
+    end
+    
+    self:close()
+    return false
+end
+
+
+function ProjectileAction:onPrecondition(cb)
+    assert(type(cb) == "function")
+    self.m_cb_precondition = cb
+end
+
+function ProjectileAction:onEnter(cb)
+    assert(type(cb) == "function")
+    self.m_cb_enter = cb
+end
+
+function ProjectileAction:onRun(cb)
+    assert(type(cb) == "function")
+    self.m_co_run = coroutine.create(cb)
+end
+
+function ProjectileAction:onExit(cb)
+    assert(type(cb) == "function")
+    self.m_cb_exit = cb
+end
+
+
+-- 直线飞向目标
+-- 因为可能从不同类型的地方向unit发射飞弹，所以飞弹的起始位置不归这里控制
+---@param projectile Projetile
+---@param start_pos UnityEngine.Vector3
+---@param target_unit Unit
+local function action_fly_to_unit(projectile, target_unit, mount_point_name, on_hit)
+    local action = ProjectileAction:new(projectile)
+    local start_time = time_get_now()
+    local skill_cfg = projectile:get_cfg()
+    projectile:set_target(target_unit)
+    local target_mp_trans = target_unit:get_bone(mount_point_name)
+    if target_mp_trans ~= nil then
+        target_pos = target_mp_trans.position
+    end
+    
+    -- 起始位置
+    local start_pos = projectile:get_pos()
+    -- 期望飞弹速度
+    local speed = skill_cfg.speed
+    -- 目标位置
+    local target_pos = target_unit:get_pos()
+    -- 实时距离
+    local realTimeDis = Vector3.Distance(start_pos, target_pos)
+    -- 期望击中时间
+    local expectedTime = realTimeDis / speed;
+
+    projectile:set_expected_time(expectedTime)
+
+    -- 实时飞弹速度
+    local realTimeSpeed = speed
+    -- 开始追击时间
+    local startTime = time_get_now()
+    -- 剩余追击时间
+    local remainderTime = time_get_now() - (startTime + expectedTime)
+    -- 实时飞行方向
+    local realTimeDirection = (target_pos - projectile:get_pos()).normalized
+    -- 角度
+    local dir = math.atan2(realTimeDirection.x, realTimeDirection.z) * 180 / math.pi
+    
+    
+    action:onEnter(function()
+        
+        end)
+    
+    action:onExit(function()
+            -- 调用命中回调
+            if on_hit ~= nil then
+                assert(type(on_hit) == "function")
+                on_hit(projectile)
+            end
+    
+    end)
+    
+    action:onRun(function()
+        while true do
+            --命中
+            if not target_unit:is_dead() then
+                if target_mp_trans ~= nil then
+                    target_pos = target_mp_trans.position
+                else
+                    target_pos = target_unit:get_pos()
+                end
+            end
+            
+            -- 剩余追击时间
+            remainderTime = (startTime + expectedTime) - time_get_now()
+            -- 实时距离
+            realTimeDis = Vector3.Distance(projectile:get_pos(), target_pos)
+            
+            --projectile:set_realTime_dis(realTimeDis)
+
+            --已经行进距离
+            projectile:set_moved_dis(Vector3.Distance(projectile:get_pos(), start_pos))
+            
+            -- 实时飞弹速度
+            realTimeSpeed = realTimeDis / remainderTime
+            -- 实时飞行方向
+            realTimeDirection = (target_pos - projectile:get_pos()).normalized
+            -- 角度
+            dir = math.atan2(realTimeDirection.x, realTimeDirection.z) * 180 / math.pi
+            
+            projectile:set_euler(dir)
+            
+            projectile:set_pos(projectile:get_pos() + realTimeDirection * realTimeSpeed * Time.deltaTime)
+            
+            if (remainderTime < 0) then return end
+            
+            coroutine.yield()
+        end
+    end)
+    
+    return action
+end
+
+
+
+-- 直线飞向地点
+---@param projectile Projetile
+---@param start_pos UnityEngine.Vector3
+---@param target_pos UnityEngine.Vector3
+local function action_fly_to_pos(projectile, target_pos, on_hit)
+    local action = ProjectileAction:new(projectile)
+    local start_time = time_get_now()
+    local skill_cfg = projectile:get_cfg()
+    local speed = skill_cfg.speed
+    
+    local start_pos = projectile:get_pos()
+    local vec = Vector3.ProjectOnPlane(target_pos - start_pos, Vector3.up)
+    local dist = vec.magnitude
+    local duration = math.max(0.01, dist / speed)
+    local dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+    
+    action:onEnter(function()
+        projectile:set_dir(dir)
+    end)
+    
+    action:onExit(function()
+            -- 调用命中回调
+            if on_hit ~= nil then
+                assert(type(on_hit) == "function")
+                on_hit(projectile)
+            end
+    
+    end)
+    
+    action:onRun(function()
+        while true do
+            
+            vec = Vector3.ProjectOnPlane(target_pos - start_pos, Vector3.up)
+            dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+            
+            local elapsed = time_get_now() - start_time
+            projectile:set_pos(Vector3.Lerp(start_pos, target_pos, elapsed / duration))
+            
+            if elapsed >= duration then return end
+            coroutine.yield()
+        end
+    end)
+    
+    return action
+end
+
+
+
+
+return {
+    FlyToUnit = action_fly_to_unit,
+    FlyToPos = action_fly_to_pos
+}

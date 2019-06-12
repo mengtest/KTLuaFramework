@@ -1,0 +1,93 @@
+local View = require("system.view")
+local skill_ui_list_view = class("skill_ui_list_view", View)
+
+function skill_ui_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    -- 根节点列表
+    self.m_root_list = {}
+    -- 为了不让update一直走，加一个标志
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SkillShowList"), function(go)
+        local frame = self:getFrame()
+        go.transform.localPosition = Vector3.one
+        go.transform.localScale = Vector3.one
+
+        -- 专精技能父节点
+        self.m_specialization_skill_root = go.transform:Find("skill_list/all_skill/specialization_skill_column/grid").transform
+        table.insert(self.m_root_list, self.m_specialization_skill_root)
+        -- 神器技能父节点
+        self.m_aitifact_skill_root = go.transform:Find("skill_list/all_skill/aitifact_skill_column/grid").transform
+        table.insert(self.m_root_list, self.m_aitifact_skill_root)
+        -- 天赋技能父节点
+        self.m_talent_skill_root = go.transform:Find("skill_list/all_skill/talent_skill_column/grid").transform
+        table.insert(self.m_root_list, self.m_talent_skill_root)
+        -- 工会技能父节点
+        self.m_union_skill_root = go.transform:Find("skill_list/all_skill/union_skill_column/grid").transform
+        table.insert(self.m_root_list, self.m_union_skill_root)
+        -- 装备技能父节点
+        self.m_equipment_skill_root = go.transform:Find("skill_list/all_skill/equipment_skill_column/grid").transform
+        table.insert(self.m_root_list, self.m_equipment_skill_root)
+
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local skill_btn_id = tonumber(string.match(name, "%d+"))
+            ----设置界面布局
+            if string.find(name, "skill_ui_list_btn") then
+                local skill_id = child_frame:get_skill_id()
+
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+
+                local view_go = view:getGO()
+                local parent_transform = nil
+                if dbc.spell_ui[skill_id].source_type_skill == 1 then
+                    parent_transform = self.m_specialization_skill_root
+                elseif dbc.spell_ui[skill_id].source_type_skill == 2 then
+                    parent_transform = self.m_aitifact_skill_root
+                elseif dbc.spell_ui[skill_id].source_type_skill == 3 then
+                    parent_transform = self.m_talent_skill_root
+                elseif dbc.spell_ui[skill_id].source_type_skill == 4 then
+                    parent_transform = self.m_union_skill_root
+                elseif dbc.spell_ui[skill_id].source_type_skill == 5 then
+                    parent_transform = self.m_equipment_skill_root
+                end
+                view_go.transform.parent = parent_transform
+                view_go.transform.anchoredPosition3D = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+                if self.m_root_list ~= nil then
+                    for i, v in ipairs(self.m_root_list) do
+                        if v.childCount == 0 then
+                            v.parent.gameObject:SetActive(false)
+                        else
+                            v.parent.gameObject:SetActive(true)
+                            --print("==========", v.gameObject.name, v.childCount, self:get_integer(v.childCount / 5), v.parent.sizeDelta.y)
+                            if v.childCount > 5 then
+                                if (v.childCount % 5) ~= 0 then
+                                    --print("高度", v.parent.sizeDelta.y)
+                                    v.parent.sizeDelta = Vector2(v.parent.sizeDelta.x, 200 + (100 * (self:get_integer(v.childCount / 5) + 1)))
+                                    --print("变化之后的高度", v.parent.sizeDelta.y)
+                                else
+                                    v.parent.sizeDelta = Vector2(v.parent.sizeDelta.x, 200 + (100 * v.childCount / 5))
+                                end
+                            else
+                                v.parent.sizeDelta = Vector2(v.parent.sizeDelta.x, 200)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+        ------创建子物体
+        frame:on_loaded()
+    end)
+end
+function skill_ui_list_view:get_integer(x)
+    if math.ceil(x) == x then
+        x = math.ceil(x)
+    else
+        x = math.ceil(x) - 1
+    end
+    return x
+end
+
+return skill_ui_list_view

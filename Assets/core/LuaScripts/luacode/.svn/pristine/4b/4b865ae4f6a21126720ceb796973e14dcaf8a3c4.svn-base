@@ -1,0 +1,19 @@
+
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_enter_talk = class("Quest_condition_enter_talk", Quest_condition_base)
+
+function Quest_condition_enter_talk:on_initialize(quest_id, index, quest_manager)
+    self.m_is_pass = false
+    self.m_collection_count = 0
+    
+    self.m_quest_id = quest_id
+    self.m_index = index
+    self.m_quest_manager = quest_manager
+    self.m_quest_manager:add_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+end
+
+--function Quest_condition_enter_talk:on_judge()
+--	return self.m_is_pass
+--end
+
+return Quest_condition_enter_talk

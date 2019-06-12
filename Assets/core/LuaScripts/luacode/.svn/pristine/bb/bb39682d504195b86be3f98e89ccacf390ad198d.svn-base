@@ -1,0 +1,215 @@
+local M = {}
+
+-- Attribute.decl(M, "target", nil)
+-- Attribute.decl(M, "target_name", nil)
+Event.decl(M, "change_battle_state")
+--交任务
+Attribute.decl(M, "show_btn", false)
+--接任务
+Attribute.decl(M, "show_btn1", false)
+--闲聊
+Attribute.decl(M, "show_btn2", false)
+--头像名字的显示
+Attribute.decl(M, "head", true)
+--小地图的显示
+Attribute.decl(M, "map", true)
+--任务栏显示
+Attribute.decl(M, "quest_bar", false)
+--临时加个标志位的属性   我觉得不能这么搞...所以是临时！！！  rjy 2017.11.28
+Attribute.decl(M, "level_up_sfx_is_over", false)
+
+function M:doInit(owner)
+    self.m_owner = owner
+    -- self.m_role = role
+
+    -- self:subscribe(role:on_event_target_set(true), function(value)
+    -- 	if value ~= nil then
+    -- 		-- print("------------------new target ", value:get_name())
+    -- 		self:set_target(value)
+    -- 	end
+    -- end)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_quest_bar = nil
+    self.m_mini_map = nil
+    self.m_hint = {}
+    self.m_show = {}
+end
+
+function M:create_subsystem()
+    local param_quest_bar = nil
+    local param_mini_map = { owner = self.m_owner }
+    self.m_quest_bar = self:createChild("quest_bar", "%subsystem.quest.quest_bar.quest_bar", param_quest_bar)
+    self.m_mini_map = self:createChild("mini_map", "%subsystem.map.mini_map.mini_map", param_mini_map)
+    self:create_quest_ui_main()
+    self:create_backpack()
+    -- 暂时去掉预加载 2017.11.22 rjy
+    -- 2017.12.01 预加载 回来吧！
+    self:create_skill_ui_main()
+end
+
+function M:create_player_buff_container(unit)
+
+    local buff_container = self:createChild("player_buff_container", "buff_container", { unit = unit, special = 0 })
+
+    self:createChild("player_special_buff_container", "buff_container", { unit = unit, special = 1 })
+
+    return buff_container
+end
+
+function M:create_target_buff_container(unit)
+    local buff_container = self:createChild("target_buff_container", "buff_container", { unit = unit, special = 0 })
+    return buff_container
+end
+
+function M:on_inventory()
+    self:logDebug("UIMain:on_inventory")
+
+    if self:getChild("ui_inventory") then
+        self:destroyChild("ui_inventory")
+    else
+        self:createChild("ui_inventory")
+    end
+end
+
+function M:on_equipment()
+    self:logDebug("UIMain:on_equipment")
+end
+
+function M:on_skills()
+    self:logDebug("UIMain:on_skills")
+end
+
+function M:on_character_info()
+    self:logDebug("UIMain:on_character_info")
+
+    --if self:getChild("ui_character_info") then
+    --	self:destroyChild("ui_character_info")
+    --else
+    --self:createChild("ui_character_info")
+    -- 使用ui_manager创建character_info frame
+
+    --end
+end
+
+function M:on_quests()
+    self:logDebug("UIMain:on_quests")
+end
+
+function M:on_quit()
+    self:logDebug("UIMain:on_quit")
+    app:doReturnLogin()
+end
+function M:on_change_battle_state(state)
+    if (state == 1) then
+        self:emit_event("change_battle_state", true)
+    else
+        self:emit_event("change_battle_state", false)
+    end
+end
+
+--副本进入页面
+function M:create_dungeon_join(open_diff_list)
+    self.m_ui_manager:CreateUI("dungeon_join", "%subsystem.dungeon.dungeon_join", open_diff_list, self.m_ui_manager.UI_Depth.NORMAL)
+end
+
+---副本的进度页面
+function M:create_dungeon_confirm_progress(progress_array, drag_array)
+    if #drag_array <= 0 then
+        return
+    end
+    local arr = {}
+    arr["progress_array"] = progress_array
+    arr["drag_array"] = drag_array
+    self.m_ui_manager:CreateUI("dungeon_confirm_progress", "%subsystem.dungeon.dungeon_confirm_progress", arr, self.m_ui_manager.UI_Depth.NORMAL)
+end
+
+-----根据服务器传回的时间来判断是否需要生成时间的显示
+function M:create_dungeon_stop_time(time)
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local id = role:get_inst_id()
+    if id == nil then
+        return
+    elseif id <= 0 then
+        return
+    end
+    local prepare_time = dbc.instances[id].prepare_time
+    if prepare_time > time then
+        local show_time = prepare_time - time
+        self.m_ui_manager:CreateUI("dungeon_stop_time", "%subsystem.dungeon.dungeon_stop_time", show_time, self.m_ui_manager.UI_Depth.NORMAL)
+    end
+end
+
+-----副本的重置界面
+function M:create_dungeon_reset(id, progress_arry, drag_arry, reset)
+    local ret = {}
+    ret["dungeon_id"] = id
+    ret["progress_arry"] = progress_arry
+    ret["drag_arry"] = drag_arry
+    ret["reset"] = reset
+    self.m_ui_manager:CreateUI("dungeon_reset", "%subsystem.dungeon.dungeon_reset", ret, self.m_ui_manager.UI_Depth.NORMAL)
+end
+
+----技能进入页面   ke
+function M:create_skill_ui_main()
+    self.m_ui_manager:CreateUI("skill_ui_main", "%subsystem.skill_system_ui.skill_ui_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 创建任务主UI
+function M:create_quest_ui_main()
+    self.m_ui_manager:CreateUI("quest_ui_main", "%subsystem.quest.quest_ui.quest_ui_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+---创建装备背包UI
+function M:create_backpack()
+    self.m_ui_manager:CreateUI("backpack_equipment_main", "%subsystem.backpack_equipment.backpack_equipment_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+--创建浮动提示文字
+function M:creat_hint_item(string)
+    local param = { string = string }
+    for i = 1, 3 do
+        if self.m_hint[i] == nil then
+            local aa = self:createChild("hint_c" .. i, "hint_show", param)
+            self.m_hint[i] = aa
+            break
+        end
+    end
+end
+function M:hint()
+    return self.m_hint
+end
+
+function M:quest_state(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take", "take_task", param, ui_manager.UI_Depth.HIGH)
+end
+function M:quest_state1(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take1", "take_task_one", param, ui_manager.UI_Depth.HIGH)
+end
+function M:quest_state2(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take2", "take_task_two", param, ui_manager.UI_Depth.HIGH)
+end
+
+
+function M:show(string)
+    local ui_manager = app:get_ui_manager()
+    local param = { string = string }
+    for i = 1, 3 do
+        if self.m_show[i] == nil then
+            local aa = ui_manager:CreateUI("show_s" .. i, "show", param, ui_manager.UI_Depth.ALERT)
+            self.m_show[i] = aa
+            return aa
+        end
+    end
+end
+
+return M

@@ -1,0 +1,29 @@
+local M = {}
+
+Event.decl(M, "popup_text")
+
+
+function M:doInit()
+
+	local subscpt_list = {}
+
+	local world = self:getFrame("world")
+
+	self:subscribe(world:on_event_add_unit(), function(id, unit)
+		-- print("!!!!!!!!!!! popup_text on add unit")
+		local subscpt = self:subscribe(unit:on_event_popup_text(), function(attacker_id, skill_id, hit_outcome, damage, is_buff)
+			-- print("!!!!!!!!!!", str, color)
+			self:emit_event("popup_text", unit, damage, skill_id, hit_outcome, is_buff, attacker_id)
+			-- local popup_text = self:createChild("popup_text"..os.time(), "popup_text_overlay_item")
+		end)
+		subscpt_list[id] = subscpt
+	end)
+
+
+	self:subscribe(world:on_event_del_unit(), function(id, unit)
+		self:unsubscribe(subscpt_list[id])
+	end)
+
+end
+
+return M

@@ -1,0 +1,180 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/27 15:59
+---
+local mini_map_icon_template_view = require("view.map.mini_map.mini_map_icon_template_view")
+local mini_map_quest_icon_view = class("mini_map_quest_icon_view", mini_map_icon_template_view)
+
+function mini_map_quest_icon_view:doInit()
+    self.is_in_mini_map = false
+    self.is_traced = false
+    self.m_frame = self:getFrame()
+    self.m_quest_manager = self:getFrame("quest_manager")
+
+    self:load_icon_prefab(self.m_frame:get_icon_path())
+    self:load_event()
+
+    --当新接任务、任务失败、任务完成时   更新图标
+    self:subscribe(self.m_quest_manager:on_event("show_new_quest"), function(quest_data)
+        self:quest_state_changed(quest_data:get_quest_id(), enum.quest.Quest_State.Received)
+    end)
+    self:subscribe(self.m_quest_manager:on_event("quest_fall"), function(quest_id)
+        self:quest_state_changed(quest_id, enum.quest.Quest_State.Interact)
+        self:refresh_icon_pos()
+    end)
+    self:subscribe(self.m_quest_manager:on_event("show_finish_quest"), function(quest_data)
+        self:quest_state_changed(quest_data:get_quest_id(), enum.quest.Quest_State.Finished)
+    end)
+
+    --追踪任务图标更新
+    self:subscribe(self:getFrame("trace_quest_bar"):on_event("refresh_trace_quest_list_to_mini_map"), function(trace_list)
+        self:trace_quest_icon_changed()
+    end)
+
+    --关注任务
+    self:subscribe(self.m_quest_manager:on_event("add_quest_note"), function(quest_data)
+        if self:getFrame():get_quest_data() == nil then
+            return
+        end
+        if self:getFrame():get_quest_data():get_quest_id() ~= quest_data:get_quest_id() then
+            return
+        end
+
+        if quest_data:get_index() > 0 then
+            if self.is_in_mini_map then
+                self:show()
+            else
+                self:hide()
+            end
+        else
+            self:hide()
+        end
+    end)
+    self:subscribe(self.m_quest_manager:on_event("del_quest_note"), function(quest_data)
+        if self:getFrame():get_quest_data() == nil then
+            return
+        end
+        if self:getFrame():get_quest_data():get_quest_id() ~= quest_data:get_quest_id() then
+            return
+        end
+
+        if quest_data:get_index() > 0 then
+            if self.is_in_mini_map then
+                self:show()
+            else
+                self:hide()
+            end
+        else
+            self:show()
+        end
+    end)
+
+end
+
+function mini_map_quest_icon_view:trace_quest_icon_changed()
+    local quest_data = self:getFrame():get_quest_data()
+    if quest_data == nil then
+        return
+    end
+    local icon = nil
+    if quest_data:get_index() == 0 then
+        if quest_data:get_begin_type() == 1 or quest_data:get_begin_type() == 4 or quest_data:get_begin_type() == 8 then
+            local icon = nil
+            if state == enum.quest.Quest_State.Interact then
+                icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')
+            elseif state == enum.quest.Quest_State.Received then
+                icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_lan_icon')
+            elseif state == enum.quest.Quest_State.Finished then
+                icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_huang_icon')
+            else
+                icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')   --默认
+            end
+
+            if quest_data:get_is_fall() then
+                icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_hong_icon')
+            end
+        end
+        if quest_data:get_begin_type() == 0 or quest_data:get_begin_type() == 2 or quest_data:get_begin_type() == 3 then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('zhandou_icon')--临时
+        end
+    elseif quest_data:get_index() == 1 then
+        icon = app:getAssetPathMgr().get_mini_map_manager_resource('area_1_icon')
+    elseif quest_data:get_index() == 2 then
+        icon = app:getAssetPathMgr().get_mini_map_manager_resource('area_2_icon')
+    else
+
+    end
+    self:load_icon(icon)
+end
+
+function mini_map_quest_icon_view:quest_state_changed(quest_id, state)
+    local quest_data = self.m_frame:get_quest_data()
+    if quest_data == nil then
+        return
+    end
+    if quest_data:get_quest_id() ~= quest_id then
+        return
+    end
+    if quest_data:get_begin_type() == 1 or quest_data:get_begin_type() == 4 or quest_data:get_begin_type() == 8 then
+        local icon = nil
+        if state == enum.quest.Quest_State.Interact then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')
+        elseif state == enum.quest.Quest_State.Received then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_lan_icon')
+        elseif state == enum.quest.Quest_State.Finished then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_huang_icon')
+        else
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')   --默认
+        end
+
+        if quest_data:get_is_fall() then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_hong_icon')
+        end
+
+        if quest_data:get_index() == 1 then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('area_1_icon')
+        elseif quest_data:get_index() == 2 then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('area_2_icon')
+        end
+
+        self:load_icon(icon)
+    end
+end
+
+function mini_map_quest_icon_view:refresh_icon_pos()
+    local quest_data = self:getFrame():get_quest_data()
+    if quest_data then
+        local min_dis, map_id, area_id = quest_data:get_target_info()
+        if min_dis == -1 then
+            return
+        end
+        local area_data = self:getFrame("world"):get_area_data(map_id, area_id)
+        if area_data == nil then
+            return
+        end
+        local quest_pos = area_data.worldPosition
+        self:set_quest_point_pos_icons_in(quest_pos)
+    end
+end
+
+function mini_map_quest_icon_view:is_show(is_show)
+    --追踪任务执行显示隐藏、不是追踪任务不执行
+    local quest_data = self:getFrame():get_quest_data()
+    if quest_data then
+        if quest_data:get_index() == 0 then
+            return
+        end
+    else
+        return
+    end
+
+    if is_show then
+        self.is_in_mini_map = true
+        self:show()
+    else
+        self.is_in_mini_map = false
+        self:hide()
+    end
+end
+
+return mini_map_quest_icon_view

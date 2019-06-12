@@ -1,0 +1,19 @@
+﻿
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_collect = class("Quest_condition_collect", Quest_condition_base)
+
+function Quest_condition_collect:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_manager = quest_manager
+    
+    self.m_quest_manager:create_interact(self.m_tbl_params[1])
+end
+
+function Quest_condition_collect:set_cur_param(cur_param)
+    self.m_cur_param = cur_param["stats"][1]
+    self.m_is_passed = self.m_cur_param >= self.m_aim_param
+    if self.m_is_passed then
+        self.m_quest_manager:destroy_interact(self.m_tbl_params[1])
+    end
+end
+
+return Quest_condition_collect

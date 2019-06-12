@@ -1,0 +1,54 @@
+local Frame = require("system.frame")
+local spirit_list_btn = class("spirit_list_btn", Frame)
+
+Attribute.decl(spirit_list_btn, "unique", 0)
+Attribute.decl(spirit_list_btn, "tmpl", 0)
+
+-- 是否被选择
+Attribute.decl(spirit_list_btn, "is_selected", false)
+Event.decl(spirit_list_btn, "selected")
+Event.decl(spirit_list_btn, "unselected")
+Event.decl(spirit_list_btn, "show")
+Event.decl(spirit_list_btn, "hide")
+Event.decl(spirit_list_btn, "show_equip")
+Event.decl(spirit_list_btn, "hide_equip")
+-- 播放分解特效
+Event.decl(spirit_list_btn, "play_decompose_sfx")
+
+
+
+function spirit_list_btn:doInit(spirit_data)
+    self.m_spirit_data = spirit_data
+    self:set_is_add_rect_trans(true)
+    self:set_unique(spirit_data.unique)
+    self:set_tmpl(spirit_data.tmpl)
+
+end
+
+function spirit_list_btn:get_spirit_data()
+    return self.m_spirit_data
+end
+
+function spirit_list_btn:set_spirit_data(data)
+    self.m_spirit_data = data
+    self:set_unique(data.unique)
+    self:set_tmpl(data.tmpl)
+end
+function spirit_list_btn:show()
+    self:emit_event("show")
+end
+function spirit_list_btn:hide()
+    self:emit_event("hide")
+end
+function spirit_list_btn:show_equip()
+    self:emit_event("show_equip")
+end
+function spirit_list_btn:hide_equip()
+    self:emit_event("hide_equip")
+end
+
+function spirit_list_btn:play_sfx()
+    self:emit_event("play_decompose_sfx")
+end
+
+return spirit_list_btn

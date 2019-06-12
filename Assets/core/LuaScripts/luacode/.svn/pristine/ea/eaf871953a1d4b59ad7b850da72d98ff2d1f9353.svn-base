@@ -1,0 +1,57 @@
+local View = require("system.view")
+local backpack_item_view = class("backpack_item_view", View)
+
+function backpack_item_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    local table = param[3]
+    self.m_list = {}
+    self:load_prefab("UI/BackpackEquip.prefab", function(loaded_go)
+        local template_go = loaded_go.transform:Find("backpack/scroll_view/viewport/content/obj/Image").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_level_text = go.transform:Find("Text"):GetComponent(UI.Text)
+        self.m_selected = go.transform:Find("selected").gameObject
+        self.m_selected:SetActive(false)
+        go.name = param[1] .. param[2]
+        self.m_btn = go.transform:Find("item").transform:GetComponent(UI.Button)
+        self.m_image = go.transform:Find("item").transform:GetComponent(UI.Image)
+        self:getGO():AddComponent(RectTransform)
+        go.transform:SetParent(self:getGO().transform)
+        local size = go.transform:GetComponent(RectTransform).sizeDelta
+        self:getGO().transform:GetComponent(RectTransform).sizeDelta = size
+        ------这里有有偏移
+        go.transform.localPosition = Vector3(-52.5, 52.5, 0)
+        go:SetActive(true)
+        for i, v in pairs(table) do
+            self.m_list[i] = v
+        end
+        if self.m_list["lvl"] == 0 then
+            self.m_level_text.transform.gameObject:SetActive(false)
+        else
+            self.m_level_text.text = self.m_list["lvl"]
+        end
+
+        self.m_btn.onClick:AddListener(function()
+            self.m_selected:SetActive(true)
+            self:getFrame("backpack_list"):on_item_selected(self.m_list, self.m_selected)
+        end)
+        if self.m_list["tmpl"] ~= 0 then
+            local path = dbc.item[self.m_list["tmpl"]].bag_icon
+            self:change_sprite(path)
+        end
+    end)
+end
+
+-----更改图片
+function backpack_item_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return backpack_item_view

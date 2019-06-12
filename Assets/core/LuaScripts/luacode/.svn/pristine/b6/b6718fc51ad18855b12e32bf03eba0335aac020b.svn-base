@@ -1,0 +1,759 @@
+local Camera = require "system.camera"
+local Enum_Unit = require "common.Enum.Enum_Unit"
+local Trigger_component = require("subsystem.component.trigger_component")
+
+local World = {}
+
+Event.decl(World, "add_unit")
+Event.decl(World, "del_unit")
+Event.decl(World, "add_skill_indicator")
+Event.decl(World, "set_skill_indicator")
+
+-- Event.decl(World, "add_interact_obj")
+-- Event.decl(World, "del_interact_obj")
+
+Event.decl(World, "add_aoe")
+Attribute.decl(World, "map_id", 0)
+Attribute.decl(World, "map_loaded", false)
+
+Event.decl(World, "boss_show")
+
+Event.decl(World, "out_dungeon")
+
+Event.decl(World, "camera_animation")
+
+function World:doInit()
+    self.m_unit_map = {}
+    self.m_interact_map = {}
+    self.m_object_map = {}
+    self.m_giver_map = {}
+    self.m_merchant_map = {}
+    self.m_drop_item_map = {}
+
+    self.m_cam = Camera:new()
+    -- rjy 2017.12.15专门播放相机动画的相机
+    self.m_anim_cam = nil
+    self:create_animation_camera()
+
+    self.m_change_map_callback = {}
+    self.m_main_player_unit = nil
+    self.m_scene_data_list = {}     -- 目前暂时缓存读取到的场景数据表，因为不确定之后客户端是否还需要用到其中的数据。如果日后确定客户端除了触发器之外无需其它数据，则可以不再进行缓存。
+    self.m_area_data_list = {}      -- 与当前场景相关的触发区域数据
+    self.m_trigger_cmp_dict = {}    -- Trigger_component字典
+    self.m_trigger_go_dict = {}     -- Trigger_go字典
+
+    self.areaIndicatorObject = {}
+
+    self:subscribe(
+    self:on_event_attr_set("map_loaded"),
+    function(val)
+        if (val == true) then
+            self:change_map(self:get_map_id())
+        end
+    end
+    )
+    self:subscribe(self:on_event("map_loaded_set"), function(flag)
+        if flag then
+            self:on_map_loaded()
+        else
+            self:on_map_unloaded()
+        end
+    end)
+end
+
+-- rjy 2017.12.15专门播放相机动画的相机
+function World:getAnimationCamera()
+    return self.m_anim_cam
+end
+
+function World:create_animation_camera()
+    self.m_anim_cam = GameObject("Animation Camera")
+    self.m_anim_cam:AddComponent(UnityEngine.Camera)
+    self.m_anim_component = self.m_anim_cam:AddComponent(UnityEngine.Animator)
+    local animation_path = "models/Role/scene/hgs_dsf_camera/animation/Camera_Animator.controller"
+    self:subscribe(app:getResMgr():rxLoad(animation_path), function(asset_ref)
+        local anim = asset_ref.asset
+        if (anim == nil) then
+            Debug.LogError("找不到这个runtimeAnimatorController啊---->" .. animation_path)
+        else
+            self.m_anim_component.runtimeAnimatorController = anim
+        end
+    end)
+    self.m_anim_cam:SetActive(false)
+end
+function World:rec_camera_animation(id)
+    self:emit_event("camera_animation", id)
+end
+
+function World:on_map_loaded()
+    self:construct_area_data(self:get_map_id())
+    self:getFrame("quest_manager"):init()
+    self:getFrame("team_manager"):init()
+    self:getFrame("dungeon_manager"):init()
+    self:getFrame("skill_ui_manager"):init()
+    self:getFrame("inventory_manager"):init()
+    self:init_scene_music()
+    self:init_warp_gate()
+    --self:init_giver_state()
+
+    Event_system:dispatch_event(EVENT_SCENE_LOADED, self)
+end
+
+function World:on_map_unloaded()
+    Event_system:dispatch_event(EVENT_SCENE_UNLOADED, nil)
+end
+
+function World:get_scene_data(map_id)
+    if (map_id == nil) then
+        map_id = self:get_map_id()
+    end
+
+    if not self.m_scene_data_list[map_id] then
+        local map_tbl = dbc.map[map_id]
+        if not map_tbl then
+            return
+        end
+        local map_name = map_tbl.map_file
+        map_name = string.gsub(map_name, "^res/map", "tables/scene")
+        map_name = string.gsub(map_name, ".json$", "")
+        map_name = string.gsub(map_name, "[/]", ".")
+        self.m_scene_data_list[map_id] = require(map_name)
+    end
+    return self.m_scene_data_list[map_id]
+end
+
+function World:construct_area_data(map_id)
+    local scene_data = self:get_scene_data(map_id)
+    if not scene_data then
+        return
+    end
+    local area_data = scene_data["patrolAreas"]
+    self.m_area_data_list = {}
+    for _, area in pairs(area_data) do
+        --local index = tonumber(Util_string:split_to_arr(area.addr, "##")[2]) + 1
+        local index = area.id
+        if self.m_area_data_list[index] then
+            app:logError("区域id重复，重复id: " .. index)
+        end
+
+        local worldPosition = Vector3(area.worldPosition.x, area.worldPosition.y, area.worldPosition.z)
+        local worldRotation = Quaternion(area.worldRotation.x, area.worldRotation.y, area.worldRotation.z, area.worldRotation.w)
+        local localScale = Vector3(area.localScale.x, area.localScale.y, area.localScale.z)
+        local radius = area.radius
+        local temp_area_data = {
+            ["worldPosition"] = worldPosition,
+            ["worldRotation"] = worldRotation,
+            ["localScale"] = localScale,
+            ["radius"] = radius,
+        }
+        self.m_area_data_list[index] = temp_area_data
+    end
+end
+
+function World:get_area_data(map_id, area_id)
+    if self:get_map_id() ~= map_id then
+        return
+    end
+    return self.m_area_data_list[area_id]
+end
+
+function World:register_area_trigger_enter_func(map_id, area_id, func)
+    local trigger_component = self:create_trigger(map_id, area_id)
+    if trigger_component then
+        return trigger_component.on_trigger_enter:add(func)
+    else
+        return false
+    end
+end
+
+function World:register_area_trigger_exit_func(map_id, area_id, func)
+    local trigger_component = self:create_trigger(map_id, area_id)
+    if trigger_component then
+        trigger_component.on_trigger_exit:add(func)
+        return true
+    else
+        return false
+    end
+end
+
+function World:unregister_area_trigger_enter_func(map_id, area_id, func)
+    if map_id ~= self:get_map_id() then
+        return
+    end
+
+    local trigger_component = self.m_trigger_cmp_dict[area_id]
+    if trigger_component then
+        trigger_component.on_trigger_enter:remove(func)
+    end
+    if trigger_component.on_trigger_enter:count() == 0 and trigger_component.on_trigger_exit:count() == 0 then
+        self:destroy_trigger(area_id)
+    end
+end
+
+function World:unregister_area_trigger_exit_func(map_id, area_id, func)
+    if map_id ~= self:get_map_id() then
+        return
+    end
+
+    local trigger_component = self.m_trigger_cmp_dict[area_id]
+    if trigger_component then
+        trigger_component.on_trigger_exit:remove(func)
+    end
+    if trigger_component.on_trigger_exit:count() == 0 and trigger_component.on_trigger_enter:count() == 0 then
+        self:destroy_trigger(area_id)
+    end
+end
+
+-- private
+function World:create_trigger(map_id, area_id)
+    if map_id ~= self:get_map_id() then
+        return nil
+    end
+
+    local trigger_component = self.m_trigger_cmp_dict[area_id]
+    if not trigger_component then
+        local area_data = self:get_area_data(map_id, area_id)
+        if not area_data then
+            return nil
+        end
+
+        local param = {
+            ["x"] = area_data.radius,
+            ["y"] = area_data.radius,
+            ["z"] = area_data.radius,
+        }
+        local trigger_go = GameObject("Area_Trigger_" .. tostring(area_id))
+        trigger_go.transform.position = area_data.worldPosition
+        trigger_go.transform.rotation = area_data.worldRotation
+        trigger_go.transform.localScale = area_data.localScale
+        trigger_component = Trigger_component:new()
+        trigger_component:set_go(trigger_go)
+        trigger_component:set_area_type_and_param(Enum_Scene.Trigger_Area.Box, param)
+        trigger_component.on_trigger_condition = function(other)
+            local tag = other.gameObject.tag
+            if tag == "Player" then
+                return true
+            end
+            return false
+        end
+        self.m_trigger_cmp_dict[area_id] = trigger_component
+        self.m_trigger_go_dict[area_id] = trigger_go
+        trigger_component:start()
+    end
+    return trigger_component
+end
+
+-- private
+function World:destroy_trigger(area_id)
+    local trigger_component = self.m_trigger_cmp_dict[area_id]
+    if trigger_component then
+        trigger_component:destroy()
+        self.m_trigger_cmp_dict[area_id] = nil
+    end
+    local trigger_go = self.m_trigger_go_dict[area_id]
+    if trigger_go then
+        Object.Destroy(trigger_go)
+        self.m_trigger_go_dict[area_id] = nil
+    end
+end
+
+
+
+function World:init_scene_music()
+    local map_id = self:get_map_id()
+    local data = dbc.map[map_id]
+    Sound_manager:create(data.background_music)
+
+    local area_music_list = Util_string:parse_to_list(data.area_music)
+    for _, music_info in pairs(area_music_list) do
+        for area_id, area_sound_id in pairs(music_info) do
+            local sound_id = -1
+            self:register_area_trigger_enter_func(map_id, area_id, function()
+                sound_id = Sound_manager:create(area_sound_id)
+            end)
+            self:register_area_trigger_exit_func(map_id, area_id, function()
+                Sound_manager:destroy(sound_id)
+            end)
+        end
+    end
+end
+
+function World:init_warp_gate()
+    local map_id = self:get_map_id()
+    local data = dbc.map[map_id]
+
+    local warp_gate_lsit = Util_string:parse_to_list(data.area_change_map)
+    for _, gata_info in pairs(warp_gate_lsit) do
+        for area_id, aim_map_id in pairs(gata_info) do
+            self:register_area_trigger_enter_func(map_id, area_id, function()
+                local sdk = app:getKBESDK()
+                sdk:entity_cell_call(sdk:get_player_id(), "req_change_map", aim_map_id)
+            end)
+        end
+    end
+end
+
+--[[function World:init_giver_state()
+
+end--]]
+
+local function node_name(name, id)
+    return string.format(name .. "-%d", id)
+end
+
+--[[ unit  start ]]
+
+function World:setSkillIndicator(skill_id, target_pos, boss_id, cast_time)
+    self:emit_event("set_skill_indicator", skill_id, target_pos, boss_id, cast_time)
+end
+
+
+function World:addUnit(id, type, name, pos, is_role, is_main_player, role)
+    -- print("~~~~~~~~~~~", is_role, "~~~~~~~~~~~")
+    assert(self.m_unit_map[id] == nil, id)
+    local m_add_unit = nil
+    local cfg = dbc.creature[type]
+
+    if (m_add_unit == nil) then
+        m_add_unit = self:createChild(
+        node_name("unit", id),
+        "unit",
+        {
+            id = id,
+            type = type,
+            name = name,
+            cfg = cfg,
+            pos = pos,
+            is_role = is_role,
+            is_main_player = is_main_player,
+            role = role
+        }
+        )
+        if (is_main_player == true) then
+            self.m_main_player_unit = m_add_unit
+        end
+    end
+    self.m_unit_map[id] = m_add_unit
+
+    -- 同步添加对应Boss的技能预警范围和区域
+    -- 默认为只有类型为3以上的Unit会自动添加预警区域go
+    if cfg.unit_type > 3 then
+        self:emit_event("add_skill_indicator", id)
+    end
+
+    self:emit_event("add_unit", id, m_add_unit)
+    return m_add_unit
+end
+
+function World:delUnit(id)
+    local unit = self.m_unit_map[id]
+    assert(unit ~= nil)
+
+    self.m_unit_map[id] = nil
+
+    self:emit_event_del_unit(id, unit)
+
+    self:destroyChild(unit)
+end
+
+function World:getUnit(id)
+    return self.m_unit_map[id]
+end
+
+function World:add_giver(giver, pos)
+    local temp_giver = self:createChild(node_name("giver", giver:get_id()), "giver", {
+        pos = pos,
+        giver = giver,
+    })
+    self.m_giver_map[giver:get_tmpl()] = temp_giver
+    self.m_unit_map[giver:get_id()] = temp_giver
+end
+
+-- add by lijunfeng 2017/12/14
+function World:add_mob_giver(id, name, pos, is_role, is_main_player, role)
+    assert(self.m_unit_map[id] == nil, id)
+    local m_add_unit = nil
+    local cfg = dbc.creature[id]
+
+    if (temp_giver == nil) then
+        temp_giver = self:createChild(node_name("mob_giver", id), "mob_giver", {
+            id = id,
+            name = name,
+            cfg = cfg,
+            pos = pos,
+            is_role = is_role,
+            is_main_player = is_main_player,
+            role = role
+        })
+
+        if (is_main_player == true) then
+            self.m_main_player_unit = m_add_unit
+        end
+    end
+    self.m_unit_map[id] = m_add_unit
+
+    -- 同步添加对应Boss的技能预警范围和区域
+    -- 默认为只有类型为3以上的Unit会自动添加预警区域go
+    if cfg.unit_type > 3 then
+        self:emit_event("add_skill_indicator", id)
+    end
+
+    self.m_giver_map[id] = temp_giver
+    self.m_unit_map[id] = temp_giver
+
+    return temp_giver
+end
+-- add by lijunfeng 2017/12/14
+function World:del_mob_giver(id)
+    local unit = self.m_unit_map[id]
+    assert(unit ~= nil)
+
+    self.m_unit_map[id] = nil
+    self.m_giver_map[id] = nil
+    self:emit_event_del_unit(id, unit)
+    self:destroyChild(unit)
+end
+
+function World:del_giver(id)
+    local giver = self.m_giver_map[id]
+    if giver then
+        self.m_giver_map[id] = nil
+        self:destroyChild(giver)
+    end
+end
+
+function World:get_giver(id)
+    return self.m_giver_map[id]
+end
+
+function World:getFirstUnitByType(type)
+    for i, j in pairs(self.m_unit_map) do
+        if (j:get_type() == type) then
+            return j
+        end
+    end
+end
+
+function World:getNearestUnit(unit)
+    local distList = {}
+
+    for k, v in pairs(self.m_unit_map) do
+        if v ~= unit then
+            distList[#distList + 1] = { id = k, dist = Vector3.Distance(unit:get_pos(), v:get_pos()) }
+        end
+    end
+
+    if #distList == 0 then
+        return nil
+    end
+
+    table.sort(
+    distList,
+    function(a, b)
+        return a.dist < b.dist
+    end
+    )
+    return self.m_unit_map[distList[1].id]
+end
+
+--获取到在40米范围内的unit
+-- pacman 2017-11-30 加入【是否在玩家屏幕内】开关
+function World:getDisUnit(unit, range, check_inside_main_camera)
+    local camera = self.m_cam:fetch_unity_camera()
+    local list = {}
+    for _, v in pairs(self.m_unit_map) do
+        if v ~= unit then
+
+            -- 判断目标是否在主相机屏幕内
+            local inside_camera_test_result = true
+            if check_inside_main_camera then
+                local unit_view = app:getView(v:getFrameName())
+                if unit_view ~= nil then
+                    inside_camera_test_result = unit_view:is_inside_camera_view(camera)
+                end
+            end
+
+            dist = Vector3.Distance(unit:get_pos(), v:get_pos())
+            if dist <= range and v:get_selectable() == 1 and inside_camera_test_result then
+                list[#list + 1] = v
+            end
+        end
+    end
+
+    if #list == 0 then
+        return list
+    end
+    return list
+end
+--
+
+-- [[ unit  end ]]
+-- [[ interact  start ]]
+
+function World:addInteractObj(obj)
+    assert(self.m_interact_map[obj:get_id()] == nil)
+    local interact_obj = self:createChild(
+    node_name("interact_obj", obj:get_id()),
+    "interact_obj",
+    obj
+    )
+    self.m_interact_map[obj:get_id()] = interact_obj
+    return interact_obj
+end
+
+function World:delInteractObj(id)
+    local interact_obj = self.m_interact_map[id]
+    self.m_interact_map[id] = nil
+    assert(interact_obj ~= nil)
+    self:destroyChild(interact_obj)
+end
+
+function World:getInteractObj(id)
+    return self.m_interact_map[id]
+end
+
+function World:getNearestObj(unit)
+    if (self.m_interact_map == nil) then
+        return nil
+    end
+
+    local distList = {}
+
+    for k, v in pairs(self.m_interact_map) do
+        if (v:canInteract(unit:get_pos())) then
+            distList[#distList + 1] = { id = k, dist = Vector3.Distance(unit:get_pos(), v:get_pos()) }
+        end
+    end
+
+    if #distList == 0 then
+        return nil
+    end
+
+    table.sort(
+    distList,
+    function(a, b)
+        return a.dist < b.dist
+    end
+    )
+    return self.m_interact_map[distList[1].id]
+end
+
+
+
+
+--[[ interact  end ]]
+
+-- [[ object  start ]]
+
+function World:addObject(obj)
+    assert(self.m_object_map[obj:get_id()] == nil)
+    local object = self:createChild(
+    node_name("Object", obj:get_id()),
+    "Object",
+    obj
+    )
+    self.m_object_map[obj:get_id()] = object
+    return object
+end
+
+function World:delObject(id)
+    local object = self.m_object_map[id]
+    self.m_object_map[id] = nil
+    assert(object ~= nil)
+    self:destroyChild(object)
+end
+
+function World:getObject(id)
+    return self.m_object_map[id]
+end
+
+
+--[[ object  end ]]
+
+-- [[ merchant  start ]]
+
+function World:addMerchant(obj)
+    assert(self.m_merchant_map[obj:get_id()] == nil)
+    local object = self:createChild(
+    node_name("Merchant", obj:get_id()),
+    "Merchant",
+    obj
+    )
+    self.m_merchant_map[obj:get_id()] = object
+    return object
+end
+
+function World:delMerchant(id)
+    local object = self.m_merchant_map[id]
+    self.m_merchant_map[id] = nil
+    assert(object ~= nil)
+    self:destroyChild(object)
+end
+
+function World:getMerchant(id)
+    return self.m_merchant_map[id]
+end
+
+--[[ merchant  end ]]
+
+-- [[ DropItem  start ]]
+
+function World:addDropItem(obj)
+    assert(self.m_drop_item_map[obj:get_id()] == nil)
+    local object = self:createChild(
+    node_name("drop_item", obj:get_id()),
+    "drop_item",
+    obj
+    )
+    self.m_drop_item_map[obj:get_id()] = object
+    return object
+end
+
+function World:delDropItem(id)
+    local object = self.m_drop_item_map[id]
+
+    assert(object ~= nil)
+
+    object:del(function(drop_item)
+        self.m_drop_item_map[drop_item:get_id()] = nil
+        self:destroyChild(drop_item)
+    end)
+
+end
+
+function World:getDropItem(id)
+    return self.m_drop_item_map[id]
+end
+
+
+--[[ DropItem  end ]]
+
+function World:getCamera()
+    return self.m_cam
+end
+
+function World:add_aoe(skill_cfg, pos)
+    -- print("@@@@@@@@@@", skill_cfg, pos)
+    local aoe = self:createChild("aoe" .. skill_cfg.id .. os.time(), "aoe", skill_cfg)
+    aoe:set_pos(pos)
+    return aoe
+end
+
+function World:add_skl_sfx(skill_id, skill_client_id, sfx_path, pos, euler)
+    --Debug.LogError("add_skl_sfx..sfx_path --->"..sfx_path)
+    local sfx = self:createChild(string.format("%s_%s_%s_%s", "world_sfx", skill_client_id, os.time(), math.random()),
+    "auto_destroy_sfx",
+    { sfx_path = sfx_path })
+
+    sfx:set_pos(pos)
+    sfx:set_euler(euler)
+
+    return sfx
+end
+
+function World:add_space_sfx(sfx_path, pos, euler)
+    local sfx = self:createChild(string.format("%s_%s_%s", "world_sfx", os.time(), math.random()),
+    "auto_destroy_sfx",
+    { sfx_path = sfx_path })
+
+    sfx:set_pos(pos)
+    sfx:set_euler(euler)
+
+    return sfx
+end
+
+-- pacman 2017-12-02 考虑到不一定总是从unit开始发射，也可能是从某空间位置开始，于是添加了一个start_pos参数
+function World:add_projectile(skill_id, skill_client_id, sfx_path, caster_unit, start_pos, target_unit, end_mount_point, on_hit)
+    local projectile = self:createChild("projectile" .. skill_id .. os.time() .. math.random(), "projectile", {
+        skillId = skill_id,
+        skill_client_id = skill_client_id,
+        sfx_path = sfx_path,
+        casterUnit = caster_unit,
+        startPos = start_pos,
+        onHit = on_hit,
+        targetUnit = target_unit,
+        endMountPoint = end_mount_point,
+    })
+    return projectile
+end
+
+
+
+
+function World:request_change_map(map_id, func)
+    local map = "map_id" .. tostring(map_id)
+    self.m_change_map_callback[map] = func
+    -- 发送请求切换地图
+    app:getKBESDK():onSetSpaceData(1, "map_id", map_id)
+
+    self.m_main_player_unit:get_cc().enabled = false
+end
+
+function World:change_map(map_id)
+    -- clz test for change map
+    -- 设置主角位置和坐标
+    local dbc_data = dbc.map[map_id]
+    local pos = dbc_data.spawn_pos
+    local dir = dbc_data.spawn_dir * 180 / math.pi
+    local name = dbc_data.res_client
+    self.m_main_player_unit:set_pos(Vector3(pos[1], pos[2], pos[3]))
+    self.m_main_player_unit:emit_event("set_position", Vector3(pos[1], pos[2], pos[3]))
+    self.m_main_player_unit:set_dir(dir)
+    -- 修正相机跟随
+    local cam = self:getCamera()
+    local unit = self.m_main_player_unit
+    local cam_euler = cam:get_euler_angle()
+    local unit_dir = unit:get_dir()
+    local new_yaw = Mathf.MoveTowardsAngle(cam_euler.y, unit_dir, 1000)
+    cam:change_goal_yaw(new_yaw)
+    -- 打开主角cc
+    -- if(self.m_main_player_unit:get_cc() == nil) then
+    --     Debug.LogError("主角的CC此时还没有创建出来")
+    -- else
+    --     self.m_main_player_unit:get_cc().enabled = true
+    -- end
+
+
+    local map = "map_id" .. tostring(map_id)
+
+    if (self.m_change_map_callback[map] ~= nil) then
+        self.m_change_map_callback[map]()
+        self.m_change_map_callback[map] = nil
+    end
+    ------判断是否在副本内
+    local is_dungeon = self:get_map_type(map_id)
+    if is_dungeon ~= 1 then
+        self:emit_event("out_dungeon")
+    end
+
+    -- self.m_scene_objs_manager = nil
+    -- local SceneManager = SceneManagement.SceneManager
+    -- local first_go = SceneManager.GetSceneByName(name):GetRootGameObjects()[1]
+    -- self.m_scene_objs_manager = first_go:GetComponent(BaseSceneObjsManager)
+end
+
+
+-- function World:get_scene_objs_manager()
+--     return self.m_scene_objs_manager
+-- end
+
+function World:get_main_player()
+    return self.m_main_player_unit
+end
+
+
+
+function World:getUnitMap()
+    local ret = {}
+    for k, v in pairs(self.m_unit_map) do
+        ret[k] = v
+    end
+    return ret
+end
+
+------根据map_id在map表中判断map类型   temp   ke
+function World:get_map_type(map_id)
+    return dbc.map[map_id].type
+end
+
+return World

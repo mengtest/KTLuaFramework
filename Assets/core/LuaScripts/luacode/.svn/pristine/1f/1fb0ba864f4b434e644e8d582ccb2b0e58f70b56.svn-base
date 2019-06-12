@@ -1,0 +1,141 @@
+local M = {}
+
+
+function M.addSingleEvent(view)
+    local m_trigger_event = view:getGO():AddComponent(KTRoleTriggerEvent)
+    
+    m_trigger_event._onTriggerEnterEvent = KTRoleTriggerEvent_OnTriggerEnterEvent()
+    m_trigger_event._onTriggerExitEvent = KTRoleTriggerEvent_OnTriggerExitEvent()
+    
+    m_trigger_event._onTriggerEnterEvent:AddListener(function(collider)
+        Debug.Log("on_trigger_" .. collider.gameObject.tag .. "_enter")
+        local func = M["on_trigger_" .. collider.gameObject.tag .. "_enter"]
+        if (func ~= nil and type(func) == "function") then
+            func(view, collider)
+        end
+    end)
+    
+    m_trigger_event._onTriggerExitEvent:AddListener(function(collider)
+        Debug.Log("on_trigger_" .. collider.gameObject.tag .. "_exit")
+        local func = M["on_trigger_" .. collider.gameObject.tag .. "_exit"]
+        if (func ~= nil and type(func) == "function") then
+            func(view, collider)
+        end
+    end)
+
+end
+
+function M.on_trigger_ladder_enter(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    local ladder_trigger = collider.gameObject.transform
+    local ladder = ladder_trigger.parent.gameObject:GetComponentInParent(SceneObjs_ladder)
+    
+    if (ladder == nil) then return end
+    
+    local unit = view:getFrame()
+    local uafsm = unit:get_uafsm()
+    playerController:set_is_interact_btn_update(false) --by lijunfeng 2018/3/2
+    playerController:show_interact_btn("攀爬",
+        function()
+            -- 直接关闭ui 执行攀爬完成
+            playerController:hide_interact_btn()
+            -- 我们找到了上梯子的位置
+            uafsm:change_state(enum.battle.Unit_Main_Act.CLIMB, {collider = collider, ladder = ladder, playerController = playerController})
+        end,
+        nil, view:getFrame())
+end
+
+function M.on_trigger_ladder_exit(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    -- 直接关闭ui 啥都不执行
+    playerController:hide_interact_btn()
+    playerController:set_is_interact_btn_update(true) --by lijunfeng 2018/3/2
+end
+
+function M.on_trigger_jump_point_enter(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    local jump_point = collider.gameObject:GetComponent(SceneObjs_jump_point)
+
+    if (jump_point == nil) then return end
+
+    local unit = view:getFrame()
+    local uafsm = unit:get_uafsm()
+
+    local endPos = jump_point.end_pos
+
+    --by lijunfeng 0217/12/27
+    if unit:get_main_act() == enum.battle.Unit_Main_Act.Auto_Move then
+        print("准备延迟跳跃")
+        unit:set_jump_after_on_ground({target_pos = endPos.position, type = enum.battle.Move_Type_4_Client.JUMP})
+        print("准备延迟跳跃参数",unit:get_jump_after_on_ground())
+        return
+    end
+    print("准备正常跳跃")
+    if (jump_point.is_auto == true) then
+        playerController:set_is_interact_btn_update(false) --by lijunfeng 2018/3/2
+        playerController:hide_interact_btn()
+        uafsm:change_state(enum.battle.Unit_Main_Act.Auto_Move, {target_pos = endPos.position, type = enum.battle.Move_Type_4_Client.JUMP})
+    else
+        --关闭playerController正常的交互按钮筛选逻辑
+        playerController:set_is_interact_btn_update(false) --by lijunfeng 2018/3/2
+        playerController:show_interact_btn("跳跃",
+        function()
+            playerController:hide_interact_btn()
+
+            uafsm:change_state(enum.battle.Unit_Main_Act.Auto_Move, {target_pos = endPos.position, type = enum.battle.Move_Type_4_Client.JUMP})
+        end,
+        nil, view:getFrame())
+    end
+end
+
+
+function M.on_trigger_jump_point_exit(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    -- 直接关闭ui 啥都不执行
+    print("开启交互筛选逻辑")
+    playerController:set_is_interact_btn_update(true) --by lijunfeng 2018/3/2
+    playerController:hide_interact_btn()
+end
+
+
+function M.on_trigger_carrier_enter(view, collider)
+    local unit = view:getFrame()
+    unit:set_carrier(collider.gameObject)
+end
+
+function M.on_trigger_carrier_exit(view, collider)
+    local unit = view:getFrame()
+    unit:set_carrier(nil)
+end
+
+function M.on_trigger_stone_table_enter(view, collider)
+    local unit = view:getFrame()
+    unit:set_server_vehicle_state(enum.unit.Vehicle_State_Type.STONE)
+    unit:set_stone_table(collider.gameObject)
+end
+
+function M.on_trigger_stone_table_exit(view, collider)
+    local unit = view:getFrame()
+    unit:set_server_vehicle_state(enum.unit.Vehicle_State_Type.NORMAL)
+    unit:set_stone_table(nil)
+end
+
+function M.on_trigger_WaterWheel_enter(view, collider)
+    local unit = view:getFrame()
+    -- 网络通信
+    --local wheel_number = tonumber(collider.gameObject.name)
+    --unit:set_server_vehicle_state(wheel_number)
+    unit:set_water_wheel(collider.gameObject)
+end
+
+function M.on_trigger_WaterWheel_exit(view, collider)
+    local unit = view:getFrame()
+    -- 网络通信
+    --unit:set_server_vehicle_state(enum.unit.Vehicle_State_Type.NORMAL)
+    unit:set_water_wheel(nil)
+end
+
+
+
+
+return M

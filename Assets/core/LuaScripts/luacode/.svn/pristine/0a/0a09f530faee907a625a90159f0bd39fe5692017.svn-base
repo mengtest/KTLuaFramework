@@ -1,0 +1,21 @@
+local Frame = require("system.frame")
+local matching_sure = class("matching_sure", Frame)
+
+Event.decl(matching_sure, "sure_down")
+Event.decl(matching_sure, "cancle_down")
+
+function matching_sure:doInit(param)
+
+end
+
+function matching_sure:on_refuse_btn()
+    self:emit_event("cancle_down")
+    self:destroySelf()
+end
+
+function matching_sure:on_sure_btn()
+    self:emit_event("sure_down")
+    self:destroySelf()
+end
+
+return matching_sure

@@ -1,0 +1,11 @@
+local M = {}
+-- 临时做法，等boss出现信息需求进一步完善之后 重构此功能 - 凌志 2017年9月1日
+function M:doInit()
+    self:load("UI/Shop.prefab", function(go)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(),go)
+    end)
+end
+
+
+
+return M

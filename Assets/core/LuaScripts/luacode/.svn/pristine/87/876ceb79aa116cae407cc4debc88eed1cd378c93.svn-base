@@ -1,0 +1,39 @@
+local View = require("system.view")
+local matching_sure_view = class("matching_sure_view", View)
+
+function matching_sure_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_dungeon_id = param[2]
+    self.m_dbid = param[1]
+    ------面板显示市场
+    self.m_show_time = 11
+    self:load(app:getAssetPathMgr().get_ui_view_asset("MatchingSure"), function(go)
+        self.m_ui_manager:AdaptResolution(self.m_frame:getFrameName(), go)
+        self.m_name_text = go.transform:Find("bg/di/dungeon_show"):GetComponent(UI.Text)
+        self.m_time_text = go.transform:Find("bg/di/tip/show_text"):GetComponent(UI.Text)
+
+        if self.m_dungeon_id ~= 0 then
+            local name = dbc.instances[self.m_dungeon_id].name
+            self.m_name_text.text = name
+        else
+            local name = dbc.instances[self.m_dungeon_id].diff_name
+            self.m_name_text.text = name
+        end
+    end)
+end
+
+function matching_sure_view:doUpdate()
+    if self.m_time_text ~= nil then
+        self.m_show_time = self.m_show_time - app:get_delta_time()
+        local result = math.floor(self.m_show_time)
+        if result <= 0 then
+            self.m_frame:on_cancle_down(0, self.m_dbid)
+            self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+            self.m_frame:destroySelf()
+        end
+        self.m_time_text.text = tostring(result) .. "秒自动拒绝"
+    end
+end
+
+return matching_sure_view

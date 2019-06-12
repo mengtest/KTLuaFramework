@@ -1,0 +1,25 @@
+
+local Ua_state_base = require("frame.unit_act_state.ua_state_base")
+local Ua_state_exhibition = class("Ua_state_exhibition", Ua_state_base)
+
+function Ua_state_exhibition:initialize(fsm, unit)
+    
+end
+
+function Ua_state_exhibition:enter()
+
+end
+
+function Ua_state_exhibition:exit()
+
+end
+
+
+
+
+
+
+
+
+
+return Ua_state_exhibition

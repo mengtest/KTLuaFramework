@@ -1,0 +1,81 @@
+local sect_equipment_target = {}
+Attribute.decl(sect_equipment_target, "select_column", 1)
+
+Attribute.decl(sect_equipment_target, "username", "叫啥呢")
+Attribute.decl(sect_equipment_target, "all_percent_num", "50%")
+
+Attribute.decl(sect_equipment_target, "current_level", 0)
+Attribute.decl(sect_equipment_target, "target_level", 50)
+
+Attribute.decl(sect_equipment_target, "current_affix", 0)
+Attribute.decl(sect_equipment_target, "target_affix", 50)
+
+Attribute.decl(sect_equipment_target, "current_suit", 0)
+Attribute.decl(sect_equipment_target, "target_suit", 50)
+
+Attribute.decl(sect_equipment_target, "current_property", 0)
+Attribute.decl(sect_equipment_target, "target_property", 50)
+
+sect_equipment_target.COLUMN_TYPE = {
+    LEVEL_COLUMN = 1,
+    AFFIX_COLUMN = 2,
+    SUIT_COLUMN = 3,
+    PROPERTY_COLUMN = 4
+}
+
+function sect_equipment_target:doInit()
+    self:set_is_add_rect_trans(true)
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    self.m_role = kbe_mgr:get_entity(role_id)
+    -- 玩家名称
+    self:subscribe(self.m_role:on_event_name_set(true), function(val)
+        self:set_username(val)
+    end)
+
+    -- TODO 当玩家身上（装等/目标装等）、（词缀数量/目标词缀）、（套装数量/目标套装）、（属性数量/当前属性）变化时刷新
+
+end
+
+function sect_equipment_target:on_loaded()
+
+end
+-- 装等
+function sect_equipment_target:on_level_column()
+    self:set_select_column(sect_equipment_target.COLUMN_TYPE.LEVEL_COLUMN)
+end
+-- 词缀
+function sect_equipment_target:on_affix_column()
+    self:set_select_column(sect_equipment_target.COLUMN_TYPE.AFFIX_COLUMN)
+end
+-- 套装
+function sect_equipment_target:on_suit_column()
+    self:set_select_column(sect_equipment_target.COLUMN_TYPE.SUIT_COLUMN)
+end
+-- 属性
+function sect_equipment_target:on_property_column()
+    self:set_select_column(sect_equipment_target.COLUMN_TYPE.PROPERTY_COLUMN)
+end
+
+function sect_equipment_target:refresh_data(column_type, average_val, target_val)
+    if column_type == sect_equipment_target.COLUMN_TYPE.LEVEL_COLUMN then
+        -- 装等
+        self:set_current_level(average_val)
+        self:set_target_level(target_val)
+    elseif column_type == sect_equipment_target.COLUMN_TYPE.AFFIX_COLUMN then
+        -- 词缀
+        self:set_current_affix(average_val)
+        self:set_target_affix(target_val)
+    elseif column_type == sect_equipment_target.COLUMN_TYPE.SUIT_COLUMN then
+        -- 套装
+        self:set_current_suit(average_val)
+        self:set_target_suit(target_val)
+    elseif column_type == sect_equipment_target.COLUMN_TYPE.PROPERTY_COLUMN then
+        -- 属性
+        self:set_current_property(average_val)
+        self:set_target_property(target_val)
+    end
+end
+
+return sect_equipment_target

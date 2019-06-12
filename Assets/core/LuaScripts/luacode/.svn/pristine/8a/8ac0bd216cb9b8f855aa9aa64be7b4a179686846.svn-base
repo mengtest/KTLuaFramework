@@ -1,0 +1,32 @@
+local sect_equipment_target_view = {}
+
+function sect_equipment_target_view:doInit()
+    local frame = self:getFrame()
+    self.m_frame = frame
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectEquipmentTarget"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+
+        -- 点击左侧栏位更换选中样式
+        self:subscribe(frame:on_event_select_column_set(true), function(column_type)
+            self:change_select_module(column_type)
+        end)
+    end)
+end
+
+
+function sect_equipment_target_view:change_select_module(column_type)
+    local str = tostring(column_type)
+    for i = 1, 4 do
+        self["select_" .. i .. "_gameObject"]:SetActive(false)
+        self["icon_" .. i .. "_GUIImage"].color = Color(1, 1, 1, 0.25)
+        self["text_" .. i .. "_gameObject"]:GetComponent(UI.Text).color = Color(1, 1, 1, 0.25)
+    end
+    self["select_" .. str .. "_gameObject"]:SetActive(true)
+    self["icon_" .. str .. "_GUIImage"].color = Color(1, 1, 1, 1)
+    self["text_" .. str .. "_gameObject"]:GetComponent(UI.Text).color = Color(1, 1, 1, 1)
+end
+
+
+return sect_equipment_target_view

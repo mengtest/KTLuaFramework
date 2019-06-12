@@ -1,0 +1,193 @@
+local Frame = require("system.frame")
+local CharacterInfo = class("CharacterInfo", Frame)
+--Attribute.decl(CharacterInfo, "test_level", 0)
+--耐力
+Attribute.decl(CharacterInfo, "stamina", 0)
+--智力
+Attribute.decl(CharacterInfo, "intellect", 0)
+--等级
+Attribute.decl(CharacterInfo,"level",0)
+--血量上限
+Attribute.decl(CharacterInfo, "health_max", 0)
+--护甲
+Attribute.decl(CharacterInfo, "armor", 0)
+--攻击强度
+Attribute.decl(CharacterInfo, "attack_power", 0)
+--法术强度
+Attribute.decl(CharacterInfo, "spell_power", 0)
+-- 敏捷
+Attribute.decl(CharacterInfo, "agility", 0)
+-- 力量
+Attribute.decl(CharacterInfo, "strength", 0)
+--移动速度
+Attribute.decl(CharacterInfo, "move_speed", 0)
+--加速率
+Attribute.decl(CharacterInfo, "speed", 0)
+-- 攻击频率
+Attribute.decl(CharacterInfo, "attack_interval", 0)
+-- 法力恢复
+Attribute.decl(CharacterInfo, "mana_regain", 0)
+--暴击值
+Attribute.decl(CharacterInfo, "crit_value", 0)
+Attribute.decl(CharacterInfo, "crit", 0)
+-- 急速值
+Attribute.decl(CharacterInfo, "haste_value", 0)
+Attribute.decl(CharacterInfo, "haste", 0)
+-- 招架值
+Attribute.decl(CharacterInfo, "parry_value", 0)
+Attribute.decl(CharacterInfo, "parry", 0)
+-- 闪避值
+Attribute.decl(CharacterInfo, "dodge_value", 0)
+Attribute.decl(CharacterInfo, "dodge", 0)
+-- 格挡值
+Attribute.decl(CharacterInfo, "block_value", 0)
+Attribute.decl(CharacterInfo, "block", 0)
+-- 精通(潜能)值
+Attribute.decl(CharacterInfo, "mastery_value", 0)
+Attribute.decl(CharacterInfo, "mastery", 0)
+-- 全能(神力)值
+Attribute.decl(CharacterInfo, "versatility_value", 0)
+Attribute.decl(CharacterInfo, "versatility", 0)
+
+function CharacterInfo:doInit(param)
+    local role_id = param.role_id
+    --print("----------", role_id)
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local role = kbe_mgr:get_entity(role_id)
+    --print("----------", role)
+
+    --self:subscribe(role:on_event_attr_set("level", true), function(val)
+    --    --print(">>>>>>>>>>>>role level变化", val)
+    --    self:set_test_level(val)
+    --end )
+
+    self:subscribe(role:on_event_attr_set("level",true),function(val)
+          self:set_level(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("dodge_value",true), function(val)
+        self:set_dodge_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("dodge",true), function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_dodge((val/10000)*100 .. "%+" .. (self:get_attr("dodge_value")/25*100 .. "%"))
+        self:set_dodge(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("block_value",true),function(val)
+        self:set_block_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("block",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_block((val/10000)*100 .. "%+" .. (self:get_attr("block_value")/12.5*100 .. "%"))
+        self:set_block(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("intellect",true),function(val)
+        self:set_intellect(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("stamina",true),function(val)
+        self:set_stamina(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("health_max",true),function(val)
+        self:set_health_max(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("armor",true),function(val)
+        self:set_armor(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("attack_power",true),function(val)
+        self:set_attack_power(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("spell_power",true),function(val)
+        self:set_spell_power(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("agility",true),function(val)
+        self:set_agility(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("strength",true),function(val)
+        self:set_strength(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("move_speed",true),function(val)
+        self:set_move_speed(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("speed",true),function(val)
+        self:set_speed(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("attack_interval",true),function(val)
+        self:set_attack_interval(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("mana_regain",true),function(val)
+        self:set_mana_regain(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("crit_value",true),function(val)
+        self:set_crit_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("crit",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_crit((val/10000)*100 .. "%+" .. (self:get_attr("crit_value")/50)*100 .. "%")
+        self:set_crit(string.format("%.2f%%", val / 100))
+
+    end)
+
+    self:subscribe(role:on_event_attr_set("haste_value",true),function(val)
+        self:set_haste_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("haste",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_haste((val/10000)*100 .. "%+" .. (self:get_attr("haste_value")/46.875*100 .. "%"))
+        self:set_haste(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("parry_value",true),function(val)
+        self:set_parry_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("parry",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_parry((val/10000)*100 .. "%+" .. (self:get_attr("parry_value")/12.5*100 .. "%"))
+        self:set_parry(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("mastery_value",true),function(val)
+        self:set_mastery_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("mastery",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_mastery((val/10000)*100 .. "%+" .. (self:get_attr("mastery_value")/22.25*100 .. "%"))
+        self:set_mastery(string.format("%.2f%%", val / 100))
+    end)
+
+    self:subscribe(role:on_event_attr_set("versatility_value",true),function(val)
+        self:set_versatility_value(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("versatility",true),function(val)
+        -- pacman 2017-11-11    临时只显示汇总值
+        --self:set_versatility((val/10000)*100 .. "%+" .. (self:get_attr("versatility_value")/59.375*100 .. "%"))
+        self:set_versatility(string.format("%.2f%%", val / 100))
+    end)
+
+    --role:set_attr("block_value", 999)
+
+end
+
+
+return CharacterInfo

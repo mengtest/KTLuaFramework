@@ -1,0 +1,66 @@
+-- Combat接口&实现
+local M = {}
+
+-------------------------
+-- Attribute & Event
+-------------------------
+Attribute.decl(M, "aura_list", function() return {} end)    -- buff列表
+Attribute.decl(M, "bounding_radius", 0)    -- 体型半径
+Attribute.decl(M, "display_id", 0)    -- 更换模型id
+Attribute.decl(M, "on_ground", 0)    -- 是否贴地
+
+
+--------------------------------------------------------------------------------
+-- call from server
+--------------------------------------------------------------------------------
+
+function M:add_aura(aura_info)
+    --print("--------add_aura ", aura_info.spell_id, aura_info.slot)
+    self.m_buff_list:add_buff(aura_info)
+end
+
+function M:update_aura(aura_info)
+    self.m_buff_list:update_buff(aura_info)
+end
+
+function M:del_aura(slot)
+    --print("--------remove_aura ", slot)
+    self.m_buff_list:remove_buff(slot)
+end
+
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+function M:initialize()
+    --print("kbe.Combat initialize")
+    self.m_buff_list = require("frame.kbe.data.buff_data_list"):new(self)
+
+    -- 注册源自自己的事件
+    self:subscribe(self:on_event_aura_list_set(true), function(aura_list)
+        --print("on_aura_list_set", table.unpack(aura_list))
+        -- 通讯数据转换成本地数据
+        self.m_buff_list:add_buff_list(aura_list)
+    end)
+end
+
+function M:on_init()
+    --print("kbe.Combat:on_init")
+end
+
+function M:on_destroy()
+    --print("kbe.Combat:on_destroy")
+end
+
+function M:update(delta)
+    --print("kbe.Combat:update")
+
+    if self.m_buff_list~=nil then  --by lijunfeng 2018/1/3  加入判断，update先于initialize执行
+        self.m_buff_list:update(delta)
+    end
+end
+
+function M:get_buff_list()
+    return self.m_buff_list
+end
+
+return M

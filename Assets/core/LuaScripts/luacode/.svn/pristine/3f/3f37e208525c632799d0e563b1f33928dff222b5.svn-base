@@ -1,0 +1,427 @@
+local View = require("system.view")
+local team_matching_view = class("rteam_matching_view", View)
+
+function team_matching_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_frame = self:getFrame()
+    self:init_variable()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamMatching"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self.m_show_time_text = self["list_text_gameObject"]:GetComponent(UI.Text)
+        self.m_reward_num_text = self["reward_text_gameObject"]:GetComponent(UI.Text)
+        self.m_matching_text = self["matching_btn_text_gameObject"]:GetComponent(UI.Text)
+        self:event_and_att_subscribe()
+        self:init_duty()
+        self:on_random_btn_down()
+        self.m_frame:on_loaded()
+    end)
+end
+
+function team_matching_view:doUpdate()
+    if self.m_is_mathcing and self.m_show_time_text ~= nil then
+        self.m_show_time = self.m_show_time + app:get_delta_time()
+        local result = math.floor(self.m_show_time)
+        if result >= 60 then
+            local sec = result % 60
+            local min = result / 60
+            min = math.floor(min)
+            self.m_show_time_text.text = "已排队" .. tostring(min) .. "分" .. tostring(sec) .. "秒"
+        else
+            self.m_show_time_text.text = "已排队" .. tostring(result) .. "秒"
+        end
+    end
+end
+
+function team_matching_view:init_variable()
+    self.m_attack = false
+    self.m_cure = false
+    self.m_tank = false
+    self.m_choose_duty = nil
+    self.m_choose_diff = nil
+    self.m_is_mathcing = false
+    self.m_matching_type = enum.shared.InstanceMatchingType.RAND_MATCHING
+    self.m_dungeon_id = 0
+    self.m_show_time = 0
+    self:init_diff_variable()
+end
+
+-- 注册事件属性
+function team_matching_view:event_and_att_subscribe()
+    self:subscribe(self.m_frame:on_event("matching_btn_down"), function()
+        self:on_matching_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("random_btn_down"), function()
+        self:on_random_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("attack_btn_down"), function()
+        self:on_attack_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("cure_btn_down"), function()
+        self:on_cure_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("tank_btn_down"), function()
+        self:on_tank_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("nor_btn_down"), function()
+        self:on_nor_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("hero_btn_down"), function()
+        self:on_hero_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("epic_btn_down"), function()
+        self:on_epic_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("sub_item_down"), function()
+        self:on_sub_item_down()
+    end)
+    self:subscribe(self.m_frame:on_event("refresh"), function(frame)
+        self:on_refresh(frame)
+    end)
+
+    self:subscribe(self.m_matching_manager:on_event("rec_matching_data"), function(challenge_num, is_maching, dungeon_id, time, duty, diff)
+        self["matching_btn_GUIButton"].interactable = true
+        if is_maching == 1 then
+            self:on_matching_state()
+            if duty == enum.shared.InstanceMactchRoleDuty.DAMAGE then
+                self:on_attack_btn_down()
+            elseif duty == enum.shared.InstanceMactchRoleDuty.HEALER then
+                self:on_cure_btn_down()
+            elseif duty == enum.shared.InstanceMactchRoleDuty.TANK then
+                self:on_tank_btn_down()
+            end
+            self.m_dungeon_id = dungeon_id
+            if dungeon_id == 0 then
+                -- 随机匹配
+            else
+                -- 指定副本匹配  处理难度选中效果  处理系列选中效果
+                if diff == enum.shared.InstanceDiffcultyType.NORMAL then
+                    self:on_nor_btn_down()
+                elseif diff == enum.shared.InstanceDiffcultyType.HEROIC then
+                    self:on_hero_btn_down()
+                elseif diff == enum.shared.InstanceDiffcultyType.EPIC then
+                    self:on_epic_btn_down()
+                end
+            end
+        else
+            self:out_matching_state()
+        end
+        self.m_reward_num_text.text = "今日可获得额外奖励" .. tostring(challenge_num) .. "次"
+        self.m_show_time = time
+        self.m_ui_manager:ShowView("quick_matching_main")
+        self.m_ui_manager:CloseLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+    end)
+
+    self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+        local name = child_frame:getFrameName()
+        if string.find(name, "matching_list_item") then
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            view_go.transform:GetComponent(RectTransform).sizeDelta = Vector2(351, 92)
+            view_go.transform:GetComponent(RectTransform).anchorMin = Vector2(0, 1)
+            view_go.transform:GetComponent(RectTransform).anchorMax = Vector2(0, 1)
+            view_go.transform:GetComponent(RectTransform).pivot = Vector2(0.5, 0.5)
+            --选择创建挂点以及设置位置和大小
+            local parent_transform = self["content_container_gameObject"].transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end
+    end)
+end
+
+function team_matching_view:on_matching_btn_down()
+    if self.m_is_mathcing == false then
+        if not self.m_choose_diff then
+            self:getFrame("float_hint_manager"):add_float("请选择副本难度", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+        if not self.m_choose_duty then
+            self:getFrame("float_hint_manager"):add_float("请选择职责", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+        if self.m_matching_type == enum.shared.InstanceMatchingType.POINT_OUT_MATCHING then
+            local frame = self.m_frame:gain_sel_sub_item()
+            local id_list = frame:gain_id_list()
+            for i, v in pairs(id_list) do
+                if dbc.instances[v].difficulty == self.m_choose_diff then
+                    self.m_dungeon_id = v
+                end
+            end
+        end
+        self.m_matching_manager:req_match_instance(self.m_matching_type, self.m_choose_duty, self.m_choose_diff, self.m_dungeon_id)
+        self["matching_btn_GUIButton"].interactable = false
+    else
+        self.m_matching_manager:req_pause_matching()
+    end
+end
+
+function team_matching_view:on_random_btn_down()
+    self.m_matching_type = enum.shared.InstanceMatchingType.RAND_MATCHING
+    self.m_choose_diff = nil
+    self.m_dungeon_id = 0
+    self:on_refresh(nil)
+    self["random_show_gameObject"]:SetActive(true)
+    self["random_img_gameObject"]:SetActive(true)
+end
+
+-- 点击了列表的item
+function team_matching_view:on_sub_item_down()
+    if self.m_is_mathcing then
+        return
+    end
+    self.m_matching_type = enum.shared.InstanceMatchingType.POINT_OUT_MATCHING
+    self.m_choose_diff = nil
+    self.m_dungeon_id = 0
+    self["random_show_gameObject"]:SetActive(false)
+    self["random_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_attack_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_attack then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.DAMAGE
+    self["attack_img_gameObject"]:SetActive(true)
+    self["cure_img_gameObject"]:SetActive(false)
+    self["tank_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_cure_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_cure then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.HEALER
+    self["cure_img_gameObject"]:SetActive(true)
+    self["attack_img_gameObject"]:SetActive(false)
+    self["tank_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_tank_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_tank then
+        self:getFrame("float_hint_manager"):add_float("无法选择此职业", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_duty = enum.shared.InstanceMactchRoleDuty.TANK
+    self["tank_img_gameObject"]:SetActive(true)
+    self["attack_img_gameObject"]:SetActive(false)
+    self["cure_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_nor_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_normal_exit then
+        self:getFrame("float_hint_manager"):add_float("没有可匹配的普通难度副本", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    if not self.m_normal_unlock then
+        self:getFrame("float_hint_manager"):add_float("普通难度副本不满足匹配条件", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_diff = enum.shared.InstanceDiffcultyType.NORMAL
+    self["nor_img_gameObject"]:SetActive(true)
+    self["nor_btn_GUIButton"].gameObject:SetActive(false)
+    self["hero_img_gameObject"]:SetActive(false)
+    self["epic_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_hero_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_hero_exit then
+        self:getFrame("float_hint_manager"):add_float("没有可匹配的英雄难度副本", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    if not self.m_hero_unlock then
+        self:getFrame("float_hint_manager"):add_float("普通难度副本不满足匹配条件", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_diff = enum.shared.InstanceDiffcultyType.HEROIC
+    self["hero_img_gameObject"]:SetActive(true)
+    self["hero_btn_GUIButton"].gameObject:SetActive(false)
+    self["nor_img_gameObject"]:SetActive(false)
+    self["epic_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_epic_btn_down()
+    if self.m_is_mathcing then
+        return
+    end
+    if not self.m_epic_exit then
+        self:getFrame("float_hint_manager"):add_float("没有可匹配的史诗难度副本", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    if not self.m_epic_unlock then
+        self:getFrame("float_hint_manager"):add_float("普通难度副本不满足匹配条件", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    self.m_choose_diff = enum.shared.InstanceDiffcultyType.EPIC
+    self["epic_img_gameObject"]:SetActive(true)
+    self["epic_btn_GUIButton"].gameObject:SetActive(false)
+    self["nor_img_gameObject"]:SetActive(false)
+    self["hero_img_gameObject"]:SetActive(false)
+end
+
+function team_matching_view:on_refresh(frame)
+    self:init_diff_view()
+    self:init_diff_variable()
+    if frame == nil then
+        -- 随机匹配  在这里需要判断所有副本是否已经有所有难度  如果有，是否所有难度都被解锁
+        local list = self.m_matching_manager:gain_dungeon_series()
+        for i, v in pairs(list) do
+            self:deal_diff_data(v["id"], v["state"], v["use"])
+            if self.m_normal_exit == true and self.m_hero_exit == true and self.m_epic_exit == true then
+                if self.m_normal_unlock == true and self.m_hero_unlock == true and self.m_epic_unlock == true then
+                    break
+                end
+            end
+        end
+    else
+        -- 指定匹配  需要判断指定匹配的副本系列已有的难度和没有的难度  并且判断他们是否解锁
+        local id_list = frame:gain_id_list()
+        local state_list = frame:gain_state_list()
+        local use_list = frame:gain_use_list()
+        self:deal_diff_data(id_list, state_list, use_list)
+    end
+    self:deal_diff_view()
+end
+
+-- 初始化职业
+function team_matching_view:init_duty()
+    local ret = self.m_matching_manager:deal_player_duty()
+    self["attack_lock_gameObject"]:SetActive(false)
+    self["cure_lock_gameObject"]:SetActive(false)
+    self["tank_lock_gameObject"]:SetActive(false)
+    for i, v in ipairs(ret) do
+        if v == 1 then
+            self.m_tank = true
+        elseif v == 2 then
+            self.m_attack = true
+        elseif v == 3 then
+            self.m_cure = true
+        end
+    end
+    if not self.m_tank then
+        self["tank_lock_gameObject"]:SetActive(true)
+    end
+    if not self.m_attack then
+        self["attack_lock_gameObject"]:SetActive(true)
+    end
+    if not self.m_cure then
+        self["cure_lock_gameObject"]:SetActive(true)
+    end
+end
+
+-- 初始化关于难度的变量
+function team_matching_view:init_diff_variable()
+    self.m_normal_exit = false
+    self.m_hero_exit = false
+    self.m_epic_exit = false
+    self.m_normal_unlock = false
+    self.m_hero_unlock = false
+    self.m_epic_unlock = false
+end
+
+-- 初始化难度视图部分
+function team_matching_view:init_diff_view()
+    self["nor_none_gameObject"]:SetActive(false)
+    self["hero_none_gameObject"]:SetActive(false)
+    self["epic_none_gameObject"]:SetActive(false)
+    self["nor_lock_gameObject"]:SetActive(false)
+    self["hero_lock_gameObject"]:SetActive(false)
+    self["epic_lock_gameObject"]:SetActive(false)
+    self["nor_img_gameObject"]:SetActive(false)
+    self["hero_img_gameObject"]:SetActive(false)
+    self["epic_img_gameObject"]:SetActive(false)
+    self["nor_exit_gameObject"]:SetActive(false)
+    self["hero_exit_gameObject"]:SetActive(false)
+    self["epic_exit_gameObject"]:SetActive(false)
+    self["nor_btn_GUIButton"].gameObject:SetActive(true)
+    self["hero_btn_GUIButton"].gameObject:SetActive(true)
+    self["epic_btn_GUIButton"].gameObject:SetActive(true)
+end
+
+-- 处理难度视图部分
+function team_matching_view:deal_diff_view()
+    if not self.m_normal_exit then
+        self["nor_none_gameObject"]:SetActive(true)
+    else
+        if not self.m_normal_unlock then
+            self["nor_lock_gameObject"]:SetActive(true)
+        else
+            self["nor_exit_gameObject"]:SetActive(true)
+        end
+    end
+    if not self.m_hero_exit then
+        self["hero_none_gameObject"]:SetActive(true)
+    else
+        if not self.m_hero_unlock then
+            self["hero_lock_gameObject"]:SetActive(true)
+        else
+            self["hero_exit_gameObject"]:SetActive(true)
+        end
+    end
+    if not self.m_epic_exit then
+        self["epic_none_gameObject"]:SetActive(true)
+    else
+        if not self.m_epic_unlock then
+            self["epic_lock_gameObject"]:SetActive(true)
+        else
+            self["epic_exit_gameObject"]:SetActive(true)
+        end
+    end
+end
+
+-- 处理难度逻辑部分
+function team_matching_view:deal_diff_data(id_list, state_list, use_list)
+    for k, val in pairs(id_list) do
+        if dbc.instances[val].difficulty == enum.shared.InstanceDiffcultyType.NORMAL then
+            self.m_normal_exit = true
+            if state_list[k] == 1 and use_list[k] == 1 then
+                self.m_normal_unlock = true
+            end
+        elseif dbc.instances[val].difficulty == enum.shared.InstanceDiffcultyType.HEROIC then
+            self.m_hero_exit = true
+            if state_list[k] == 1 and use_list[k] == 1 then
+                self.m_hero_unlock = true
+            end
+        elseif dbc.instances[val].difficulty == enum.shared.InstanceDiffcultyType.EPIC then
+            self.m_epic_exit = true
+            if state_list[k] == 1 and use_list[k] == 1 then
+                self.m_epic_unlock = true
+            end
+        end
+    end
+end
+
+-- 匹配状态
+function team_matching_view:on_matching_state()
+    self["list_text_gameObject"]:SetActive(true)
+    self.m_matching_text.text = "暂停匹配"
+    self.m_is_mathcing = true
+end
+
+-- 不在匹配状态
+function team_matching_view:out_matching_state()
+    self["list_text_gameObject"]:SetActive(false)
+    self.m_matching_text.text = "开始匹配"
+    self.m_is_mathcing = false
+end
+
+return team_matching_view

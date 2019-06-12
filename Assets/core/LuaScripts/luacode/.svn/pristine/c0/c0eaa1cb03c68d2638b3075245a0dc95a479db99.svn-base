@@ -1,0 +1,53 @@
+local View = require("system.view")
+local fashionable_dress_attr_show_view = class("fashionable_dress_attr_show_view", View)
+
+function fashionable_dress_attr_show_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    --按钮列表
+    self.m_btn_list = {}
+
+    self:load("UI/FeshionableDressAttributeShow.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        ----数值属性按钮
+        --local numerical_attr_btn = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/numerical_attr_btn").gameObject:GetComponent(UI.Button)
+        ----套装属性按钮
+        --local suit_attr_btn = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/suit_attr_btn").gameObject:GetComponent(UI.Button)
+        ----数值属性面板
+        --self.m_numerical_attr_bg = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/numerical_attr_bg")
+        --self:add_btn_list(numerical_attr_btn, self.m_numerical_attr_bg)
+        ----套装属性面板
+        --self.m_suit_attr_bg = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/suit_attr_bg")
+        --self:add_btn_list(suit_attr_btn, self.m_suit_attr_bg)
+        --
+        --numerical_attr_btn.onClick:AddListener(function()
+        --    self:click_btn_callback(numerical_attr_btn)
+        --end)
+        --
+        --suit_attr_btn.onClick:AddListener(function()
+        --    self:click_btn_callback(suit_attr_btn)
+        --end)
+        --
+        ----默认选中数值属性按钮
+        --self:click_btn_callback(numerical_attr_btn)
+    end)
+end
+
+---点击按钮的回调
+function fashionable_dress_attr_show_view:click_btn_callback(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v['btn'] == press_btn then
+            v['show'].gameObject:SetActive(true)
+        else
+            v['show'].gameObject:SetActive(false)
+        end
+    end
+end
+
+function fashionable_dress_attr_show_view:add_btn_list(btn, show)
+    self.m_btn_list[#self.m_btn_list + 1] = { ['btn'] = btn, ['show'] = show }
+end
+
+return fashionable_dress_attr_show_view

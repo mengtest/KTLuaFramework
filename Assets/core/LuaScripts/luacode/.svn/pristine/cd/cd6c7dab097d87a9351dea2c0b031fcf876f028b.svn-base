@@ -1,0 +1,113 @@
+local buff_hud_icon_view = {}
+
+function buff_hud_icon_view:doInit()
+    --print("------------buff_hud_icon_view")
+    self.m_frame = self:getFrame()
+    self.m_res_loaded = false
+
+    
+    self:loadPrefab()
+end
+
+function buff_hud_icon_view:loadPrefab()
+    local frame = self.m_frame
+    self.m_buff = frame:get_buff_data()
+    local cfg = dbc.spell_buff_client[self.m_buff:get_buff_id()]
+
+    local buff_icon_path = nil
+    if(cfg.buff_icon_special == 1) then
+        buff_icon_path  = "HeadOverlay/big_buff_icon"
+    else
+        buff_icon_path  = "HeadOverlay/buff_icon"
+    end
+
+    -- 加载prefab
+    self:load_prefab(
+    "ui/HeadOverlay.prefab",
+    function(loaded_go)
+        self.m_res_loaded = true
+
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find(buff_icon_path).gameObject
+        local go = Object.Instantiate(template_go)
+
+        -- pacman 2017-09-28 为了配合layoutGroup控件布局的需要，需要手动添加RectTransform并设置其宽高
+        self.m_rectTrans = self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+
+        go:SetActive(true)
+
+        -- 获取子部件
+        -- buff图标
+        local icon_image = go.transform:Find("icon"):GetComponent(UI.Image)
+        self.m_icon_image = icon_image
+        self.m_rectTrans.sizeDelta = icon_image:GetComponent(RectTransform).sizeDelta
+
+        -- cd雷达图
+        local cd_mask_image = go.transform:Find("cool_down"):GetComponent(UI.Image)
+        self.m_cd_mask_image = cd_mask_image
+
+        -- 剩余时间
+        local remain_time_go = go.transform:Find("remain_time").gameObject
+        self.m_remain_time_go = remain_time_go
+        local remain_time_txt = remain_time_go:GetComponent(UI.Text)
+        self.m_remain_time_txt = remain_time_txt
+
+        -- stack数字
+        local stack_go = go.transform:Find("stack").gameObject
+        self.m_stack_go = stack_go
+        local stack_txt = stack_go:GetComponent(UI.Text)
+        self.m_stack_txt = stack_txt
+
+        -- 注册buff事件
+        -- id变化
+        self:subscribe(self.m_buff:on_event_spell_id_set(true), function(id)
+            -- 模板数据
+            local skill_client_cfg = dbc.spell_buff_client[id*10+1]
+
+            -- 图标
+            local icon_path = skill_client_cfg.buff_icon
+            if(icon_path == nil or #icon_path == 0) then return end
+            self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                local tex = asset_ref.asset
+                icon_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            end)
+
+        end)
+
+        -- 剩余时间变化
+        self:subscribe(self.m_buff:on_event_cur_remaining_set(true), function(cur_remaining)
+            self.m_remain_time_txt.text = tostring(math.floor(cur_remaining))
+        end)
+
+        -- 雷达图
+        self:subscribe(self.m_buff:on_event_cur_remain_percent_set(true), function(cur_remain_percent)
+            self.m_cd_mask_image.fillAmount = 1- cur_remain_percent
+        end)
+
+        -- 层数变化
+        self:subscribe(self.m_buff:on_event_stack_num_set(true), function(stack)
+            if stack == 1 or stack == 0 then
+                stack_go:SetActive(false)
+            else
+                stack_go:SetActive(true)
+                stack_txt.text = tostring(stack)
+            end
+        end)
+
+
+    end)
+end
+
+function buff_hud_icon_view:doUpdate()
+
+end
+
+
+
+
+return buff_hud_icon_view

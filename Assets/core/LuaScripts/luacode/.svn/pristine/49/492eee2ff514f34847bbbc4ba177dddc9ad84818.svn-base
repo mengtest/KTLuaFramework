@@ -1,0 +1,14 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/3 19:52
+---
+local View = require("system.view")
+local team_mgr_bar_view = class("team_mgr_bar_view", View)
+
+function team_mgr_bar_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamBar"), function(go)
+
+    end)
+end
+
+return team_mgr_bar_view

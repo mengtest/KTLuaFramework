@@ -1,0 +1,116 @@
+
+local Quest_condition = require "subsystem.quest.quest_bar.quest_condition"
+
+local Quest_detail = class("Quest_detail")
+
+function Quest_detail:initialize(go)
+    self.m_go = nil
+    self.m_rect = nil
+    self.m_is_show = false
+    self.m_something_go = nil
+    self.m_nothing_go = nil
+    self.m_schdule_text = nil
+    self.m_arrow_self_tr = nil
+    self.m_arrow_aim_tr = nil
+    self.m_dis_text = nil
+    self.m_quest_data = nil
+    
+    self.m_linked_go_list = {}
+    self.m_condition_dict = {}
+end
+
+function Quest_detail:destroy()
+--	Object.Destroy(self.m_go)
+--	for _, go in pairs(self.m_linked_go_list) do
+--		Object.Destroy(go)
+--	end
+    
+    self:on_del()
+    self.m_quest_data = nil
+end
+
+function Quest_detail:set_go(go)
+    self.m_go = go
+    self.m_rect = go:GetComponent(RectTransform)
+    self.m_something_go = self.m_rect:Find("something").gameObject
+    self.m_nothing_go = self.m_rect:Find("nothing").gameObject
+    self.m_schdule_text = self.m_rect:Find("something/quest_info/second_line/schdule"):GetComponent(UnityEngine.UI.Text)
+    self.m_arrow_self_tr = self.m_rect:Find("something/arrow_info/arrow/arrow_self")
+    self.m_arrow_aim_tr = self.m_rect:Find("something/arrow_info/arrow/arrow_aim")
+    self.m_dis_text = self.m_rect:Find("something/arrow_info/distance"):GetComponent(UnityEngine.UI.Text)
+    self:hide()
+end
+
+function Quest_detail:set_quest_data(quest_data)
+    self.m_quest_data = quest_data
+    self:on_add()
+end
+
+function Quest_detail:show()
+    self.m_something_go:SetActive(true)
+    self.m_nothing_go:SetActive(false)
+    self.m_is_show = true
+end
+
+function Quest_detail:hide()
+    self.m_something_go:SetActive(false)
+    self.m_nothing_go:SetActive(true)
+    self.m_is_show = false
+end
+
+function Quest_detail:get_is_show()
+    return self.m_is_show
+end
+
+function Quest_detail:get_quest_data()
+    return self.m_quest_data
+end
+
+function Quest_detail:on_add()
+    --Event_system:dispatch_event(EVENT_QUEST_ADD_MAP_AREA, self.m_quest_data)
+    self.m_quest_data:refresh_aim_area()
+end
+
+function Quest_detail:on_del()
+    --Event_system:dispatch_event(EVENT_QUEST_DEL_MAP_AREA, nil)
+    self.m_quest_data:clear_aim_area()
+end
+
+
+function Quest_detail:set_parent(parent_tr)
+    self.m_rect.transform:SetParent(parent_tr)
+    self.m_rect.localPosition = Vector3.zero
+    self.m_rect.localScale = Vector3.one
+    --self.m_rect.sizeDelta = Vector2(0, 0)
+end
+
+function Quest_detail:set_const_info(data)
+    local title_text = self.m_rect:Find("something/quest_info/txt_title"):GetComponent(UnityEngine.UI.Text)
+    local sketch_text = self.m_rect:Find("something/quest_info/second_line/txt_sketch"):GetComponent(UnityEngine.UI.Text)
+    title_text.text = data.detail .. data.name
+    sketch_text.text = data.sketchy
+    for i = 1, 2 do
+        local cur_good_id = data.goods[i]
+        local cur_good_img = self.m_rect:Find(string.format("something/goods/good%d", i)):GetComponent(UnityEngine.UI.Image)
+        if cur_good_id and cur_good_id > 0 then
+            cur_good_img.gameObject:SetActive(true)
+        else
+            cur_good_img.gameObject:SetActive(false)
+        end
+    end
+end
+
+function Quest_detail:refresh_schdule()
+    self.m_schdule_text.text = string.format("(%d/%d)", self.m_quest_data:get_cur_weights(), self.m_quest_data:get_aim_weights())
+end
+
+function Quest_detail:refresh_aim_info(dis_aim, dir_aim, dir_self)
+    if not dis_aim or not dir_aim then return end
+    self.m_dis_text.text = string.format("%dm", math.floor(dis_aim) + 1)
+    self.m_arrow_aim_tr.localEulerAngles = Vector3(0, 0, math.deg(math.atan2(dir_aim.z, dir_aim.x)) - 90)
+    self.m_arrow_self_tr.localEulerAngles = Vector3(0, 0, -dir_self)
+end
+
+
+
+return Quest_detail

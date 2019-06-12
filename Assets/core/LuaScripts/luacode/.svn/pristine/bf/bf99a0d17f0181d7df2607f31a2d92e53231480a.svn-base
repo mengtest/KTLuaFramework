@@ -1,0 +1,287 @@
+local rows = {}
+rows[1] = {['id']=1,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10026,['action_radius']=2}
+rows[2] = {['id']=2,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10007,['action_radius']=2}
+rows[3] = {['id']=3,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10009,['action_radius']=2}
+rows[4] = {['id']=4,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10011,['action_radius']=2}
+rows[5] = {['id']=5,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10012,['action_radius']=2}
+rows[6] = {['id']=6,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10015,['action_radius']=2}
+rows[7] = {['id']=7,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10016,['action_radius']=2}
+rows[8] = {['id']=8,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10019,['action_radius']=2}
+rows[9] = {['id']=9,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10027,['action_radius']=2}
+rows[10] = {['id']=10,['obj_tp']=1,['obj_id']=20102011,['action_tp']=1,['action_param']=10028,['action_radius']=3}
+rows[11] = {['id']=11,['obj_tp']=1,['obj_id']=20102012,['action_tp']=1,['action_param']=10029,['action_radius']=3}
+rows[12] = {['id']=12,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10030,['action_radius']=3}
+rows[13] = {['id']=13,['obj_tp']=1,['obj_id']=20102014,['action_tp']=1,['action_param']=10031,['action_radius']=3}
+rows[14] = {['id']=14,['obj_tp']=1,['obj_id']=20102021,['action_tp']=1,['action_param']=10032,['action_radius']=3}
+rows[15] = {['id']=15,['obj_tp']=1,['obj_id']=1049,['action_tp']=1,['action_param']=10033,['action_radius']=2}
+rows[16] = {['id']=16,['obj_tp']=1,['obj_id']=20102023,['action_tp']=1,['action_param']=10034,['action_radius']=3}
+rows[17] = {['id']=17,['obj_tp']=1,['obj_id']=20102024,['action_tp']=1,['action_param']=10035,['action_radius']=3}
+rows[18] = {['id']=18,['obj_tp']=1,['obj_id']=1038,['action_tp']=1,['action_param']=10021,['action_radius']=2}
+rows[19] = {['id']=19,['obj_tp']=1,['obj_id']=1031,['action_tp']=1,['action_param']=10037,['action_radius']=2}
+rows[20] = {['id']=20,['obj_tp']=1,['obj_id']=1031,['action_tp']=1,['action_param']=10037,['action_radius']=2}
+rows[21] = {['id']=21,['obj_tp']=1,['obj_id']=20102001,['action_tp']=1,['action_param']=10041,['action_radius']=3}
+rows[22] = {['id']=22,['obj_tp']=1,['obj_id']=20102002,['action_tp']=1,['action_param']=10042,['action_radius']=3}
+rows[23] = {['id']=23,['obj_tp']=1,['obj_id']=20102002,['action_tp']=1,['action_param']=10043,['action_radius']=3}
+rows[24] = {['id']=24,['obj_tp']=1,['obj_id']=20102001,['action_tp']=1,['action_param']=10044,['action_radius']=3}
+rows[25] = {['id']=25,['obj_tp']=1,['obj_id']=20102003,['action_tp']=1,['action_param']=10045,['action_radius']=3}
+rows[26] = {['id']=26,['obj_tp']=1,['obj_id']=20102004,['action_tp']=1,['action_param']=10046,['action_radius']=3}
+rows[27] = {['id']=27,['obj_tp']=1,['obj_id']=20102004,['action_tp']=1,['action_param']=10047,['action_radius']=3}
+rows[28] = {['id']=28,['obj_tp']=1,['obj_id']=20102005,['action_tp']=1,['action_param']=10048,['action_radius']=3}
+rows[29] = {['id']=29,['obj_tp']=1,['obj_id']=20102007,['action_tp']=1,['action_param']=10049,['action_radius']=3}
+rows[30] = {['id']=30,['obj_tp']=1,['obj_id']=20102008,['action_tp']=1,['action_param']=10050,['action_radius']=3}
+rows[31] = {['id']=31,['obj_tp']=1,['obj_id']=20102009,['action_tp']=1,['action_param']=10051,['action_radius']=3}
+rows[32] = {['id']=32,['obj_tp']=1,['obj_id']=20102010,['action_tp']=1,['action_param']=10052,['action_radius']=3}
+rows[33] = {['id']=33,['obj_tp']=1,['obj_id']=20106001,['action_tp']=1,['action_param']=10053,['action_radius']=3}
+rows[34] = {['id']=34,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10041,['action_radius']=3}
+rows[35] = {['id']=35,['obj_tp']=1,['obj_id']=20102036,['action_tp']=1,['action_param']=10063,['action_radius']=3}
+rows[36] = {['id']=36,['obj_tp']=1,['obj_id']=20102041,['action_tp']=1,['action_param']=10064,['action_radius']=3}
+rows[37] = {['id']=37,['obj_tp']=1,['obj_id']=20102043,['action_tp']=1,['action_param']=10065,['action_radius']=3}
+rows[38] = {['id']=38,['obj_tp']=1,['obj_id']=20102044,['action_tp']=1,['action_param']=10066,['action_radius']=3}
+rows[39] = {['id']=39,['obj_tp']=1,['obj_id']=20102017,['action_tp']=1,['action_param']=10067,['action_radius']=3}
+rows[40] = {['id']=40,['obj_tp']=1,['obj_id']=20102034,['action_tp']=1,['action_param']=10068,['action_radius']=3}
+rows[41] = {['id']=41,['obj_tp']=1,['obj_id']=20102012,['action_tp']=1,['action_param']=10077,['action_radius']=3}
+rows[42] = {['id']=42,['obj_tp']=1,['obj_id']=20102034,['action_tp']=1,['action_param']=10085,['action_radius']=3}
+rows[43] = {['id']=43,['obj_tp']=1,['obj_id']=20102042,['action_tp']=1,['action_param']=10096,['action_radius']=3}
+rows[44] = {['id']=44,['obj_tp']=1,['obj_id']=20102042,['action_tp']=1,['action_param']=10099,['action_radius']=3}
+rows[45] = {['id']=45,['obj_tp']=1,['obj_id']=20102032,['action_tp']=1,['action_param']=10122,['action_radius']=3}
+rows[46] = {['id']=46,['obj_tp']=1,['obj_id']=20102034,['action_tp']=1,['action_param']=10088,['action_radius']=3}
+rows[47] = {['id']=47,['obj_tp']=1,['obj_id']=20102034,['action_tp']=1,['action_param']=10109,['action_radius']=3}
+rows[48] = {['id']=48,['obj_tp']=1,['obj_id']=20102015,['action_tp']=1,['action_param']=10130,['action_radius']=3}
+rows[49] = {['id']=49,['obj_tp']=1,['obj_id']=20102015,['action_tp']=1,['action_param']=10136,['action_radius']=3}
+rows[50] = {['id']=50,['obj_tp']=1,['obj_id']=20102012,['action_tp']=1,['action_param']=10084,['action_radius']=3}
+rows[51] = {['id']=51,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10044,['action_radius']=3}
+rows[52] = {['id']=52,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10319,['action_radius']=3}
+rows[53] = {['id']=53,['obj_tp']=1,['obj_id']=20102046,['action_tp']=1,['action_param']=10328,['action_radius']=3}
+rows[54] = {['id']=54,['obj_tp']=1,['obj_id']=20102047,['action_tp']=1,['action_param']=10334,['action_radius']=3}
+rows[55] = {['id']=55,['obj_tp']=1,['obj_id']=20102046,['action_tp']=1,['action_param']=10329,['action_radius']=3}
+rows[56] = {['id']=56,['obj_tp']=1,['obj_id']=20102048,['action_tp']=1,['action_param']=10339,['action_radius']=3}
+rows[57] = {['id']=57,['obj_tp']=1,['obj_id']=20102049,['action_tp']=1,['action_param']=10341,['action_radius']=3}
+rows[58] = {['id']=58,['obj_tp']=1,['obj_id']=20102050,['action_tp']=1,['action_param']=10343,['action_radius']=3}
+rows[59] = {['id']=59,['obj_tp']=1,['obj_id']=20102052,['action_tp']=1,['action_param']=10310,['action_radius']=3}
+rows[60] = {['id']=60,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10304,['action_radius']=3}
+rows[61] = {['id']=61,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10348,['action_radius']=3}
+rows[62] = {['id']=62,['obj_tp']=1,['obj_id']=20102013,['action_tp']=1,['action_param']=10355,['action_radius']=3}
+rows[63] = {['id']=63,['obj_tp']=1,['obj_id']=20102053,['action_tp']=1,['action_param']=10356,['action_radius']=3}
+rows[64] = {['id']=64,['obj_tp']=1,['obj_id']=20102027,['action_tp']=1,['action_param']=10365,['action_radius']=3}
+rows[65] = {['id']=65,['obj_tp']=1,['obj_id']=20102055,['action_tp']=1,['action_param']=10371,['action_radius']=3}
+rows[66] = {['id']=66,['obj_tp']=1,['obj_id']=20102056,['action_tp']=1,['action_param']=10374,['action_radius']=3}
+rows[67] = {['id']=67,['obj_tp']=1,['obj_id']=20102057,['action_tp']=1,['action_param']=10377,['action_radius']=3}
+rows[68] = {['id']=68,['obj_tp']=1,['obj_id']=20102058,['action_tp']=1,['action_param']=10380,['action_radius']=3}
+rows[69] = {['id']=69,['obj_tp']=1,['obj_id']=20102059,['action_tp']=1,['action_param']=10383,['action_radius']=3}
+rows[70] = {['id']=70,['obj_tp']=1,['obj_id']=20102014,['action_tp']=1,['action_param']=10386,['action_radius']=3}
+rows[71] = {['id']=71,['obj_tp']=1,['obj_id']=20102055,['action_tp']=1,['action_param']=10391,['action_radius']=3}
+rows[72] = {['id']=72,['obj_tp']=1,['obj_id']=20102012,['action_tp']=1,['action_param']=10392,['action_radius']=3}
+rows[73] = {['id']=73,['obj_tp']=1,['obj_id']=20102018,['action_tp']=1,['action_param']=10393,['action_radius']=3}
+rows[74] = {['id']=74,['obj_tp']=1,['obj_id']=20102018,['action_tp']=1,['action_param']=10395,['action_radius']=3}
+rows[75] = {['id']=75,['obj_tp']=1,['obj_id']=20102051,['action_tp']=1,['action_param']=10399,['action_radius']=3}
+rows[76] = {['id']=76,['obj_tp']=1,['obj_id']=20102062,['action_tp']=1,['action_param']=10403,['action_radius']=3}
+rows[77] = {['id']=77,['obj_tp']=1,['obj_id']=20102061,['action_tp']=1,['action_param']=10404,['action_radius']=3}
+rows[78] = {['id']=78,['obj_tp']=1,['obj_id']=20102063,['action_tp']=1,['action_param']=10405,['action_radius']=3}
+rows[79] = {['id']=79,['obj_tp']=1,['obj_id']=20102051,['action_tp']=1,['action_param']=10406,['action_radius']=3}
+rows[80] = {['id']=1001,['obj_tp']=1,['obj_id']=1054,['action_tp']=1,['action_param']=10026,['action_radius']=3}
+rows[81] = {['id']=1002,['obj_tp']=1,['obj_id']=1055,['action_tp']=1,['action_param']=10007,['action_radius']=3}
+rows[82] = {['id']=1003,['obj_tp']=1,['obj_id']=1058,['action_tp']=1,['action_param']=10140,['action_radius']=3}
+rows[83] = {['id']=1004,['obj_tp']=1,['obj_id']=1060,['action_tp']=1,['action_param']=10143,['action_radius']=3}
+rows[84] = {['id']=1005,['obj_tp']=1,['obj_id']=1060,['action_tp']=1,['action_param']=10145,['action_radius']=3}
+rows[85] = {['id']=1006,['obj_tp']=1,['obj_id']=1061,['action_tp']=1,['action_param']=10147,['action_radius']=3}
+rows[86] = {['id']=2001,['obj_tp']=1,['obj_id']=1058,['action_tp']=1,['action_param']=10026,['action_radius']=3}
+rows[87] = {['id']=1007,['obj_tp']=1,['obj_id']=1062,['action_tp']=2,['action_param']=100012,['action_radius']=3}
+rows[88] = {['id']=1008,['obj_tp']=1,['obj_id']=1063,['action_tp']=2,['action_param']=100013,['action_radius']=3}
+rows[89] = {['id']=1009,['obj_tp']=1,['obj_id']=1064,['action_tp']=2,['action_param']=100014,['action_radius']=3}
+rows[90] = {['id']=1010,['obj_tp']=1,['obj_id']=1065,['action_tp']=2,['action_param']=100015,['action_radius']=3}
+rows[91] = {['id']=1011,['obj_tp']=1,['obj_id']=1061,['action_tp']=1,['action_param']=10151,['action_radius']=3}
+rows[92] = {['id']=1012,['obj_tp']=1,['obj_id']=1087,['action_tp']=1,['action_param']=10155,['action_radius']=3}
+rows[93] = {['id']=1013,['obj_tp']=1,['obj_id']=1059,['action_tp']=1,['action_param']=10160,['action_radius']=3}
+rows[94] = {['id']=1014,['obj_tp']=1,['obj_id']=1067,['action_tp']=1,['action_param']=10164,['action_radius']=3}
+rows[95] = {['id']=1015,['obj_tp']=1,['obj_id']=1067,['action_tp']=1,['action_param']=10168,['action_radius']=3}
+rows[96] = {['id']=1016,['obj_tp']=1,['obj_id']=1068,['action_tp']=2,['action_param']=100016,['action_radius']=3}
+rows[97] = {['id']=1017,['obj_tp']=1,['obj_id']=1069,['action_tp']=2,['action_param']=100017,['action_radius']=3}
+rows[98] = {['id']=1018,['obj_tp']=1,['obj_id']=1070,['action_tp']=2,['action_param']=100018,['action_radius']=3}
+rows[99] = {['id']=1019,['obj_tp']=1,['obj_id']=1071,['action_tp']=2,['action_param']=100019,['action_radius']=3}
+rows[100] = {['id']=1020,['obj_tp']=1,['obj_id']=1088,['action_tp']=1,['action_param']=10172,['action_radius']=3}
+rows[101] = {['id']=1021,['obj_tp']=1,['obj_id']=1091,['action_tp']=1,['action_param']=10176,['action_radius']=3}
+rows[102] = {['id']=1022,['obj_tp']=1,['obj_id']=1090,['action_tp']=1,['action_param']=10180,['action_radius']=3}
+rows[103] = {['id']=1023,['obj_tp']=1,['obj_id']=1055,['action_tp']=1,['action_param']=10184,['action_radius']=3}
+rows[104] = {['id']=1024,['obj_tp']=1,['obj_id']=1056,['action_tp']=1,['action_param']=10188,['action_radius']=3}
+rows[105] = {['id']=1025,['obj_tp']=1,['obj_id']=1104,['action_tp']=1,['action_param']=10192,['action_radius']=3}
+rows[106] = {['id']=1026,['obj_tp']=1,['obj_id']=1072,['action_tp']=1,['action_param']=10195,['action_radius']=3}
+rows[107] = {['id']=1027,['obj_tp']=1,['obj_id']=1091,['action_tp']=1,['action_param']=10199,['action_radius']=3}
+rows[108] = {['id']=1028,['obj_tp']=1,['obj_id']=1073,['action_tp']=1,['action_param']=10203,['action_radius']=3}
+rows[109] = {['id']=1029,['obj_tp']=1,['obj_id']=1073,['action_tp']=1,['action_param']=10211,['action_radius']=3}
+rows[110] = {['id']=1030,['obj_tp']=1,['obj_id']=1073,['action_tp']=1,['action_param']=10207,['action_radius']=3}
+rows[111] = {['id']=1031,['obj_tp']=1,['obj_id']=1089,['action_tp']=1,['action_param']=10213,['action_radius']=3}
+rows[112] = {['id']=1032,['obj_tp']=1,['obj_id']=1105,['action_tp']=1,['action_param']=10217,['action_radius']=3}
+rows[113] = {['id']=1033,['obj_tp']=1,['obj_id']=1076,['action_tp']=1,['action_param']=10220,['action_radius']=3}
+rows[114] = {['id']=1034,['obj_tp']=1,['obj_id']=1077,['action_tp']=1,['action_param']=10224,['action_radius']=3}
+rows[115] = {['id']=1035,['obj_tp']=1,['obj_id']=1073,['action_tp']=1,['action_param']=10015,['action_radius']=3}
+rows[116] = {['id']=1036,['obj_tp']=1,['obj_id']=30201009,['action_tp']=1,['action_param']=10159,['action_radius']=3}
+rows[117] = {['id']=1037,['obj_tp']=1,['obj_id']=1058,['action_tp']=2,['action_param']=100007,['action_radius']=3}
+rows[118] = {['id']=1038,['obj_tp']=1,['obj_id']=1058,['action_tp']=2,['action_param']=10232,['action_radius']=3}
+rows[119] = {['id']=1039,['obj_tp']=1,['obj_id']=1059,['action_tp']=2,['action_param']=10233,['action_radius']=3}
+rows[120] = {['id']=1040,['obj_tp']=1,['obj_id']=1080,['action_tp']=2,['action_param']=10234,['action_radius']=3}
+rows[121] = {['id']=1041,['obj_tp']=1,['obj_id']=1054,['action_tp']=2,['action_param']=10235,['action_radius']=3}
+rows[122] = {['id']=1042,['obj_tp']=1,['obj_id']=1081,['action_tp']=2,['action_param']=10236,['action_radius']=3}
+rows[123] = {['id']=1043,['obj_tp']=1,['obj_id']=1078,['action_tp']=2,['action_param']=10237,['action_radius']=3}
+rows[124] = {['id']=1044,['obj_tp']=1,['obj_id']=1082,['action_tp']=2,['action_param']=10238,['action_radius']=3}
+rows[125] = {['id']=1045,['obj_tp']=1,['obj_id']=1060,['action_tp']=2,['action_param']=10239,['action_radius']=3}
+rows[126] = {['id']=1046,['obj_tp']=1,['obj_id']=1083,['action_tp']=2,['action_param']=10240,['action_radius']=3}
+rows[127] = {['id']=1047,['obj_tp']=1,['obj_id']=1061,['action_tp']=2,['action_param']=10241,['action_radius']=3}
+rows[128] = {['id']=1048,['obj_tp']=1,['obj_id']=1078,['action_tp']=2,['action_param']=10247,['action_radius']=3}
+rows[129] = {['id']=1049,['obj_tp']=1,['obj_id']=1059,['action_tp']=2,['action_param']=10251,['action_radius']=3}
+rows[130] = {['id']=1050,['obj_tp']=1,['obj_id']=1067,['action_tp']=2,['action_param']=10252,['action_radius']=3}
+rows[131] = {['id']=1051,['obj_tp']=1,['obj_id']=1088,['action_tp']=2,['action_param']=10253,['action_radius']=3}
+rows[132] = {['id']=1052,['obj_tp']=1,['obj_id']=1091,['action_tp']=2,['action_param']=10255,['action_radius']=3}
+rows[133] = {['id']=1053,['obj_tp']=1,['obj_id']=1090,['action_tp']=2,['action_param']=10256,['action_radius']=3}
+rows[134] = {['id']=1054,['obj_tp']=1,['obj_id']=1055,['action_tp']=2,['action_param']=10257,['action_radius']=3}
+rows[135] = {['id']=1055,['obj_tp']=1,['obj_id']=1056,['action_tp']=2,['action_param']=10258,['action_radius']=3}
+rows[136] = {['id']=1056,['obj_tp']=1,['obj_id']=1072,['action_tp']=2,['action_param']=10259,['action_radius']=3}
+rows[137] = {['id']=1057,['obj_tp']=1,['obj_id']=1073,['action_tp']=2,['action_param']=10260,['action_radius']=3}
+rows[138] = {['id']=1058,['obj_tp']=1,['obj_id']=1089,['action_tp']=2,['action_param']=10261,['action_radius']=3}
+rows[139] = {['id']=1059,['obj_tp']=1,['obj_id']=1105,['action_tp']=2,['action_param']=10262,['action_radius']=3}
+rows[140] = {['id']=1060,['obj_tp']=1,['obj_id']=1076,['action_tp']=2,['action_param']=10263,['action_radius']=3}
+rows[141] = {['id']=1061,['obj_tp']=1,['obj_id']=1076,['action_tp']=2,['action_param']=10264,['action_radius']=3}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+	[6] = rows[6],
+	[7] = rows[7],
+	[8] = rows[8],
+	[9] = rows[9],
+	[10] = rows[10],
+	[11] = rows[11],
+	[12] = rows[12],
+	[13] = rows[13],
+	[14] = rows[14],
+	[15] = rows[15],
+	[16] = rows[16],
+	[17] = rows[17],
+	[18] = rows[18],
+	[19] = rows[19],
+	[20] = rows[20],
+	[21] = rows[21],
+	[22] = rows[22],
+	[23] = rows[23],
+	[24] = rows[24],
+	[25] = rows[25],
+	[26] = rows[26],
+	[27] = rows[27],
+	[28] = rows[28],
+	[29] = rows[29],
+	[30] = rows[30],
+	[31] = rows[31],
+	[32] = rows[32],
+	[33] = rows[33],
+	[34] = rows[34],
+	[35] = rows[35],
+	[36] = rows[36],
+	[37] = rows[37],
+	[38] = rows[38],
+	[39] = rows[39],
+	[40] = rows[40],
+	[41] = rows[41],
+	[42] = rows[42],
+	[43] = rows[43],
+	[44] = rows[44],
+	[45] = rows[45],
+	[46] = rows[46],
+	[47] = rows[47],
+	[48] = rows[48],
+	[49] = rows[49],
+	[50] = rows[50],
+	[51] = rows[51],
+	[52] = rows[52],
+	[53] = rows[53],
+	[54] = rows[54],
+	[55] = rows[55],
+	[56] = rows[56],
+	[57] = rows[57],
+	[58] = rows[58],
+	[59] = rows[59],
+	[60] = rows[60],
+	[61] = rows[61],
+	[62] = rows[62],
+	[63] = rows[63],
+	[64] = rows[64],
+	[65] = rows[65],
+	[66] = rows[66],
+	[67] = rows[67],
+	[68] = rows[68],
+	[69] = rows[69],
+	[70] = rows[70],
+	[71] = rows[71],
+	[72] = rows[72],
+	[73] = rows[73],
+	[74] = rows[74],
+	[75] = rows[75],
+	[76] = rows[76],
+	[77] = rows[77],
+	[78] = rows[78],
+	[79] = rows[79],
+	[1001] = rows[80],
+	[1002] = rows[81],
+	[1003] = rows[82],
+	[1004] = rows[83],
+	[1005] = rows[84],
+	[1006] = rows[85],
+	[2001] = rows[86],
+	[1007] = rows[87],
+	[1008] = rows[88],
+	[1009] = rows[89],
+	[1010] = rows[90],
+	[1011] = rows[91],
+	[1012] = rows[92],
+	[1013] = rows[93],
+	[1014] = rows[94],
+	[1015] = rows[95],
+	[1016] = rows[96],
+	[1017] = rows[97],
+	[1018] = rows[98],
+	[1019] = rows[99],
+	[1020] = rows[100],
+	[1021] = rows[101],
+	[1022] = rows[102],
+	[1023] = rows[103],
+	[1024] = rows[104],
+	[1025] = rows[105],
+	[1026] = rows[106],
+	[1027] = rows[107],
+	[1028] = rows[108],
+	[1029] = rows[109],
+	[1030] = rows[110],
+	[1031] = rows[111],
+	[1032] = rows[112],
+	[1033] = rows[113],
+	[1034] = rows[114],
+	[1035] = rows[115],
+	[1036] = rows[116],
+	[1037] = rows[117],
+	[1038] = rows[118],
+	[1039] = rows[119],
+	[1040] = rows[120],
+	[1041] = rows[121],
+	[1042] = rows[122],
+	[1043] = rows[123],
+	[1044] = rows[124],
+	[1045] = rows[125],
+	[1046] = rows[126],
+	[1047] = rows[127],
+	[1048] = rows[128],
+	[1049] = rows[129],
+	[1050] = rows[130],
+	[1051] = rows[131],
+	[1052] = rows[132],
+	[1053] = rows[133],
+	[1054] = rows[134],
+	[1055] = rows[135],
+	[1056] = rows[136],
+	[1057] = rows[137],
+	[1058] = rows[138],
+	[1059] = rows[139],
+	[1060] = rows[140],
+	[1061] = rows[141],
+}
+return datas

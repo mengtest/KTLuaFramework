@@ -1,0 +1,20 @@
+local row_0 = {['id']=1001,['name']='战斗测试',['type']=0,['inst_map_id']=0,['map_file']='res/map/zhandouceshi.json',['res_server']='spaces/test',['res_client']='hgs_1_0',['spawn_pos']={923.0,39.7,122.0},['spawn_dir']=2.4,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{556:999}]',['left_bottom']={},['right_top']={},['map_pic_path']=''}
+local row_1 = {['id']=1002,['name']='测试地图2',['type']=0,['inst_map_id']=0,['map_file']='',['res_server']='spaces/test',['res_client']='test2',['spawn_pos']={318.23,30.46,77.04},['spawn_dir']=4.88,['background_music']=100001,['area_music']='[]',['area_change_map']='',['left_bottom']={},['right_top']={},['map_pic_path']=''}
+local row_2 = {['id']=1003,['name']='副本地图',['type']=1,['inst_map_id']=22,['map_file']='res/map/hgs_jsz1_0.json',['res_server']='spaces/test',['res_client']='hgs_jsz1_0',['spawn_pos']={94.0,59.46,97.21},['spawn_dir']=1.2,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{778:999}]',['left_bottom']={-500,0},['right_top']={1100,630},['map_pic_path']='ui/Icons/UIMap/Map/jianshenzheditu.png'}
+local row_3 = {['id']=1000,['name']='大唐边境',['type']=0,['inst_map_id']=0,['map_file']='res/map/datangbianjing.json',['res_server']='spaces/test',['res_client']='DTBJ_Map_1',['spawn_pos']={949.32,50.5,255.6},['spawn_dir']=4.71,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{668:999},{667:999}]',['left_bottom']={},['right_top']={},['map_pic_path']=''}
+local row_4 = {['id']=999,['name']='灵猴新手引导',['type']=0,['inst_map_id']=0,['map_file']='res/map/linghouxinshou.json',['res_server']='spaces/test',['res_client']='hgs_1_0',['spawn_pos']={604.8,38.9,427.6},['spawn_dir']=4.66,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{555:1001},{666:1000},{777:1003},{854:999}]',['left_bottom']={-750,-200},['right_top']={2000,1300},['map_pic_path']=''}
+local row_5 = {['id']=10001,['name']='灵猴新手引导',['type']=0,['inst_map_id']=0,['map_file']='res/map/linghouxinshou.json',['res_server']='spaces/test',['res_client']='hgs_1_0',['spawn_pos']={710.5,268.0,875.0},['spawn_dir']=4.66,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1005}]',['left_bottom']={-750,-200},['right_top']={2000,1300},['map_pic_path']=''}
+local row_6 = {['id']=10002,['name']='测试地图',['type']=0,['inst_map_id']=0,['map_file']='res/map/hgs_jsz1_0.json',['res_server']='spaces/test',['res_client']='hgs_jsz1_0',['spawn_pos']={94.0,59.46,97.21},['spawn_dir']=2.4,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1003}]',['left_bottom']={},['right_top']={},['map_pic_path']=''}
+local row_7 = {['id']=10003,['name']='战斗测试',['type']=0,['inst_map_id']=0,['map_file']='res/map/zhandouceshi.json',['res_server']='spaces/test',['res_client']='hgs_1_0',['spawn_pos']={923.0,39.7,122.0},['spawn_dir']=2.4,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1003}]',['left_bottom']={},['right_top']={},['map_pic_path']=''}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+	[1000] = row_3,
+	[999] = row_4,
+	[10001] = row_5,
+	[10002] = row_6,
+	[10003] = row_7,
+}
+return datas

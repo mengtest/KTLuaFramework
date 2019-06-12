@@ -1,0 +1,12 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Item"), function(go)
+        go.transform.localPosition = self.m_frame:get_pos()
+    end)
+end
+
+
+
+return M

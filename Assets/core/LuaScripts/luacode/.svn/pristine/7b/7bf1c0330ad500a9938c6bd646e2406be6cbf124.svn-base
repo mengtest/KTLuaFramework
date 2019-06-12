@@ -1,0 +1,150 @@
+local View = require("system.view")
+local equipment_tips_view = class("equipment_tips_view", View)
+
+function equipment_tips_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+
+    self.m_tips_parent = param['parent']
+
+    local frame = self:getFrame()
+
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+
+    self.m_tips_parent_view = self.m_mgr:getView("equipment_tips_parent")
+
+    self:load("ui/EquipmentTips.prefab", function(go)
+        --self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform:Find("equipment_tips_bg").localPosition = self.m_tips_parent.localPosition
+        ------装备Tips头信息区域
+        self.m_equipment_top = go.transform:Find("equipment_tips_bg/equipment_tips_top")
+        self.m_equipment_icon = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_top_level = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_name = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_state = self.m_equipment_name.transform:Find("equipment_state").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_type = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_type").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_normal_info_level = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_quality = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_way = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_way").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_occu = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_occu").gameObject:GetComponent(UnityEngine.UI.Text)
+        ------装备Tips信息滑动区域
+        self.m_equip_info_scroll_view = go.transform:Find("equipment_tips_bg/equipment_tips_info")
+        --显示属性值的Text模板
+        self.m_item_text = go.transform:Find("equipment_tips_bg/item_text").gameObject
+        self.m_equipment_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_attr").gameObject
+        self.m_equipment_level_info = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/equipment_level_info").gameObject:GetComponent(UnityEngine.UI.Text)
+        --self.m_equipment_third_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_third_attr").gameObject
+        self.m_equipment_des = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_des/equipment_des_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        ------装备Tips按钮区域
+        self.m_btn_area = go.transform:Find("equipment_tips_bg/button_area")
+        self.m_sell_btn = self.m_btn_area:Find("sell_btn").gameObject
+        self.m_inset_btn = self.m_btn_area:Find("inset_btn").gameObject
+        self.m_put_on_btn = self.m_btn_area:Find("put_on_btn").gameObject
+        self.m_get_off_btn = self.m_btn_area:Find("get_off_btn").gameObject
+        ------切换显示装备按钮区域
+        self.m_equipment_choice = self.m_equip_info_scroll_view:Find("equipment_chioce")
+        self.m_equipment_choice_btn1 = self.m_equipment_choice:Find("equipment_bar_bg1").gameObject:GetComponent(UnityEngine.UI.Button)
+        self.m_equipment_choise_icon1 = self.m_equipment_choice_btn1.transform:Find("equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_choice_level1 = self.m_equipment_choice_btn1.transform:Find("equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_choice_btn2 = self.m_equipment_choice.transform:Find("equipment_bar_bg2").gameObject:GetComponent(UnityEngine.UI.Button)
+        self.m_equipment_choise_icon2 = self.m_equipment_choice_btn2.transform:Find("equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_choice_level2 = self.m_equipment_choice_btn2.transform:Find("equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        ------为按钮添加点击事件
+        self.m_sell_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --出售按钮点击事件
+        end)
+
+        self.m_inset_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --镶嵌按钮点击事件
+        end)
+
+        self.m_put_on_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --装备按钮点击事件,请求服务器
+            local equip_type = self.m_equipment_msg['derived_params'][2]
+            self.m_inventory_mgr:put_on_equipment_request_server(equip_type, self.m_equip_unique, self.m_equip_id)
+            self.m_tips_parent_view:close_tips()
+        end)
+
+        self.m_get_off_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --卸下按钮点击事件,请求服务器
+            local equip_type = self.m_equipment_msg['derived_params'][2]
+            self.m_inventory_mgr:get_off_equipment_request_server(equip_type)
+            self.m_tips_parent_view:close_tips()
+        end)
+
+        self.m_equipment_choice_btn1.onClick:AddListener(function()
+            --点击装备选择按钮1
+        end)
+
+        self.m_equipment_choice_btn2.onClick:AddListener(function()
+            --点击装备选择按钮2
+        end)
+    end)
+    self:subscribe(frame:on_event("refresh_view"),function (params)
+        self:refresh(params)
+    end)
+end
+
+------Tips采用激活和隐藏的形式，用来在每次显示Tips时初始化信息
+function equipment_tips_view:refresh(param)
+    --装备的序号id和物品id
+    self.m_equip_unique = param['param']['unique']
+    self.m_equip_id = param['param']['tmpl']
+    --tips的最大限制高度
+    local max_height = param['max_height']
+    local show_btn_area = param['need_show_button']
+    --装备的信息
+    self.m_equipment_msg = dbc.item[param['param']['tmpl']]
+    local equip_info_view = self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.RectTransform)
+    if show_btn_area == 1 then
+        self.m_btn_area.gameObject:SetActive(true)
+        self.m_sell_btn.gameObject:SetActive(true)
+        self.m_put_on_btn.gameObject:SetActive(true)
+        self.m_inset_btn.gameObject:SetActive(false)
+        self.m_get_off_btn.gameObject:SetActive(false)
+    elseif show_btn_area == 2 then
+        self.m_btn_area.gameObject:SetActive(true)
+        self.m_sell_btn.gameObject:SetActive(false)
+        self.m_put_on_btn.gameObject:SetActive(false)
+        self.m_inset_btn.gameObject:SetActive(true)
+        self.m_get_off_btn.gameObject:SetActive(true)
+    end
+    ------设置滑动区域的高度
+    local content_rect_transform = self.m_equip_info_scroll_view.transform:GetChild(0):GetChild(0).gameObject:GetComponent(UnityEngine.RectTransform)
+    local equip_top_height = self.m_equipment_top.gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+    local button_area_height = self.m_btn_area.gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+    --当按钮区域没有显示，则不计算高度
+    if not self.m_btn_area.gameObject.activeSelf then
+        button_area_height = 0
+    end
+    UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(content_rect_transform)
+    equip_info_view.sizeDelta = Vector2(self:GetContentPreferredSize(content_rect_transform, 0), self:GetContentPreferredSize(content_rect_transform, 1))
+    --当高度超过最大限制高度时，设置其高度为最大限制高度，并可以滑动
+    if equip_info_view.rect.height > max_height - equip_top_height - button_area_height then
+        equip_info_view.sizeDelta = Vector2(equip_info_view.rect.width, max_height - equip_top_height - button_area_height)
+        self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.UI.ScrollRect).movementType = UnityEngine.UI.ScrollRect.MovementType.Elastic
+    end
+end
+
+------获取实时的RectTransform的宽高  axis 0-宽度，1-高度
+function equipment_tips_view:GetContentPreferredSize(rectTransform, axis)
+    return UnityEngine.UI.LayoutUtility.GetPreferredSize(rectTransform, axis)
+end
+
+------获取对应的icon的图片
+function equipment_tips_view:change_sprite(icon_path)
+    local equipment_icon
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            equipment_icon = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+    return equipment_icon
+end
+
+return equipment_tips_view

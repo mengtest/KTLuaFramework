@@ -1,0 +1,119 @@
+
+
+local WorldView = { }
+
+local anim_event_util =  require "common.util.event_anima"
+
+function WorldView:doInit()
+    self.m_cam = self:getFrame():getCamera()
+    
+    self:subscribe(self:getFrame():on_event_attr_set("map_id", true), function(val)
+        self:loadMap(val)
+    end )
+
+end
+
+function WorldView:loadMap(map_id)
+    print("WorldView:loadMap", map_id)
+    local map_scene = nil
+
+    if map_id then
+        local info = dbc.map[map_id]
+        if info then
+            map_scene = info.res_client
+        end
+    end
+
+    self:loadMapScene(map_scene)
+end
+
+function WorldView:unloadScene(name)
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByName(name)
+    if s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function WorldView:unloadMapScene()
+    if self.m_map_scene then
+        self:unloadScene(self.m_map_scene)
+        self.m_map_scene = nil
+    end
+end
+
+function WorldView:loadMapScene(name)
+    -- name = "game"; --fan
+    local world = self:getFrame()
+    -- print(">>>>>>>>>>start loading map")
+    world:set_map_loaded(false)
+    self:unloadMapScene()
+    self.m_map_scene = name
+    -- self.m_map_scene = name .. "_game"  --fan
+
+    if name then
+        local path = string.format("Scenes/%s.unity", name)
+        -- local path = string.format("Scenes/%s.unity", "hgs1.1/game") --fan
+        self:loadScene(path, function()
+
+            -- print("<<<<<<<<<<<map loaded")
+            world:set_map_loaded(true)
+
+            -- fan
+            -- local unit = world:get_main_player()
+            -- local unit_view = app:getView(unit:getFrameName())
+            -- local go = unit_view:getGO()
+            -- KTMapStreamManager.GetInstance():CreateStreams("", go.transform)
+            -- fan
+
+            if self.m_map_scene ~= name then
+                self:unloadScene(name)
+            end
+        end )
+    end
+end
+
+function WorldView:doDestroy()
+    self:unloadMapScene()
+end
+
+function WorldView:doUpdate()
+    self.m_cam:update()
+end
+
+function WorldView:pickGameObjectFromScreenPos(pos)
+    local go = self.m_cam:pickRoleLayerFromScreenPos(pos)
+    if go then
+        --app:logError("go.name = " .. tostring(go.name))
+    else
+        --app:logError("null go")
+    end
+    return self:getViewMgr():getViewFromGO(go)
+end
+
+
+function WorldView:pickFromScreenPos(pos)
+    return self.m_cam:pickFromScreenPos(pos)
+end
+
+function WorldView:findPath(from, to)
+    local path = AI.NavMeshPath()
+    if AI.NavMesh.CalculatePath(from, to, -1, path) then
+        local ret = { }
+        for wp in foreach(path.corners) do
+            table.insert(ret, wp)
+        end
+        return ret
+    end
+end
+
+function WorldView:trackUnit(unit)
+    self.m_cam:trackUnit(unit)
+end
+
+function WorldView:getCamera()
+    return self.m_cam
+end
+
+
+return WorldView

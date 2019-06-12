@@ -1,0 +1,53 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    self:loadPrefab()
+    self.m_main_player = self:getFrame("world"):get_main_player()
+    self.m_is_show = false
+end
+
+function M:loadPrefab()
+    local data = self.m_frame:get_merchat_data()
+    -- 临时做法 应当配置模型id
+    --local path = model_mgr.GetPrefabPathById(data.model_id)
+    self:load(
+        app:get_model_mgr().GetPrefabPathById(1518),
+        function(go)
+            go.transform.position = self.m_frame:get_pos()
+            go.transform.localEulerAngles = Vector3(0, self.m_frame:get_dir(), 0)
+            go.transform.localScale = Vector3.one
+            go.transform.parent.gameObject.layer = LayerMask.NameToLayer("Role")
+        end)
+end
+
+--临时做法 方便测试
+function M:doUpdate()
+    if (self.m_is_show == false) then
+        if (Vector3.Distance(self.m_main_player:get_pos(), self.m_frame:get_pos()) < 1) then
+            
+            self:on_show_shop()
+            self.m_is_show = true
+        end
+    else
+        if (Vector3.Distance(self.m_main_player:get_pos(), self.m_frame:get_pos()) > 1) then
+            
+            self.m_is_show = false
+        end
+    end
+end
+
+function M:on_show_shop()
+    local ui_manager = app:get_ui_manager()
+    if (self.ui_shop == nil) then
+        --这个做法并不对 两个商人就会报错
+        self.ui_shop = ui_manager:CreateUI("ui_shop", "ui_shop",{
+            items_info = self.m_frame:get_shop_items_info(),
+            merchant_info = self.m_frame:get_merchat_data()}, ui_manager.UI_Depth.HIGH)
+    else
+        ui_manager:ShowView("ui_shop")
+    end
+end
+
+
+return M

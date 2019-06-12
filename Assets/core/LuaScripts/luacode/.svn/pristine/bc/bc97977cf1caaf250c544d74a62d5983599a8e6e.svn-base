@@ -1,0 +1,208 @@
+local LuaWatchProxy = class('LuaWatchProxy')
+
+local underscore = underscore
+
+function LuaWatchProxy:initialize()
+	self.m_root = {}
+
+	self.m_renderer = KTGame.instance.luaWatcher
+	if self.m_renderer then
+		self.m_renderer:SetDrawCallback {
+			BeginDraw = underscore.curry(self._beginDraw, self),
+			DrawHierarchy = underscore.curry(self._drawHierarchy, self),
+			DrawPath = underscore.curry(self._drawPath, self),
+			CalcPathLines = underscore.curry(self._calcPathLines, self),
+			EndDraw = underscore.curry(self._endDraw, self)
+		}
+	end
+
+
+	--! runtime data
+	self.m_path_status = {}
+
+	--! draw context datas
+	self.m_search_string = ''
+	self.m_hierarchy_draw_func = nil
+	self.m_visited_tbl = nil
+	self.m_exec_draw_cmd = true
+	self.m_total_line = 0
+end
+
+function LuaWatchProxy:watch(name, tbl)
+	self:unwatch(name)
+	self.m_root[name] = tbl
+end
+
+function LuaWatchProxy:unwatch(name)
+	self.m_root[name] = nil
+end
+
+function LuaWatchProxy:_beginDraw(search_string)
+	self.m_search_string = search_string
+	local use_search = search_string ~= ''
+	if use_search then
+		self.m_visited_tbl = {}
+	end
+	self.m_hierarchy_draw_func = use_search and self._drawSearchList or self._drawTable
+end
+
+function LuaWatchProxy:_calcPathLines(path)
+	self.m_exec_draw_cmd = false
+	self.m_total_line = 0
+	self:_doDrawPath(path)
+	return self.m_total_line
+end
+
+function LuaWatchProxy:_addLine(line)
+	self.m_total_line = self.m_total_line + (line or 1)
+end
+
+function LuaWatchProxy:_drawPath( path )
+	self.m_exec_draw_cmd = true
+	self.m_total_line = 0
+	self:_doDrawPath(path)
+end
+
+function LuaWatchProxy:_doDrawPath(path)
+	path = string.lower(path)
+
+	local tbl, key, value = self:_getPath(self.m_root, path)
+	local tbl_path = string.match(path, '(.*)/')
+	self:_drawTableValue(tbl, tbl_path, key, value)
+end
+
+function LuaWatchProxy:_getPath(tbl, path)
+	local parent_tbl
+	local cur_val = tbl
+	local cur_key
+
+	for name in string.gmatch(path, '[^/]+') do
+		parent_tbl = cur_val
+
+		if type(parent_tbl) ~= 'table' then
+			return
+		end
+
+		cur_val = parent_tbl[name]
+		cur_key = name
+
+		if cur_val == nil then
+			for k,v in pairs(parent_tbl) do
+				if string.lower(tostring(k)) == name then
+					cur_val = v
+					cur_key = k
+					break
+				end
+			end
+		end
+	end
+
+	return parent_tbl, cur_key, cur_val
+end
+
+function LuaWatchProxy:_drawTableValue(tbl, tbl_path, key, value)
+	local key_str = tostring(key)
+	local value_type = type(value)
+
+	local sub_path = string.format('%s/%s', tbl_path, string.lower(key_str))
+	if value_type == 'table' then
+		self:_drawTable(sub_path, key, value)
+	else
+		local renderer = self.m_renderer
+		if value_type == 'string' then
+			self:_addLine()
+			if self.m_exec_draw_cmd then
+				tbl[key] = renderer:TextField(sub_path, key_str, value)
+			end
+		elseif value_type == 'number' then
+			self:_addLine()
+			if self.m_exec_draw_cmd then
+				tbl[key] = renderer:DoubleField(sub_path, key_str, value)
+			end
+		elseif value_type == 'boolean' then
+			self:_addLine()
+			if self.m_exec_draw_cmd then
+				tbl[key] = renderer:Toggle(sub_path, key_str, value)
+			end
+		end
+	end
+end
+
+function LuaWatchProxy:_drawFoldout(path, key)
+	local foldout = self.m_path_status[path] or false
+	self:_addLine()
+	if self.m_exec_draw_cmd then
+		foldout = self.m_renderer:Foldout(path, tostring(key), foldout)
+		self.m_path_status[path] = foldout
+	end
+	return foldout
+end
+
+function LuaWatchProxy:_drawTable(tbl_path, key, tbl)
+	local foldout = self:_drawFoldout(tbl_path, key)
+	local renderer = self.m_renderer
+	if self.m_exec_draw_cmd then
+		renderer:BeginIndent()
+	end
+	if foldout then
+		for key, value in pairs(tbl) do
+			self:_drawTableValue(tbl, tbl_path, key, value)
+		end
+	end
+	if self.m_exec_draw_cmd then
+		renderer:EndIndent()
+	end
+end
+
+function LuaWatchProxy:_checkVisit( tbl )
+	local visited = self.m_visited_tbl[tbl]
+	if not visited then
+		self.m_visited_tbl[tbl] = true
+	end
+	return visited
+end
+
+function LuaWatchProxy:_drawSearchList(path, tbl_key, tbl)
+	if self:_checkVisit(tbl) then
+		return
+	end
+
+	for key, value in pairs(tbl) do
+		local key_str_lower = string.lower(tostring(key))
+		local match = string.find(key_str_lower, self.m_search_string, 1, true)
+		local value_type = type(value)
+
+		if value_type == 'table' then
+			local sub_path = string.format('%s/%s', path, key_str_lower)
+			if match then
+				self:_drawTable(sub_path, key, value)
+			else
+				self:_drawSearchList(sub_path, key, value)
+			end
+		else
+			--! 数值匹配也算
+			if not match then
+				local value_str = string.lower(tostring(value))
+				match = string.find(value_str, self.m_search_string, 1, true)
+			end
+
+			if match then
+				self:_drawTableValue(tbl, path, key, value)
+			end
+		end
+	end
+end
+
+function LuaWatchProxy:_drawHierarchy()
+	self.m_exec_draw_cmd = true
+	self.m_total_line = 0
+
+	for key, tbl in pairs(self.m_root) do
+		self.m_hierarchy_draw_func(self, key, key, tbl)
+	end
+end
+
+function LuaWatchProxy:_endDraw()
+end
+
+return LuaWatchProxy:new()

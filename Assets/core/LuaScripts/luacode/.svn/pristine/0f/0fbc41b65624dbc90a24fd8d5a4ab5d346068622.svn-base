@@ -1,0 +1,20 @@
+local Frame = require("system.frame")
+local quick_matching_main = class("quick_matching_main", Frame)
+
+function quick_matching_main:doInit(param)
+
+end
+
+function quick_matching_main:on_random_btn()
+
+end
+
+function quick_matching_main:on_designated_btn()
+
+end
+
+function quick_matching_main:on_team_btn()
+
+end
+
+return quick_matching_main

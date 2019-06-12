@@ -1,0 +1,1978 @@
+local Look_at_target = require("frame.look_at_target")
+
+local UnitView = {}
+local Unit = require "frame.unit"
+local Enum_Unit = require "common.Enum.Enum_Unit"
+
+local SMOOTH_TIME = 0.05
+local SKILL_RANGE_Y_OFFSET = 150
+local SKILL_RANGE_X_OFFSET = 100
+local LERP_DURATION = 0.1
+
+function UnitView:doInit()
+    
+    self.m_goal_layer_weight = 0
+    
+    self.m_cam = self:getFrame("world"):getCamera()
+    
+    self.m_unit = self:getFrame()
+    self.m_load_avatar_suc = false
+    
+    local unit = self.m_unit
+    
+    local go = self:getGO()
+    self.m_model_name = ""
+    self.m_anim_override_ctrler = nil
+    self.m_avatar_trs = nil
+    self.m_anim = nil
+    self.m_weapons = {}
+    self.m_look_at_target_cmp = Look_at_target:new()
+    -- 这个table会在每次loadPrefab时候修改 用于缓存变身技能带来的影响
+    self.model_list = {}
+    
+    go.layer = LayerMask.NameToLayer("Role")
+    
+    self.m_target_model_dir = 0 -- 模型朝向目标值
+    self.m_model_dir_velocity = 0 -- smoothDamp用
+    self.m_is_sync_model_dir = false -- 开关 平滑对其模型角度到(由move_state所决定的)模型朝向
+    self.m_dissolve_count_down = 0 -- 临时 死亡后播放死亡特效倒计时
+    self.m_normal_atk_cool_down = 0 -- 普通攻击的cd
+    self.m_dissolve_started = false
+    self.m_skill_range_indicator_go = nil
+    self.m_skill_round_area_go = nil
+    self.m_monster_choose_info = {}
+    self.m_bone_dict = {}
+    self.m_trans_model_id = 0 -- 默认变形id
+    self.m_ex_move_test_result = false -- 2017-11-27   pacman 【上下分层】移动状态检查结果
+    self.m_ex_act_test_result = false -- 2017-11-27   pacman 【上下分层】动作状态检查结果
+    
+    self:subscribe(self:getFrame():on_event_play_anim(), function(anima_name, is_loop, has_camera)
+            -- 这个事件需要依赖模型  如果不存在就缓存起来 等待
+            if (self.m_load_avatar_suc == false) then
+                self.m_load_avatar_suc_fun = function()
+                    self:on_event_play_anim(anima_name, is_loop, has_camera)
+                end
+            else
+                self:on_event_play_anim(anima_name, is_loop, has_camera)
+            end
+    end)
+    self:subscribe(self:getFrame():on_event_cross_fade(), function(anim_name, fade_duration)
+        if self.m_anim then
+            self.m_anim:CrossFade(anim_name, fade_duration)
+        end
+    end)
+
+    self:init()
+end
+
+function UnitView:init()
+    -- ↓↓↓ 加载prefab 以及对Prefab的一些操作↓↓↓
+    self:loadPrefab(self.m_unit:getCfg().model_id, function()
+        local view_go = self:getGO()
+        local unit = self.m_unit
+        
+        --local anim = self.m_anim 在继高的帮助下 发现这里必须用self 否则动态修改时 其它地方不会改变
+        --view_go 目前的功能中不需要重新设置他的信息 所以先不改成self
+        --而unit 任何表现层的修改都不应该需要重新处理unit 如果出现unit不正确属于设计问题
+        -- ↓↓↓ 直接对viewgo的一些操作 ↓↓↓
+        self:handleViewGo(view_go, unit)
+        
+        -- ↑↑↑ 直接对viewgo的一些操作 ↑↑↑
+        -- ↓↓↓ 注册各种事件 ↓↓↓
+        -- 动画相关的事件
+        self:eventAboutAnim(view_go, unit)
+        -- 状态相关的事件
+        self:eventAboutState(view_go, unit)
+        -- 技能指示器相关事件
+        self:eventAboutSkillIndicator(view_go, unit)
+        -- 技能相关指示器
+        self:eventAboutSkill(view_go, unit)
+        -- 表现上的相关事件
+        self:eventAboutAppearance(view_go, unit)
+        -- 专精的相关事件
+        self:eventAboutSpecialization(view_go, unit)
+        
+        -- buff相关的事件
+        --self:eventAbountBuff(unit)    -- pacman 2017-09-29 暂不需要
+        -- 注册各种事件 ↑↑↑
+        -- 一些测试代码 ↓↓↓
+        -- 临时测试world stream
+        if unit:get_is_main_player() then
+            print("======================== main player unit view created")
+        -- view_go就是角色的gameObject
+        end
+        
+        -- 一些测试代码 ↑↑↑
+        -- 加载完成后处理  ↓↓↓
+        self.m_load_avatar_suc = true
+        if (self.m_load_avatar_suc_fun ~= nil) then
+            self.m_load_avatar_suc_fun()
+        end
+        
+        -- 子对象创建完毕
+        self:subscribe(
+            unit:on_event("child_created"),
+            function(child_frame)
+                self:on_child_frame_created(child_frame)
+            end)
+    
+    
+    
+    -- 加载完成后处理 ↑↑↑
+    end)
+
+-- ↑↑↑ 加载prefab 以及对Prefab的一些操作↑↑↑
+end
+
+
+function UnitView:loadPrefab(model_id, func)
+    local path = model_mgr.GetPrefabPathById(model_id)
+    self.m_model_name = dbc.model_path[model_id].prefab_name
+    
+    if (self.model_list[model_id] ~= nil) then
+        self:handlePrefab(self.model_list[model_id], func)
+    else
+        self:load(path, function(go)
+                self:loadAnimator(go,function()
+                    self:handlePrefab(go, func)
+                    self.model_list[model_id] = go
+                    model_mgr.LoadAppearanceSfx(model_id, go)
+                end)  
+        end)
+    end
+end
+
+function UnitView:handleWeapon(go, specialization)
+    local weapon_path, weapon_point = model_mgr.GetUnitWeapon(specialization)
+    if (weapon_path ~= nil and type(weapon_path) == "table"
+        and weapon_point ~= nil and type(weapon_point) == "table" and #weapon_path == #weapon_point) then
+        
+        -- 如果原本就有武器先删除掉
+        if (#self.m_weapons > 0) then
+            for i = 1, #self.m_weapons do
+                Object.Destroy(self.m_weapons[i])
+            end
+            self.m_weapons = {}
+        end
+        
+        for i = 1, #weapon_path do
+            self:load(weapon_path[i], function(go)
+                go.transform:SetParent(self:get_bone(weapon_point[i]))
+                go.transform.localPosition = Vector3.zero
+                go.transform.localEulerAngles = Vector3.zero
+                go.transform.localScale = Vector3.one
+                table.insert(self.m_weapons, go)
+            end)
+        end
+    end
+end
+
+function UnitView:loadAnimator(go, func)
+    
+    self.m_anim = assert(go:GetComponent("Animator"))
+    
+    local specialization = self.m_unit:get_specialization()
+
+    local path = model_mgr.GetAnimatorControllerPath(specialization)
+
+    if (path ~= nil and #path > 0) then
+        self:subscribe(app:getResMgr():rxLoad(path), function(asset_ref)
+            self.m_anim.runtimeAnimatorController = asset_ref.asset
+            
+            self.m_anim_override_ctrler = AnimatorOverrideController(self.m_anim.runtimeAnimatorController)
+            
+            self.m_anim.runtimeAnimatorController = self.m_anim_override_ctrler
+            
+            func()
+        end)	
+    else
+        self.m_anim_override_ctrler = AnimatorOverrideController(self.m_anim.runtimeAnimatorController)
+        
+        self.m_anim.runtimeAnimatorController = self.m_anim_override_ctrler
+        
+        func()
+    end
+
+
+
+end
+
+
+function UnitView:handlePrefab(go, func)
+    
+    self:init_bone_info(go)
+    go.name = "Avatar"
+    go.transform.localPosition = Vector3(0, 0, 0)
+    go.transform.localRotation = Vector3(0, 0, 0)
+    --go.transform.localScale    = Vector3(1, 1, 1)
+    self.m_avatar_trs = go.transform
+    self.m_avatar_trs.gameObject:SetActive(true)
+    
+    -- 出于可视化编辑，cc在角色的prefab上
+    -- 为了进行控制需要移动到root对象上
+    local cc = go:GetComponent(CharacterController)
+    if (cc == nil) then
+        Debug.LogError("cc == nil" .. self:getFrame():getCfg().id)
+    end
+    local root_cc = self:getGO():GetComponent(CharacterController)
+    if (root_cc == nil) then
+        root_cc = self:getGO():AddComponent(CharacterController)
+    end
+    -- 复制属性
+    root_cc.slopeLimit = cc.slopeLimit
+    root_cc.stepOffset = cc.stepOffset
+    root_cc.skinWidth = cc.skinWidth
+    root_cc.minMoveDistance = cc.minMoveDistance
+    root_cc.center = cc.center
+    root_cc.radius = cc.radius
+    root_cc.height = cc.height
+    self.m_unit:set_cc(root_cc)
+    
+    -- 禁用旧cc
+    cc.enabled = false
+    
+    -- 注视功能
+    local is_owner = self.m_unit:get_is_main_player()
+    -- 获取头骨transform(应该只对humanoid有效)
+    local head_tr = self.m_anim:GetBoneTransform(HumanBodyBones.Head)
+    if head_tr ~= nil then
+        if true then
+            self.m_look_at_target_cmp:set_root_and_head(go, self.m_anim, head_tr)
+        end
+    end
+    
+    -- 动画clip事件
+    -- 事件初始于KTAniamtionEvent控件
+    local kt_anim = go:GetComponent(KTAniamtionEvent)
+    if (kt_anim == nil) then
+        kt_anim = go:AddComponent(KTAniamtionEvent)
+        local anim_event_util = require "common.util.event_anima"
+        anim_event_util.addSingleAnimationEvent(go, function(anim_evt)
+            self.m_unit:on_animation_event(anim_evt)
+        end)
+    end
+    
+    -- 2017-11-24 pacman 动画状态机事件
+    local kt_state_machine = go:GetComponent(KTStateMachineBridge)
+    if kt_state_machine == nil then
+        kt_state_machine = go:AddComponent(KTStateMachineBridge)
+        -- 注册状态机事件 --
+        -- 状态进入
+        kt_state_machine.onEnterCallBack = KTStateMachineBridge_OnStateMachineEnterEvent()
+        kt_state_machine.onEnterCallBack:AddListener(function(animator, stateInfo, layerIndex)
+            self:on_animator_state_enter(animator, stateInfo, layerIndex)
+        end)
+        
+        
+        -- 状态退出
+        kt_state_machine.onExitCallBack = KTStateMachineBridge_OnStateMachineExitEvent()
+        kt_state_machine.onExitCallBack:AddListener(function(animator, stateInfo, layerIndex)
+            self:on_animator_state_exit(animator, stateInfo, layerIndex)
+        end)
+    
+    end
+    
+    
+    self.m_dissolve_ctrl = go:GetComponentInChildren("DissolveControl", true)
+    
+    
+    
+    if (func ~= nil) then
+        func()
+    end
+end
+
+-- 2017-11-27 pacman 动画状态进入
+function UnitView:on_animator_state_enter(animator, stateInfo, layerIndex)
+    -- 临时 目前只对罗刹/灵猴做下列处理
+    if not self.m_unit:get_is_main_player() then
+        return
+    else
+        local specialization = self.m_unit:get_specialization()
+        if specialization ~= SharedEnum.TalentSpecialization.DEMON_HUNTER_VENGEANCE and
+            specialization ~= SharedEnum.TalentSpecialization.MAGE_FIRE
+        then
+            return
+        end
+    end
+    
+    --print("state enter", animator, stateInfo, layerIndex)
+    -- 判断ex动作开关
+    -- 目前base与ex层都是同时/同步播放的，这里只选择比较ex:UpperLayer层
+    local upper_layer_id = animator:GetLayerIndex("Upper Layer")
+    if layerIndex == upper_layer_id then
+        -- 检查动作状态是否应启用ex
+        if self:is_animator_state_ex(stateInfo) then
+            --local cur_state_info = animator:GetCurrentAnimatorStateInfo(layerIndex)
+            --local next_state_info = animator:GetNextAnimatorStateInfo(layerIndex)
+            --print(cur_state_info:IsName("forward"), cur_state_info.fullPathHash, next_state_info:IsName("atk"), next_state_info.fullPathHash)
+            --print("atk 111111111", stateInfo.fullPathHash)
+            self.m_ex_act_test_result = true
+        end
+    -- todo 更多动作状态检查
+    end
+end
+
+-- 2017-11-27 pacman 动画状态退出
+function UnitView:on_animator_state_exit(animator, stateInfo, layerIndex)
+    
+    -- 临时 目前只对罗刹/灵猴做下列处理
+    if not self.m_unit:get_is_main_player() then
+        return
+    else
+        local specialization = self.m_unit:get_specialization()
+        if specialization ~= SharedEnum.TalentSpecialization.DEMON_HUNTER_VENGEANCE and
+            specialization ~= SharedEnum.TalentSpecialization.MAGE_FIRE
+        then
+            return
+        end
+    end
+    
+    -- 判断ex动作开关
+    -- 目前base与ex层都是同时/同步播放的，这里只选择比较ex:UpperLayer层
+    local upper_layer_id = animator:GetLayerIndex("Upper Layer")
+    if layerIndex == upper_layer_id then
+        -- 因为animator同一时间只能播放一个state
+        -- 所以如果是以下动作状态，且后继动作不是ex动作，可以直接关闭【上下分层】开关
+        local following_state_info = animator:GetCurrentAnimatorStateInfo(layerIndex)
+        if self:is_animator_state_ex(stateInfo) and not self:is_animator_state_ex(following_state_info) then -- 普攻
+            --local cur_state_info = animator:GetCurrentAnimatorStateInfo(layerIndex)
+            --local next_state_info = animator:GetNextAnimatorStateInfo(layerIndex)
+            --print(cur_state_info:IsName("forward"), cur_state_info.fullPathHash, next_state_info:IsName("atk"), next_state_info.fullPathHash)
+            --print("false false false false false ")
+            self.m_ex_act_test_result = false
+        end
+    -- todo 更多动作状态检查
+    end
+end
+
+
+
+-- 注册unit动画相关的事件
+function UnitView:eventAboutAnim(view_go, unit)
+    -- unit发送的AnimationEvent有关的事件
+    self:subscribe(unit:on_event_anim_event(false), function(skill_queue_object, anim_evt, is_skill_target)
+        self:on_animation_event(skill_queue_object, anim_evt, is_skill_target)
+    end)
+    
+    self:subscribe(unit:on_event_anim_trigger(), function(trigger)
+            --print("====================> set_trigger", trigger)
+            self.m_anim:SetTrigger(trigger)
+    -- 2017-11-24 pacman 处理animationLayer权重
+    --self:handle_anim_layer(trigger, "trigger")
+    end)
+    
+    self:subscribe(unit:on_event_in_combat_set(), function(val)
+        -- 进入战斗和脱离战斗先不考虑开关扇子
+        -- for i = 1,#self.m_weapons do
+        --     if(val == 1) then
+        --         self.m_weapons[i]:GetComponent(Animator):SetTrigger("in_combat")
+        --     else
+        --         self.m_weapons[i]:GetComponent(Animator):SetTrigger("out_combat")
+        --     end
+        -- end
+        end)
+    
+    -- pacman 2017-11-21 anim_param从attribute改成了Event
+    -- 旧写法中无法解决给SetFloat传整数的问题
+    self:subscribe(unit:on_event_anim_param(), function(name, param_type, value)
+        if self.m_anim == nil then
+            print("no Animator")
+            return
+        end
+        
+        if param_type == "bool" then
+            self.m_anim:SetBool(name, value)
+        elseif param_type == "int" then
+            self.m_anim:SetInteger(name, value)
+        elseif param_type == "float" then
+            self.m_anim:SetFloat(name, value)
+        else
+            error("invalid anim param type", param_type)
+        end
+    end)
+    
+    -- override动画
+    self:subscribe(unit:on_event("override_animator_clip"), function(name, path)
+        local full_path = model_mgr.GetAnimationPathById(self.m_unit:getCfg().model_id, path)
+        self:override_anim_clip(name, full_path)
+    end)
+end
+
+-- 表现上的相关事件
+function UnitView:eventAboutAppearance(view_go, unit)
+    
+    local ts = view_go.transform
+    -- 显示或隐藏 viewgo
+    self:subscribe(unit:on_event_is_show_view_set(true), function(value)
+        view_go:SetActive(value)
+    end)
+    
+    self:subscribe(unit:on_event_run_function(), function(name, ...)
+        local func = self[name]
+        if (func ~= nil and type(func) == "function") then
+            self[name](self, ...)
+        end
+    end)
+    
+    -- 修改方向
+    self:subscribe(unit:on_event_dir_set(true), function(value)
+        ts.eulerAngles = Vector3(0, value, 0)
+    end)
+    
+    -- set_position
+    self:subscribe(unit:on_event_set_position(), function(pos)
+        ts.position = pos
+        self.m_move_to = nil
+    end)
+    
+    -- update_position
+    self:subscribe(unit:on_event_update_position(), function(pos)
+            --if (unit:is_skill_jump_state() == false) then
+            self.m_move_to = {
+                from = ts.position,
+                to = pos,
+                time = 0,
+            }
+    --end
+    end)
+    
+    
+    -- 受击
+    self:subscribe(unit:on_event_be_hit(), function(skill_queue_object, if_show_hit_sfx)
+            if (skill_queue_object.is_buff ~= 1) then
+                -- buff的伤害不是由玩家主动释放的  所以我们的技能池里面没有数据 不应该在这里触发
+                self:on_be_hit(skill_queue_object, if_show_hit_sfx)
+                unit:emit_event("popup_text", skill_queue_object.attacker_id, skill_queue_object.spell_id, skill_queue_object.hit_outcome, skill_queue_object.damage, skill_queue_object.is_buff)
+                --理论上此时的skill_queue_object任务已经结束，可以删除它
+                skill_queue_object.destroySelf()
+            end
+    end)
+    
+    self:subscribe(unit:on_event("get_bone"), function(bone_name, cb)
+        cb(self:get_bone(bone_name))
+    end)
+    
+    self:subscribe(unit:on_event("show_monster_choose"), function()
+        self:show_monster_choose()
+    end)
+    
+    self:subscribe(unit:on_event("hide_monster_choose"), function()
+        self:hide_monster_choose()
+    end)
+    
+    self:subscribe(unit:on_event_display_id_set(true), function(model_id)
+            -- 变身啦啦啦啦
+            self:transfiguration(model_id)
+    end)
+    
+    --搭乘载具
+    self:subscribe(unit:on_event_carrier_set(), function(val)
+        if (val ~= nil) then
+            --思路简述：因为有可能一些载具在叠加的美术场景中 我不希望角色跳入其他场景（有可能因为美术资源的scale而变形，甚至更多未知问题）
+            --所以我在游戏场景创建了一个父物体去同步美术场景的坐标 - clz 2017年11月10日
+            self.m_carrier_handler = GameObject("carrier")
+            local carrier_tra = self.m_carrier_handler.transform
+            carrier_tra:SetParent(view_go.transform.parent)
+            carrier_tra.position = val.transform.position
+            view_go.transform:SetParent(carrier_tra)
+        else
+            if (self.m_carrier_handler ~= nil) then
+                view_go.transform:SetParent(self.m_carrier_handler.transform.parent)
+                Object.Destroy(self.m_carrier_handler)
+                self.m_carrier_handler = nil
+            end
+        end
+    end)
+
+
+end
+
+-- 专精相关的事件
+function UnitView:eventAboutSpecialization(view_go, unit)
+    -- 主角创建player_controller
+    if (unit:get_is_main_player() == true) then
+        local ui_manager = app:get_ui_manager()
+        local ctrl = ui_manager:CreateUI("player_controller", nil, unit, ui_manager.UI_Depth.NORMAL)
+        self:subscribe(ctrl:on_event_cast_spell(), function(skill_id, target_id, target_pos, target_dir)
+            unit:use_skill(skill_id, target_id, target_pos, target_dir)
+        end)
+    end
+    
+    
+    self:handleWeapon(view_go,self.m_unit:get_specialization())
+
+    -- 专精修改
+    self:subscribe(unit:on_event_specialization_set(), function(val)
+        self:handleWeapon(view_go, val)
+
+        local ctrl = self:getView("player_controller")
+
+        ctrl:handle_skill_data()
+        
+        local path = model_mgr.GetAnimatorControllerPath(val)
+
+        if (path ~= nil and #path > 0) then
+            self:subscribe(app:getResMgr():rxLoad(path), function(asset_ref)
+                self.m_anim.runtimeAnimatorController = asset_ref.asset
+                
+                self.m_anim_override_ctrler = AnimatorOverrideController(self.m_anim.runtimeAnimatorController)
+                
+                self.m_anim.runtimeAnimatorController = self.m_anim_override_ctrler
+            end)              
+        end
+
+    end)
+
+end
+
+-- 变身
+function UnitView:transfiguration(model_id)
+-- 这个东西现在有问题 甚至会闪退 先不要使用了
+-- if (self.m_trans_model_id == model_id) then
+--     return
+-- else
+--     self.m_trans_model_id = model_id
+-- end
+-- self.m_avatar_trs.gameObject:SetActive(false)
+-- if (model_id == 0) then
+--     self:loadPrefab(self.m_unit:getCfg().model_id)--变回原形
+-- else
+--     self:loadPrefab(model_id)-- 变身成指定id
+-- end
+end
+
+
+-- 状态相关的事件
+function UnitView:eventAboutState(view_go, unit)
+    -- 主行为变化
+    self:subscribe(unit:on_event_main_act_set(true), function(value)
+        self:on_main_act_changed(value)
+    end)
+    
+    -- pacman 2017-12-01 子行为变化
+    self:subscribe(unit:on_event_sub_act_set(true), function(value)
+        self:on_sub_act_changed(value)
+    end)
+    
+    -- 移动状态变化
+    self:subscribe(unit:on_event_move_state_set(true), function(value)
+        local move_state = value
+        
+        -- 切换动作
+        if move_state == Unit.MOVE_STATE.IDLE then
+            self.m_target_model_dir = 0
+            self.m_anim:SetBool("run", false)
+            self.m_anim:SetBool("back", false)
+        else
+            local angle8d = Unit.get_angle8d_from_move_state(move_state)
+            
+            -- pacman 2017-06-15 这个用法不太规范
+            -- 一开始是想使用unit:get_back的，但是貌似此时unit的back属性还没有被激活重算
+            local is_back = unit:calc_back()
+            -- print("--------", is_back, angle8d)
+            if is_back then
+                if angle8d > 90 then
+                    angle8d = angle8d - 180
+                elseif angle8d < -90 then
+                    angle8d = angle8d + 180
+                end
+                self.m_anim:SetBool("back", true)
+            else
+                self.m_anim:SetBool("back", false)
+            end
+            
+            self.m_target_model_dir = angle8d
+            self.m_anim:SetBool("run", true)
+        end
+        
+        self.m_is_sync_model_dir = true
+    
+    -- print(self.m_target_model_dir)
+    end)
+    
+    
+    -- 重力速度变化
+    self:subscribe(unit:on_event_gravity_speed_set(true), function(value)
+        self.m_anim:SetFloat("gravity_speed", value)
+    end)
+end
+
+-- 技能指示器相关事件
+function UnitView:eventAboutSkillIndicator(view_go, unit)
+    self:subscribe(unit:on_event("show_skill_idctr"), function(is_show, skill_id)
+        self:show_skill_indicator(is_show, skill_id)
+    end)
+    
+    -- 移动技能区域idctor
+    self:subscribe(unit:on_event("move_skill_area"), function(move, skill_cfg)
+            -- print("***********", move)
+            if self.m_skill_round_area_go ~= nil then
+                local pos = self.m_skill_round_area_go.transform.position
+                pos = pos + move
+                self:find_skill_area_pos(self.m_skill_round_area_go, pos, skill_cfg)
+            end
+    end)
+    
+    -- 旋转技能区域
+    self:subscribe(unit:on_event("yaw_skill_area"), function(delta_yaw, skill_cfg)
+            -- print("@@@@@@@@@@@@", delta_yaw)
+            local go = self.m_skill_sector_area_go
+            if go ~= nil then
+                local trsf = go.transform
+                local euler = trsf.eulerAngles
+                
+                euler = euler + Vector3(0, delta_yaw, 0)
+                trsf.eulerAngles = euler
+                
+                unit:set_skill_dir(euler.y)
+            end
+    end)
+    
+    
+    -- 技能指示器显示技能不可用
+    self:subscribe(unit:on_event_skill_valid_set(true), function(is_valid)
+            -- 粗略的临时做法 把所有的指示器都变一个颜色
+            --print("--------skill_valid", is_valid)
+            self:show_skill_indicator_invalid(self.m_skill_range_indicator_go, is_valid)
+            self:show_skill_indicator_invalid(self.m_skill_round_area_go, is_valid)
+            self:show_skill_indicator_invalid(self.m_skill_sector_area_go, is_valid)
+    
+    end)
+
+end
+
+function UnitView:eventAboutSkill(view_go, unit)
+    -- 技能吟唱
+    self:subscribe(unit:on_event("skill_sing"), function(skill_id, skill_client_id)
+        self:on_event_skill_sing(skill_id, skill_client_id)
+    end)
+    
+    -- 瞬发技能/技能出招环节
+    self:subscribe(unit:on_event("instant_skill"), function(skill_id, skill_client_id)
+        self:on_event_instant_skill(skill_id, skill_client_id)
+    end)
+end
+
+-- 处理viewgo
+function UnitView:handleViewGo(view_go, unit)
+    view_go.transform.position = unit:get_pos()
+    if not unit:get_is_role() then
+        unit:get_cc().enabled = false
+        local capsule_collider = view_go:AddComponent(CapsuleCollider)
+        capsule_collider.height = unit:get_cc().height
+        capsule_collider.center = unit:get_cc().center
+        capsule_collider.radius = unit:get_cc().radius
+        capsule_collider.isTrigger = true
+        self:getFrame():on_event_attr_set("model_height", capsule_collider.height)
+        self:getFrame():on_event_attr_set("model_radius", capsule_collider.radius)
+        
+        local rigid_body = view_go:AddComponent(Rigidbody)
+        rigid_body.isKinematic = true
+    end
+    
+    -- 加载技能指示器
+    self:loadAreaGo(view_go, unit)
+    
+    
+    if (unit:get_is_main_player()) then
+        local rigidbody = view_go:AddComponent(UnityEngine.Rigidbody)
+        rigidbody.useGravity = false
+        rigidbody.isKinematic = true
+        view_go.tag = "Player";
+        
+        -- 已角色为主动的trigger_enter 暂时先只给主角加
+        local trigger_enter_event = require "common.util.on_role_trigger_enter_event"
+        trigger_enter_event.addSingleEvent(self)
+    
+    end
+end
+
+-- 加载技能指示
+function UnitView:loadAreaGo(view_go, unit)
+    -- 技能范围
+    self:load("sfx/skill_projector/prefab/range.prefab", function(eft_go)
+        eft_go.name = "skill_range_indicator"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        self.m_skill_range_indicator_go = eft_go
+        
+        self:show_skill_range_indicator(false)
+    end)
+    
+    local area_go_path = nil
+    -- 以后会改成阵营判断
+    if (unit:get_is_main_player() == true) then
+        area_go_path = "sfx/skill_projector/prefab/round_area.prefab"
+    else
+        area_go_path = "sfx/skill_projector/prefab/enemy_round_area.prefab"
+    end
+    -- 圆形作用区域
+    self:load(area_go_path, function(eft_go)
+        eft_go.name = "skill_round_area"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        self.m_skill_round_area_go = eft_go
+        
+        self.m_skill_round_area_go:SetActive(false)
+    end)
+    
+    if (unit:get_is_main_player() == true) then
+        area_go_path = "sfx/skill_projector/prefab/sector_area.prefab"
+    else
+        area_go_path = "sfx/skill_projector/prefab/enemy_sector_area.prefab"
+    end
+    
+    -- 锥形作用区域
+    self:load(area_go_path, function(eft_go)
+        eft_go.name = "skill_sector_area"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        self.m_skill_sector_area_go = eft_go
+        
+        self.m_skill_sector_area_go:SetActive(false)
+    end)
+
+    -- 矩形作用区域
+    self:load("sfx/skill_projector/prefab/enemy_round_area.prefab", function(eft_go)
+        eft_go.name = "enemy_skill_skill_rect"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        self.m_skill_sector_rect_go = eft_go
+        
+        self.m_skill_sector_rect_go:SetActive(false)
+    end)
+
+end
+
+function UnitView:show_skill_range_indicator(is_show, skill_cfg)
+    local unit = self:getFrame()
+    
+    if is_show then
+        local projector = self.m_skill_range_indicator_go:GetComponent(Projector)
+        -- 2017-09-14 技能范围指示器的尺寸加入主角体形范围因素
+        projector.orthographicSize = skill_cfg.cast_dist + unit:get_bounding_radius()
+        projector.ignoreLayers = LayerMask.GetMask("TransparentFX", "Role")
+    end
+    self.m_skill_range_indicator_go:SetActive(is_show)
+end
+
+
+function UnitView:draw_skill_area_indicator(skill_cfg)
+    local unit = self:getFrame()
+    local area_go = nil
+    local target = unit:get_target()
+    local skill_client_cfg = dbc.spell_client[skill_cfg.id]
+    local target_mode = skill_client_cfg.target_mode
+    
+    -- 圆形区域类型
+    if target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+        
+        area_go = self.m_skill_round_area_go
+        local target_pos = nil
+        
+        -- 无目标
+        if target == nil or target == unit then
+            target_pos = unit:get_pos()
+        -- 有目标
+        else
+            target_pos = target:get_pos()
+        end
+        self:find_skill_area_pos(area_go, target_pos, skill_cfg)
+    
+    -- 冰锥术类型
+    elseif target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+        area_go = self.m_skill_sector_area_go
+        local area_trsf = area_go.transform
+        local euler = area_trsf.eulerAngles
+        
+        -- 初始方向
+        if target == nil or target == unit then
+            -- print("!!!!!!!!!!! no skill target")
+            area_trsf.eulerAngles = Vector3(euler.x, self.m_unit:get_dir(), euler.z)
+        else
+            -- print("!!!!!!!!!!! aim target", target:get_id())
+            local target_pos = target:get_pos()
+            local unit_pos = unit:get_pos()
+            -- print(unit_pos, target_pos)
+            local dist = target_pos - unit_pos
+            dist.y = 0 -- 投影到世界xz平面
+            local rotation = Quaternion.FromToRotation(area_trsf.up, dist)
+            area_trsf.rotation = rotation * area_trsf.rotation
+            unit:set_skill_dir(euler.y)
+        end
+    elseif target_mode == Enum_Battle.Skill_Target_Mode.RECT then
+        area_go = self.m_skill_sector_rect_go
+        local target_pos = nil
+        
+        -- 无目标
+        if target == nil or target == unit then
+            target_pos = unit:get_pos()
+        -- 有目标
+        else
+            target_pos = target:get_pos()
+        end
+        self:find_skill_area_pos(area_go, target_pos, skill_cfg)
+    end
+    
+    if area_go ~= nil then
+        local projector = area_go:GetComponent(Projector)
+        local skill_mgr = app:getSkillMgr()
+        
+        -- pacman 2017-09-25 目前一个技能有多种效果，每个效果的范围可能都不一样。那么该用哪一个范围值来显示技能区域？
+        -- 临时先用最大的那个范围值
+        projector.orthographicSize = skill_mgr:get_skill_max_radius(skill_cfg.id, true)
+        projector.ignoreLayers = LayerMask.GetMask("TransparentFX", "Role")
+    end
+
+end
+
+
+
+
+function UnitView:attachItem(name, bone)
+    if bone == nil then return end
+    
+    local path = string.format("actors/Prefab/%s.prefab", name)
+    self:load(path, function(go)
+        go.transform:SetParent(bone.transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localRotation = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3(1, 1, 1)
+    end)
+end
+
+function UnitView:doUpdate()
+    
+    local delta_time = app.get_delta_time()
+    
+    -- pacman 2017-11-24 很老的溶解效果，现在应该不用了
+    if m_dissolve_ctrl ~= nil then
+        if self.m_unit:is_dead() and (not self.m_dissolve_started) then
+            self.m_dissolve_count_down = self.m_dissolve_count_down - delta_time
+            if self.m_dissolve_count_down <= 0 then
+                self.m_dissolve_started = true
+                self.m_dissolve_ctrl.enabled = true
+            end
+        end
+    end
+    
+    
+    -- 上下分层layerweight
+    self:handle_ex_layer_weight()
+    
+    
+    -- 平滑对其模型角度到(由move_state所决定的)模型朝向
+    if self.m_is_sync_model_dir then
+        -- print("syncing model dir")
+        local euler = self.m_avatar_trs.localEulerAngles
+        local cur_dir = euler.y
+        
+        if math.abs(cur_dir - self.m_target_model_dir) < 0.01 then
+            -- print(cur_dir, self.m_target_model_dir, "under threshold")
+            self.m_avatar_trs.localEulerAngles = Vector3(euler.x, self.m_target_model_dir, euler.z)
+            self.m_is_sync_model_dir = false
+        else
+            -- print(cur_dir, self.m_target_model_dir, "above threshold")
+            local smoothed_dir = Mathf.SmoothDampAngle(cur_dir, self.m_target_model_dir, self.m_model_dir_velocity, SMOOTH_TIME);
+            self.m_avatar_trs.localEulerAngles = Vector3(euler.x, smoothed_dir, euler.z)
+        end
+    end
+    
+    
+    local target = self.m_unit:get_target()
+    if target ~= nil and target ~= self.m_unit then
+        local aim_pos = target:get_bone("top") and (target:get_bone("top").position) or (self:get_client_position() + Vector3.up)
+        self.m_look_at_target_cmp:set_look_at_position(aim_pos)
+    else
+        self.m_look_at_target_cmp:clear_look_at_position()
+    end
+    self.m_look_at_target_cmp:doUpdate()
+    
+    
+    -- 播放受击效果
+    -- pacman 2017-12-05 删除受击特效的旧代码
+    --if self.m_being_hit then
+    --    if self.m_play_hit_count_down > 0 then
+    --        self.m_play_hit_count_down = self.m_play_hit_count_down - delta_time
+    --
+    --    else
+    --        -- 播放受击特效
+    --        if self.m_hit_go == nil then
+    --            local m_hit_go = "sfx/hit/Effect/Prefabs/hit_fire.prefab"
+    --            self:load(m_hit_go, function(eft_go)
+    --                eft_go.name = "hit_fire"
+    --                eft_go.transform.localPosition = Vector3(0, 1.2, 0)
+    --                eft_go.transform.localRotation = Vector3(0, 0, 0)
+    --                eft_go.transform.localScale = Vector3(1, 1, 1)
+    --                self.m_hit_go = eft_go
+    --            end)
+    --        else
+    --            local particle = self.m_hit_go:GetComponent("ParticleSystem")
+    --            particle:Play(true)
+    --        end
+    --
+    --        -- 播放受击动作
+    --        if self.m_anim ~= nil then
+    --            self.m_anim:SetTrigger("hit")
+    --        end
+    --
+    --        self.m_being_hit = false
+    --    end
+    --end
+    -- 适配技能区域到镜头
+    self:adapt_skill_area_into_screen()
+    
+    local view_go = self:getGO()
+    
+    --位移
+    local moveto = self.m_move_to
+    if moveto then
+        moveto.time = moveto.time + delta_time
+        if moveto.time >= LERP_DURATION then
+            self.m_unit:emit_event("set_position", moveto.to)-- 使用事件方式 统一实现
+        else
+            local pos = Vector3.Lerp(moveto.from, moveto.to, moveto.time / LERP_DURATION)
+            view_go.transform.position = pos
+        --Debug.LogError("start:"..tostring(moveto.from).." end:"..tostring(pos))
+        end
+    end
+    
+    -- 搭乘载具功能
+    if (self.m_carrier_handler ~= nil) then
+        self.m_carrier_handler.transform.position = self.m_unit:get_carrier().transform.position
+        self.m_unit:set_pos(view_go.transform.position)
+    end
+end
+
+function UnitView:show_skill_indicator(is_show, skill_id)
+    -- print("-------on_event show_skill_indicator", skill_id)
+    self.m_skill_cfg = dbc.spell[skill_id]
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local target_mode = skill_client_cfg.target_mode
+    if target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+        --技能范围
+        if self.m_skill_range_indicator_go ~= nil then
+            self:show_skill_range_indicator(is_show, self.m_skill_cfg)
+        end
+        
+        -- 圆形作用区域
+        if self.m_skill_round_area_go ~= nil then
+            if is_show then
+                self:draw_skill_area_indicator(self.m_skill_cfg)
+            end
+            self.m_skill_round_area_go:SetActive(is_show)
+        end
+    elseif target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+        -- 锥形作用区域
+        if self.m_skill_sector_area_go ~= nil then
+            if is_show then
+                self:draw_skill_area_indicator(self.m_skill_cfg)
+            end
+            self.m_skill_sector_area_go:SetActive(is_show)
+        end
+    elseif target_mode == Enum_Battle.Skill_Target_Mode.RECT then
+         -- 矩形作用区域
+         print("11111111111111Enum_Battle.Skill_Target_Mode.RECT")
+         print("----Rect Project----")
+         if self.m_skill_sector_rect_go ~= nil then
+            if is_show then
+                self:draw_skill_area_indicator(self.m_skill_cfg)
+            end
+            self.m_skill_sector_rect_go:SetActive(is_show)
+        end   
+    end
+
+end
+
+
+function UnitView:find_skill_area_pos(area_go, target_pos, skill_cfg)
+    
+    -- 范围限定
+    local unit_pos = self.m_unit:get_pos()
+    
+    local target_pos_on_player_xz = Vector3(target_pos.x, unit_pos.y, target_pos.z)
+    
+    local skill_mgr = app:getSkillMgr()
+    
+    -- pacman 2017-09-25 目前一个技能有多种效果，每个效果的范围可能都不一样。那么该用哪一个范围值来显示技能区域？
+    -- 临时先用最大的那个范围值
+    local spell_radius = skill_mgr:get_skill_max_radius(skill_cfg.id, true)
+    --local skill_effect_cfg = skill_mgr:get_skill_effect_cfg(skill_cfg.id, 0)
+    -- 2017-09-14 技能目标区域指示器的限定位置加入主角体形范围因素
+    -- pacman 2017-12-01 技能目标区域指示器的限定位置不再减去技能半径
+    local clamped_pos = Vector3.MoveTowards(unit_pos, target_pos_on_player_xz, skill_cfg.cast_dist + self.m_unit:get_bounding_radius())
+    clamped_pos.y = unit_pos.y + 5
+    -- print(unit_pos_xz, target_pos_xz, clamped_pos_xz)
+    local mask = LayerMask.GetMask("Terrain")
+    local ok, hitinfo = Physics.Raycast(clamped_pos, Vector3.down, Slua.out, 100, mask)
+    -- print("@@@@@@@@@@@@",mask, ok, pos, hitinfo.point)
+    if ok then
+        local hitpoint = hitinfo.point
+        self.m_unit:set_skill_area_pos(hitpoint)
+        
+        area_go.transform.position = hitpoint + Vector3(0, 5, 0)
+        
+        -- 圆形区域的外边缘
+        local unit_pos_on_hit_xz = Vector3(unit_pos.x, unit_pos.y, unit_pos.z)
+        unit_pos_on_hit_xz.y = hitpoint.y
+        
+        local dist_on_xz = hitpoint - unit_pos_on_hit_xz
+        local edge_pos = unit_pos_on_hit_xz + dist_on_xz.normalized * (dist_on_xz.magnitude + spell_radius)
+        -- local edge_pos = Vector3.MoveTowards(unit_pos_on_hit_xz, hitpoint, skill_cfg.cast_dist + skill_cfg.impact_dist)
+        Debug.DrawLine(self.m_unit:get_pos(), edge_pos)
+        
+        -- if self.m_testObj == nil then
+        -- 	self.m_testObj = Object.Instantiate(Resources.Load("Cube"))
+        -- end
+        -- self.m_testObj.transform.position = edge_pos
+        -- 区域与画面边缘检查
+        self:restraint_on_screen(edge_pos)
+    else
+        -- 非法区域处理
+        end
+
+end
+
+
+-- 沿着让target_pos出现在视野上的方向旋转相机
+function UnitView:restraint_on_screen(target_pos)
+    local cam = self.m_cam
+    local ucam = cam:fetch_unity_camera()
+    local edge_screen_pos = ucam:WorldToScreenPoint(target_pos)
+    
+    -- 如果target跑到相机的背面
+    local z = edge_screen_pos.z
+    if z < 0 then
+        edge_screen_pos = edge_screen_pos * -1
+        edge_screen_pos.z = z
+    end
+    -- print("@@@@@@@@@@@@@@", edge_screen_pos)
+    local need_to_turn_camera = false
+    local left = true
+    local y_off = edge_screen_pos.y - SKILL_RANGE_Y_OFFSET
+    if y_off < 0 then -- 垂直方向
+        if edge_screen_pos.x >= ucam.pixelWidth * 0.5 then
+            left = false
+        else
+            left = true
+        end
+        need_to_turn_camera = true
+    else -- 水平方向
+        -- 左边
+        local x_off_l = edge_screen_pos.x - SKILL_RANGE_X_OFFSET
+        if x_off_l < 0 then
+            left = true
+            need_to_turn_camera = true
+        else
+            -- 右边
+            local x_off_r = edge_screen_pos.x + SKILL_RANGE_X_OFFSET
+            if x_off_r > ucam.pixelWidth then
+                left = false
+                need_to_turn_camera = true
+            end
+        end
+    end
+    
+    if need_to_turn_camera then
+        local goal_yaw = cam:fetch_goal_yaw() + 1 * (left and -1 or 1)
+        cam:change_goal_yaw(goal_yaw)
+    end
+
+end
+
+
+
+-- 旋转镜头直至技能区域完整显示在画面中
+-- trsf技能区域transform
+function UnitView:adapt_skill_area_into_screen()
+    if self.m_skill_cfg == nil then
+        return
+    end
+    local skill_cfg = self.m_skill_cfg
+    local skill_mgr = app:getSkillMgr()
+    --local skill_effect_cfg = skill_mgr:get_skill_effect_cfg(skill_cfg.id, 0)
+    local skill_client_cfg = dbc.spell_client[skill_cfg.id]
+    local target_mode = skill_client_cfg.target_mode
+    
+    local unit = self.m_unit
+    
+    local area_go = nil
+    if target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+        area_go = self.m_skill_round_area_go
+    elseif target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+        area_go = self.m_skill_sector_area_go
+    end
+    
+    if area_go == nil or (not area_go.activeSelf) then
+        return
+    end
+    
+    local trsf = area_go.transform
+    
+    
+    -- 镜头边缘检查
+    if target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+        -- 圆形区域的外边缘
+        elseif target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+        
+        -- 扇形指示器的前方向(因为投影器旋转了，所以是投影器y轴)投影到玩家所在的xz平面上，世界坐标
+        -- local projected_front = Vector3.ProjectOnPlane(trsf.up, Vector3.up)
+        -- local edge_pos = projected_front.normalized * skill_cfg.impact_dist + unit:get_pos()
+        local projected_front = Vector3.ProjectOnPlane(trsf.up, Vector3.up)
+        
+        -- pacman 2017-09-25 目前一个技能有多种效果，每个效果的范围可能都不一样。那么该用哪一个范围值来显示技能区域？
+        -- 临时先用最大的那个范围值
+        local skill_radius = skill_mgr:get_skill_max_radius(skill_cfg.id, true)
+        local edge_pos = projected_front.normalized * skill_radius + unit:get_pos()
+        
+        Debug.DrawLine(unit:get_pos(), edge_pos)
+        
+        -- 画面边缘检查
+        self:restraint_on_screen(edge_pos)
+        end
+
+
+end
+
+
+
+function UnitView:show_skill_indicator_invalid(idct_go, is_valid)
+    if idct_go == nil then
+        return
+    end
+    
+    -- 可用/不可用颜色
+    local color = Color.green;
+    if not is_valid then
+        color = Color.red
+    end
+    
+    -- 变色
+    local projector = idct_go:GetComponent(Projector)
+    projector.material.color = color
+end
+
+
+-- 处理动画事件
+---@param anim_evt UnityEngine.AnimationEvent
+function UnitView:on_animation_event(skill_queue_object, anim_evt, is_skill_target)
+    --print("-----------------",evt.stringParameter)
+    local unit = self.m_unit   
+    local evt_type = anim_evt.stringParameter
+    local evt_int = anim_evt.intParameter
+    if evt_type == Enum_Battle.Anim_Evt_Type.CAST then
+        local skill_id = skill_queue_object.spell_id
+        local skill_client_id = skill_queue_object.spell_client_id
+        local skill_cfg = dbc.spell[skill_id]
+        local client_cfg = dbc.spell_client[skill_client_id]
+        -- 类型 施放点 --
+        if not is_skill_target then
+            -- 如果是技能释放者 --
+            -- 播放技能施放特效
+            local sfx_path = client_cfg.instant_sfx
+            if sfx_path == "" or sfx_path == "n" then
+                return
+            else
+          
+                local skill_mgr = app:getSkillMgr()
+                
+                if (skill_mgr:check_special_skill_cast(unit,skill_queue_object) == true) then
+                    return
+                end
+                
+                --sfx_path = "sfx/skill/prefab/"..sfx_path
+                --self:show_skill_sfx(sfx_path, skill_id)
+                -- pacman 2017-11-02 临时加入"world"挂点的功能，后面会整合到系统中
+                skill_mgr:add_autodestory_sklsfx_in_unit(skill_id, skill_client_id,
+                Enum_Battle.Skill_Sfx_Type.INSTANT, Enum_Battle.Skill_Mount_Point_Type.INSTANT,
+                self.m_unit)
+            end
+        else
+            -- 如果是技能释放目标 --
+            local speed = skill_cfg.speed
+            if speed ~= 0 then
+                -- 如果发出了一个飞弹，那现在不播受击行为，由飞弹击中目标后处理
+                return
+            end
+            local skill_mgr = app:getSkillMgr()
+            local if_show_hit_sfx = true
+            local mount_point = client_cfg[Enum_Battle.Skill_Mount_Point_Type.INSTANT]
+            if mount_point[1] == "world" then
+                if_show_hit_sfx = false
+            end
+            -- 这个be_hit是非飞弹技能 认为瞬间打中时候触发
+            self:on_be_hit(skill_queue_object, if_show_hit_sfx)
+        end
+    elseif evt_type == Enum_Battle.Anim_Evt_Type.POSE then
+        local ui_manager = app:get_ui_manager()
+        local data = self.m_unit:getCfg()        
+        if (evt_int == 1) then
+            ui_manager:CloseLowUIRootByName(ui_manager.UI_Depth.HIGH)
+            if (self.show_pose_camera == 1) then
+                self.m_anim:SetInteger("main_act", 21)
+                local bossPoseCamera = self:get_bone("camera"):GetComponentInChildren(Camera)
+                bossPoseCamera.enabled = true
+            end
+            
+            self:getFrame("boss_show"):Start(
+                {
+                    des = data.boss_desc,
+                })
+        elseif (evt_int == 2) then
+            self:getFrame("boss_show"):doAction()
+        else
+            if (self.show_pose_camera == 1) then
+                self.m_anim:SetInteger("main_act", 0)
+                local bossPoseCamera = self:get_bone("camera"):GetComponentInChildren(Camera)
+                bossPoseCamera.enabled = false
+            end
+            ui_manager:ShowLowUIRootByName(ui_manager.UI_Depth.HIGH)
+            self:getFrame("boss_show"):endAction()
+        end
+    elseif string.find(evt_type, Enum_Battle.Anim_Evt_Type.WEAPON) then
+        if (evt_int > #self.m_weapons) then return end
+        
+        if (evt_int == 0) then -- 0 默认为所有武器
+            for index = 1, #self.m_weapons do
+                local animator = self.m_weapons[index]:GetComponent(Animator)
+                if (animator ~= nil) then animator:SetTrigger(evt_type) end
+            end
+        else
+            local animator = self.m_weapons[evt_int]:GetComponent(Animator)
+            if (animator ~= nil) then animator:SetTrigger(evt_type) end
+        end
+    elseif evt_type == Enum_Battle.Anim_Evt_Type.HIDE then 
+        self:getGO():SetActive(false)
+    end
+
+end
+
+
+-- pacman 2017-12-05 受击处理
+function UnitView:on_be_hit(skill_queue_object, if_show_hit_sfx)
+    local skill_id = skill_queue_object.spell_id
+    local skill_client_id = skill_queue_object.spell_client_id
+    -- 播放受击动作
+    if self.m_anim ~= nil then
+        self.m_anim:SetTrigger("hit")
+    end
+    
+    -- 播放受击特效
+    if if_show_hit_sfx then
+        local skill_mgr = app:getSkillMgr()
+        skill_mgr:add_autodestory_sklsfx_in_unit(skill_id, skill_client_id,
+            Enum_Battle.Skill_Sfx_Type.HIT, Enum_Battle.Skill_Mount_Point_Type.HIT,
+            self.m_unit)
+    end
+    
+    
+    -- 模型闪光 --
+    -- pacman 2017-12-06 闪光改为白红二阶段
+    -- 白阶段
+    local shader_name = "KTGame/KTSS"
+    local org_material_param_list = self:change_avatar_all_shaders(shader_name, "Color", "_RimColor", Color(4, 4, 4, 1))
+    -- pacman 2017-12-07 临时打个小补丁，解决一下如果两个闪光特效前后发生比较快时，模型一直高亮的问题
+    -- 记录初始材质参数
+    if self.m_org_material_param_list == nil then
+        self.m_org_material_param_list = org_material_param_list
+    end
+    -- 定时进入红阶段
+    slua_timer.addDelayEvent(0.04, function()
+        self:change_avatar_all_shaders(shader_name, "Color", "_RimColor", Color(4, 0, 0, 1))
+        
+        -- 定时取消闪光
+        slua_timer.addDelayEvent(0.04, function()
+            -- pacman 2017-12-06 考虑到change_avatar_all_shaders的实现，下面遍历的做法效率是比较low的
+            -- 还好遍历数量不大
+            for i, v in ipairs(self.m_org_material_param_list) do
+                --print(v.material_name, v.type_, v.key_, v.value_)
+                self:change_avatar_all_shaders(v.shader_name, v.type_, v.key_, v.value_)
+            end
+        end)
+    end)
+
+    -- pacman 临时测试震屏
+    --self.m_cam:shake(0.5, 4, 0.1, 0)
+end
+
+
+function UnitView:show_skill_hit_sfx(skill_id)
+    local client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = client_cfg.hit_sfx
+    if sfx_path == "" or sfx_path == "n" then
+        return
+    else
+        --sfx_path = "sfx/skill/prefab/"..sfx_path
+        self:show_skill_sfx(sfx_path, skill_id)
+    end
+end
+
+
+function UnitView:show_skill_sfx(res_path, skill_id, res_mount_path)
+    local client_cfg = dbc.spell_client[skill_id]
+    
+    if (type(res_path) == "table") then
+        local index = 1
+        repeat
+            if (res_path[index] == nil) then break end
+            self:load_sfx(res_path[index], res_mount_path[index])
+            index = index + 1
+        until (index > #res_path)
+    else
+        self:load_sfx(skill_id, res_path, res_mount_path)
+    end
+
+end
+
+function UnitView:load_sfx(skill_id, res_path, res_mount_path)
+    -- 加载特效
+    self:load(res_path, function(eft_go)
+        eft_go.transform.localPosition = Vector3(0, 0, 0)
+        eft_go.transform.localRotation = Vector3(0, 0, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        local particle = eft_go:GetComponent(UnityEngine.ParticleSystem)
+        if particle then
+            particle:Play(true)
+        end
+    
+    end)
+end
+
+function UnitView:on_main_act_changed(value)
+    self.m_anim:SetInteger("main_act", value)
+    
+    
+    -- 溶解特效
+    if self.m_dissolve_ctrl ~= nil then
+        -- 死亡时延迟播放溶解特效
+        if value == 2 then
+            self.m_dissolve_count_down = 2.5
+            self.m_dissolve_started = false
+        else
+            self.m_dissolve_ctrl.enabled = false
+        end
+    end
+
+end
+
+-- pacman 2017-12-01 子行为变化处理
+function UnitView:on_sub_act_changed(value)
+    self.m_anim:SetInteger("sub_act", value)
+end
+
+
+-- 技能吟唱
+function UnitView:on_event_skill_sing(skill_id, skill_client_id)
+    
+    -- 根据skill_id切换吟唱动画clip --
+    local client_cfg = dbc.spell_client[skill_client_id]
+    local sing_anim_a_path = model_mgr.GetAnimationPathById(self.m_unit:getCfg().model_id, client_cfg.sing_anim_a)
+    local sing_anim_b_path = model_mgr.GetAnimationPathById(self.m_unit:getCfg().model_id, client_cfg.sing_anim_b)
+    local anim_override_ctrler = self.m_anim_override_ctrler
+    --print("-----------", sing_anim_path)
+    -- sing_a
+    self:override_anim_clip(Enum_Unit.OverrideClipName.sing_a, sing_anim_a_path)
+    
+    --self:subscribe(app:getResMgr():rxLoad(sing_anim_a_path), function(asset_ref)
+    --    if (self:getGO().activeSelf == true) then
+    --        anim_override_ctrler:setItem("sing_a", asset_ref.asset)
+    --    end
+    --end)
+    -- sing_b
+    --if(sing_anim_b_path ~= nil and #sing_anim_b_path >0) then
+    self:override_anim_clip(Enum_Unit.OverrideClipName.sing_b, sing_anim_b_path)
+    --self:subscribe(app:getResMgr():rxLoad(sing_anim_b_path), function(asset_ref)
+    --    if (self:getGO().activeSelf == true) then
+    --        anim_override_ctrler:setItem("sing_b", asset_ref.asset)
+    --    end
+    --end)
+    --else
+    -- self.m_anim:SetTrigger("no_sing_b")
+    --end
+    -- 吟唱特效 --
+    local skill_mgr = app:getSkillMgr()
+    skill_mgr:add_skill_sing_eft(skill_id, self.m_unit)
+
+end
+
+-- 瞬发技能/技能出招环节
+function UnitView:on_event_instant_skill(skill_id, skill_client_id)
+    --print(">>>>>>>>>>>>>>instant_skill", skill_id)
+    if (self.m_anim_override_ctrler ~= nil) then
+        -- 根据skill_id切换角色施法动画clip --
+        local client_cfg = dbc.spell_client[skill_client_id]
+        
+        -- 没有动画，不播放
+        if (client_cfg.instant_anim == nil or #client_cfg.instant_anim == 0) then
+            return
+        end
+        
+        local instant_anim_path = model_mgr.GetAnimationPathById(self.m_unit:getCfg().model_id, client_cfg.instant_anim)
+        local anim_override_ctrler = self.m_anim_override_ctrler
+        
+        self:override_anim_clip(Enum_Unit.OverrideClipName.instant_skill, instant_anim_path)
+        
+        self.m_anim:SetTrigger("instant_skill")
+        
+        local skill_mgr = app:getSkillMgr()
+        skill_mgr:add_autodestory_sklsfx_in_unit(skill_id, skill_client_id,
+        Enum_Battle.Skill_Sfx_Type.INSTANT_PROCESS, Enum_Battle.Skill_Mount_Point_Type.INSTANT_PROCESS,
+        self.m_unit)
+
+    -- 出招/受击特效播放时机将由animationClip上配置的animationEvent决定
+    end
+end
+
+function UnitView:on_event_override_animator_clip(name, path, trigger)
+    if (self:getGO().activeSelf == false) then
+        return
+    end
+    
+    if (path == nil or #path == 0) then
+        self.m_anim_override_ctrler:setItem(name, nil)
+    end
+    
+    local full_path = model_mgr.GetAnimationPathById(self.m_unit:getCfg().model_id, path)
+    self:subscribe(app:getResMgr():rxLoad(full_path), function(asset_ref)
+        if (self:getGO().activeSelf == true) then
+            self.m_anim_override_ctrler:setItem(name, asset_ref.asset)
+            if (trigger ~= nil) then
+                self.m_anim:SetTrigger(trigger)
+            end
+        end
+    end)
+end
+
+-- 接受到服务器消息 强行播放动画
+function UnitView:on_event_play_anim(anima_key, is_loop, has_camera)
+    
+    local s2c_anim_data = dbc.s2c_anim[tonumber(anima_key)]
+    
+    local anima_name = s2c_anim_data.anima_name
+    
+    local sfx_path = s2c_anim_data.anima_sfx
+    
+    local sfx_point = s2c_anim_data.sfx_point
+    
+    self.show_pose_camera = has_camera
+    
+    if (anima_name ~= nil and #anima_name > 0) then
+        self:on_event_override_animator_clip("face_anim", anima_name, "play_anim")
+        if (is_loop == 1) then
+            self:on_event_override_animator_clip("face_anim_loop", anima_name, "play_anim_loop")
+        end
+    end
+    
+    self:load_play_anim_sfx(sfx_path, self:get_bone(sfx_point))
+end
+
+
+function UnitView:load_play_anim_sfx(res_path, sfx_mount_tra)
+    if (self.m_play_anim_sfx ~= nil) then
+        Object.Destroy(self.m_play_anim_sfx)
+        self.m_play_anim_sfx = nil
+    end
+    if (res_path == nil or #res_path == 0) then
+        return
+    end
+    -- 加载特效
+    self:load(res_path, function(eft_go)
+            -- 添加到挂点
+            if (sfx_mount_tra ~= nil) then
+                eft_go.transform.parent = sfx_mount_tra
+            else
+                eft_go.transform.parent = self.m_avatar_trs
+            end
+            
+            eft_go.transform.localPosition = Vector3.zero
+            eft_go.transform.localEulerAngles = Vector3.zero
+            
+            
+            self.m_play_anim_sfx = eft_go
+            --Debug.LogError(self.m_play_anim_sfx)
+            local particle = eft_go:GetComponent(UnityEngine.ParticleSystem)
+            if particle then
+                particle:Play(true)
+            end
+    end)
+end
+
+
+function UnitView:init_bone_info(go)
+    local bone_manager = go:GetComponent(KTBoneManager)
+    local bone_dict = {}
+    if bone_manager then
+        local bone_list = bone_manager:GetBoneList()
+        for i = 0, bone_list.Count - 1 do
+            local bone = bone_list[i]
+            --local bone_name = string.sub(bone.name, 6, -1)
+            local bone_name = bone.name
+            bone_dict[bone_name] = bone
+        end
+    end
+    self.m_bone_dict["inherent"] = bone_dict
+    self.m_bone_dict["customer"] = {}
+end
+
+function UnitView:get_bone(bone_name)
+    -- local bone = self.m_bone_dict["inherent"][bone_name]
+    if (bone_name == "main_camera") then -- 有一些独特的挂点 我认为在这里判断更为合适一些 clz
+        return UnityEngine.Camera.main.transform
+    end
+    
+    
+    local bone = self:get_inherent_bone(bone_name)
+    if bone then
+        return bone
+    end
+    return self:get_customer_bone(bone_name)
+end
+
+function UnitView:get_inherent_bone(bone_name)
+    if not self.m_bone_dict["inherent"] then
+        return nil
+    end
+    return self.m_bone_dict["inherent"][bone_name]
+end
+
+function UnitView:get_customer_bone(bone_name)
+    if not self.m_bone_dict["customer"] then
+        return nil
+    end
+    local bone = self.m_bone_dict["customer"][bone_name]
+    if bone then
+        return bone
+    end
+    local bone_info = get_customer_bone(self.m_model_name, bone_name)
+    if not bone_info then
+        return nil
+    end
+    local base_bone = self:get_inherent_bone(bone_info["base_name"])
+    if not base_bone then
+        return nil
+    end
+    bone = GameObject(bone_name .. "(customer bone)").transform
+    bone.parent = base_bone
+    bone.localPosition = bone_info["local_pos"]
+    bone.localRotation = bone_info["local_rot"]
+    self.m_bone_dict["customer"][bone_name] = bone
+    return bone
+end
+
+function UnitView:get_client_position()
+    local go = self:getGO()
+    if go then
+        return go.transform.position
+    end
+    return Vector3.zero
+end
+
+function UnitView:show_monster_choose(color)
+    local this = self
+    local tr = self:getGO().transform
+    local cc = tr:GetComponent(CharacterController)
+    local player_id = app:getKBESDK():get_player_id()
+    local func_set_top = function(go)
+        if this.m_monster_choose_info.tr_top then
+            Object.DestroyImmediate(this.m_monster_choose_info.tr_top.gameObject)
+            this.m_monster_choose_info.tr_top = nil
+        end
+        this.m_monster_choose_info.tr_top = go.transform
+        this.m_monster_choose_info.tr_top.parent = tr
+        this.m_monster_choose_info.tr_top.localPosition = Vector3.up * (cc and cc.height * 1.15 or Vector3.one)
+        this.m_monster_choose_info.tr_top.localScale = Vector3.one * (cc and cc.radius * 2 or 1)
+    end
+    local get_top_path = function(color)
+        return string.format("sfx/skill/prefab/ui/ui_js_touding_%s.prefab", color)
+    end
+    if self:getFrame():get_is_role() then
+        self:load("sfx/skill/prefab/ui/ui_js_touding_blue.prefab", function(go)
+            func_set_top(go)
+        end)
+    else
+        local is_npc = false
+        if is_npc then
+            
+            else
+            local bottom_path = "sfx/monster_choose/prefab/mc_red.prefab"
+            local top_path = player_id == self:getFrame():get_target_id() and get_top_path("red") or get_top_path("white")
+            self:load(top_path, function(go)
+                func_set_top(go)
+                this.m_monster_choose_info["func_top"] = self:subscribe(self:getFrame():on_event_attr_set("target_id"), function(tar_id)
+                    if player_id == tar_id then
+                        this:load(get_top_path("red"), function(temp_go)
+                            func_set_top(temp_go)
+                        end)
+                    else
+                        this:load(get_top_path("white"), function(temp_go)
+                            func_set_top(temp_go)
+                        end)
+                    end
+                end)
+            end)
+            
+            self:load(bottom_path, function(go)
+                this.m_monster_choose_info.tr_bottom = go.transform
+                this.m_monster_choose_info.tr_bottom.parent = tr
+                this.m_monster_choose_info.tr_bottom.localPosition = Vector3.zero
+                this.m_monster_choose_info.tr_bottom.localEulerAngles = Vector3(0, 180, 0)
+                this.m_monster_choose_info.tr_bottom:GetChild(0):GetComponent(UnityEngine.Projector).orthographicSize = cc and cc.radius * 1.2 or 0.6
+                this.m_monster_choose_info.func_bottom = self:subscribe(self:getFrame():on_event_attr_set("target_id", true), function(tar_id)
+                    if player_id == tar_id then
+                        this.m_monster_choose_info.tr_bottom:GetChild(0):GetComponent(UnityEngine.Projector).material.color = Color.white
+                        local tweener = ShortcutExtensions.DOColor(this.m_monster_choose_info.tr_bottom:GetChild(0):GetComponent(UnityEngine.Projector).material, Color.red, 1)
+                        DG_DOTweenUtil.SetLoops(tweener, -1, 1)
+                        TweenExtensions.Restart(tweener, true, -1)
+                    else
+                        this.m_monster_choose_info.tr_bottom:GetChild(0):GetComponent(UnityEngine.Projector).material.color = Color.white
+                    end
+                end)
+            end)
+        end
+    end
+end
+
+function UnitView:hide_monster_choose()
+    if self.m_monster_choose_info.tr_top then
+        Object.Destroy(self.m_monster_choose_info.tr_top.gameObject)
+        self.m_monster_choose_info.tr_top = nil
+        self:unsubscribe(self.m_monster_choose_info.func_top)
+    end
+    if self.m_monster_choose_info.tr_bottom then
+        Object.Destroy(self.m_monster_choose_info.tr_bottom.gameObject)
+        self.m_monster_choose_info.tr_bottom = nil
+        self:unsubscribe(self.m_monster_choose_info.func_bottom)
+    end
+end
+
+-- 子对象创建处理
+function UnitView:on_child_frame_created(child_frame)
+    --print("+++++++++++++++++", child_frame:getFrameName())
+    local name = child_frame:getFrameName()
+    
+    -- 是角色特效子对象
+    if string.find(name, "unit_sfx") then
+        local mount_point = child_frame:get_mount_point()
+        local view = self.m_mgr:getView(name)
+        
+        -- 添加到挂点/布局
+        local view_go = view:getGO()
+        
+        local parent = self:get_bone(mount_point)
+        if parent ~= nil then
+            --print("********* found a bone", mount_point)
+            view_go.transform.parent = parent
+        else
+            --print("********* no bone", mount_point)
+            view_go.transform.parent = self:getGO().transform
+        end
+        view_go.transform.localPosition = Vector3.zero
+        view_go.transform.localEulerAngles = Vector3.zero
+    end
+end
+
+function UnitView:reset_avatar()
+    self.m_avatar_trs.localPosition = Vector3.zero
+end
+
+function UnitView:change_avatar_all_material(material_name, type, key, value)
+    
+    local avatar = self.m_avatar_trs.gameObject
+    local renders = avatar:GetComponentsInChildren(SkinnedMeshRenderer)
+    local mlist = {}
+    
+    -- pacman 2017-12-06 把原始参数记录下来，以便后边再恢复还原
+    local org_params = {}
+    
+    for render in foreach(renders) do
+        
+        local mms = render.materials
+        for ma in foreach(mms) do
+            -- pacman 2017-12-06 指定名称为nil，表示全部名称都ok
+            if (material_name == nil or ma.name == material_name) then
+                table.insert(mlist, ma)
+                table.insert(org_params, {
+                    material_name = ma.name,
+                    type_ = type,
+                    key_ = key,
+                })
+            end
+        end
+    end
+    
+    for i = 1, #mlist do
+        if (type == "Color") then
+            -- pacman 2017-12-06 记录原始参数值
+            org_params[i].value_ = mlist[i]:GetColor(key)
+            mlist[i]:SetColor(key, value)
+        end
+    end
+    
+    return org_params
+end
+
+-- pacman 2017-12-13 临时加入一个针对shader进行参数替换的功能
+function UnitView:change_avatar_all_shaders(shader_name, type, key, value)
+    
+    local avatar = self.m_avatar_trs.gameObject
+    local renders = avatar:GetComponentsInChildren(SkinnedMeshRenderer)
+    local mlist = {}
+    
+    -- pacman 2017-12-06 把原始参数记录下来，以便后边再恢复还原
+    local org_params = {}
+    
+    for render in foreach(renders) do
+        
+        local mms = render.materials
+        for ma in foreach(mms) do
+            -- pacman 2017-12-06 指定名称为nil，表示全部名称都ok
+            if (ma.shader.name == shader_name) then
+                table.insert(mlist, ma)
+                table.insert(org_params, {
+                    shader_name = ma.shader.name,
+                    type_ = type,
+                    key_ = key,
+                })
+            end
+        end
+    end
+    
+    for i = 1, #mlist do
+        if (type == "Color") then
+            -- pacman 2017-12-06 记录原始参数值
+            org_params[i].value_ = mlist[i]:GetColor(key)
+            mlist[i]:SetColor(key, value)
+        end
+    end
+    
+    return org_params
+end
+
+
+
+
+
+
+
+--
+---- pacman 2017-11-24 根据animator param 处理动画图层
+--function UnitView:handle_anim_layer(name, param_type, value)
+--    -- 2017-11-24 pacman 处理animationLayer权重
+--    -- 目前只对罗刹/灵猴做处理
+--    print("--------------", name, param_type, value)
+--    if not self.m_unit:get_is_main_player() then
+--        return
+--    else
+--        local specialization = self.m_unit:get_specialization()
+--        if specialization ~= SharedEnum.TalentSpecialization.DEMON_HUNTER_VENGEANCE and
+--        specialization ~= SharedEnum.TalentSpecialization.MAGE_FIRE
+--        then
+--            return
+--        end
+--    end
+--
+--    -- 上下分层总开关
+--    -- todo 从技能配置中获取正确的is_ex_allowed
+--    local is_ex_allowed = true
+--    if not is_ex_allowed then
+--        return
+--    end
+--
+--
+--    -- 处理【上下身分层】图层的权重 --
+--    -- 允许分层则【上下身分层】图层权重向1趋近
+--    -- 否则,【上下身分层】图层权重向0趋近
+--    local animator = self.m_anim
+--
+--    -- 是否处于需要分层的动作状态中
+--    local is_in_ex_act = false
+--    local is_running = animator:GetBool("run")
+--    is_in_ex_act = is_running
+--    if not is_in_ex_act then
+--        return
+--    end
+--
+--
+--    local lower_layer_id = animator:GetLayerIndex("Lower Layer")
+--    local upper_layer_id = animator:GetLayerIndex("Upper Layer")
+--
+--    -- 判断该anima param是否需要开启【上下分层】
+--    local should_param_use_ex = false
+--    if name == "attack" and param_type == "trigger" then    -- 攻击
+--        print(" should_param_use_ex YEsYEsYEsYEsYEsYEsYEsYEsYEs")
+--        should_param_use_ex = true
+--    end
+--
+--    -- 综合判断是否要开启【上下分层】
+--    if is_ex_allowed and is_in_ex_act and should_param_use_ex then
+--        print("1111111111111111111")
+--        self.m_goal_layer_weight = 1
+--        animator:SetLayerWeight(lower_layer_id, 1)
+--        animator:SetLayerWeight(upper_layer_id, 1)
+--    else
+--        print("0000000000000000000")
+--        self.m_goal_layer_weight = 0
+--        animator:SetLayerWeight(lower_layer_id, 0)
+--        animator:SetLayerWeight(upper_layer_id, 0)
+--    end
+--end
+--
+--
+-- pacman 2017-11-27 处理【上下分层】权重
+function UnitView:handle_ex_layer_weight()
+    
+    if self.m_anim == nil then
+        return
+    end
+    
+    -- 临时 目前只对罗刹/灵猴做处理
+    if not self.m_unit:get_is_main_player() then
+        return
+    else
+        local specialization = self.m_unit:get_specialization()
+        if specialization ~= SharedEnum.TalentSpecialization.DEMON_HUNTER_VENGEANCE and
+            specialization ~= SharedEnum.TalentSpecialization.MAGE_FIRE
+        then
+            return
+        end
+    end
+    
+    local animator = self.m_anim
+    
+    -- 检查【上下分层开启】条件
+    -- 1. 是否处于一个合适的移动状态
+    -- 2. 是否开始了一个合适的动作(目前由Animator StateEnter/Exit判断决定)
+    -- 移动状态检查
+    -- todo 更多的移动状态检查
+    if animator:GetBool("run") then -- 跑动中
+        self.m_ex_move_test_result = true
+    else
+        self.m_ex_move_test_result = false
+    end
+    
+    -- 移动/动作检查全部通过
+    local lower_layer_id = self.m_anim:GetLayerIndex("Lower Layer")
+    local upper_layer_id = self.m_anim:GetLayerIndex("Upper Layer")
+    --local lower_weight = self.m_anim:GetLayerWeight(lower_layer_id)
+    --local upper_weight = self.m_anim:GetLayerWeight(upper_layer_id)
+    --print(self.m_ex_move_test_result, self.m_ex_act_test_result)
+    if self.m_ex_move_test_result and self.m_ex_act_test_result then
+        -- 开启【上下分层开启】
+        self.m_anim:SetLayerWeight(lower_layer_id, 1)
+        self.m_anim:SetLayerWeight(upper_layer_id, 1)
+    else
+        -- 关闭【上下分层开启】
+        self.m_anim:SetLayerWeight(lower_layer_id, 0)
+        self.m_anim:SetLayerWeight(upper_layer_id, 0)
+    end
+
+end
+
+
+-- 2017-11-27 pacman 判断所给AnimationState是否【上下分层】类型
+-- 暂时先放在这里，后边应该放到某mgr中
+function UnitView:is_animator_state_ex(animator_state_info)
+    
+    
+    if animator_state_info:IsName(Enum_Unit.PCAnimStateName.atk) then
+        -- 普攻动作总是要分层的
+        return true
+    elseif animator_state_info:IsName(Enum_Unit.PCAnimStateName.instant_skill) then
+        -- 技能施法动作大部分情况应该分层，但存在特例。由spell_client表控制
+        local skill_id = self.m_unit:get_skill_id()
+        local skill_client_cfg = dbc.spell_client[skill_id]
+        if skill_client_cfg.is_cast_parted then
+            return true
+        else
+            return false
+        end
+    elseif animator_state_info:IsName(Enum_Unit.PCAnimStateName.sing_a)
+        or animator_state_info:IsName(Enum_Unit.PCAnimStateName.sing_b)
+    then -- 吟唱动作的每个state都要进行判断: sing_a, sing_b
+        -- 吟唱动作大部分情况下可以由spell.can_cast_while_moving来控制，但存在特例
+        -- 比如某技能的吟唱动作是双脚浮动，这种情况下即便允许移动中吟唱，也不应该分层
+        -- 于是专门在spell_client表中添加了一个吟唱分层开关字段
+        local skill_id = self.m_unit:get_skill_id()
+        local skill_client_cfg = dbc.spell_client[skill_id]
+        if skill_client_cfg.is_sing_parted then
+            return true
+        else
+            return false
+        end
+    else
+        return false
+    end
+end
+
+
+-- 2017-11-29 pacman 如今替换 AnimatorOverrideController clip的时候要多考虑一些情况，比如【上下半身分层】
+-- clip_name 要替换的clip名称，见 Enum_Unit
+-- path 要替换的clip资源路径
+function UnitView:override_anim_clip(clip_name, path)
+    
+    local is_upper_res_loaded = false
+    
+    -- 上半身版对应的路径与名称
+    local clip_name_upper = clip_name .. Enum_Unit.UpperAnimClipSurfix
+    local path_upper = string.gsub(path, "%.anim", Enum_Unit.UpperAnimClipSurfix .. ".anim")
+    
+    --print(clip_name, path)
+    --print(clip_name_upper, path_upper)
+    -- 加载base版替换动作
+    if (CacheMgr ~= nil) then
+        local cache = CacheMgr:GetAnimaCache(path)
+        if (cache ~= nil) then
+            --Debug.LogError("获取到缓存-->"..path)
+            local asset_ref = cache
+            if (self:getGO().activeSelf == true) then
+                self.m_anim_override_ctrler:setItem(clip_name, asset_ref.asset)
+                -- 如果此时上半身版本资源尚未到位，可能未加载完毕，也有可能不存在，先使用全身版动作
+                if not is_upper_res_loaded then
+                    self.m_anim_override_ctrler:setItem(clip_name_upper, asset_ref.asset)
+                end
+            end
+        else
+            self:subscribe(app:getResMgr():rxLoad(path), function(asset_ref)
+                if (self:getGO().activeSelf == true) then
+                    self.m_anim_override_ctrler:setItem(clip_name, asset_ref.asset)
+                    -- 如果此时上半身版本资源尚未到位，可能未加载完毕，也有可能不存在，先使用全身版动作
+                    if not is_upper_res_loaded then
+                        self.m_anim_override_ctrler:setItem(clip_name_upper, asset_ref.asset)
+                    end
+                end
+            end)
+        end
+    end
+    
+    -- 尝试加载替换ex上半身动作
+    self:subscribe(app:getResMgr():rxLoad(path_upper), function(asset_ref)
+        if (self:getGO().activeSelf == true) then
+            if asset_ref.asset then
+                self.m_anim_override_ctrler:setItem(clip_name_upper, asset_ref.asset)
+                is_upper_res_loaded = true
+            end
+        end
+    end)
+
+end
+
+
+-- pacman 2017-11-30 检查是否位于指定相机的视野内
+function UnitView:is_inside_camera_view(camera)
+    local view_go = self:getGO()
+    if view_go ~= nil then
+        local collider = view_go:GetComponent(Collider)
+        if collider ~= nil then
+            local planes = GeometryUtility.CalculateFrustumPlanes(camera)
+            if GeometryUtility.TestPlanesAABB(planes, collider.bounds) then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+
+return UnitView

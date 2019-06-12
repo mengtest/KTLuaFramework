@@ -1,0 +1,9 @@
+local rows = {}
+rows[1] = {['name']='ARMOR_DAMAGE_REDUCE_FACTOR1',['desc']='护甲伤害减免系数1',['value']=100.0}
+rows[2] = {['name']='ARMOR_DAMAGE_REDUCE_FACTOR2',['desc']='护甲伤害减免系数2',['value']=100.0}
+
+local datas = {
+	['ARMOR_DAMAGE_REDUCE_FACTOR1'] = rows[1],
+	['ARMOR_DAMAGE_REDUCE_FACTOR2'] = rows[2],
+}
+return datas

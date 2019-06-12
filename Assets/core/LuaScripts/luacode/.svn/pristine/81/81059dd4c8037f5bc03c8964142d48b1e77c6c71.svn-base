@@ -1,0 +1,111 @@
+
+local Trigger_component = require("subsystem.component.trigger_component")
+
+local view = require("system.view")
+local Giver_view = class("Giver_view", view)
+
+function Giver_view:doInit()
+    self.m_top_hint = nil
+    self.m_cc = nil
+    
+    local giver = self:getFrame()
+    local cfg = giver:get_cfg()
+    local model_id = cfg.model_id
+    local model_path = model_mgr.GetPrefabPathById(model_id)
+    self:load(model_path, function (go)
+        go.layer = LayerMask.NameToLayer("Role")
+        local m_go = self:getGO()
+        local m_tr = m_go.transform
+        m_go.layer = LayerMask.NameToLayer("Role")
+        local m_cc = m_go:AddComponent(CharacterController)
+        local ori_cc = go:GetComponent(CharacterController)
+        m_cc.slopeLimit = ori_cc.slopeLimit
+        m_cc.stepOffset = ori_cc.stepOffset
+        m_cc.skinWidth = ori_cc.skinWidth
+        m_cc.minMoveDistance = ori_cc.minMoveDistance
+        m_cc.center = ori_cc.center
+        m_cc.radius = ori_cc.radius
+        m_cc.height = ori_cc.height
+        self:getFrame():set_cc(m_cc)
+        Object.Destroy(ori_cc)
+        
+        self:subscribe(giver:on_event_attr_set("pos", true), function (pos)
+            m_tr.position = pos
+        end)
+        self:subscribe(giver:on_event_attr_set("dir", true), function (dir)
+            m_tr.rotation = Quaternion.AngleAxis(dir, Vector3.up)
+        end)
+    end)
+end
+
+function Giver_view:on_prepared()
+    local this = self
+    local trigger_component = Trigger_component:new()
+    local trigger_go = GameObject("Trigger_Interact_Switch")
+    local trigger_tr = trigger_go.transform
+    trigger_tr.parent = self:getGO().transform
+    trigger_tr.localPosition = Vector3.zero
+    trigger_component:set_go(trigger_go)
+    trigger_component:set_area_type_and_param(Enum_Scene.Trigger_Area.Sphere, {["r"] = 2})
+    trigger_component:start()
+    trigger_component.on_trigger_condition = function (other)
+        local tag = other.gameObject.tag
+        if tag == "Player" then
+            return true
+        end
+        return false
+    end
+    trigger_component.on_trigger_enter:add(function (other)
+        this:getFrame():set_is_close_enough(true)
+    end)
+    trigger_component.on_trigger_exit:add(function ()
+        this:getFrame():set_is_close_enough(false)
+    end)
+    
+    self:subscribe(self:getFrame():on_event_attr_set("top_state", true), function (val)
+        if not val then return end
+        self:switch_top_hint(val)
+    end)
+end
+
+function Giver_view:switch_top_hint(cur_state)
+    if cur_state == Enum_Quest.Quest_State.Invalid then
+        -- Do not load anything,just skip it.
+        self:on_model_loaded(cur_state, nil)
+    elseif cur_state == Enum_Quest.Quest_State.Unlocked then
+        self:load("sfx/skill/prefab/pc/luocha/dr_eskilldebuff.prefab", function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+    elseif cur_state == Enum_Quest.Quest_State.Reveived then
+        self:load("sfx/skill/prefab/pc/luocha/fhly_eskillinstant_a.prefab", function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+    elseif cur_state == Enum_Quest.Quest_State.Finished then
+        self:load("sfx/skill/prefab/pc/luocha/fhly_eskillinstant_b.prefab", function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+    end
+end
+
+function Giver_view:on_model_loaded(cur_state, go)
+    if cur_state == self:getFrame():get_top_state() then
+        if self.m_top_hint then
+            Object.Destroy(self.m_top_hint)
+        end
+        self.m_top_hint = go
+        self:reset_parent(go)
+    else
+        Object.Destroy(go)
+    end
+end
+
+function Giver_view:reset_parent(go)
+    if not go then return end
+    go:SetActive(true)
+    local tr = go.transform
+    local tr_parent = self:getGO().transform
+    tr.parent = tr_parent
+    tr.localPosition = Vector3.zero
+end
+
+return Giver_view

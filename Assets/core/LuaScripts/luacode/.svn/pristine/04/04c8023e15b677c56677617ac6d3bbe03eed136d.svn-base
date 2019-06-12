@@ -1,0 +1,97 @@
+local ObserverHost = require "system.observer_host"
+local View = require "system.view"
+
+local ViewMgr = class("ViewMgr")
+ViewMgr:include(ObserverHost)
+
+function ViewMgr:initialize(frame_mgr)
+	self.m_frame_mgr = frame_mgr
+	self.m_class_map = {}
+	self.m_view_map = {}
+	self.m_go_map = {}
+
+	self:subscribe(frame_mgr:on_event_add_frame(), function(frame)
+		self:onAddFrame(frame)
+	end)
+
+	self:subscribe(frame_mgr:on_event_del_frame(), function(frame)
+		self:onDelFrame(frame)
+	end)
+end
+
+function ViewMgr:update()
+	for k,v in pairs(self.m_view_map) do
+		v:doUpdate()
+	end
+end
+
+function ViewMgr:getFrame(name)
+	return self.m_frame_mgr:getFrame(name)
+end
+
+function ViewMgr:getView(name)
+	return self.m_view_map[name]
+end
+
+function ViewMgr:getViewFromGO(go)
+	return self.m_go_map[go]
+end
+
+function ViewMgr:onAddFrame(frame)
+	local name = frame:getFrameName()
+	assert(self.m_view_map[name] == nil)
+
+	local cls = frame:getClass()
+	assert(type(cls) == "string")
+
+	local c = self.m_class_map[cls]
+	if c == nil then
+		local file_dir = frame:getFrameDir()
+		local fullpath = file_dir and string.format("%s%s%s", file_dir, cls, "_view") or string.format("view.%s_view", cls)
+		--local path = string.format("view.%s_view", cls)
+		local ok, mixin = pcall(require, fullpath)
+		if not ok then mixin = {} end
+		assert(type(mixin) == "table")
+
+		if mixin.isSubclassOf and mixin:isSubclassOf(View) then
+			c = mixin
+		else
+			assert(getmetatable(mixin) == nil)
+			c = class(cls, View)
+			c:include(mixin)
+		end
+
+		function c:getClass() return cls end
+		self.m_class_map[cls] = c
+	end
+	
+	local is_dont_create_go_automatic = frame:get_is_dont_create_go_automatic()
+	local view = c:new(self, frame, is_dont_create_go_automatic)
+	--frame:setView(view)
+	self.m_view_map[name] = view
+	--[[if not is_dont_create_go_automatic and view:getGO() then
+		self.m_go_map[view:getGO()] = view
+	end--]]
+end
+
+function ViewMgr:on_go_set(view)
+	local go = view:getGO()
+	if go then
+		self.m_go_map[go] = view
+	end
+end
+
+function ViewMgr:onDelFrame(frame)
+	local name = frame:getFrameName()
+	local view = self.m_view_map[name]
+	assert(view ~= nil,name)
+
+	if view:getGO() then
+		self.m_go_map[view:getGO()] = nil
+	end
+
+	self.m_view_map[name] = nil
+	view:destroy()
+end
+
+return ViewMgr

@@ -1,0 +1,96 @@
+-- 角色行为状态 跳跃
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil       
+local Unit = nil
+
+local M = class("UnitActStateJump", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.bp.bp_unit"
+
+    self.m_forward = 0         -- 前方向
+    self.m_is_vertical = false  --是否原地跳
+end
+
+
+function M:enter()
+    -- print("UnitActStateJump:enter")
+    UnitActStateBase.enter(self)
+
+    -- 起跳数据
+    self.m_forward = self.m_unit:get_move_dir()
+    self.m_is_vertical = (self.m_unit:get_move_state() == Unit.MOVE_STATE.IDLE)
+
+    self.m_unit:set_main_act(enum.battle.Unit_Main_Act.JUMP)
+
+end
+
+
+function M:exit()
+    -- print("UnitActStateJump:exit")
+    UnitActStateBase.exit(self)
+
+end
+
+
+
+function M:update()
+    -- print("UnitActStateJump:update")
+    UnitActStateBase.update(self)
+
+    local cc = self.m_unit:get_cc()
+    if cc == nil then 
+        return 
+    end
+    local delta_time = app.get_delta_time()
+    
+    -------------------
+    -- 检查状态切换 --
+    -- 落地->移动
+    if cc.isGrounded and self.m_unit:get_gravity_speed() <= 0 then
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+    end
+
+
+
+    --------------------
+    -- 方位计算---
+        
+
+
+    -- 同步朝向
+    self.m_unit:update_dir()
+
+
+    -- 位移处理
+    local move_speed_xz = 0
+    if not self.m_is_vertical then  --原地跳
+        move_speed_xz = self.m_unit:get_move_speed()
+    end
+
+    -- 水平位移速度
+    local move_dir = self.m_forward
+    local movespeed = Quaternion.AngleAxis(move_dir, Vector3.up) * Vector3.forward *  move_speed_xz  
+
+    --计算重力加速度
+    self.m_unit:set_gravity_speed(self.m_unit:get_gravity_speed() - Unit.GRAVITY * delta_time)  
+    movespeed.y = self.m_unit:get_gravity_speed()
+    
+    local movement = movespeed * delta_time
+    cc:Move(movement)
+
+    self.m_unit:set_pos(cc.transform.position)
+end
+
+
+function M:change_move_state(move_state)
+    -- do nothing
+end
+
+
+return M

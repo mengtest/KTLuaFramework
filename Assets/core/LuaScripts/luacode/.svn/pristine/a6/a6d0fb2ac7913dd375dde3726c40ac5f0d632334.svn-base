@@ -1,0 +1,9 @@
+local View = require("system.view")
+local backpack_list_view = class("backpack_list_view", View)
+
+function backpack_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+end
+
+return backpack_list_view

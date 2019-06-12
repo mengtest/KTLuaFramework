@@ -1,0 +1,153 @@
+local socket  = require "socket"
+local netpack = require "netpack"
+
+local TcpConnection = class("TcpConnection")
+
+local function co_send_raw(sock, data)
+	local size = string.len(data)
+	local index = 1
+	while index <= size do
+		local ok, err, part = sock:send(data, index, size)
+		if ok then
+			assert(ok == size)
+			index = ok + 1
+		elseif err == "timeout" then
+			assert(part < size)
+			index = part + 1
+			coroutine.yield()
+		else
+			error(err)
+		end
+	end
+end
+
+local function co_recv_raw(sock, size)
+	local data = ""
+	while size > 0 do
+		local ok, err, part = sock:receive(size)
+		if ok then
+			data = data .. ok
+			size = size - string.len(ok)
+			assert(size == 0)
+		elseif err == "timeout" then
+			data = data .. part
+			size = size - string.len(part)
+			assert(size > 0)
+			coroutine.yield()
+		else
+			error(err)
+		end
+	end
+	return data
+end
+
+local function recv_thread(sock, cb)
+	while true do
+		local data = co_recv_raw(sock, 2)
+		local size = netpack.sizeunpack(data)
+		local data = co_recv_raw(sock, size)
+		local co = coroutine.create(cb)
+		local ok, msg = coroutine.resume(co, data)
+		if not ok then
+			print("recv msg dispatch error", msg)
+		end
+	end
+end
+
+local function send_thread(sock, queue)
+	while true do
+		local data = table.remove(queue, 1)
+		if data then
+			local size = string.len(data)
+			data = netpack.sizepack(size) .. data
+			co_send_raw(sock, data)
+		else
+			coroutine.yield()
+		end
+	end
+end
+
+function TcpConnection:initialize(cb)
+	self.m_cb = assert(cb)
+	self.m_sock = nil
+	self.m_connected = false
+	self.m_send_queue = nil
+	self.m_recv_thread = nil
+	self.m_send_thread = nil
+end
+
+function TcpConnection:isConnected()
+	return self.m_connected
+end
+
+function TcpConnection:update()
+	if self.m_sock and not self.m_connected then
+		local _,sendt,_ = socket.select(nil, {self.m_sock}, 0)
+		if sendt and sendt[1] then
+			self.m_connected = true
+			self.m_send_queue = {}
+			self.m_send_thread = coroutine.create(send_thread)
+			coroutine.resume(self.m_send_thread, self.m_sock, self.m_send_queue)
+			self.m_recv_thread = coroutine.create(recv_thread)
+			coroutine.resume(self.m_recv_thread, self.m_sock, function(msg)
+				self.m_cb(self, "data", msg)
+			end)
+			self.m_cb(self, "connect")
+		end
+	end
+
+	if self.m_recv_thread then
+		local ok, err = coroutine.resume(self.m_recv_thread)
+		if not ok then
+			print("Session recv error", err)
+			self:disconnect() 
+		end
+	end
+	if self.m_send_thread then
+		local ok, err = coroutine.resume(self.m_send_thread)
+		if (not ok) then
+			print("Session send error", err)
+			self:disconnect() 
+		end
+	end
+end
+
+function TcpConnection:connect(ip, port)
+	assert(self.m_sock == nil)
+	assert(self.m_connected == false)
+
+	local sock = socket.tcp()
+	sock:settimeout(0)
+	sock:setoption("tcp-nodelay", true)
+	local ok, err = sock:connect(ip, port)
+	if ok or err == "timeout" then
+		self.m_sock = sock
+		return true
+	end
+	return false, err
+end
+
+function TcpConnection:disconnect()
+	if self.m_connected then
+		self.m_connected = false
+		self.m_recv_thread = nil
+		self.m_send_thread = nil
+		self.m_send_queue = nil
+		self.m_cb(self, "disconnect")
+	end
+	if self.m_sock then
+		self.m_sock:shutdown()
+		self.m_sock:close()
+		self.m_sock = nil
+	end
+end
+
+function TcpConnection:sendMsg(data)
+	assert(type(data) == "string")
+	assert(string.len(data) > 0)
+	if self.m_connected then
+		table.insert(self.m_send_queue, data)
+	end
+end
+
+return TcpConnection

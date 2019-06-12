@@ -1,0 +1,7 @@
+local rows = {}
+rows[1] = {['id']=12,['boss_record_id']={1001},['boss_name']={'巨灵神'},['submap_id']={1001,1002,1003}}
+
+local datas = {
+	[12] = rows[1],
+}
+return datas

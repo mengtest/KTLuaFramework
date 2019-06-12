@@ -1,0 +1,277 @@
+
+local Exhibition = require("subsystem.exhibition")
+
+local Frame = require("system.frame")
+local CreateRole = class("CreateRole", Frame)
+
+Attribute.decl(CreateRole, "nickname", "")
+Event.decl(CreateRole, "ProfessionDown")
+Event.decl(CreateRole, "ProfessionUp")
+Event.decl(CreateRole, "handleWeapon")
+
+function CreateRole:doInit()
+    self.m_main_cam = Camera.main
+    self.m_cam_tr = Camera.main.transform
+    self.m_account = nil
+    self.m_first_btn = nil
+    self.m_ctrller_dict = {}
+    self.m_cur_ctrller = nil
+    self.m_class_id = nil
+    self.m_tr = nil
+    self.m_is_scene_loaded = false
+
+    self:subscribe(app:getKBESDK():on_event("login_result"), function(ok, msg)
+		self:on_login_result(ok, msg)
+	end)
+end
+
+function CreateRole:doDestroy()
+    for k, ctrller in pairs(self.m_ctrller_dict) do
+        ctrller:destroy()
+    end
+    self.m_ctrller_dict = nil
+end
+
+function CreateRole:set_account(account)
+    self.m_account = account
+end
+
+function CreateRole:on_login_result(ok, msg)
+	if ok then
+		app:doGameWithKBE()
+		self:destroySelf()
+
+        -- pacman 2017-12-27 临时处理：主相机
+        self.m_main_cam.depth = 0
+        self.m_main_cam.gameObject:GetComponent(UnityEngine.AudioListener).enabled = true
+    end
+end
+
+--function CreateRole:on_warriorShield(is_on)
+--    if not is_on then return end
+--    self:on_switch(1)
+--end
+--
+--function CreateRole:on_warriorSword(is_on)
+--    if not is_on then return end
+--    self:on_switch(4)
+--end
+--
+--function CreateRole:on_archer(is_on)
+--    if not is_on then return end
+--    self:on_switch(6)
+--end
+--
+--function CreateRole:on_switch(class_id)
+--    if self.m_class_id == class_id then
+--        return
+--    end
+--    local cur_ctrller = self.m_ctrller_dict[class_id]
+--    if cur_ctrller then
+--        self:start_ctrller(cur_ctrller, class_id)
+--    else
+--        local this = self
+--        self:create_ctrller(class_id, function (ctrller)
+--            this:start_ctrller(ctrller, class_id)
+--        end)
+--    end
+--end
+
+function CreateRole:set_cur_class(class_id)
+    self.m_class_id = class_id
+end
+
+function CreateRole:on_btn_enter_game()
+    self.m_account:req_create_role(self.m_class_id)
+end
+
+function CreateRole:on_ui_loaded(go)
+    local ui_tr = go.transform
+
+    local this = self
+    local btn_mask = ui_tr:Find("btn_mask"):GetComponent(KTButton)
+    btn_mask.onPointerDown = {"+=", function (evt)
+        this.m_cur_ctrller:on_pointer_down(evt)
+    end}
+    btn_mask.onPointerUp = {"+=", function (evt)
+        this.m_cur_ctrller:on_pointer_up(evt)
+    end}
+
+    local parent_node = ui_tr:Find("grid_profession")
+    local btn_item_go = parent_node:Find("btn_item").gameObject
+    local first_mark = true
+    local sorted_vocation_keys = util.tab_keys(dbc.vocation)
+    table.sort(sorted_vocation_keys)
+    for kk, kv in ipairs(sorted_vocation_keys) do
+        local k = kv
+        local v = dbc.vocation[kv]
+        local cur_btn_go = Object.Instantiate(btn_item_go)
+        local cur_btn_tr = cur_btn_go.transform
+        local cur_tog = cur_btn_tr:GetComponent(UnityEngine.UI.Toggle)
+        cur_btn_tr.parent = parent_node
+        cur_btn_tr.localPosition = Vector3.zero
+        cur_btn_tr.localScale = Vector3.one
+        self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.btn_icon_normal)), function(asset)
+            local tex = asset
+            cur_btn_tr:GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end)
+        self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.btn_icon_pressed)), function(asset)
+            local tex = asset
+            cur_btn_tr:Find("img_selected"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end)
+        cur_tog.onValueChanged:AddListener(function (is_on)
+            if is_on then
+                self:subscribe(app:getResMgr():rxLoad(self:get_full_path(v.img_presentation)), function(asset)
+                    local tex = asset
+                    ui_tr:Find("img_profession_describe"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                end)
+                this:btn_start(k, cur_tog)
+            else
+                this:btn_over(k, cur_tog)
+            end
+        end)
+        if first_mark then
+            self.m_first_btn = cur_tog
+            if self.m_is_scene_loaded then
+                if not self.m_first_btn.isOn then
+                    self.m_first_btn.isOn = true
+                end
+            end
+            first_mark = false
+        end
+    end
+    btn_item_go:SetActive(false)
+end
+
+function CreateRole:get_full_path(local_path)
+    return "ui/Icons/" .. local_path
+end
+
+function CreateRole:btn_start(class_id, tog)
+    local cur_ctrller = self.m_ctrller_dict[class_id]
+    if cur_ctrller then
+        self:start_ctrller(cur_ctrller, class_id)
+    else
+        local this = self
+        self:create_ctrller(class_id, function (ctrller)
+            this:start_ctrller(ctrller, class_id)
+        end)
+    end
+    self:emit_event("ProfessionDown", tog)
+end
+
+function CreateRole:btn_over(class_id, tog)
+    local cur_ctrller = self.m_ctrller_dict[class_id]
+    if cur_ctrller then
+        --self:stop_ctrller(cur_ctrller)
+        cur_ctrller:stop()
+    end
+    self:emit_event("ProfessionUp", tog)
+end
+
+function CreateRole:start_ctrller(ctrller, class_id)
+    self.m_cur_ctrller = ctrller
+    self.m_class_id = class_id
+    ctrller:start()
+end
+
+--function CreateRole:stop_ctrller(ctrller)
+--    ctrller:stop()
+--end
+
+function CreateRole:on_scene_loaded()
+    self.m_is_scene_loaded = true
+    if self.m_first_btn ~= nil and (not self.m_first_btn.isOn) then
+        self.m_first_btn.isOn = true
+    end
+
+    -- pacman 2017-12-27 关闭主相机，使用场景自带相机
+    self.m_main_cam.depth = -2
+    self.m_main_cam.gameObject:GetComponent(UnityEngine.AudioListener).enabled = false
+end
+
+function CreateRole:create_ctrller(id, cb)
+    local this = self
+    local data = dbc.vocation[id]
+    if not data then
+        app:logError("未找到指定的vocation数据，id = " .. id)
+    end
+    local model_id = data.model_id
+    local exhibition_id = dbc.exhibition[data.exhibition_id] and data.exhibition_id or 1
+    self:subscribe(app:getResMgr():rxLoad(app:get_model_mgr().GetPrefabPathById(model_id)), function (asset)
+        local go = Object.Instantiate(asset)
+
+        this:on_finished(go, data)
+        this.m_ctrller_dict[id] = Exhibition:new(go, exhibition_id)
+        if cb then
+            cb(this.m_ctrller_dict[id])
+        end
+    end)
+end
+
+
+
+function CreateRole:on_finished(go, data)
+
+    local tr = go.transform
+    tr.position = Vector3(data.role_pos[1], data.role_pos[2], data.role_pos[3])
+    tr.rotation = Vector3.zero
+    tr.localScale = Vector3.one * data.role_scale
+
+    self.m_cam_tr.position = Vector3(data.cam_pos[1], data.cam_pos[2], data.cam_pos[3])
+    self.m_cam_tr.rotation = Quaternion.Euler(data.cam_rot[1], data.cam_rot[2], data.cam_rot[3])
+
+    self:emit_event("handleWeapon",go,data)
+
+    self:handleAnimationEvent(go)
+end
+
+
+function CreateRole:handleAnimationEvent(go)
+    local kt_anim = go:GetComponent(KTAnimationEvent)
+    if (kt_anim == nil) then
+        kt_anim = go:AddComponent(KTAnimationEvent)
+        local anim_event_util = require "common.util.event_anima"
+        anim_event_util.addSingleAnimationEvent(go, function(anim_evt)
+            self:on_animation_event(go,anim_evt)
+        end)
+    end
+end
+
+function CreateRole:on_animation_event(go,evt)
+    -- 施法者 --
+    local evt_type = evt.stringParameter
+    local evt_int = evt.intParameter
+    local boneManager = go:GetComponent(KTBoneManager)
+    if evt_type == "pc_camera" then
+        if(evt_int == 1) then
+            if(boneManager ~= nil) then
+                local cam = Camera.main
+                self.m_cam_param = {cam.transform.localPosition,cam.transform.localRotation,cam.fieldOfView}
+                cam.gameObject.transform:SetParent(boneManager:GetBoneByName("camera"))
+                cam.transform.localPosition = Vector3.zero
+                cam.transform.localRotation = Quaternion.Euler(0, 180, 0)
+                cam.fieldOfView = 40
+            end
+        else
+            if(boneManager ~= nil) then
+                local cam = Camera.main
+                local param = self.m_cam_param
+                cam.gameObject.transform:SetParent(nil)
+                cam.transform.localPosition = param[1]
+                cam.transform.localRotation = param[2]
+                cam.fieldOfView = param[3]
+            end
+        end
+    end
+end
+
+
+
+function CreateRole:doUpdate()
+    if self.m_cur_ctrller then
+        self.m_cur_ctrller:update()
+    end
+end
+
+return CreateRole

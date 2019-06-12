@@ -1,0 +1,19 @@
+local Frame = require("system.frame")
+local equipment_tips_parent = class("equipment_tips_parent", Frame)
+
+function equipment_tips_parent:doInit()
+    --在这里存储创建的tips的frame
+    self.m_child_frame_list = {}
+end
+
+function equipment_tips_parent:onload()
+    for i = 1, 2 do
+        self.m_child_frame_list[i] = self:createChild("equipment_tips_" .. i, "%subsystem.backpack_equipment.equipment_tips")
+    end
+end
+
+function equipment_tips_parent:get_child_frame_list()
+    return self.m_child_frame_list
+end
+
+return equipment_tips_parent

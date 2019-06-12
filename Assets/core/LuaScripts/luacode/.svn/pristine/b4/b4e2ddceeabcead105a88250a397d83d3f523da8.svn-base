@@ -1,0 +1,268 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/2 10:57
+---
+local Frame = require("system.frame")
+local mini_map = class("mini_map", Frame)
+
+Attribute.decl(mini_map, "map_x", 0)--map表中地图左下角坐标x值
+Attribute.decl(mini_map, "map_y", 0)--map表中地图左下角坐标y值
+Attribute.decl(mini_map, "map_scale_x", 1)--地图比例x值
+Attribute.decl(mini_map, "map_scale_y", 1)--地图比例y值
+Attribute.decl(mini_map, "minimap_radius", 84)--地图半径
+Attribute.decl(mini_map, "moveable_items_pos", Vector3(0, 0, 0))--地图半径
+Attribute.decl(mini_map, "icons_in_go", nil) --在遮罩内的任务icon父节点
+
+Event.decl(mini_map, "map_changed")
+Event.decl(mini_map, "trace_quest_1")
+Event.decl(mini_map, "trace_quest_2")
+
+function mini_map:doInit()
+    self:set_is_add_rect_trans(true)
+
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_interest_frame_list = {}
+    self.m_quest_frame_list = {}
+
+    --切换地图
+    self:subscribe(self:getFrame("world"):on_event_attr_set("map_id", false), function(map_id)
+        self:emit_event("map_changed", map_id)
+        --销毁切换地图前所有任务的frame
+        self:destroy_quest_frame_on_changed_map()
+        --切换地图后的追踪任务
+        local trace_list = self:getFrame("trace_quest_bar"):get_trace_quest_list()
+        self:set_trace_icon(trace_list)
+
+        --因为area还没加载完，所以暂时这么搞。。。
+        slua_timer.addDelayEvent(3, function()
+            self:refresh_quest()
+        end)
+    end)
+    --追踪任务
+    self:subscribe(self:getFrame("trace_quest_bar"):on_event("refresh_trace_quest_list_to_mini_map"), function(trace_list)
+        self:set_trace_icon(trace_list)
+    end)
+    --添加关注任务
+    self:subscribe(self.m_quest_manager:on_event("add_quest_note"), function(quest_data)
+        self:add_interest(quest_data)
+    end)
+    --取消关注任务
+    self:subscribe(self.m_quest_manager:on_event("del_quest_note"), function(quest_data)
+        self:del_interest(quest_data)
+    end)
+    --新待交互任务
+    self:subscribe(self.m_quest_manager:on_event("add_interact_quest"), function(quest_data)
+        self:add_quest(quest_data)
+    end)
+    --新接取任务
+    self:subscribe(self.m_quest_manager:on_event("show_new_quest"), function(quest_data)
+        self:add_quest(quest_data)
+        self:rehresh_interest_state(quest_data)
+    end)
+    --任务完成，待交付
+    self:subscribe(self.m_quest_manager:on_event("show_finish_quest"), function(quest_data)
+        self:rehresh_interest_state(quest_data)
+    end)
+    --删除任务
+    self:subscribe(self.m_quest_manager:on_event("del_quest"), function(quest_id)
+        self:del_quest(quest_id)
+    end)
+end
+
+function mini_map:on_loaded()
+    self:createChild("mini_map_trace_quest_icon_1", "map.mini_map.mini_map_trace_quest_icon", { ["index"] = 1, ["icon_path"] = app:getAssetPathMgr().get_mini_map_manager_resource('trace_icon_1'), ["area_icon_path"] = app:getAssetPathMgr().get_mini_map_manager_resource('area_1_icon'), ["particle"] = app:getAssetPathMgr().get_sfx_asset("ui_ditu_renwu_tishii_lv") })
+    self:createChild("mini_map_trace_quest_icon_2", "map.mini_map.mini_map_trace_quest_icon", { ["index"] = 2, ["icon_path"] = app:getAssetPathMgr().get_mini_map_manager_resource('trace_icon_2'), ["area_icon_path"] = app:getAssetPathMgr().get_mini_map_manager_resource('area_2_icon'), ["particle"] = app:getAssetPathMgr().get_sfx_asset("ui_ditu_renwu_tishii_cheng") })
+    for i = 1, 3 do
+        local temp = self:createChild("mini_map_interest_quest_icon_" .. i, "map.mini_map.mini_map_interest_quest_icon", { ["particle"] = app:getAssetPathMgr().get_sfx_asset("ui_ditu_renwu_tishii_01") })
+        self.m_interest_frame_list[i] = temp
+    end
+end
+
+function mini_map:set_trace_icon(trace_list)
+    for i = 1, 2 do
+        if trace_list[i] then
+            self:emit_event("trace_quest_" .. i, trace_list[i])
+        else
+            self:emit_event("trace_quest_" .. i, nil)
+        end
+    end
+end
+
+--当切换地图时，销毁原地图任务的frame
+function mini_map:destroy_quest_frame_on_changed_map()
+    for i, v in pairs(self.m_quest_frame_list) do
+        v:destroySelf()
+    end
+    self.m_quest_frame_list = {}
+end
+
+--刷新任务图标
+function mini_map:refresh_quest()
+    local quest_list = self:getFrame("quest_manager"):get_all_quest_data()
+    for i, v in pairs(quest_list) do
+        self:add_quest(v)
+    end
+end
+
+--初始化关注任务
+function mini_map:refresh_interest()
+    local interest_list = self:getFrame("quest_manager"):get_noted_quest_list()
+    for i, v in pairs(interest_list) do
+        self:add_interest(v)
+    end
+end
+
+--添加关注任务
+function mini_map:add_interest(quest_data)
+    for i = 1, 3 do
+        if self.m_interest_frame_list[i] then
+            if self.m_interest_frame_list[i]:get_quest_data() == nil then
+                self.m_interest_frame_list[i]:set_quest_data(quest_data)
+                return
+            end
+        end
+    end
+end
+
+--取消关注任务
+function mini_map:del_interest(quest_data)
+    for i = 1, 3 do
+        if self.m_interest_frame_list[i] then
+            if self.m_interest_frame_list[i]:get_quest_data() then
+                if self.m_interest_frame_list[i]:get_quest_data():get_quest_id() == quest_data:get_quest_id() then
+                    self.m_interest_frame_list[i]:set_quest_data(nil)
+                    return
+                end
+            end
+        end
+    end
+end
+
+--更新关注任务状态
+function mini_map:rehresh_interest_state(quest_data)
+    for i = 1, 3 do
+        if self.m_interest_frame_list[i] then
+            if self.m_interest_frame_list[i]:get_quest_data() then
+                if self.m_interest_frame_list[i]:get_quest_data():get_quest_id() == quest_data:get_quest_id() then
+                    self.m_interest_frame_list[i]:set_quest_data(quest_data)
+                    return
+                end
+            end
+        end
+    end
+end
+
+--添加待交互任务
+function mini_map:add_quest(quest_data)
+    if self:get_icons_in_go() == nil then
+        return
+    end
+    local min_dis, map_id, area_id = quest_data:get_target_info()
+    if min_dis == -1 then
+        return
+    end
+    local area_data = self:getFrame("world"):get_area_data(map_id, area_id)
+    if area_data == nil then
+        return
+    end
+
+    for i, v in pairs(self.m_quest_frame_list) do
+        if v:get_quest_data() then
+            if v:get_quest_data():get_quest_id() == quest_data:get_quest_id() then
+                v:set_quest_data(quest_data)
+                return
+            end
+        end
+    end
+
+    local perlin_float = UnityEngine.Mathf.PerlinNoise(utility.math:random_float(-1024, 1024), utility.math:random_float(-1024, 1024))
+    local temp = self:createChild("mini_map_quest_icon_" .. tostring(perlin_float), "map.mini_map.mini_map_quest_icon", { ["icon_path"] = self:get_icon_for_begin(quest_data) })
+    temp:set_quest_data(quest_data)
+    table.insert(self.m_quest_frame_list, temp)
+end
+
+--根据起始接取任务类型 获取对应的icon
+function mini_map:get_icon_for_begin(quest_data)
+    local type = quest_data:get_begin_type()
+
+    --追踪任务
+    if quest_data:get_index() == 1 then
+        return app:getAssetPathMgr().get_mini_map_manager_resource('area_1_icon')
+    elseif quest_data:get_index() == 2 then
+        return app:getAssetPathMgr().get_mini_map_manager_resource('area_2_icon')
+    end
+
+    --1:完成指定交互行为，2:进入指定区域，3:击杀指定单位，4:与指定交互物互动，8:问答指定题组
+    if type == 1 or type == 4 or type == 8 then
+        local state = quest_data:get_quest_state()
+        local icon = nil
+        if state == enum.quest.Quest_State.Interact then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')
+        elseif state == enum.quest.Quest_State.Received then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_lan_icon')
+        elseif state == enum.quest.Quest_State.Finished then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('wenhao_huang_icon')
+        else
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_huang_icon')   --默认
+        end
+
+        if quest_data:get_is_fall() then
+            icon = app:getAssetPathMgr().get_mini_map_manager_resource('tanhao_hong_icon')
+        end
+
+        return icon
+    end
+
+    if type == 0 or type == 2 or type == 3 then
+        return app:getAssetPathMgr().get_mini_map_manager_resource('zhandou_icon')--临时
+    end
+
+    return nil
+end
+
+--删除任务
+function mini_map:del_quest(quest_id)
+    --取消关注
+    for i = 1, 3 do
+        if self.m_interest_frame_list[i] then
+            if self.m_interest_frame_list[i]:get_quest_data() then
+                if self.m_interest_frame_list[i]:get_quest_data():get_quest_id() == quest_id then
+                    self.m_interest_frame_list[i]:set_quest_data(nil)
+                    return
+                end
+            end
+        end
+    end
+
+    --删除任务
+    for i, v in pairs(self.m_quest_frame_list) do
+        if v:get_quest_data() then
+            if v:get_quest_data():get_quest_id() == quest_id then
+                v:destroySelf()
+            end
+        end
+    end
+end
+
+--小地图上按钮点击事件
+function mini_map:on_btn()
+    if self.m_mgr:getFrame("big_map") ~= nil then
+        return
+    end
+    local inst_id = self:getFrame("dungeon_manager"):gain_inst_id()
+    local init_map_size = {}
+    init_map_size["inst_id"] = inst_id
+    local map_id = self:getFrame("world"):get_map_id()
+    local map_data = dbc.map[map_id]
+    init_map_size['map_id'] = map_id
+    init_map_size["map_left_bottom"] = Vector3(map_data["left_bottom"][1], 0, map_data["left_bottom"][2])
+    init_map_size["map_right_up"] = Vector3(map_data["right_top"][1], 0, map_data["right_top"][2])
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("big_map", "map.big_map.big_map", init_map_size, ui_manager.UI_Depth.ALERT)
+end
+
+function mini_map:local_log(...)
+    app:logError(string.format(...))
+end
+
+return mini_map

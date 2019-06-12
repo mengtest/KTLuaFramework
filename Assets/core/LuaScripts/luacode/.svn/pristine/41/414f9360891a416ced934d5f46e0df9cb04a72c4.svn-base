@@ -1,0 +1,10 @@
+local row_0 = {['id']=21,['team_type']=1,['count']=0,['select_diff']=0,['inst_id']=11}
+local row_1 = {['id']=22,['team_type']=2,['count']=3,['select_diff']=1,['inst_id']=0}
+local row_2 = {['id']=23,['team_type']=2,['count']=5,['select_diff']=1,['inst_id']=0}
+
+local datas = {
+	[21] = row_0,
+	[22] = row_1,
+	[23] = row_2,
+}
+return datas

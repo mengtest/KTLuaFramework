@@ -1,0 +1,78 @@
+
+local EnumQuest = {}
+
+-- 任务状态
+EnumQuest.Quest_State = {
+    Invalid  = 0,   -- 未开启
+    Unlocked = 1,   -- 已解锁
+    Received = 2,   -- 已接取
+    Finished = 3,   -- 已完成
+    Interact = 4,   -- 待交互（对话）
+}
+
+-- npc头上状态 by lijunfeng 2018/1/19
+EnumQuest.Quest_Npc_State = {
+    None=0,
+    Yellow_Question = 1,   -- 黄色问号
+    Blue_Question = 2,   -- 蓝色问号
+    Red_Exclamation=3,      --红色叹号
+    Yellow_Exclamation  = 4,   -- 黄色叹号
+}
+
+EnumQuest.Quest_Fall_Condition={
+    Timeout=1,          --超时
+    Role_Die=2,         --角色死亡
+    Role_Out_Of_Area=3, --角色离开任务区域
+    Role_Leave_Main_Npc=4,   --角色与核心npc距离不满足要求
+    Role_Leave_All_Live_Npc=5, --角色与全部存活npc距离不满足要求
+    Main_Npc_Die=6,  --核心npc死亡
+    All_Npc_Die=7,  --全部npc死亡
+    Question_Fall=8,  --答题失败
+}
+
+--by lijunfeng 2018/2/8
+--任务目标类型
+EnumQuest.Target_Type={
+    Receive_Npc=1,
+    Giver_Npc=2,
+    Condition_Npc=3
+}
+
+-- 任务类型
+EnumQuest.Quest_Type = {
+    Special  = 0,   -- 特殊任务
+    Main = 1,   -- 主线任务
+    Area = 2,   -- 区域任务
+    Daily = 3,   -- 日常任务
+    World  = 4,   -- 世界任务
+    Specialization = 5,   -- 职业任务
+    Activity = 6,   -- 活动任务
+    Holiday = 7,   -- 节日任务
+    Side = 8, -- 支线任务(现放在这)
+    Escort=9, --护送任务 by lijunfeng 2018/3/1
+}
+--bylijunfeng 2018/1/22
+EnumQuest.UI_Type={
+    Activity=1,--活动任务
+    Dungeon=2,--副本任务
+    Guid=3,--指引任务
+    Map=4,--地图任务
+    Cycle_Once=5,--周期一次性任务
+    Cycle=6,--周期环任务
+}
+
+-- 追踪栏显示状态
+EnumQuest.Quest_Bar_Tab = {
+    Hidden      = 0, -- 隐藏
+    World       = 1, -- 大世界中显示
+    Instance    = 2, -- 副本中显示
+}
+
+EnumQuest.Quest_ui_type = {
+    Map = 1,  --本地图的任务
+    Normal = 2,  --日常任务
+    Dungeon = 3,   --副本任务
+    Activity = 4     --其他任务
+}
+
+return EnumQuest

@@ -1,0 +1,12 @@
+local M = {}
+
+Attribute.decl(M, "unit", nil)
+Attribute.decl(M, "state", 1) -- 1是在线 0时不在线
+
+
+function M:doInit()
+
+
+end
+
+return M

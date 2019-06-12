@@ -1,0 +1,66 @@
+-- pacman 2017-12-06 相机Action
+local Action = require("frame.action.action")
+local CameraAction = class("CameraAction", Action)
+
+-- @camera 相机Frame
+function CameraAction:initialize(camera)
+    Action.initialize(self)
+
+    self.m_camera = camera
+end
+
+
+-- 工厂及Action过程控制 --
+-- pacman 2017-12-06 lua有趣的地方，用local函数/变量来管理一个过程的生命周期， 体会一下
+-- 相机在y轴震动
+local function shake_on_y(camera, duration, times, amplitude, end_scale)
+
+    -- 初始化
+    local action = CameraAction(camera)
+    local start_time = app:get_game_time()
+    local end_time = start_time + duration
+    local shake_offset = Vector3()
+    local shaked_pos = camera:get_position()
+    -- 目前震屏不应该影响 camera frame的pos值，否则会导致基于pos的一系列功能跟着出现不期望的震动
+    -- 所以单独对unity相机进行震动
+    local unity_camera = camera:fetch_unity_camera()
+    local cur_amp = amplitude       -- 当前振幅
+    local cycle_time = duration / times     -- 一次完整的正弦震动的周期时间
+
+    -- 注册生命周期回调函数 --
+    action:onRun(function()
+        -- 用 while true 让协程自循环起来
+        while true do
+            local cur_time = app:get_game_time()
+
+            local elapsed_time = cur_time - start_time
+            -- pacman 2017-12-08 震动方式尝试了球形空间，y轴范围随机，效果都不好，最后还是用的正弦曲线
+            -- 由震动周期决定当前震动位置
+            shaked_pos = camera:get_position() + Vector3(0, cur_amp * math.sin(elapsed_time * 2 * math.pi / cycle_time), 0)
+            -- 计算振幅变化
+            cur_amp = amplitude * Mathf.Lerp(1, end_scale, elapsed_time / duration)
+
+            local camera_trsf = unity_camera.transform
+            camera_trsf.position = shaked_pos
+
+            -- 重新lookat目标
+            --local target_pos = camera:get_lookat_position()
+            --camera_trsf:LookAt(target_pos)
+
+            -- 时间未到，则暂停协程等待下次resume
+            if cur_time < end_time then
+                coroutine.yield()
+            else
+                return
+            end
+        end
+    end)
+
+    return action
+end
+
+
+
+return {
+    ShakeOnY = shake_on_y,     -- 震屏
+}

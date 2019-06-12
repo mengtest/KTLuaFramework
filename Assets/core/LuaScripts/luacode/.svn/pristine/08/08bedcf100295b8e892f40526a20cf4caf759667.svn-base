@@ -1,0 +1,64 @@
+local Projectile = {}
+
+Attribute.decl(Projectile, "caster", nil)
+Attribute.decl(Projectile, "target", nil)
+Attribute.decl(Projectile, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(Projectile, "euler", function() return Vector3(0, 0, 0) end)
+Attribute.decl(Projectile, "action", nil)
+
+Attribute.decl(Projectile, "moved_dis", nil) -- 真实弹道已经移动的位移
+--Attribute.decl(Projectile, "realTime_dis", nil) -- 距离目标的实时距离
+Attribute.decl(Projectile,"expected_time",nil) -- 出手时的期望击中时间
+
+
+
+function Projectile:doInit(param)
+    local skill_id = param.skillId
+    assert(skill_id, "skill_id is nil")
+    self.m_cfg = dbc.spell[skill_id]
+    -- 通过spell_client找到弹道类型 然后通过projectile_type找到配置数据
+    self.m_projectile_type_cfg = dbc.projectile_type[dbc.spell_client[skill_id].projectile_type]
+    self.m_sfx_path = param.sfx_path
+    self.m_caster_unit = param.casterUnit
+    --self.m_target_unit = param.targetUnit
+    self.m_hit_on = param.onHit
+    
+    self:on_event_action_set():subscribe(function(new, old)
+        if old then old:close() end
+        if new then new:start() end
+    end)
+
+end
+
+function Projectile:update()
+    if self:get_action() then
+        if not self:get_action():update() then
+            self:set_action(nil)
+        end
+    end
+end
+
+function Projectile:get_projectile_type_cfg()
+    return self.m_projectile_type_cfg
+end
+
+function Projectile:get_cfg()
+    return self.m_cfg
+end
+
+
+function Projectile:get_sfx_path()
+    return self.m_sfx_path
+end
+
+--function Projectile:get_client_cfg()
+--    return self.m_client_cfg
+--end
+function Projectile:get_caster_unit()
+    return self.m_caster_unit
+end
+
+--function Projectile:get_target_unit()
+--    return self.m_target_unit
+--end
+return Projectile

@@ -1,0 +1,15 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/26 11:00
+---
+local mini_map_icon_template = require("frame.map.mini_map.mini_map_icon_template")
+local mini_map_interest_quest_icon = class("mini_map_interest_quest_icon", mini_map_icon_template)
+
+function mini_map_interest_quest_icon:doInit(params)
+    self:set_is_add_rect_trans(true)
+
+    self.m_icon_path = app:getAssetPathMgr().get_mini_map_manager_resource('interest_icon')
+    self.m_particle = params.particle
+end
+
+return mini_map_interest_quest_icon

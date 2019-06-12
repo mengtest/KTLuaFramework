@@ -1,0 +1,14 @@
+local View = require("system.view")
+local quick_matching_main_view = class("quick_matching_main_view", View)
+
+function quick_matching_main_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+
+    self:load("ui/Matching.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(frame:getFrameName(), go)
+    end)
+
+end
+
+return quick_matching_main_view

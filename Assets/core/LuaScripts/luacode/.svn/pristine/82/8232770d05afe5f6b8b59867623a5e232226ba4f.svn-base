@@ -1,0 +1,235 @@
+local M = {}
+
+-- Attribute.decl(M, "target", nil)
+-- Attribute.decl(M, "target_name", nil)
+Event.decl(M, "change_battle_state")
+--交任务
+Attribute.decl(M, "show_btn", false)
+--接任务
+Attribute.decl(M, "show_btn1", false)
+--闲聊
+Attribute.decl(M, "show_btn2", false)
+--头像名字的显示
+Attribute.decl(M, "head", true)
+--小地图的显示
+Attribute.decl(M, "map", true)
+--任务栏显示
+Attribute.decl(M, "quest_bar", false)
+--临时加个标志位的属性   我觉得不能这么搞...所以是临时！！！  rjy 2017.11.28
+Attribute.decl(M, "level_up_sfx_is_over", false)
+Event.decl(M, "load_spirit_scene")
+--死亡复活事件
+Event.decl(M, "resurrection_rebounding")
+Event.decl(M, "situ_but_btn_click")
+Event.decl(M, "bind_but_btn_click")
+Event.decl(M, "skill_btn_down")
+function M:doInit(owner)
+    self.m_owner = owner
+    -- self.m_role = role
+
+    -- self:subscribe(role:on_event_target_set(true), function(value)
+    -- 	if value ~= nil then
+    -- 		-- print("------------------new target ", value:get_name())
+    -- 		self:set_target(value)
+    -- 	end
+    -- end)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_quest_bar = nil
+    self.m_mini_map = nil
+    self.m_hint = {}
+    self.m_show = {}
+
+end
+
+function M:create_subsystem()
+    self.m_matching_manager:create_quick_matching_view()
+    self:create_quest_ui_main()
+    self:create_backpack()
+    -- 暂时去掉预加载 2017.11.22 rjy
+    -- 2017.12.01 预加载 回来吧！
+    self:create_skill_ui_main()
+    self:create_spirit_main()
+    self:create_ui_death()
+    --self:create_sect_main()
+end
+
+function M:create_player_buff_container(unit)
+
+    local buff_container = self:createChild("player_buff_container", "buff_container", { unit = unit, special = 0 })
+
+    self:createChild("player_special_buff_container", "buff_container", { unit = unit, special = 1 })
+
+    return buff_container
+end
+
+function M:create_target_buff_container(unit)
+    local buff_container = self:createChild("target_buff_container", "buff_container", { unit = unit, special = 0 })
+    return buff_container
+end
+
+function M:create_trace_quest_bar()
+    local trace_quest_bar = self:createChild("trace_quest_bar", "quest.quest_bar.trace_quest_bar")
+    return trace_quest_bar
+end
+
+function M:create_mini_map()
+    local param_mini_map = { owner = self.m_owner }
+    local mini_map = self:createChild("mini_map", "map.mini_map.mini_map", param_mini_map)
+    return mini_map
+end
+
+function M:create_ui_death()
+    local death = self:createChild("death", "death", self.m_owner)
+    return death
+end
+
+function M:on_change_battle_state(state)
+    if (state == 1) then
+        self:emit_event("change_battle_state", true)
+    else
+        self:emit_event("change_battle_state", false)
+    end
+end
+
+----技能进入页面
+function M:create_skill_ui_main()
+    self.m_ui_manager:CreateUI("skill_ui_main", "skill_system_ui.skill_ui.skill_ui_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+---- 创建灵兽界面
+function M:create_spirit_main()
+    self.m_sprite_main = self.m_ui_manager:CreateUI("sprite", "spirit_beast.spirit_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+function M:on_sprite_entry()
+    self:emit_event("load_spirit_scene")
+    self.m_sprite_main:show()
+end
+
+---- 创建流派界面
+function M:create_sect_main()
+    self.m_sect_main = self.m_ui_manager:CreateUI("sect", "sect.sect_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+function M:on_sect_entry()
+    --self.m_sect_main:show()
+end
+
+function M:hint()
+    return self.m_hint
+end
+
+function M:quest_state(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take", "take_task", param, ui_manager.UI_Depth.HIGH)
+end
+function M:quest_state1(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take1", "take_task_one", param, ui_manager.UI_Depth.HIGH)
+end
+function M:quest_state2(state)
+    local param = { state = state }
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("take2", "take_task_two", param, ui_manager.UI_Depth.HIGH)
+end
+
+function M:show(string)
+    local ui_manager = app:get_ui_manager()
+    local param = { string = string }
+    for i = 1, 3 do
+        if self.m_show[i] == nil then
+            local aa = ui_manager:CreateUI("show_s" .. i, "show", param, ui_manager.UI_Depth.ALERT)
+            self.m_show[i] = aa
+            return aa
+        end
+    end
+end
+
+
+-- 技能按钮回调
+function M:on_skill_ui_btn()
+    self:emit_event("skill_btn_down")
+end
+
+-- 快速组队按钮回调
+function M:on_quick_matching()
+    self.m_matching_manager:req_matching_data()
+    -- 临时修改，本应该接受到消息才进行显示
+    self.m_ui_manager:ShowView("quick_matching_main")
+    self.m_ui_manager:CloseLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+end
+
+-- 背包装备按钮回调
+function M:on_backpack_btn()
+    self.m_ui_manager:ShowView("backpack_equipment_main")
+end
+
+-- 任务主UI按钮回调
+function M:on_quest_main_ui()
+    self.m_ui_manager:ShowView("quest_ui_main")
+    self.m_ui_manager:HideView("quest_ui_main")
+    local quest_data = nil
+    local map_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Map)
+    if not map_list[1] then
+        local normal_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Normal)
+        if not normal_list[1] then
+            local dungeon_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Dungeon)
+            if not dungeon_list[1] then
+                local activity_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Activity)
+                if not activity_list[1] then
+                    --当前没有任务
+                    quest_data = 0
+                else
+                    quest_data = activity_list[1]
+                end
+            else
+                quest_data = dungeon_list[1]
+            end
+        else
+            quest_data = normal_list[1]
+        end
+    else
+        quest_data = map_list[1]
+    end
+
+    local quest_ui_main = self:getFrame("quest_ui_main")
+    if quest_ui_main then
+        self.m_ui_manager:ShowView("quest_ui_main")
+    end
+
+    local quest_ui_show = self:getFrame("quest_ui_show")
+    if quest_ui_show then
+        if quest_data == 0 then
+            quest_ui_show:refresh_show_data(0)
+        else
+            quest_ui_show:refresh_show_data(quest_data:get_quest_id())
+        end
+    end
+
+    local quest_ui_list = self:getFrame("quest_ui_list")
+    if quest_ui_list then
+        quest_ui_list:on_update_ui_main(enum.quest.Quest_ui_type.Map)
+        quest_ui_list:on_update_ui_main(enum.quest.Quest_ui_type.Normal)
+        quest_ui_list:on_update_ui_main(enum.quest.Quest_ui_type.Dungeon)
+        quest_ui_list:on_update_ui_main(enum.quest.Quest_ui_type.Activity)
+        if quest_data == 0 then
+            quest_ui_list:quest_default(0)
+        else
+            quest_ui_list:quest_default(quest_data)
+        end
+    end
+end
+
+-- 创建任务主UI
+function M:create_quest_ui_main()
+    self.m_ui_manager:CreateUI("quest_ui_main", "quest.quest_ui.quest_ui_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+---创建装备背包UI
+function M:create_backpack()
+    self.m_ui_manager:CreateUI("backpack_equipment_main", "backpack_equipment.backpack.backpack_equipment_main", nil, self.m_ui_manager.UI_Depth.HIGH)
+end
+
+return M

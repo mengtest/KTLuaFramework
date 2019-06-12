@@ -1,0 +1,389 @@
+local ObserverHost = require "system.observer_host"
+
+local M = class("ModelMgr")
+
+M:include(ObserverHost)
+
+
+-- 通过id获取Prefab
+function M.GetPrefabPathById(id)
+    local m = dbc.model_path[id]
+    
+    assert(m ~= nil, "没有找到prefab:id=" .. tostring(id))
+    
+    local prefab_name = m.prefab_name
+    
+    if (prefab_name == nil or #prefab_name < 1) then
+        return nil
+    end
+    
+    return M.GetPrefabPath(m.prefab_name)
+end
+
+
+-- 通过type,name获取Prefab
+function M.GetPrefabPath(name)
+    return string.format("actors/prefab/%s.prefab", name)
+end
+
+
+-- 获取武器
+function M.GetRoleWeapon(specialization)
+    local weapon_path = nil
+    local weapon_point = nil
+    local weapon_sfx = nil
+    local weapon_blade = nil
+    
+    local data = dbc.weapon[specialization]
+    
+    if (data ~= nil) then
+        weapon_path = data.weapon
+        weapon_point = data.weapon_mount
+        weapon_sfx = data.sfx
+        weapon_blade = data.blade
+    end
+    
+    return weapon_path, weapon_point, weapon_sfx, weapon_blade
+end
+
+
+
+
+-- 获取动画机地址  clz
+function M.GetAnimatorControllerPath(specialization)
+    
+    M.PreloadBySpecialization(specialization)
+    
+    local data = dbc.specialization[specialization]
+    
+    if (data ~= nil) then
+        return data.animator
+    else
+        return nil
+    end
+
+end
+
+function M.GetAnimationPathById(model_id, anim_name)
+    if (anim_name == nil or #anim_name == 0) then return "" end
+    
+    local data = dbc.model_path[model_id]
+    assert(data,"找不到model_id:"..model_id)
+    local m = string.format("models/Role/%s/animation/%s.anim", data.model_path, anim_name)
+    return m
+end
+
+-- 2018-02-27 pacman 根据id获取角色animationClip目录路径
+function M.GetAnimationDirById(model_id)
+    local data = assert(dbc.model_path[model_id], string.format("table model_path doesn't has id %s", model_id))
+    local dir = string.format("models/Role/%s/animation/", data.model_path)
+    return dir
+end
+
+-- 2018-02-27 获取anim_clip的上半身版本
+-- anim_clip_path anim_clip的路径
+function M.GetUpperbodyAnimClip(anim_clip_path)
+    local path_upper = string.gsub(anim_clip_path, "%.anim", enum.unit.UpperAnimClipSurfix .. ".anim")
+    return path_upper
+end
+
+-- 预加载特殊动作资源
+function M.PreloadBySpecialization(specialization)
+    
+    local spell_client_id_list = {}
+    local model_id = 0
+    local display_id = 0
+    -- 猴子(复仇)
+    if (specialization == enum.shared.TalentSpecialization.DEMON_HUNTER_VENGEANCE) then
+        spell_client_id_list = {912001, 9120011, 912002, 912003, 912004, 912005, 912006, 912007, 912008, 912009, 912010, 912011, 912012, 912013, 912014, 912017, 912018, 912019, 912020, 912021, 912022, 912023, 912026, 912028, 912029, 912030, 1000001, 1000002}
+        model_id = 1002
+        display_id = 2912008
+        app:get_cache_mgr():AddPrefabCache(M.GetPrefabPathById(display_id)) -- 愁死我了 先这样吧
+
+    -- 猴子(浩劫)
+    elseif (specialization == enum.shared.TalentSpecialization.DEMON_HUNTER_HAVOC) then
+        spell_client_id_list = {9130011, 9130012, 9130013, 913002, 913005, 913006, 913007, 913008, 913025, 913014, 913010, 913013, 913015, 913016, 913017, 913019, 913020, 913021, 913022, 913023, 913026, 913034, 1000003, 1000004}
+        model_id = 1002
+        display_id = 2913016
+        app:get_cache_mgr():AddPrefabCache(M.GetPrefabPathById(display_id)) 
+
+    -- 罗刹(火法)
+    elseif (specialization == enum.shared.TalentSpecialization.MAGE_FIRE) then
+        spell_client_id_list = {903001, 903002, 903003, 903004, 903005, 903006, 903007, 903008, 903009, 903010, 903011, 903012, 903015, 903016, 903017, 903018, 903019, 903020, 903022, 903023, 903024, 903025, 903026, 903027, 903028, 903029, 903030, 903031, 903032, 903033, 903034, 903035, 903036, 903037, 903038, 903039, 903040, 903041, 903042, 903043, 903044, 903045, 903046, 903047, 903048, 903049, 903050, 903051, 903052, 903053, 903054, 903055, 903056, 903057, 903058, 903059, 903060, 903061, 903062, 903063, 903064, 903065, 903066, 903067, 903069, 903070, 903071, 903072, 903073, 903074, 903075, 903076, 903077, 903078, 903079, 903080, 903081, 903082, 903083, 903084, 903085, 903086, 903053, 903054, 1000005, 1000006}
+        model_id = 1003
+    
+    -- 镜童(神圣)
+    elseif (specialization == enum.shared.TalentSpecialization.PRIEST_HOLY) then
+        spell_client_id_list = {906001, 906002, 906003, 906004, 906005, 906006, 906007, 906008, 906009, 906010, 906011, 906012, 906014, 906016, 906020, 906022, 906025, 906026, 906027, 1000006}
+        model_id = 1001
+    end
+    
+    M.preload_skill_asset(model_id, spell_client_id_list)
+    if(display_id ~= 0) then
+        M.preload_skill_asset(display_id, spell_client_id_list)
+    end
+end
+
+-- 通用预加载技能资源方法
+function M.preload_skill_asset(model_id, spell_client_id_list)
+    local anima_assest = enum.battle.Skill_Anim_Type
+    local sfx_assest = enum.battle.Skill_Sfx_Type
+    
+    for dbc_index = 1, #spell_client_id_list do
+        local dbc_data = dbc.spell_client[spell_client_id_list[dbc_index]]
+        for k, v in pairs(anima_assest) do
+            if (type(dbc_data[v]) == "table") then
+                for index = 1, #v do
+                    local anim_name = dbc_data[v][index]
+                    if (anim_name ~= nil and #anim_name > 0) then
+                        local path = M.GetAnimationPathById(model_id, dbc_data[v][index])
+                        app:get_cache_mgr():AddAnimaCache(path)
+                    -- Debug.LogError("预加载动作资源：" .. path)
+                    end
+                end
+            else
+                local anim_name = dbc_data[v]
+                if (anim_name ~= nil and #anim_name > 0) then
+                    local path = M.GetAnimationPathById(model_id, dbc_data[v])
+                    app:get_cache_mgr():AddAnimaCache(path)
+                -- Debug.LogError("预加载动作资源：" .. path)
+                end
+            end
+        end
+        
+        for k, v in pairs(sfx_assest) do
+            if (type(dbc_data[v]) == "table") then
+                for index = 1, #v do
+                    local anim_name = dbc_data[v][index]
+                    if (anim_name ~= nil and #anim_name > 0) then
+                        local path = anim_name
+                        -- Debug.LogError("预加载特效资源：" .. path)
+                        app:get_cache_mgr():AddSfxCache(path)
+                    end
+                end
+            else
+                local anim_name = dbc_data[v]
+                if (anim_name ~= nil and #anim_name > 0) then
+                    local path = anim_name
+                    -- Debug.LogError("预加载特效资源：" .. path)
+                    app:get_cache_mgr():AddSfxCache(path)
+                end
+            end
+        end
+    end
+
+end
+
+-- 预加载s2c_anim资源
+function M.preload_s2c_asset(model_id, s2c_anim_id_list)
+    if s2c_anim_id_list == nil then
+        return
+    end
+    
+    local dbc_s2c = dbc.s2c_anim
+    for _, v in ipairs(s2c_anim_id_list) do
+        -- 预加载s2c_anim动作资源
+        local path_clip = M.GetAnimationPathById(model_id, dbc_s2c[v].anima_name)
+        if path_clip ~= nil and #path_clip > 0 then
+            app:get_cache_mgr():AddAnimaCache(path_clip)
+        --Debug.LogError("预加载s2c_anim动作资源：" .. path_clip)
+        end
+        
+        -- 预加载s2c_anim特效资源
+        local path_sfx = dbc_s2c[v].anima_sfx
+        if path_sfx ~= nil and #path_sfx > 0 then
+            app:get_cache_mgr():AddSfxCache(path_sfx)
+        --Debug.LogError("预加载s2c_anim特效资源：" .. path_sfx)
+        end
+    end
+end
+
+-- 获取普攻动作
+function M.GetAtkAnim(specialization, is_player)
+    if (is_player == true) then
+        -- 猴子(复仇)
+        if (specialization == enum.shared.TalentSpecialization.DEMON_HUNTER_VENGEANCE) then
+            return 1000001
+        -- 猴子(浩劫)
+        elseif (specialization == enum.shared.TalentSpecialization.DEMON_HUNTER_HAVOC) then
+            return 1000003
+        -- 罗刹(火法)
+        elseif (specialization == enum.shared.TalentSpecialization.MAGE_FIRE) then
+            return 1000005
+        end
+    else
+        local atk_anim = dbc.model_path[specialization].atk_anim
+        
+        if (atk_anim == 0) then return nil end
+        
+        local spell_client = dbc.spell_client[atk_anim]
+        
+        if (spell_client == nil) then return nil end
+        
+        return atk_anim
+    
+    end
+    return nil
+end
+
+function M.GetAppearanceSfxPath(id)
+    local m = dbc.model_path[id]
+    local sfx = m.appearance_sfx
+    local sfx_mount = m.appearance_sfx_mount
+    return sfx, sfx_mount
+end
+
+-- 加载表现型特效 生带来死带去
+function M.LoadAppearanceSfx(id, go)
+    
+    local sfx, sfx_mount = M.GetAppearanceSfxPath(id)
+    
+    if (sfx == nil or #sfx < 1) then
+        return
+    end
+    
+    local index = 1
+    repeat
+        M:load_sfx(sfx[index], sfx_mount[index], go)
+        index = index + 1
+    until (index > #sfx)
+end
+
+function M:load_sfx(sfx_path, sfx_mount_path, go)
+    -- 加载特效
+    M:subscribe(app:getResMgr():rxLoad(sfx_path), function(asset)
+        if asset then
+            local prefab = asset
+            local gameObject = Object.Instantiate(prefab)
+            if (sfx_mount_path == nil) then
+                sfx_mount_path = ""
+            end
+            local boneManager = go:GetComponent(KTBoneManager)
+            if (boneManager ~= nil) then
+                gameObject.transform.parent = go:GetComponent(KTBoneManager):GetBoneByName(sfx_mount_path)
+            else
+                gameObject.transform.parent = go.transform
+            end
+            
+            gameObject.transform.localPosition = prefab.transform.localPosition
+            gameObject.transform.localEulerAngles = prefab.transform.localEulerAngles
+            gameObject.transform.localScale = prefab.transform.localScale
+        end
+    end)
+end
+
+-- 加载出现特效
+function M:load_appear_sfx(id, pos, dir)
+    local path = dbc.model_path[id].appear_sfx
+    if (path == nil or #path == 0) then
+        return
+    end
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+    world:add_space_sfx(path, pos, Vector3(0, dir, 0))
+end
+
+-- 加载消失特效
+function M:load_exit_sfx(id, pos, dir)
+    local path = dbc.model_path[id].exit_sfx
+    if (path == nil or #path == 0) then
+        return
+    end
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+    world:add_space_sfx(path, pos, Vector3(0, dir, 0))
+end
+
+-- 获取生物死亡特效路径以及挂点
+function M.GetCreatureDeadSfxById(model_id)
+    local data = dbc.model_path[model_id]
+    return data.creature_dead_sfx, data.creature_dead_sfx_mount
+end
+
+-- 获取生物受击特效路径以及挂点
+function M.GetCreatureBeHitSfxById(model_id)
+    local data = dbc.model_path[model_id]
+    return data.creature_be_hit_sfx, data.creature_be_hit_sfx_mount
+end
+
+function M.use_physics_explosion(model_id, gameObject)
+    local data = dbc.model_path[model_id]
+    if (data.use_physics_explosion == true) then
+        if (gameObject ~= nil) then
+            local PhysicsExplosion = gameObject:GetComponent(PhysicsExplosion)
+            if (PhysicsExplosion ~= nil) then PhysicsExplosion:Explosion() end
+        end
+    end
+end
+
+
+
+function M.add_material(material_path, render)
+    local new_mats = ListMaterial()
+    local ori_mats = render.materials
+    
+    for mat in foreach(ori_mats) do
+        new_mats:Add(mat)
+    end
+    
+    M:subscribe(app:getResMgr():rxLoad(material_path), function(asset)
+        if asset then
+            new_mats:Add(asset)
+            local new_mats_array = new_mats:ToArray()
+            render.materials = new_mats_array
+        end
+    end)
+end
+
+function M.remove_material(material_name, render)
+    local new_mats = ListMaterial()
+    local ori_mats = render.materials
+    
+    for mat in foreach(ori_mats) do
+        print(mat.name)
+        if (mat.name ~= material_name .. " (Instance)") then
+            new_mats:Add(mat)
+        end
+    end
+    
+    local new_mats_array = new_mats:ToArray()
+    render.materials = new_mats_array
+end
+
+
+
+
+
+
+
+function M.PreloadByMap(name)
+
+    --if M.preload_by_map == nil then M.preload_by_map = {} end
+
+    if name == "hgs_jsz1_0" then
+        -- 巨灵神p1, p2
+        local spell_client_id_list_p1 = {20, 21, 23, 5, 6}
+        local sc2_anim_id_list_p1 = {1001, 1002, 1003, 1004, 1005, 1006}
+        local model_id_p1 = 40001
+        M.preload_skill_asset(model_id_p1, spell_client_id_list_p1)
+        M.preload_s2c_asset(model_id_p1, sc2_anim_id_list_p1)
+        
+        -- 巨灵神p3
+        local spell_client_id_list_p3 = {8, 9, 10, 11, 12, 62}
+        local sc2_anim_id_list_p3 = {1007, 1008}
+        local model_id_p3 = 50001
+        M.preload_skill_asset(model_id_p3, spell_client_id_list_p3)
+        M.preload_s2c_asset(model_id_p3, sc2_anim_id_list_p3)
+
+    elseif name == "glz_fb" then
+        local gaoguanjia_id = 30203008
+        local gaoguanjia_client_id = {32,45}
+        local zhuganglie_id = 30204009
+        local zhuganglie_client_id = {33,34,35,36,65}
+        M.preload_skill_asset(gaoguanjia_id, gaoguanjia_client_id)
+        M.preload_skill_asset(zhuganglie_id, zhuganglie_client_id)
+    end
+end
+
+
+return M

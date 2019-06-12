@@ -1,0 +1,76 @@
+local Frame = require("system.frame")
+local quest_ui_list = class("quest_ui_list", Frame)
+Attribute.decl(quest_ui_list, "have_quest", false)
+function quest_ui_list:doInit()
+
+    self.m_quest_id_list = {}
+    Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+
+end
+-- 刷新任务列表
+function quest_ui_list:refresh_quest_list(quest_id_list)
+
+    --Debug.LogError(debug.traceback(#quest_id_list))
+
+    for i, v in ipairs(quest_id_list) do
+        self.m_quest_id_list[i] = { ["id"] = v }
+    end
+    for i, v in ipairs(self.m_quest_id_list) do
+
+        if self:getChild("quest_ui_list_item" .. v["id"]) then
+            v["ins_frame"] = self:getChild("quest_ui_list_item" .. v["id"])
+        else
+            v["ins_frame"] = self:createChild("quest_ui_list_item" .. v["id"], "%subsystem.quest.quest_ui.quest_ui_list_item", v["id"])
+        end
+    end
+    -- 初始的时候选择第一个
+    if #self.m_quest_id_list ~= 0 then
+        self.m_selected_frame = self.m_quest_id_list[1]["ins_frame"]
+        self.m_selected_frame:emit_event("selected")
+        self:set_have_quest(true)
+    end
+    --self.m_selected_frame = self.m_quest_id_list[1]["ins_frame"]
+    --self.m_selected_frame:emit_event("selected")
+    --self:set_have_quest(true)
+
+end
+
+-- 删除不显示的任务item
+function quest_ui_list:del_quest_list(quest_id_list)
+    for i, v in ipairs(quest_id_list) do
+        self:destroyChild("quest_ui_list_item" .. v )
+    end
+end
+
+-- 切换点击的任务
+function quest_ui_list:change_selected_item(child)
+    if child == self.m_selected_frame then
+        return
+    else
+        self.m_selected_frame:emit_event("unselected")
+    end
+    for k, v in ipairs(self.m_quest_id_list) do
+        if v["ins_frame"] == child then
+            self.m_selected_frame = child
+            child:emit_event("selected")
+            break
+        end
+    end
+end
+-- 显示面板初始化显示的信息
+function quest_ui_list:get_curr_selected_item()
+    if self.m_quest_id_list == nil then
+        return nil
+    else
+        local ret = {}
+        ret["id"] = self.m_quest_id_list[1]["id"]
+        return ret["id"]
+    end
+end
+-- 删除任务
+function quest_ui_list:del_quest(quest_id)
+    self:destroyChild("quest_ui_list_item" .. quest_id)
+end
+
+
+return quest_ui_list

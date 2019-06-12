@@ -1,0 +1,73 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    local view_go = self:getGO()
+    local path = self.m_frame:get_sfx_path()
+    
+    self.m_update_func = nil
+    
+    
+    
+    if path == "" or path == "n" then
+        return
+    else
+        self:load(path, function(go)
+            go.transform.position = Vector3.zero
+            go.transform.eulerAngles = Vector3.zero
+            self.m_bullet = go
+            
+            
+            
+            self.m_projectile_type_cfg = self.m_frame:get_projectile_type_cfg()
+            
+            if (self.m_projectile_type_cfg ~= nil) then
+                self:select_projectile_type()
+            end
+            
+            -- 响应pos事件
+            self:subscribe(self.m_frame:on_event_pos_set(true), function(value)
+                view_go.transform.position = value
+            end)
+            
+            -- 响应eular事件
+            self:subscribe(self.m_frame:on_event_euler_set(true), function(value)
+                view_go.transform.eulerAngles = Vector3(0, value, 0)
+            end)
+        end)
+    end
+
+end
+
+function M:doUpdate()
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+end
+
+function M:select_projectile_type()
+    if (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.WAGGLE) then
+        
+        self.m_update_func = self.waggle
+
+        self.m_x_dis = self.m_projectile_type_cfg.param1
+
+        self.m_x_speed = self.m_projectile_type_cfg.param2
+    end
+end
+
+function M:waggle()
+    if (self.m_bullet ~= nil) then   
+        local x = Mathf.Sin(self.m_frame:get_moved_dis()* (self.m_x_speed / self.m_frame:get_cfg().speed));
+        self.m_bullet.transform.localPosition = self.m_bullet.transform.right * x * self.m_x_dis
+        if(self.m_x_dis>0) then
+            self.m_x_dis = self.m_x_dis - Time.deltaTime * self.m_frame:get_expected_time()
+        end
+    end
+end
+
+
+
+
+
+return M

@@ -1,0 +1,389 @@
+local Quest_detail = require "subsystem.quest.quest_bar.quest_detail"
+
+
+local View = require("system.view")
+local Quest_bar_view = class("Quest_bar_view", View)
+
+Quest_bar_view.Const = {}
+Quest_bar_view.Const.start_cross_fade_delay = 1.5
+Quest_bar_view.Const.corss_fade_duration = 1
+Quest_bar_view.Const.time_before_move = 1.8
+Quest_bar_view.Const.move_duration = 1
+Quest_bar_view.Const.time_after_move = 0.1
+
+function Quest_bar_view:doInit()
+    self.m_main_player = self:getFrame("world"):get_main_player()
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_first_quest = Quest_detail:new(1)
+    self.m_second_quest = Quest_detail:new(2)
+    self.m_area_quest_item_tr = nil
+    self.m_area_quest_item_sfx_tr = nil
+    self.m_area_quest_event_queue = {}
+    self.m_dotween_sequence = nil
+    self.m_quest_list = {}
+    self.m_cur_tab_val = 1
+    self.m_share_quest_id_list = {}
+
+    local this = self
+    self:load("ui/sidebar/tab_quest.prefab", function(tab_quest_go)
+        local parent_node = self:getParent():getGO().transform:GetChild(0):Find("quest_bar")
+        self.m_area_quest_item_tr = parent_node:Find("sidebar_quest_item")
+        self.m_area_quest_item_sfx_tr = parent_node:Find("sfx_add")
+        -- 特效
+        self.m_mission_complete_sfx = tab_quest_go.transform:Find("mission_complete"):GetComponent("ParticleSystem")
+        self.m_mission_complete_sfx.gameObject:SetActive(false)
+
+        self:load("ui/sidebar/item_quest/sidebar_quest_item.prefab", function(quest_detail_go)
+            local quest_detail_go_copy = Object.Instantiate(quest_detail_go)
+            this.m_first_quest:set_go(quest_detail_go, this)
+            this.m_first_quest:reset_sibling_index(1)
+            this.m_second_quest:set_go(quest_detail_go_copy, this)
+            this.m_second_quest:reset_sibling_index(2)
+
+            this:init_with_go(tab_quest_go, parent_node)
+        end)
+    end)
+end
+
+function Quest_bar_view:on_prepared()
+    Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+    Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:add_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+    Event_system:add_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_schdule))
+
+    self.m_rect = self.m_go:GetComponent(RectTransform)
+    self.m_rect.sizeDelta = Vector2(0, 0)
+    self.m_quest_item_node = self.m_rect:Find("viewport/vertical_group_quest")
+    self.m_first_quest:set_parent(self.m_quest_item_node)
+    self.m_second_quest:set_parent(self.m_quest_item_node)
+
+    self:subscribe(self.m_frame:on_event("show"), function()
+        self.m_go:SetActive(true)
+    end)
+    self:subscribe(self.m_frame:on_event("hide"), function()
+        self.m_go:SetActive(false)
+    end)
+    self:subscribe(self.m_frame:on_event("get_traced_quest_list"), function(cb)
+        cb(self:get_traced_quest_list())
+    end)
+    self:subscribe(self.m_main_player:on_event_attr_set("inst_id", true), function (inst_id)
+        --self.m_inst_id = inst_id
+        if inst_id > 0 then
+            self.m_share_quest_id_list = dbc.instances[inst_id].share_quest
+            self:switch_tab(2)
+        else
+            self.m_share_quest_id_list = {}
+            self:switch_tab(1)
+        end
+    end)
+    --self:refresh_all()
+end
+
+function Quest_bar_view:doDestroy()
+    Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+    Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:del_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+    Event_system:del_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_schdule))
+end
+
+function Quest_bar_view:show()
+    self.m_go:SetActive(true)
+end
+
+function Quest_bar_view:hide()
+    self.m_go:SetActive(false)
+end
+
+function Quest_bar_view:refresh_all()
+    local quest_list = self.m_quest_manager:get_quest_list()
+    for quest_id, quest_data in pairs(quest_list) do
+        if quest_id ~= 911 then
+            self:add_quest(quest_id, quest_data, true)
+        end
+    end
+end
+
+function Quest_bar_view:switch_tab(tab_val)
+    self.m_cur_tab_val = tab_val
+    self.m_first_quest:hide()
+    self.m_second_quest:hide()
+    self.m_quest_list = {}
+    self:refresh_all()
+end
+
+function Quest_bar_view:add_quest(quest_id, quest_data, is_quick_show)
+    local tab_val = dbc.quest[quest_id].tab_val
+    if tab_val ~= self.m_cur_tab_val then
+        return
+    end
+    if tab_val == Enum_Quest.Quest_Bar_Tab.Instance and not Util_table:is_contain(self.m_share_quest_id_list, quest_id) then
+        return
+    end
+    
+    local cur_detail_count = Util_table:count(self.m_quest_list)
+    if cur_detail_count == 0 then
+        self.m_first_quest:set_quest_data(quest_data)
+        self.m_quest_list[quest_id] = self.m_first_quest
+        if quest_data:is_begin_with_enter_area() and not is_quick_show then
+            local detail_event = {}
+            detail_event["index"] = 1
+            detail_event["quest_id"] = quest_data:get_quest_id()
+            table.insert(self.m_area_quest_event_queue, detail_event)
+            self:start_quest_detail_event()
+        else
+            self.m_first_quest:show()
+        end
+    elseif cur_detail_count == 1 then
+        self.m_second_quest:set_quest_data(quest_data)
+        self.m_quest_list[quest_id] = self.m_second_quest
+        if quest_data:is_begin_with_enter_area() and not is_quick_show then
+            local detail_event = {}
+            detail_event["index"] = 2
+            detail_event["quest_id"] = quest_data:get_quest_id()
+            table.insert(self.m_area_quest_event_queue, detail_event)
+            self:start_quest_detail_event()
+        else
+            self.m_second_quest:show()
+        end
+    elseif cur_detail_count == 2 then
+        if quest_data:is_begin_with_enter_area() and not is_quick_show then
+            local old_quest_id = self.m_first_quest:get_quest_data():get_quest_id()
+            self.m_quest_list[old_quest_id] = nil
+            self.m_first_quest:set_quest_data(quest_data)
+            self.m_quest_list[quest_id] = self.m_first_quest
+            local detail_event = {}
+            detail_event["index"] = 1
+            detail_event["quest_id"] = quest_data:get_quest_id()
+            table.insert(self.m_area_quest_event_queue, detail_event)
+            self:start_quest_detail_event()
+        else
+            return
+        end
+    end
+end
+
+function Quest_bar_view:del_quest(quest_id)
+    if not self.m_quest_list[quest_id] then
+        return
+    end
+    
+    self.m_quest_list[quest_id]:destroy()
+    self.m_mission_complete_sfx.gameObject:SetActive(true)
+    self.m_mission_complete_sfx:Play(true)
+    slua_timer.addDelayEvent(
+    1.0,
+    function()
+        self.m_mission_complete_sfx.gameObject:SetActive(false)
+    end)
+    --local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 80, ["end_y"] = 180, ["duration"] = 3})
+    --scroll_text:set_attr("msg", string.format("【%d】任务已完成", quest_id))
+
+    local aim_quest = self.m_quest_list[quest_id]
+    if aim_quest == self.m_first_quest then
+        local replace_quest_data = self:get_replace_quest()
+        if replace_quest_data then
+            local replace_quest_id = replace_quest_data:get_quest_id()
+            self.m_quest_list[quest_id] = nil
+            self.m_first_quest:set_quest_data(replace_quest_data)
+            self.m_quest_list[replace_quest_id] = self.m_first_quest
+            if replace_quest_data:is_begin_with_enter_area() then
+                local detail_event = {}
+                detail_event["index"] = 1
+                detail_event["quest_id"] = replace_quest_id
+                table.insert(self.m_area_quest_event_queue, detail_event)
+                self:start_quest_detail_event()
+            else
+                self.m_first_quest:show()
+            end
+        else
+            if self.m_second_quest:get_is_show() then
+                self.m_first_quest, self.m_second_quest = self.m_second_quest, self.m_first_quest
+                self.m_first_quest:reset_sibling_index(1)
+                self.m_second_quest:reset_sibling_index(2)
+                self.m_second_quest:hide()
+                self.m_quest_list[quest_id] = nil
+            else
+                self.m_quest_list[quest_id] = nil
+                self.m_first_quest:hide()
+            end
+        end
+
+    elseif aim_quest == self.m_second_quest then
+        local replace_quest_data = self:get_replace_quest()
+        if replace_quest_data then
+            local replace_quest_id = replace_quest_data:get_quest_id()
+            self.m_quest_list[quest_id] = nil
+            self.m_second_quest:set_quest_data(replace_quest_data)
+            self.m_quest_list[replace_quest_id] = self.m_second_quest
+            if replace_quest_data:is_begin_with_enter_area() then
+                local detail_event = {}
+                detail_event["index"] = 2
+                detail_event["quest_id"] = replace_quest_id
+                table.insert(self.m_area_quest_event_queue, detail_event)
+                self:start_quest_detail_event()
+            else
+                self.m_second_quest:show()
+            end
+        else
+            self.m_quest_list[quest_id] = nil
+            self.m_second_quest:hide()
+        end
+    end
+    --self.m_quest_list[quest_id] = nil
+end
+
+function Quest_bar_view:start_quest_detail_event()
+    if #self.m_area_quest_event_queue <= 0 or self.m_dotween_sequence then
+        return
+    end
+    
+    local first_event = self.m_area_quest_event_queue[1]
+    if not first_event then
+        return
+    end
+    
+    local this = self
+    local end_pos = first_event["index"] == 1 and self.m_first_quest:get_pos() or self.m_second_quest:get_pos()
+    self.m_dotween_sequence = DOTween.Sequence()
+    local tweener1 = ShortcutExtensions.DOLocalMove(self.m_area_quest_item_sfx_tr, Vector3.zero, self.Const.time_before_move, false)
+    local tweener2 = ShortcutExtensions.DOMove(self.m_area_quest_item_sfx_tr, end_pos, self.Const.move_duration, false)
+    local tweener3 = ShortcutExtensions.DOMove(self.m_area_quest_item_sfx_tr, end_pos, self.Const.time_after_move, false)
+    tweener1 = DG_DOTweenUtil.OnComplete(tweener1, function ()
+        this.m_area_quest_item_sfx_tr.localPosition = Vector3.zero
+        this.m_area_quest_item_sfx_tr.gameObject:SetActive(true)
+    end)
+    tweener2 = DG_DOTweenUtil.OnComplete(tweener2, function ()
+        this:clear_area_quest_const_info()
+        local cur_quest_detail = this.m_quest_list[first_event["quest_id"]]
+        if cur_quest_detail then
+            --cur_quest_detail:refresh_modify()
+            cur_quest_detail:show()
+        end
+    end)
+    tweener3 = DG_DOTweenUtil.OnComplete(tweener3, function ()
+        table.remove(this.m_area_quest_event_queue, 1)
+        this.m_dotween_sequence = nil
+        self.m_area_quest_item_sfx_tr.gameObject:SetActive(false)
+        this:start_quest_detail_event()
+    end)
+    self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener1)
+    self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener2)
+    self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener3)
+    
+    self:refresh_area_quest_const_info(first_event["quest_id"])
+end
+
+function Quest_bar_view:refresh_area_quest_const_info(quest_id)
+    local quest_info = dbc.quest[quest_id]
+    self.m_area_quest_item_tr:Find("something/quest_info/txt_title"):GetComponent(UnityEngine.UI.Text).text = quest_info.name
+    self.m_area_quest_item_tr:Find("something/quest_info/second_line/txt_sketch"):GetComponent(UnityEngine.UI.Text).text = quest_info.sketchy
+    for i = 0, #quest_info.goods - 1 do
+        self.m_area_quest_item_tr:Find("something/goods"):GetChild(i).gameObject:SetActive(true)
+    end
+    for i = #quest_info.goods, 1 do
+        self.m_area_quest_item_tr:Find("something/goods"):GetChild(i).gameObject:SetActive(false)
+    end
+    self.m_area_quest_item_tr.gameObject:SetActive(true)
+    local graphic_arr = self.m_area_quest_item_tr:GetComponentsInChildren(UnityEngine.UI.Graphic)
+    for i = 1, graphic_arr.Length do
+        graphic_arr[i].color = Color.white
+        local whole_time = self.Const.time_before_move + self.Const.move_duration
+        --local cross_fade_duration = Util_math:clamp(whole_time - self.Const.start_cross_fade_delay, 0.1, whole_time)
+        local tween = DG_DOTweenUtil.ToGraphicColor(graphic_arr[i], Color.white, Color(1, 1, 1, 0), self.Const.corss_fade_duration)
+        DG_DOTweenUtil.SetDelay(tween, self.Const.start_cross_fade_delay)
+    end
+end
+
+function Quest_bar_view:clear_area_quest_const_info()
+    self.m_area_quest_item_tr.gameObject:SetActive(false)
+end
+
+function Quest_bar_view:add_new_quest(quest_id)
+    local scroll_text = app:get_ui_manager():create_scroll_text({ ["offset_y"] = 50, ["end_y"] = 150, ["duration"] = 3 })
+    scroll_text:set_attr("msg", string.format("任务已接取", quest_id))
+end
+
+function Quest_bar_view:refresh_schdule(id)
+    if self.m_quest_list[id] then
+        self.m_quest_list[id]:refresh_schdule()
+    end
+end
+
+function Quest_bar_view:get_traced_quest_list()
+    local rst_tbl = {}
+    local cur_quest_data = self.m_first_quest:get_quest_data()
+    if cur_quest_data then
+        table.insert(rst_tbl, cur_quest_data)
+    end
+    cur_quest_data = self.m_second_quest:get_quest_data()
+    if cur_quest_data then
+        table.insert(rst_tbl, cur_quest_data)
+    end
+    return rst_tbl
+end
+
+function Quest_bar_view:get_replace_quest()
+    local primary_quest_data = nil
+    local quest_data_dict = self.m_quest_manager:get_quest_list()
+    if Util_table:count(quest_data_dict) >= 2 then
+        local quest_infos = dbc.quest
+        local quest_tp_dict = {
+            [Enum_Quest.Quest_Type.Main] = {},
+            [Enum_Quest.Quest_Type.Side] = {},
+            [Enum_Quest.Quest_Type.Area] = {},
+        }
+
+        for quest_id, quest_data in pairs(quest_data_dict) do
+            local is_passable = true
+            for pass_quest_id, _ in pairs(self.m_quest_list) do
+                if pass_quest_id == quest_id then
+                    is_passable = false
+                    break
+                end
+            end
+            if is_passable then
+                table.insert(quest_tp_dict[quest_infos[quest_id].type], quest_data)
+            end
+        end
+
+        while true do
+            local cur_tp_quest_list = quest_tp_dict[Enum_Quest.Quest_Type.Main]
+            if #cur_tp_quest_list > 0 then
+                self:sort_quest_by_timestamp(cur_tp_quest_list)
+                primary_quest_data = cur_tp_quest_list[1]
+                break
+            end
+            cur_tp_quest_list = quest_tp_dict[Enum_Quest.Quest_Type.Side]
+            if #cur_tp_quest_list > 0 then
+                self:sort_quest_by_timestamp(cur_tp_quest_list)
+                primary_quest_data = cur_tp_quest_list[1]
+                break
+            end
+            cur_tp_quest_list = quest_tp_dict[Enum_Quest.Quest_Type.Area]
+            if #cur_tp_quest_list > 0 then
+                self:sort_quest_by_timestamp(cur_tp_quest_list)
+                primary_quest_data = cur_tp_quest_list[1]
+                break
+            end
+            break
+        end
+    end
+    return primary_quest_data
+end
+
+function Quest_bar_view:sort_quest_by_timestamp(quest_list)
+    table.sort(quest_list, function(former, later)
+        return former:get_timestamp() < later:get_timestamp()
+    end)
+end
+
+function Quest_bar_view:doUpdate()
+    for quest_id, quest_detail in pairs(self.m_quest_list) do
+        local quest_data = self.m_quest_manager:get_quest_list()[quest_id]
+        local dis_aim, dir_aim = quest_data:get_closest_aim_info()
+        local dir_self = self.m_main_player:get_dir()
+        quest_detail:refresh_aim_info(dis_aim, dir_aim, dir_self)
+    end
+end
+
+return Quest_bar_view

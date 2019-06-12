@@ -1,0 +1,12 @@
+local View = require("system.view")
+local UICharacterInfoView = class("UICharacterInfoView", View)
+function UICharacterInfoView:doInit()
+    local ui_manager = app:get_ui_manager()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("CharacterAttr"), function(go)
+
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+    end)
+end
+
+return UICharacterInfoView

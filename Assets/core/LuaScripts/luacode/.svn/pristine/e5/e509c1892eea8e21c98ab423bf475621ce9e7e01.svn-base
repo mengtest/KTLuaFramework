@@ -1,0 +1,63 @@
+local View = require("system.view")
+local spirit_property_skill_btn_view = class("spirit_property_skill_btn_view", View)
+
+
+function spirit_property_skill_btn_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritPropertySkillBtn"), function(go)
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        local frame = self:getFrame()
+        self:subscribe(frame:on_event_tmpl_set(true), function(val)
+            local icon_path = nil
+            if val == -1 then
+                return
+            else
+                icon_path = dbc.spell_client[val].icon
+            end
+            self:change_sprite(icon_path)
+        end)
+
+        -- 选中
+        self:subscribe(frame:on_event("selected"), function()
+            self["selected_gameObject"]:SetActive(true)
+        end)
+        -- 未选中
+        self:subscribe(frame:on_event("unselected"), function()
+            self["selected_gameObject"]:SetActive(false)
+        end)
+
+        -- 显示
+        self:subscribe(frame:on_event("show"), function()
+            self:show()
+        end)
+        -- 隐藏
+        self:subscribe(frame:on_event("hide"), function()
+            self:hide()
+        end )
+    end)
+end
+
+
+function spirit_property_skill_btn_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self["icon_GUIImage"].sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+---- 显示自己
+function spirit_property_skill_btn_view:show()
+    self:getGO():SetActive(true)
+end
+---- 隐藏自己
+function spirit_property_skill_btn_view:hide()
+    self:getGO():SetActive(false)
+end
+
+return spirit_property_skill_btn_view

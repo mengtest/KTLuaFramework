@@ -1,0 +1,115 @@
+local ObserverHost = require "system.observer_host"
+
+local M = class("ModelMgr")
+
+M:include(ObserverHost)
+
+M.Enum_Model_Type = {
+    Role = 0, -- 角色
+    Interact_Obj = 1, -- 物件
+    Creature = 2, -- 怪物
+    BigBoss = 3, -- 大型Boss
+}
+
+-- 通过id获取Prefab
+function M.GetPrefabPathById(id)
+    local m = dbc.model_path[id]
+    
+    assert(m~=nil,"没有找到prefab:id="..tostring(id))
+
+    M.PreloadAnim(m)
+    return M.GetPrefabPath(m.model_type, m.prefab_name)
+end
+
+-- 通过type,name获取Prefab
+function M.GetPrefabPath(type, name)
+    --if (type == M.Enum_Model_Type.Role) then
+        return string.format("actors/Prefab/%s.prefab", name)
+    -- elseif (type == M.Enum_Model_Type.Interact_Obj) then
+    --     return string.format("actors/prefab/interact_obj/%s.prefab", name)
+    -- elseif (type == M.Enum_Model_Type.Creature) then
+    --     return string.format("actors/Prefab/%s.prefab", name)
+    -- elseif (type == M.Enum_Model_Type.BigBoss) then
+    --     return string.format("actors/prefab/BigBoss/%s.prefab", name)
+    --end
+end
+
+function M.GetAnimationPathById(model_id, anim_name)
+    local data = dbc.model_path[model_id]
+    local m = string.format("models/Role/%s/animation/%s.anim", dbc.model_path[model_id].model_path, anim_name)
+    return m
+end
+
+-- 预加载特殊动作资源
+function M.PreloadAnim(data)
+    local skill_mgr = app:getSkillMgr()
+    -- 在这里缓存普攻动作
+    local preload_atks = data.normal_atk
+    if (preload_atks ~= nil and #preload_atks > 0) then
+        for i, j in pairs(preload_atks) do
+            skill_mgr:preload_atk_asset_by_path(data.id, j)
+        end
+    end
+    -- 在这里缓存特殊动作
+    local special_anim = data.special_anim
+    if (special_anim ~= nil and #special_anim > 0) then
+        for i, j in pairs(special_anim) do
+            skill_mgr:preload_atk_asset_by_path(data.id, j)
+        end
+    end
+end
+
+-- 获取一个随机普攻动作
+function M.RandomAtkAnim(id)
+    local m = dbc.model_path[id]
+    if (#m.normal_atk > 0) then
+        local rand = Random.Range(1, #m.normal_atk + 1)
+        return m.normal_atk[rand]
+    end
+    return nil
+end
+
+-- 加载表现型特效 生带来死带去
+function M.LoadAppearanceSfx(id, go)
+    local m = dbc.model_path[id]
+    local sfx = m.appearance_sfx
+    local sfx_mount = m.appearance_sfx_mount
+    if(sfx == nil or #sfx < 1) then
+        return 
+    end
+   
+    local index = 1
+    repeat
+        M:load_sfx(sfx[index],sfx_mount[index],go)
+        index = index + 1
+    until (index > #sfx)
+
+end
+
+function M:load_sfx(sfx_path,sfx_mount_path,go)
+    -- 加载特效
+   M:subscribe(app:getResMgr():rxLoad(sfx_path), function(asset_ref)     
+           if (asset_ref.asset ~= nil) then 
+                local prefab = asset_ref.asset             
+                local gameObject = Object.Instantiate(prefab)
+                if(sfx_mount_path == nil) then
+                    sfx_mount_path = ""
+                end
+                gameObject.transform.parent = go:GetComponent(KTBoneManager):GetBoneByName(sfx_mount_path)
+                gameObject.transform.localPosition = prefab.transform.localPosition
+                gameObject.transform.localEulerAngles = prefab.transform.localEulerAngles
+                gameObject.transform.localScale = prefab.transform.localScale
+            end
+    end)
+end
+
+function M:load_dead_sfx(id,pos,dir)  
+    local path = dbc.model_path[id].after_dead_sfx
+    if(path == nil or #path == 0) then
+        return
+    end
+     local frame_mgr = app:getFrameMgr()
+	local world = frame_mgr:getFrame("world")
+    world:add_space_sfx(path,pos,Vector3(0,dir,0))
+end
+return M

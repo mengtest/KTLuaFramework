@@ -1,0 +1,210 @@
+local View = require("system.view")
+local talent_view = class("talent_view", View)
+
+
+
+---- 2017.12.25 这个是新版的
+function talent_view:set_talent_data()
+    local frame = self:getFrame()
+    -- 名字
+    local talent_name = dbc.spell_ui[frame:get_talent_id()].name
+    self.m_talent_name_text.text = tostring(talent_name)
+    -- 详细信息
+    local talent_detail = dbc.spell_ui[frame:get_talent_id()].detail_explain_skill
+    self.m_talent_detail_text.text = tostring(talent_detail)
+    -- 解锁条件
+    local unlock_condition_text = dbc.spell_ui[frame:get_talent_id()].unlock_parameters_skill
+    self.m_locked_text.text = tostring("等级达到" .. unlock_condition_text .. "级可激活")
+
+    if dbc.spell_ui[frame:get_talent_id()].passivity_skill == enum.ui.Enum_UI_SkillType.PASSIVE_SKILL then
+        -- 这是被动
+        self.m_talent_passive_text.text = tostring("被动")
+    else
+        -- 这是主动
+        self.m_talent_passive_text.text = tostring("主动")
+    end
+end
+
+function talent_view:doInit(param)
+    ---- 此天赋id
+    --self.m_talent_id = param.id
+    ---- 此天赋是否是锁定的
+    --self.m_is_locked = param.is_locked
+    ---- 此天赋是否已学习
+    --self.m_is_learned = param.is_learned
+    ---- 此天赋是否已经启用
+    --self.m_is_enabled = param.is_enabled
+    self.m_talent_card_num = param.card_num
+
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    ---- 这些是翻牌用的
+    self.m_rotate = false
+    self.m_front_rotate = true
+    self.m_back_rotate = false
+    self.m_speed = 15
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("Talent"), function(loaded_go)
+
+        local frame = self:getFrame()
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find("bg/drag_panel/talent_container/talent_new").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_card_go = go
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, frame)
+        local go_trsf = go.transform
+        self.m_talent_card = go_trsf
+        go:SetActive(true)
+
+        ---- 名称文本
+        self.m_talent_name_text = go_trsf:Find("name"):GetComponent(UI.Text)
+        ---- 主被动文本
+        self.m_talent_passive_text = go_trsf:Find("passive"):GetComponent(UI.Text)
+        ---- 详细信息
+        self.m_talent_detail_text = go_trsf:Find("description"):GetComponent(UI.Text)
+        ---- 已激活图片
+        self.m_enabled_img = go_trsf:Find("enabled_image"):GetComponent(UI.Image)
+        ---- 待激活按钮
+        self.m_enabled_btn = go_trsf:Find("enabled_btn"):GetComponent(UI.Button)
+        ---- 未解锁图片
+        self.m_locked_img = go_trsf:Find("locked_image"):GetComponent(UI.Image)
+        self.m_locked_text = go_trsf:Find("locked_image/Text"):GetComponent(UI.Text)
+        ---- icon
+        self.m_icon_img = go_trsf:Find("icon"):GetComponent(UI.Image)
+        ---- 激活icon
+        self.m_enabled_icon_img = go_trsf:Find("enabled_icon"):GetComponent(UI.Image)
+        ---- 待激活按钮上的特效
+        self.m_need_unlock_sfx = nil
+
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_tianfu_dai_ji_huo"), self.m_enabled_btn.gameObject.transform, "m_need_unlock_sfx")
+    
+        ---- 启用特效
+        self.m_enabled_sfx = nil
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_tianfu_qiyong"), self.m_enabled_img.gameObject.transform, "m_enabled_sfx")
+        -- 按钮监听
+        self.m_enabled_btn.onClick:AddListener(function()
+            --if self.m_click_sfx ~= nil and self.m_need_unlock_sfx ~= nil then
+            --    self.m_click_sfx.gameObject:SetActive(true)
+            --    self.m_click_sfx:Play()
+            --    self.m_need_unlock_sfx.gameObject:SetActive(false)
+            --    self.m_need_unlock_sfx:Stop()
+            --end
+
+            -- 没学习学习 + 启用
+            if not frame:get_is_learned() then
+                self.m_skill_ui_manager:req_master_learn(frame:get_talent_id())
+                self.m_skill_ui_manager:req_master_enabling(frame:get_group_num(), frame:get_talent_num())
+            else
+                -- 学习了启用
+                self.m_skill_ui_manager:req_master_enabling(frame:get_group_num(), frame:get_talent_num())
+            end
+
+        end)
+        -- 监听天赋解锁
+        self:subscribe(frame:on_event_is_locked_set(true), function(locked)
+            if locked then
+                self.m_locked_img.gameObject:SetActive(true)
+            else
+                self.m_locked_img.gameObject:SetActive(false)
+                if frame:get_is_learned() then
+                    if not frame:get_is_enabled() then
+                        self.m_enabled_btn.gameObject:SetActive(true)
+                    else
+                        self.m_enabled_btn.gameObject:SetActive(false)
+                    end
+                else
+                    self.m_enabled_btn.gameObject:SetActive(true)
+                end
+            end
+        end)
+        -- 监听天赋启用
+        self:subscribe(frame:on_event_is_enabled_set(true), function(enabled)
+            if enabled then
+                -- 已激活
+                self.m_enabled_btn.gameObject:SetActive(false)
+                if self.m_enabled_sfx ~= nil then
+                    self.m_enabled_sfx.gameObject:SetActive(true)
+                    self.m_enabled_sfx:Play()
+                    slua_timer.addDelayEvent(
+                    1,
+                    function()
+                        self.m_enabled_sfx.gameObject:SetActive(false)
+                        self.m_enabled_sfx:Stop()
+                        self.m_enabled_img.gameObject:SetActive(true)
+                    end)
+                else
+                    self.m_enabled_img.gameObject:SetActive(true)
+                end
+                self.m_icon_img.gameObject:SetActive(false)
+                self.m_enabled_icon_img.gameObject:SetActive(true)
+            else
+                -- 未激活
+                self.m_enabled_btn.gameObject:SetActive(true)
+                self.m_enabled_img.gameObject:SetActive(false)
+                self.m_icon_img.gameObject:SetActive(true)
+                self.m_enabled_icon_img.gameObject:SetActive(false)
+            end
+        end)
+        self:set_talent_data()
+    end)
+
+
+
+end
+
+
+function talent_view:doUpdate()
+
+    ---- 这里判断特效播放
+    if self.m_enabled_btn ~= nil and self.m_need_unlock_sfx ~= nil then
+        if self.m_enabled_btn.gameObject.activeSelf then
+            self.m_need_unlock_sfx.gameObject:SetActive(true)
+            self.m_need_unlock_sfx:Play()
+            return
+        else
+            self.m_need_unlock_sfx.gameObject:SetActive(false)
+            self.m_need_unlock_sfx:Stop()
+            return
+        end
+    end
+
+end
+
+---- rjy 2017.11.30 加载特效
+function talent_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        --go.transform:SetParent(parent.parent)
+        go.transform:SetParent(parent.parent)
+        --go.transform.localPosition = Vector3(-10, -90, 0)
+        if cache == "m_enabled_sfx" then
+            go.transform.localPosition = Vector3(parent.transform.localPosition.x + 8.5, parent.transform.localPosition.y + 11.1, parent.transform.localPosition.z)
+        else
+            go.transform.localPosition = parent.transform.localPosition
+        end
+
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+return talent_view

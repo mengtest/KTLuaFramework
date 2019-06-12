@@ -1,0 +1,75 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/11/22 14:48
+---
+local View = require("system.view")
+local equipment_list_view = class("equipment_list_view", View)
+
+function equipment_list_view:doInit(param)
+
+    --装备列表，存储16个装备的table，每个装备的table中包含  1.装备的名字 2.装备图标 3.装备等级
+    self.m_equipment_list = {}
+    self.m_ui_manager = app:get_ui_manager()
+    self:load("ui/Equipment.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local slots = go.transform:Find("slots").transform
+        local slots_count = slots.childCount
+
+        for i = 0, slots_count - 1 do
+            local equip = slots:GetChild(i)
+            local equipment_name = equip.gameObject.name
+            local equipment_name_go = equip.transform:Find("name").gameObject
+            local equipment_icon_go = equip.transform:Find("icon").gameObject
+            local equipment_level_go = equipment_icon_go.transform:Find("level"):Find("Text").gameObject
+            local icon_btn = equipment_icon_go:GetComponent("Button")
+            icon_btn.onClick:AddListener(function()
+                self:icon_btn_call_back()
+            end)
+
+            local equipment = {}
+            equipment["name_go"] = equipment_name_go
+            equipment["icon_go"] = equipment_icon_go
+            equipment["level_go"] = equipment_level_go
+
+            self.m_equipment_list[equipment_name] = equipment
+        end
+
+        for i, v in pairs(self.m_equipment_list) do
+            print("装备槽名称: " .. i)
+            print("装备槽图片名称: " .. v["icon_go"].name)
+            print("装备等级: " .. v["level_go"]:GetComponent("Text").text)
+            self:adorn_equipment(i, 999, "ui/icons/item_cleaver.png")
+        end
+        self:demount_equipment("pifeng")
+
+    end)
+
+end
+
+--佩戴装备
+function equipment_list_view:adorn_equipment(equipment_name, equipment_level, equipment_icon_path)
+
+    self.m_equipment_list[equipment_name]["name_go"]:SetActive(false)
+    self.m_equipment_list[equipment_name]["icon_go"]:SetActive(true)
+    self.m_equipment_list[equipment_name]["level_go"]:GetComponent("Text").text = equipment_level
+
+    --加载Sprite
+    self:subscribe(app:getResMgr():rxLoad(equipment_icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        self.m_equipment_list[equipment_name]["icon_go"]:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+
+end
+--卸下装备
+function equipment_list_view:demount_equipment(equipment_name)
+    self.m_equipment_list[equipment_name]["name_go"]:SetActive(true)
+    self.m_equipment_list[equipment_name]["icon_go"]:SetActive(false)
+    self.m_equipment_list[equipment_name]["level_go"]:GetComponent("Text").text = ""
+    self.m_equipment_list[equipment_name]["icon_go"]:GetComponent("Image").sprite = nil
+end
+
+function equipment_list_view:icon_btn_call_back()
+    print("equipment_list_view:icon_btn_call_back")
+end
+
+return equipment_list_view

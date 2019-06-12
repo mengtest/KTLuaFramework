@@ -1,0 +1,74 @@
+local sect_talent_btn = {}
+
+-- 组id
+Attribute.decl(sect_talent_btn, "group_id", -1)
+-- 天赋id
+Attribute.decl(sect_talent_btn, "talent_id", 0)
+-- 天赋id
+Attribute.decl(sect_talent_btn, "talent_name", "")
+-- 打开小弹窗
+Attribute.decl(sect_talent_btn, "window_show", false)
+-- 按钮可以点击
+Attribute.decl(sect_talent_btn, "can_btn_click", false)
+-- 弹窗中按钮专属属性    是否和激活的天赋相同
+Attribute.decl(sect_talent_btn, "same_as_parent", false)
+-- 弹窗中按钮专属属性    推荐
+Attribute.decl(sect_talent_btn, "recommend", false)
+
+-- 显示
+Event.decl(sect_talent_btn, "show")
+-- 隐藏
+Event.decl(sect_talent_btn, "hide")
+
+
+
+function sect_talent_btn:doInit(talent_info)
+    self:set_is_add_rect_trans(true)
+    self:set_talent_id(talent_info.talent_id)
+end
+
+-- 创建弹窗中的按钮
+function sect_talent_btn:create_btn_in_window()
+    self.m_windowed_talent_btn_list = {}
+    local same_group_talent = self:getFrame("sect_talent"):get_same_group_skill_list(self:get_talent_id())
+    for i, v in ipairs(same_group_talent) do
+        local talent_info = { talent_id = v }
+        local frame = self:createChild("sect_talent_btn_in_window" .. v, "sect.sect_talent_btn", talent_info)
+        table.insert(self.m_windowed_talent_btn_list, frame)
+    end
+
+    for i, btn_frame in ipairs(self.m_windowed_talent_btn_list) do
+        if utility.table:is_contain(self:getFrame("sect_talent").m_default_list, btn_frame:get_talent_id()) then
+            btn_frame:set_recommend(true)
+        end
+    end
+
+end
+-- 刷新弹窗中的技能[好像没用。。。每一个位置都是一组的三个在换。。。。]
+--function sect_talent_btn:refresh_talent_in_window(id)
+--    local same_group_talent = self:getFrame("sect_talent"):get_same_group_skill_list(id)
+--    for i, v in ipairs(same_group_talent) do
+--        self.m_windowed_talent_btn_list[i]:set_talent_id(v)
+--    end
+--end
+
+function sect_talent_btn:on_talent_btn()
+    if not string.find(self:getFrameName(), "sect_talent_btn_in_window") then
+        -- 点击的不是弹窗中的技能
+        self:getFrame("sect_talent"):change_select_btn(self)
+    else
+        -- 点击的是弹窗中的技能 TODO 这个学习要改，没学学，学了激活
+        local list = self:getFrame("skill_ui_manager"):get_unlocked_skill_id_list()
+        if utility.table:is_contain(list, self:get_talent_id()) then
+            self:getFrame("skill_ui_manager"):req_master_learn(self:get_talent_id())
+            self:getFrame("skill_ui_manager"):req_master_enabling(self:getFrame("sect_talent"):get_group_num(self:get_talent_id()), self:getFrame("sect_talent"):get_talent_num(self:get_talent_id()))
+        else
+            self:getFrame("skill_ui_manager"):req_master_enabling(self:getFrame("sect_talent"):get_group_num(self:get_talent_id()), self:getFrame("sect_talent"):get_talent_num(self:get_talent_id()))
+        end
+
+        self:getParent():set_window_show(false)
+    end
+end
+
+
+return sect_talent_btn

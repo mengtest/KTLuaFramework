@@ -1,0 +1,157 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/2 11:31
+---
+local View = require("system.view")
+local mini_map_view = class("mini_map_view", View)
+
+function mini_map_view:doInit()
+    --地图比例
+    self.m_scale_x = 1
+    self.m_scale_y = 1
+    -- map表中的左下角的坐标
+    self.m_map_x = 0
+    self.m_map_y = 0
+
+    self.m_frame = self:getFrame()
+    self.m_world = self:getFrame("world")
+    self.m_current_map_id = self.m_world:get_map_id()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("MiniMap"), function(go)
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        local size_delta = self["mask_gameObject"].transform.sizeDelta
+        go.transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+        go.transform.anchoredPosition3D = Vector3.zero
+
+        local radius = size_delta.x / 2--小地图半径
+        self.m_frame:set_minimap_radius(radius)
+
+        self:change_map_sprite()
+
+        local unit = self:getFrame("world"):get_main_player()
+        self:subscribe(unit:on_event_attr_set("pos", true), function(pos)
+            self:refresh_owner_pos(pos)
+        end)
+        self:subscribe(unit:on_event_attr_set("dir", true), function(dir)
+            self:refresh_owner_dir(dir)
+        end)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "mini_map_trace_quest_icon") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                --local parent_trs = self:getGO().transform
+                view_go.transform.parent = self["icons_out_gameObject"].transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            elseif string.find(name, "mini_map_interest_quest_icon") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                --local parent_trs = self:getGO().transform
+                view_go.transform.parent = self["icons_out_gameObject"].transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            elseif string.find(name, "mini_map_quest_icon") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                --local parent_trs = self:getGO().transform
+                view_go.transform.parent = self["icons_in_gameObject"].transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+        self.m_frame:on_loaded()
+
+        self.m_frame:set_icons_in_go(self["icons_in_gameObject"])
+
+        --重新上线后刷新
+        self.m_frame:refresh_quest()
+    end)
+
+    self:subscribe(self.m_frame:on_event("map_changed"), function(map_id)
+        self.m_current_map_id = map_id
+        self:change_map_sprite()
+    end)
+end
+
+--是否在高老庄
+function mini_map_view:is_in_gaolaozhuang()
+    if self.m_current_map_id == 20004 or self.m_current_map_id == 20005 or self.m_current_map_id == 20006 or self.m_current_map_id == 20007 then
+        return true
+    end
+    return false
+end
+
+function mini_map_view:refresh_owner_pos(pos)
+    local temp = nil
+    if self:is_in_gaolaozhuang() then
+        temp = -self:project_3d_pos_to_map_pos_in_gaolaozhuang(pos)
+    else
+        temp = -self:project_3d_pos_to_map_pos(pos)
+    end
+
+    self["moveable_items_gameObject"].transform.anchoredPosition3D = temp
+    self.m_frame:set_moveable_items_pos(temp)
+end
+
+function mini_map_view:refresh_owner_dir(dir)
+    if self:is_in_gaolaozhuang() then
+        self["owner_gameObject"].transform.localEulerAngles = Vector3(0, 0, -dir + 180)
+    else
+        self["owner_gameObject"].transform.localEulerAngles = Vector3(0, 0, -dir)
+    end
+end
+
+--将3D世界中坐标转换成小地图坐标
+function mini_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3((pos.x - self.m_map_x ) * self.m_scale_x, (pos.z - self.m_map_y ) * self.m_scale_y, 0)
+end
+
+--将高老庄中坐标转换成小地图坐标
+function mini_map_view:project_3d_pos_to_map_pos_in_gaolaozhuang(pos)
+    local t = Vector3((pos.x - self.m_map_x ) * self.m_scale_x, (pos.z - self.m_map_y ) * self.m_scale_y, 0)
+    return Vector3(2048 - t.x, 2048 - t.y, t.z)
+end
+
+--更换小地图图片
+function mini_map_view:change_map_sprite()
+    local map_id = self.m_world:get_map_id()
+    local map_data = dbc.map[map_id]
+    local path = map_data.map_pic_path
+
+    --因为map表中有些地图没有配置左下角和右上角的坐标，所以temp_map_size暂时默认设置为Vector2(2000, 2000)
+    local temp_map_size = Vector2(2048, 2048)
+    if #map_data.right_top == 0 or #map_data.left_bottom == 0 then
+        self.m_map_x = 0
+        self.m_map_y = 0
+        Debug.LogError("Mini_map_view ----> map表中没有配置场景地图的左下角坐标和右上角坐标")
+    else
+        temp_map_size = Vector2(map_data.right_top[1] - map_data.left_bottom[1], map_data.right_top[2] - map_data.left_bottom[2])
+        -- map表中的左下角的坐标
+        self.m_map_x = map_data.left_bottom[1]
+        self.m_map_y = map_data.left_bottom[2]
+    end
+
+    self.m_scale_x = self["bg_terrain_gameObject"].transform.rect.size.x / temp_map_size.x
+    self.m_scale_y = self["bg_terrain_gameObject"].transform.rect.size.y / temp_map_size.y
+
+    self.m_frame:set_map_x(self.m_map_x)
+    self.m_frame:set_map_y(self.m_map_y)
+    self.m_frame:set_map_scale_x(self.m_scale_x)
+    self.m_frame:set_map_scale_y(self.m_scale_y)
+
+    for i = 1, 4 do
+        self:subscribe(app:getResMgr():rxLoad(path[i]), function(asset)
+            local tex = asset
+            if (tex == nil) then
+                Debug.LogError("Mini_map_view ----> map表中没有配置地图路径或地图路径配置错误， path：" .. path)
+            else
+                self["area_0" .. i .. "_GUIImage"].sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            end
+        end)
+    end
+end
+
+return mini_map_view

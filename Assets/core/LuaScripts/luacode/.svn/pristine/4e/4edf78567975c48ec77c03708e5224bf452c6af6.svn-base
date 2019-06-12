@@ -1,0 +1,12 @@
+---
+--- Created by wdd.
+--- DateTime: 2018/1/31 0031 17:52
+--- 技能预警区域基类
+---
+local SkillAreaBase = class("SKillAreaBase")
+
+function SkillAreaBase:LoadSfx(loda_path)
+
+end
+
+return SkillAreaBase

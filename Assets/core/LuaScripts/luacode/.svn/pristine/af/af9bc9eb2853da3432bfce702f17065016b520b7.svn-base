@@ -1,0 +1,18 @@
+local row_0 = {['id']=1,['type']=1,['custom']='',['param1']=3.0,['param2']=5.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_1 = {['id']=2,['type']=2,['custom']='',['param1']=3.0,['param2']=0.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_2 = {['id']=3,['type']=3,['custom']='',['param1']=8.0,['param2']=1.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_3 = {['id']=4,['type']=4,['custom']='',['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_4 = {['id']=5,['type']=5,['custom']='',['param1']=3.0,['param2']=0.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_5 = {['id']=6,['type']=6,['custom']='0.93,0,-0.19;-2.08,0,3.38;-0.42,0,6.28;16.96,0,-0.54;2.31,0,-11.94;-22.91,0,-8.32;4.52,0,6.88;0.12,8.67,8.01;',['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0,['direction']=1}
+local row_6 = {['id']=200011,['type']=6,['custom']='14.28,4,21.21;-2.26,0,3.16;',['param1']=0.0,['param2']=0.0,['param3']=0.0,['param4']=0.0,['direction']=0}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+	[4] = row_3,
+	[5] = row_4,
+	[6] = row_5,
+	[200011] = row_6,
+}
+return datas

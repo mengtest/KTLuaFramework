@@ -1,0 +1,187 @@
+
+local Popup_item_up = require("view.popup_item.popup_item_up")
+local Popup_item_corner = require("view.popup_item.popup_item_corner")
+
+local M = {}
+
+M.ColorEnum = {
+    text    = 1,
+    green   = 2,
+    red     = 3,
+    purple  = 4,
+    white   = 5,
+    yellow  = 6,
+}
+
+-- 状态枚举对应的美术字字符编码
+-- A => 沉默
+-- B => 定身
+-- C => 放逐
+-- D => 格挡 --
+-- E => 精准格挡 --
+-- F => 恐惧
+-- G => 闪避 --
+-- H => 瘫痪
+-- I => 眩晕
+-- J => 招架 --
+-- K => 免疫 --
+M.StatusEnum = {
+    [enum.shared.SpellHitOutcome.CRIT] = "",
+    [enum.shared.SpellHitOutcome.DODGE] = "D",
+    [enum.shared.SpellHitOutcome.PARRY] = "G",
+}
+
+--function M:create_popup_text(is_damage, damage)
+--    local prefab_tr = is_damage and (damage > 0 and self.item_prefabs[self.ColorEnum.red] or self.item_prefabs[self.ColorEnum.blue]) or self.item_prefabs[self.ColorEnum.yellow]
+--    local popup = GameObject.Instantiate(prefab_tr.gameObject, self.parent_node)
+--    local art_text = popup:GetComponentInChildren(KTArtNumText)
+--    art_text.text = is_damage and math.abs(damage) or "状态"
+--    popup:SetActive(true)
+--    return popup
+--end
+
+function M:create_popup_text(damage, hit_outcome,skill_id,unit)
+    local prefab_tr = nil
+    local popup = nil
+
+    if not damage then
+        prefab_tr = self.item_prefabs[self.ColorEnum.text]
+        popup = GameObject.Instantiate(prefab_tr.gameObject, self.parent_node)
+        popup:GetComponentInChildren(KTArtNumText).text = self.StatusEnum[hit_outcome] or hit_outcome
+    else
+        if damage >= 0 then
+            local attack_id = unit:getCfg().normal_attack_spell
+            if(attack_id == skill_id) then
+                prefab_tr = self.item_prefabs[self.ColorEnum.white]
+            else
+                prefab_tr = self.item_prefabs[self.ColorEnum.yellow]
+            end
+        else
+            prefab_tr = self.item_prefabs[self.ColorEnum.green]
+        end
+        popup = GameObject.Instantiate(prefab_tr.gameObject, self.parent_node)
+        popup:GetComponentInChildren(KTArtNumText).text = math.abs(damage)
+    end
+    popup:SetActive(true)
+    return popup
+end
+
+function M:doInit()
+    self.m_popup_list = {}
+    local frame = self:getFrame()
+    self.m_cam = self:getFrame("world"):getCamera()
+    self.m_Slip_Start_Dis = 0.2
+    self.m_Slip_End_Dis = 1.2
+    self.m_sdk = app:getKBESDK()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("PopTextOverlay"), function(go)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(),go)
+        local tr = go.transform
+        local prefab_name_list = {"red", "green", "yellow"}
+        self.item_prefabs = {}
+        for name, index in pairs(self.ColorEnum) do
+            local item = tr:Find("PopTextOverlay/Item_" .. name)
+            assert(item, "未找到指定的item, name = " .. name)
+            item.gameObject:SetActive(false)
+            self.item_prefabs[index] = item
+        end
+
+        self.parent_node = go.transform:Find("PopTextOverlay")
+        self:subscribe(frame:on_event_popup_text(), function(unit, damage, skill_id, hit_outcome, is_buff, attacker_id)
+            local player_id = self.m_sdk:get_player_id()
+            local popup = nil
+            local popup_item = nil
+            local show_bone  = unit:get_bone("top")
+            local posCenter = show_bone and show_bone.position or Vector3.up * 3
+            local is_damage = hit_outcome == enum.shared.SpellHitOutcome.NORMAL
+            local is_cirt = hit_outcome == enum.shared.SpellHitOutcome.CRIT
+            if attacker_id ~= player_id  then -- 释放者不是我
+                if unit:get_id() == player_id then -- 自己
+                    popup = self:create_popup_text(damage, hit_outcome,skill_id,unit)
+                    popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                    popup_item:set_dir(math.random(1, 2),damage,true)
+                    self.m_popup_list[popup] = popup_item
+                end
+                return
+            end
+
+            if unit:get_id() == player_id then -- 自己
+                if damage > 0 then
+                    return
+                else
+                    popup = self:create_popup_text(damage, hit_outcome,skill_id,unit)
+                    if is_buff == 1 then
+                        popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_dir(math.random(1, 2),damage)
+                    else
+                        popup_item = Popup_item_up:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_damage(damage)
+                    end
+                end
+                self.m_popup_list[popup] = popup_item
+
+                if not is_damage then -- 状态
+                    popup = self:create_popup_text(nil, hit_outcome,skill_id,unit)
+                    popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                    popup_item:set_dir(math.random(3, 4))
+                    self.m_popup_list[popup] = popup_item
+                end
+            else -- 敌方
+                popup = self:create_popup_text(damage, hit_outcome,skill_id,unit)
+                if damage >= 0 then -- 伤害
+                    if is_buff == 1 then
+                        popup_item = Popup_item_up:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_damage(damage)
+                    else
+                        popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_dir(math.random(1, 2),damage)
+                    end
+                elseif damage < 0 then -- 治疗
+                    if is_buff == 1 then
+                        popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_dir(math.random(1, 2),damage)
+                    else
+                        popup_item = Popup_item_up:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                        popup_item:set_damage(damage)
+                    end
+                end
+                self.m_popup_list[popup] = popup_item
+
+                if not is_damage then -- 状态
+                    popup = self:create_popup_text(nil, hit_outcome,skill_id,unit)
+                    popup_item = Popup_item_corner:new(popup, self.m_cam, posCenter, is_cirt, unit)
+                    popup_item:set_dir(popup_item.DirEnum.RightDown)
+                    self.m_popup_list[popup] = popup_item
+                end
+            end
+        end)
+    end)
+end
+
+function M:doUpdate()
+    local delta_time = app.get_delta_time()
+
+    for k, v in pairs(self.m_popup_list) do
+        if not v:update(delta_time) then
+            self.m_popup_list[k] = nil
+            GameObject.Destroy(k)
+        end
+    end
+end
+
+function M:selectTextColor(skillID)
+    local color = Color.white
+    if not dbc.spell[skillID] then
+        return color
+    end
+    local isPositive = dbc.spell[skillID]["is_positive"]
+    if isPositive then
+        color = Color.green
+    else
+        color = Color.red
+    end
+    return color
+end
+
+return M
+

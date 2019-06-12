@@ -1,0 +1,89 @@
+
+local Trigger_component = require("subsystem.component.trigger_component")
+
+local Interact_component = class("Interact_component")
+
+function Interact_component:initialize(interact_id, player_controller, cb_func)
+    self.m_is_close_enough = false
+    self.m_interact_id = interact_id
+    self.m_player_controller = player_controller
+    self.m_interact_cb_func = cb_func
+    self.m_trigger_cmp = nil
+end
+
+function Interact_component:set_go(go)
+    local this = self
+    local interact_data = dbc.interact[self.m_interact_id]
+    --[[if not interact_data then
+        return
+    end--]]
+    local trigger_component = Trigger_component:new()
+    trigger_component:set_go(go)
+    trigger_component:set_area_type_and_param(Enum_Scene.Trigger_Area.Sphere, {["r"] = interact_data and interact_data.action_radius or 0})
+    trigger_component.on_trigger_condition = function (other)
+        if other.gameObject.tag == "Player" then
+            return true
+        else
+            return false
+        end
+    end
+    trigger_component.on_trigger_enter:add(function (other)
+        --[[if this.m_interact_id <= 0 then return end
+        self.m_player_controller:set_interact_btn_callback(this.m_interact_cb_func)
+        self.m_player_controller:emit_event("switch_interact_btn", true)--]]
+        self:switch_is_close_enough(true)
+    end)
+    trigger_component.on_trigger_exit:add(function (other)
+        --[[if this.m_interact_id <= 0 then return end
+        self.m_player_controller:emit_event("switch_interact_btn", false)--]]
+        self:switch_is_close_enough(false)
+    end)
+    trigger_component:start()
+    self.m_trigger_cmp = trigger_component
+end
+
+function Interact_component:refresh(interact_id, cb_func)
+    self:set_interact_id(interact_id)
+    --local params = {["r"] = dbc.interact[interact_id]}
+    self.m_trigger_cmp:refresh_params({["r"] = dbc.interact[interact_id] and dbc.interact[interact_id].action_radius or 0})
+    self.m_interact_cb_func = cb_func
+end
+
+function Interact_component:switch_is_close_enough(flag)
+    Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Interact_component:switch_is_close_enough(%s)", tostring(flag)))
+    self.m_is_close_enough = flag
+    --self.m_player_controller:emit_event("switch_interact_btn", flag and self.m_interact_id > 0)
+    self:refresh_interact_btn()
+end
+
+function Interact_component:set_interact_id(interact_id)
+    self.m_interact_id = interact_id
+    --self.m_player_controller:emit_event("switch_interact_btn", self.m_is_close_enough and interact_id > 0)
+    self:refresh_interact_btn()
+end
+
+function Interact_component:refresh_interact_btn()
+    if self.m_is_close_enough and self.m_interact_id > 0 then
+        self.m_player_controller:set_interact_btn_callback(self.m_interact_cb_func)
+        self.m_player_controller:emit_event("switch_interact_btn", true)
+    else
+        self.m_player_controller:emit_event("switch_interact_btn", false)
+    end
+end
+
+--[[function Interact_component:switch_interact_btn(flag)
+    self.m_player_controller:switch_interact_btn(flag)
+end--]]
+
+--[[function Interact_component:do_interact()
+
+end--]]
+
+--[[function Interact_component:set_interact_btn_callback(cb_func)
+    
+end--]]
+
+
+
+
+return Interact_component

@@ -1,0 +1,56 @@
+local Frame = require("system.frame")
+local big_map_quest_info = class("big_map_quest_info", Frame)
+
+--- 任务部分
+Attribute.decl(big_map_quest_info, "quest_name", "")
+Attribute.decl(big_map_quest_info, "distance", "")
+Attribute.decl(big_map_quest_info, "map_name", "")
+Attribute.decl(big_map_quest_info, "describe", "")
+Attribute.decl(big_map_quest_info, "quest_exp", "")
+Attribute.decl(big_map_quest_info, "quest_money", "")
+--- 传送点部分
+Attribute.decl(big_map_quest_info, "teleport_point_name", "")
+Attribute.decl(big_map_quest_info, "teleport_point_describe", "")
+Attribute.decl(big_map_quest_info, "teleport_point_id", 0)
+
+Event.decl(big_map_quest_info, "interest_quest")
+Event.decl(big_map_quest_info, "close_info")
+Event.decl(big_map_quest_info, "back")
+
+function big_map_quest_info:doInit()
+    self.m_big_map = self:getFrame("big_map")
+    self.m_word = self:getFrame("world"):get_main_player()
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function big_map_quest_info:create_item(parent, additional, type, param)
+    local param_list = {}
+    param_list['parent'] = parent
+    param_list['type'] = type
+    param_list['param'] = param
+    local quest_item = self:createChild("quest_item" .. additional, "map.big_map.big_map_quest_item", param_list)
+    return quest_item
+end
+
+---- 放弃按钮点击事件
+function big_map_quest_info:on_give_up_btn()
+
+end
+
+---- 传送按钮点击事件
+function big_map_quest_info:on_trans_btn()
+    if self.m_word:get_dead() == true then
+        local float_hint_frame = self:getFrame("float_hint_manager")
+        float_hint_frame:add_float("玩家死亡，无法传送", self.m_ui_manager.UI_Depth.ALERT)
+        return
+    end
+    local id = self:get_teleport_point_id()
+    self.m_big_map:on_begin_trans(id)
+end
+
+---- 返回按钮点击事件
+function big_map_quest_info:on_back_btn()
+    self:emit_event("back")
+end
+
+return big_map_quest_info

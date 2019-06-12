@@ -1,0 +1,31 @@
+return {
+	-- 单机版
+	standalone = false,
+
+	-- 服务器类型
+	server_type = "kbe",
+
+	-- 登录相关配置
+	login = {
+		lan_server_ip = "172.16.1.121",
+		-- lan_server_ip = "10.2.2.226",
+		wan_server_ip = "47.93.97.131",
+		local_server_ip = "127.0.0.1",
+		
+		server_port = 20013,
+		account_type = "own",
+		udid = "",
+		server_id = 1,
+		server_name = "server1",
+		server_version = "1.0.0",
+	},
+	
+	--系统设置_显示设置
+	option_display = {
+		is_show_all_enemy_hp_bar = true,	--是否显示所有敌对目标的血条
+		is_show_your_aim_hp_bar = true,		--是否显示玩家锁定目标的血条
+		is_show_your_damaged_hp_bar = true,	--是否显示玩家攻击过的目标血条
+		is_show_your_tracer_hp_bar = true,	--是否显示追踪玩家的目标的血条
+		is_show_teammate_hp_bar = true,		--是否显示友方单位的血条
+	}
+}

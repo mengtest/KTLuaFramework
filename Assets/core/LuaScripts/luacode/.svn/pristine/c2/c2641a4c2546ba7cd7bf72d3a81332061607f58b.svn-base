@@ -1,0 +1,26 @@
+
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_enter_talk = class("Quest_condition_enter_talk", Quest_condition_base)
+
+function Quest_condition_enter_talk:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_id = quest_id
+    self.m_index = index
+    self.m_quest_manager = quest_manager
+    
+    
+end
+
+function Quest_condition_enter_talk:set_cur_param(cur_param)
+    --self.m_is_passed = true
+    self.m_is_passed = cur_param["done"] == SharedEnum.QuestCond.NONE
+end
+
+function Quest_condition_enter_talk:get_cur_weight()
+    return self.m_is_passed and self.m_per_weight or 0
+end
+
+function Quest_condition_enter_talk:get_aim_weight()
+    return self.m_per_weight
+end
+
+return Quest_condition_enter_talk

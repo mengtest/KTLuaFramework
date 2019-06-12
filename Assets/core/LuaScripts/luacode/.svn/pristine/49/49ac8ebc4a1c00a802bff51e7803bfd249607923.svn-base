@@ -1,0 +1,36 @@
+local Frame = require("system.frame")
+local skill_show_ui = class("skill_show_ui", Frame)
+
+Event.decl(skill_show_ui, "refrsh_data_list")
+Event.decl(skill_show_ui, "refrsh_max_level")
+
+function skill_show_ui: doInit(param)
+    self.m_curr_id = nil
+end
+
+--技能相关信息的列表
+function skill_show_ui:data_list(data)
+    local id = data["id"]
+    local cur_level = data["curr_level"]
+    local max_level = data["max_level"]
+    local state = data["state"]
+    self.m_curr_list = {["id"] = id, ["curr_level"] = cur_level, ["max_level"] = max_level, ["state"] = state}
+    self:emit_event("refrsh_data_list", self.m_curr_list)
+end
+
+--最大等级
+function skill_show_ui:max_level_result(num)
+    local max_level = num
+    self:emit_event("refrsh_max_level", max_level)
+end
+
+
+function skill_show_ui:get_data_show_list()
+    return self.m_data_list
+end
+
+function skill_show_ui:get_data_level()
+    return self.m_data_level
+end
+
+return skill_show_ui

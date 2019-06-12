@@ -1,0 +1,16 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local SkillSingSfxView = {}
+
+function SkillSingSfxView:doInit()
+    local frame = self:getFrame()
+    local sfx_path = frame:get_sfx_path()
+
+    self:load(sfx_path, function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localEulerAngles = Vector3.zero
+    end)
+
+end
+
+return SkillSingSfxView

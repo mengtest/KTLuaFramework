@@ -1,0 +1,11 @@
+local rows = {}
+rows[1] = {['id']=21,['team_type']=1,['select_diff']=0,['inst_id']=11}
+rows[2] = {['id']=22,['team_type']=1,['select_diff']=0,['inst_id']=12}
+rows[3] = {['id']=23,['team_type']=2,['select_diff']=1,['inst_id']=0}
+
+local datas = {
+	[21] = rows[1],
+	[22] = rows[2],
+	[23] = rows[3],
+}
+return datas

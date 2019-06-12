@@ -1,0 +1,109 @@
+local Frame = require("system.frame")
+local spirit_merge_btn = class("spirit_merge_btn", Frame)
+
+Attribute.decl(spirit_merge_btn, "unique", -1)
+Attribute.decl(spirit_merge_btn, "tmpl", -1)
+Event.decl(spirit_merge_btn, "show")
+Event.decl(spirit_merge_btn, "hide")
+
+
+
+function spirit_merge_btn:doInit(spirit_data)
+    -- 玩家身上有的全部灵兽
+    self.m_all_spirit_data_list = nil
+    -- 我自己显示的灵兽
+    self.m_spirit_data = nil
+    -- 主体灵兽
+    self.m_main_spirit_data = spirit_data
+    self:check_main_spirit()
+    -- 刷新信息的时候要检查一下
+    self:subscribe(self:getFrame("spirit_merge"):on_event("refresh_star"), function(refresh_spirit_data)
+        self.m_main_spirit_data = refresh_spirit_data
+        if refresh_spirit_data.rating == 5 then
+            self:hide()
+        else
+            self:show()
+        end
+        self:check_main_spirit()
+    end)
+    -- 灵兽列表发生变化的时候需要检查一下
+    self:subscribe(self:getFrame("spirit_list"):on_event("change_list"), function()
+        self:check_main_spirit()
+    end)
+    -- 列表中选择了融合的灵兽
+    self:subscribe(self:getFrame("spirit_list"):on_event("lock_merge_spirit"), function(spirit_data)
+        self.m_spirit_data = spirit_data
+        self:set_unique(spirit_data.unique)
+        self:set_tmpl(spirit_data.tmpl)
+    end)
+    ---- 融合成功要删除
+    --self:subscribe(self:getFrame("sprite"):on_event("sprite_merge"), function()
+    --    self:check_main_spirit()
+    --end)
+
+    self:set_is_add_rect_trans(true)
+
+end
+
+-- 检查主体灵兽，来根据规则来默认显示要添加的灵兽
+function spirit_merge_btn:check_main_spirit()
+    ---- 检查规则  slot相同 tmpl相同  quality相同
+    -- 可以融合的灵兽列表
+    local spirit_data_list = {}
+    self.m_all_spirit_data_list = self:getFrame("spirit_list"):get_all_spirit_data_list()
+    local temp = nil
+    if self.m_main_spirit_data == nil then
+        return
+    end
+    for i, v in ipairs(self.m_all_spirit_data_list) do
+        if v ~= self.m_main_spirit_data then
+            if self.m_main_spirit_data.tmpl == v.tmpl then
+                table.insert(spirit_data_list, v)
+            end
+        end
+    end
+    -- 对这个列表进行排序  并且显示第一个
+    if #spirit_data_list ~= 0 then
+        for i = 1, #spirit_data_list - 1 do
+            for j = 1, #spirit_data_list - 1 do
+                if spirit_data_list[j].rating <= spirit_data_list[j + 1].rating then
+                    temp = spirit_data_list[j + 1]
+                    spirit_data_list[j + 1] = spirit_data_list[j]
+                    spirit_data_list[j] = temp
+                end
+            end
+        end
+        for i = 1, #spirit_data_list - 1 do
+            for j = 1, #spirit_data_list - 1 do
+                if spirit_data_list[j].level <= spirit_data_list[j + 1].level then
+                    temp = spirit_data_list[j + 1]
+                    spirit_data_list[j + 1] = spirit_data_list[j]
+                    spirit_data_list[j] = temp
+                end
+            end
+        end
+        self.m_spirit_data = spirit_data_list[1]
+        self:set_unique(spirit_data_list[1].unique)
+        self:set_tmpl(spirit_data_list[1].tmpl)
+    else
+        -- 如果可以融合的灵兽列表中没有东西
+        self.m_spirit_data = nil
+        self:set_unique(-1)
+        self:set_tmpl(-1)
+    end
+
+    return spirit_data_list
+end
+
+function spirit_merge_btn:get_spirit_data()
+    return self.m_spirit_data
+end
+
+function spirit_merge_btn:show()
+    self:emit_event("show")
+end
+function spirit_merge_btn:hide()
+    self:emit_event("hide")
+end
+
+return spirit_merge_btn

@@ -1,0 +1,28 @@
+local sect_talent = {}
+
+-- 显示
+Event.decl(sect_talent, "show")
+-- 隐藏
+Event.decl(sect_talent, "hide")
+function sect_talent:doInit()
+    self:set_is_add_rect_trans(true)
+end
+
+function sect_talent:on_loaded()
+
+end
+-- 关闭按钮
+function sect_talent:on_close_btn()
+    self:hide()
+end
+-- 显示
+function sect_talent:show()
+    self:emit_event("show")
+end
+
+-- 隐藏
+function sect_talent:hide()
+    self:emit_event("hide")
+end
+
+return sect_talent

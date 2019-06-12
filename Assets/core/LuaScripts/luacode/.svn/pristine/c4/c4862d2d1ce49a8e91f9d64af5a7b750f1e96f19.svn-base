@@ -1,0 +1,118 @@
+﻿local Trigger_component = require("subsystem.component.trigger_component")
+local ObserverHost = require "system.observer_host"
+
+local Interact_component = class("Interact_component")
+Interact_component:include(ObserverHost)
+
+function Interact_component:initialize(interact_id, player_controller, cb_func,is_arder)
+    self.m_is_close_enough = false
+    self.m_interact_id = interact_id
+    self.m_player_controller = player_controller
+    self.m_interact_cb_func = cb_func
+    self.m_trigger_cmp = nil
+	self.m_host = nil
+    self.m_is_arder=is_arder -- by lijunfeng 2018/1/5 是否是休闲交互
+end
+
+function Interact_component:set_go(go)
+    local this = self
+    local trigger_component = Trigger_component:new()
+    trigger_component:set_go(go)
+    trigger_component:set_area_type_and_param(enum.scene.Trigger_Area.Sphere, {["r"] = dbc.interact[self.m_interact_id] and dbc.interact[self.m_interact_id].action_radius or 0})
+    trigger_component.on_trigger_condition = function (other)
+        if other.gameObject.tag == "Player" then
+            return true
+        else
+            return false
+        end
+    end
+	print("设置触发器对象")
+    trigger_component.on_trigger_enter:add(function (other)
+        self:switch_is_close_enough(true)
+    end)
+    trigger_component.on_trigger_exit:add(function (other)
+        self:switch_is_close_enough(false)
+    end)
+    trigger_component:start()
+    self.m_trigger_cmp = trigger_component
+end
+
+-- by lijunfeng 2018/1/5
+function Interact_component:destroy()
+    if self.m_trigger_cmp then
+        self.m_trigger_cmp:destroy()
+        self.m_trigger_cmp=nil
+    end
+
+    self.m_host=nil
+end
+
+function Interact_component:set_host(host)
+    self.m_host = host
+end
+
+function Interact_component:get_host()
+    return self.m_host
+end
+-- by lijunfeng 2018/1/5 是否是休闲交互
+function Interact_component:get_is_arder()
+    return self.m_is_arder
+end
+-- by lijunfeng 2018/1/31
+function Interact_component:get_interact_cb_func()
+    return self.m_interact_cb_func
+end
+
+function Interact_component:pack_cb_func(cb_func)
+    local this = self
+    local rst = function ()
+        local info = dbc.interact_trigger[this.m_interact_id]
+        if info.is_rotate_after_interact then
+        else
+        end
+        cb_func()
+    end
+    return rst
+end
+
+function Interact_component:refresh(interact_id, cb_func,is_arder)
+    self:set_interact_id(interact_id)
+    self.m_trigger_cmp:refresh_params({["r"] = dbc.interact_trigger[interact_id] and dbc.interact_trigger[interact_id].radius or 0})
+    self.m_interact_cb_func = cb_func
+    self.m_is_arder=is_arder
+end
+
+function Interact_component:switch_is_close_enough(flag)
+    self.m_is_close_enough = flag
+    print("足够接近",flag)
+    --self:refresh_interact_btn()
+end
+
+function Interact_component:set_interact_id(interact_id)
+    self.m_interact_id = interact_id
+    --self:refresh_interact_btn()
+end
+
+--by lijunfeng 0218/1/31 是否可显示交互按钮
+function Interact_component:can_show_interact_btn()
+    return self.m_is_close_enough and self.m_interact_id > 0
+end
+--
+--function Interact_component:refresh_interact_btn()
+--    --print("刷新按钮显示条件满足",self.m_is_arder)
+--    --if not self.m_player_controller then
+--    --    return
+--    --end
+--    --
+--    --local MEvent=require("common.util.mevent")
+--    ---- by lijunfeng 2018/1/4 去掉Mevent，改为正常rx事件
+--    --if self.m_is_close_enough and self.m_interact_id > 0 then
+--    --    print("刷新按钮显示条件满足2")
+--    --    MEvent:dispatch(self,"switch_interact_btn",{is_show=true,interact_callback=self.m_interact_cb_func})
+--    --else
+--    --    print("刷新按钮显示条件满足3")
+--    --    MEvent:dispatch(self,"switch_interact_btn",{is_show=false,interact_callback=self.m_interact_cb_func})
+--    --end
+--end
+
+return Interact_component

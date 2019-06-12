@@ -1,0 +1,216 @@
+local ResMgr = class("ResMgr")
+
+function ResMgr:initialize()
+	self.m_asset_mgr = KTGame.instance.assetManager
+end
+
+function ResMgr:update()
+end
+
+function ResMgr:load(path)
+	local co = coroutine.running()
+	local ret
+
+	self.m_asset_mgr:LoadAsset(path, function(asset_ref)
+		assert(asset_ref.asset)
+
+		if co then
+			if coroutine.status(co) == "normal" then
+				ret = { asset_ref.asset }
+			else
+				coroutine.resume(co, asset_ref.asset)
+			end
+		end
+    end)
+
+	if ret then
+		return unpack(ret)
+	elseif co then
+		return coroutine.yield()
+	end
+end
+
+--! TODO: Put In Command Utils Lib
+local function basename(str)
+	local ret = string.gsub(str, '.*/(.*)', '%1')
+	return ret
+end
+
+local function noext( str )
+	local ret = string.gsub(str, '(.*)%..*', '%1')
+	return ret
+end
+
+local function basename_noext( str )
+	local ret = string.gsub(str, '.*/(.*)%..*', '%1')
+	return ret
+end
+
+function ResMgr:loadScene(path)
+	local co = coroutine.running()
+
+	self.m_asset_mgr:LoadScene(path, function()
+		local scene_name = basename_noext(path)
+		-- self:RestoreRenderSettings(scene_name)
+		if co then
+			coroutine.resume(co, true)
+		end
+    end, SceneManagement.LoadSceneMode.Additive)
+
+	if co then
+		return coroutine.yield()
+	end
+end
+
+function ResMgr:load_sprite(local_path, cb)
+    local icon_path = string.format("ui/icons/%s", local_path)
+    rx:subscribe(self:rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if tex then
+            cb(Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5)))
+        end
+        --member_item_inst["tr"]:Find("fg_hp"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+end
+
+function ResMgr:loadAndInstantiate(path)
+	local prefab = self:load(path)
+	if prefab then
+		return self:instantiate(prefab)
+	end
+end
+
+function ResMgr:instantiate(prefab)
+	return Object.Instantiate(prefab)
+end
+
+function ResMgr:rxLoad(path)
+	return rx.Observable.create(function(observer)
+		local unsubscribed = false
+
+		self.m_asset_mgr:LoadAsset(path, function(asset_ref)
+			if unsubscribed then
+				if asset_ref then asset_ref:Release() end
+				return
+			end
+
+			if asset_ref then
+				observer:onNext(asset_ref)
+				observer:onCompleted()
+			else
+				observer:onError(string.format("ResMgr:rxLoad failed %s", path))
+			end
+	    end)
+
+	    return rx.Subscription.create(function() unsubscribed = true end)
+	end)
+end
+
+function ResMgr:rxLoadInstantiate(path)
+	return self:rxLoad(path)
+		:map(function(prefab) return Object.Instantiate(prefab) end)
+end
+
+function ResMgr:rxLoadScene(path)
+	return rx.Observable.create(function(observer)
+		local unsubscribed = false
+		self.m_asset_mgr:LoadScene(path, function(asset_ref)
+			if unsubscribed then
+				if asset_ref then asset_ref:Release() end
+				return
+			end
+
+			if asset_ref then
+				local scene_name = basename_noext(path)
+				self:RestoreRenderSettings(scene_name)
+				observer:onNext(asset_ref)
+				observer:onCompleted()
+			else
+				observer:onError(string.format("ResMgr:rxLoadScene failed %s", path))
+			end
+	    end, SceneManagement.LoadSceneMode.Additive)
+	    
+	    return rx.Subscription.create(function() unsubscribed = true end)
+	end)
+end
+
+function ResMgr:get_weather_file( scene_name )
+	return string.format('weathers/%s.asset', scene_name)
+end
+
+function ResMgr:RestoreRenderSettings(scene_name)
+	--! TODO:
+	--! 这个文件应该是同时加载的, 我期望的应该是和Scene同时请求加载, 并且当Scene和这个资源都加载完成后执行操作. 类似于有个Join操作.
+	print(self:get_weather_file(scene_name).."=======================")
+	self.m_asset_mgr:LoadAsset(self:get_weather_file(scene_name), function(asset_ref)
+		if asset_ref then
+			local settings = Slua.As(asset_ref.asset, KTRenderSettings)
+            if settings then
+                settings:Restore()
+            end
+			asset_ref:Release()
+		end
+    end)
+end
+
+
+--[[weather system
+function ResMgr:get_precipitation_settings_file()
+	return string.format('WeatherSystem/precipitation_settings.asset')
+end
+
+function ResMgr:get_simple_wind_settings_file()
+	return string.format('WeatherSystem/simplewind_settings.asset')
+end
+
+function ResMgr:get_wetland_settings_file() 
+	return string.format('WeatherSystem/wetland_settings.asset')
+end
+
+function ResMgr:LoadPrecipitationSettings()
+	print(self:get_precipitation_settings_file().."=======================")
+	self.m_asset_mgr:LoadAsset(self:get_precipitation_settings_file(), function(asset_ref)
+		if asset_ref then
+			local settings = Slua.As(asset_ref.asset, KTPrecipitationSettings)
+            if settings then
+           		KTWeatherSystem.instance.UpdatePrecipitationSettings(settings)  
+            end
+			asset_ref:Release()
+		end
+    end)
+end
+
+function ResMgr:LoadWetLandSettings()
+	print(self:get_wetland_settings_file().."=======================")
+	self.m_asset_mgr:LoadAsset(self:get_simple_wind_settings_file(), function(asset_ref)
+		if asset_ref then
+			local settings = Slua.As(asset_ref.asset, KTSimpleWindSettings)
+            if settings then
+           		KTWeatherSystem.instance.UpdateSimpleWindSettings(settings)  
+            end
+			asset_ref:Release()
+		end
+    end)
+end
+
+function ResMgr:LoadSimpleWindSettings()
+	print(self:get_simple_wind_settings_file().."=======================")
+	self.m_asset_mgr:LoadAsset(self:get_wetland_settings_file(), function(asset_ref)
+		if asset_ref then
+			local settings = Slua.As(asset_ref.asset, KTWetLandSettings)
+            if settings then
+           		KTWeatherSystem.instance.UpdateWetLandSettings(settings)  
+            end
+			asset_ref:Release()
+		end
+    end)
+end
+
+function ResMgr:LoadAllWeatherSystemSettings()
+	self:LoadPrecipitationSettings()
+	self:LoadSimpleWindSettings()
+	self:LoadWetLandSettings()
+end
+--]]
+
+return ResMgr

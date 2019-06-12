@@ -1,0 +1,15 @@
+local rows = {}
+rows[1] = {['id']=1,['is_show_health']=true,['is_show_icon']=true,['is_show_mp']=false,['is_show_name']=true,['offsets']=0.0}
+rows[2] = {['id']=2,['is_show_health']=true,['is_show_icon']=false,['is_show_mp']=false,['is_show_name']=false,['offsets']=0.0}
+rows[3] = {['id']=3,['is_show_health']=true,['is_show_icon']=false,['is_show_mp']=false,['is_show_name']=true,['offsets']=0.0}
+rows[4] = {['id']=4,['is_show_health']=false,['is_show_icon']=false,['is_show_mp']=false,['is_show_name']=false,['offsets']=0.0}
+rows[5] = {['id']=5,['is_show_health']=false,['is_show_icon']=false,['is_show_mp']=false,['is_show_name']=true,['offsets']=0.0}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+}
+return datas

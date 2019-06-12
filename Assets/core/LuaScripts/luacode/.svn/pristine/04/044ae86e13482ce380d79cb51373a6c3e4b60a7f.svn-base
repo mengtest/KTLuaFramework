@@ -1,0 +1,131 @@
+local View = require("system.view")
+local equipment_tips_choice_view = class("equipment_tips_choice_view", View)
+
+function equipment_tips_choice_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_tips_parent_view = self.m_mgr:getView("equipment_tips_parent")
+
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+
+    --装备选择按钮的选中状态，默认选中装备1
+    self.m_select_button1_selected = true
+    self.m_select_button2_selected = false
+
+    local frame = self:getFrame()
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("EquipmentTipsParent"), function(loaded_go)
+        local template_go = loaded_go.transform:Find("equipment_tips_parent_bg/equipment_tips_parent/equipment_chioce").gameObject
+        local choiceGo = Object.Instantiate(template_go)
+        self:getGO():AddComponent(RectTransform)
+        choiceGo.transform:SetParent(self:getGO().transform)
+        choiceGo.transform.localPosition = Vector3.zero
+        choiceGo.transform.localScale = Vector3.one
+        choiceGo:SetActive(true)
+        self:getGO():SetActive(false)
+
+        --self.m_equipment_choice = self.m_equip_info_scroll_view:Find("equipment_chioce")
+        self.m_equipment_choice_btn1 = choiceGo.transform:Find("equipment_bar_bg1").gameObject:GetComponent(UnityEngine.UI.Button)
+        self.m_equipment_choise_icon1 = self.m_equipment_choice_btn1.transform:Find("equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_chioce_quality1 = self.m_equipment_choice_btn1.transform:Find("equipment_quality").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_choice_level1 = self.m_equipment_choice_btn1.transform:Find("equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_selected1 = self.m_equipment_choice_btn1.transform:Find("selected")
+        self.m_light1 = self.m_equipment_choice_btn1.transform:Find("light")
+
+        self.m_equipment_choice_btn2 = choiceGo.transform:Find("equipment_bar_bg2").gameObject:GetComponent(UnityEngine.UI.Button)
+        self.m_equipment_choise_icon2 = self.m_equipment_choice_btn2.transform:Find("equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_chioce_quality2 = self.m_equipment_choice_btn2.transform:Find("equipment_quality").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_choice_level2 = self.m_equipment_choice_btn2.transform:Find("equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_selected2 = self.m_equipment_choice_btn2.transform:Find("selected")
+        self.m_light2 = self.m_equipment_choice_btn2.transform:Find("light")
+
+        self.m_equipment_choice_btn1.onClick:AddListener(function()
+            --点击装备选择按钮1
+            self.m_select_button1_selected = true
+            self.m_select_button2_selected = false
+            self:refresh_button_state()
+            self.m_tips_parent_view:tips_choice_button_click_callback(1)
+            if self.m_equipment_type == enum.shared.WearableTarget.FINGER then
+                self.m_tips_parent_view:set_bag_tips_equipment_index(enum.shared.WearableTarget.FINGER1)
+            elseif self.m_equipment_type == enum.shared.WearableTarget.ACCESSORY then
+                self.m_tips_parent_view:set_bag_tips_equipment_index(enum.shared.WearableTarget.ACCESSORY1)
+            end
+        end)
+
+        self.m_equipment_choice_btn2.onClick:AddListener(function()
+            --点击装备选择按钮2
+            self.m_select_button1_selected = false
+            self.m_select_button2_selected = true
+            self:refresh_button_state()
+            self.m_tips_parent_view:tips_choice_button_click_callback(2)
+            if self.m_equipment_type == enum.shared.WearableTarget.FINGER then
+                self.m_tips_parent_view:set_bag_tips_equipment_index(enum.shared.WearableTarget.FINGER2)
+            elseif self.m_equipment_type == enum.shared.WearableTarget.ACCESSORY then
+                self.m_tips_parent_view:set_bag_tips_equipment_index(enum.shared.WearableTarget.ACCESSORY2)
+            end
+        end)
+    end)
+    self:subscribe(frame:on_event("refresh_view"), function(param1, param2)
+        self:refresh(param1, param2)
+    end)
+    self:subscribe(frame:on_event("close"), function()
+        --重置两个按钮的选择状态
+        self.m_select_button1_selected = true
+        self.m_select_button2_selected = false
+        self:getGO():SetActive(false)
+    end)
+end
+
+function equipment_tips_choice_view:refresh(param1, param2)
+    self:getGO():SetActive(true)
+    self:refresh_button_state()
+    --获取此次点击的装备的部位（戒指 or 饰品）
+    self.m_equipment_type = dbc.item[param1['tmpl']].derived_params[2]
+
+    ------更换图片显示、等级一系列事
+    local first_equip = dbc.item[param1['tmpl']]
+    local second_equip = dbc.item[param2['tmpl']]
+    local first_equip_quality = self.m_inventory_mgr:gain_equipment_quality(param1['tmpl'], first_equip['level_label'] + param1['enhanced_level'])
+    local second_equip_quality = self.m_inventory_mgr:gain_equipment_quality(param2['tmpl'], second_equip['level_label'] + param2['enhanced_level'])
+    local first_equip_quality_path = dbc.equip_quality_client[first_equip_quality]['backpack_icon']
+    local second_equip_quality_path = dbc.equip_quality_client[second_equip_quality]['backpack_icon']
+    self:change_sprite(self.m_equipment_choise_icon1, first_equip['bag_icon'])
+    self:change_sprite(self.m_equipment_choise_icon2, second_equip['bag_icon'])
+    --更换选择按钮的品质底纹
+    self:change_sprite(self.m_equipment_chioce_quality1, first_equip_quality_path)
+    self:change_sprite(self.m_equipment_chioce_quality2, second_equip_quality_path)
+    --更新选择按钮的装备等级
+    self.m_equipment_choice_level1.text = tostring(first_equip['level_label'] + param1['enhanced_level'])
+    self.m_equipment_choice_level2.text = tostring(second_equip['level_label'] + param2['enhanced_level'])
+end
+
+------刷新按钮点击状态
+function equipment_tips_choice_view:refresh_button_state()
+    if self.m_select_button1_selected then
+        self.m_selected1.gameObject:SetActive(true)
+        self.m_light1.gameObject:SetActive(true)
+    else
+        self.m_selected1.gameObject:SetActive(false)
+        self.m_light1.gameObject:SetActive(false)
+    end
+
+    if self.m_select_button2_selected then
+        self.m_selected2.gameObject:SetActive(true)
+        self.m_light2.gameObject:SetActive(true)
+    else
+        self.m_selected2.gameObject:SetActive(false)
+        self.m_light2.gameObject:SetActive(false)
+    end
+end
+
+------更换图片
+function equipment_tips_choice_view:change_sprite(image, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return equipment_tips_choice_view

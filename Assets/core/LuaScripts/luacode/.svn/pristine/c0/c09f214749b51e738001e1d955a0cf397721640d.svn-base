@@ -1,0 +1,97 @@
+
+local Frame = require("system.frame")
+local Giver = class("Giver", Frame)
+
+Attribute.decl(Giver, "tmpl", nil)                                      -- 原型id
+Attribute.decl(Giver, "pos", function() return Vector3(0, 0, 0) end)    -- 坐标
+Attribute.decl(Giver, "dir", function() return 0 end)                   -- 方向
+Attribute.decl(Giver, "top_state", Enum_Quest.Quest_State.Invalid)      -- 头顶提示状态
+
+local ATT_MAP = {
+    tmpl = "tmpl",
+    pos = "pos",
+    dir = "dir",
+}
+
+function Giver:doInit(param)
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(param.giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+    self.m_id = param.giver:get_id()
+    self.m_cfg = dbc.giver[param.giver:get_tmpl()]
+    self.m_is_close_enough = true
+    self.m_cur_quest_id = nil
+    
+    self:on_part_of_state_changed(nil, Enum_Quest.Quest_State.Invalid)
+end
+
+function Giver:doDestroy()
+    
+end
+
+function Giver:get_cfg()
+    return self.m_cfg
+end
+
+function Giver:on_selected()
+    if not self.m_is_close_enough then
+        return
+    end
+    
+    local cur_quest_state = self:getFrame():get_top_state()
+    if cur_quest_state == Enum_Quest.Quest_State.Invalid then
+        app:logError("与当前NPC相关联的任务目前处于 ‘无任务状态’")
+    elseif cur_quest_state == Enum_Quest.Quest_State.Unlocked then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已解锁状态’")
+    elseif cur_quest_state == Enum_Quest.Quest_State.Reveived then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已接取锁状态’")
+    elseif cur_quest_state == Enum_Quest.Quest_State.Finished then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已完成状态’, self.m_cur_quest_id: " .. tostring(self.m_cur_quest_id))
+        self:req_deliver_quest()
+    end
+end
+
+function Giver:set_is_close_enough(flag)
+    app:logError(string.format("Giver:set_is_close_enough(%s)", tostring(flag)))
+    self.m_is_close_enough = flag
+end
+
+-- 请求交付任务
+function Giver:req_deliver_quest()
+    app:logError("self.m_id = " .. tostring(self.m_id) .. ", self.m_cur_quest_id = " .. self.m_cur_quest_id)
+	local kbesdk = app:getKBESDK()
+	kbesdk:entity_cell_call(self.m_id, "quest_done", self.m_cur_quest_id)
+end
+
+function Giver:on_part_of_state_changed(quest_id, quest_state)
+    local primary_quest_id, primary_quest_state = self:get_primary_state(quest_id, quest_state)
+    self.m_cur_quest_id = primary_quest_id
+    self:set_attr("top_state", primary_quest_state)
+end
+
+--TODO:: 多状态下的休闲显示规则
+function Giver:get_primary_state(cur_quest_id, cur_state)
+    local quest_state_dict = self:getFrame("quest_manager"):get_npc_dependently_quest_state(self:get_tmpl(), nil)
+    local primary_quest_id, primary_quest_state = nil, Enum_Quest.Quest_State.Invalid
+    if cur_state == Enum_Quest.Quest_State.Invalid then
+        for quest_id, quest_state in pairs(quest_state_dict) do
+            primary_quest_id = quest_id
+            primary_quest_state = quest_state
+            break
+        end
+    elseif cur_state == Enum_Quest.Quest_State.Unlocked then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Reveived then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Finished then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    end
+    return primary_quest_id, primary_quest_state
+end
+
+return Giver

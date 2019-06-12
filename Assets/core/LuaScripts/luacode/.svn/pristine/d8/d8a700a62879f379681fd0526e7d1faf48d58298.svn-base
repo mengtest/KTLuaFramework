@@ -1,0 +1,749 @@
+local rows = {}
+rows[1] = {['tmpl']=0,['text']='text',['audio']=0,['host_name']=0,['anim']='anim',['another']=0,['event_id']=0}
+rows[2] = {['tmpl']=10000,['text']='',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[3] = {['tmpl']=10001,['text']='听说大马猴偷跑到大圣园去了，也不知道他们怎样了。',['audio']=0,['host_name']=0,['anim']=' ',['another']=10002,['event_id']=0}
+rows[4] = {['tmpl']=10002,['text']='听说有一个好像回来了，但大马猴不知哪里了。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[5] = {['tmpl']=10003,['text']='ZZZZzzzzz…',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[6] = {['tmpl']=10004,['text']='我们好多猴兄被抓了，我要去救它们！',['audio']=0,['host_name']=0,['anim']='',['another']=10005,['event_id']=0}
+rows[7] = {['tmpl']=10005,['text']='嘘！小声点，别被监神者听到了！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[8] = {['tmpl']=10006,['text']='呼呼呼Zzzz,我~~是~~~齐天大神~~~~~',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[9] = {['tmpl']=10007,['text']='我现在就召集猴兵去工大监神者营地，就出同胞！',['audio']=0,['host_name']=0,['anim']='',['another']=10008,['event_id']=0}
+rows[10] = {['tmpl']=10008,['text']='不行！我们不能和监神者对抗，我们没法子去救被抓的猴儿们！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[11] = {['tmpl']=10009,['text']='你要你找芭将军？他现在可在气头上呢，想去救猴子哪有这么简单',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_mood_03',['another']=10010,['event_id']=0}
+rows[12] = {['tmpl']=10010,['text']='哎！不过我刚看到笆将军垂头丧气的去了圣桃台，你可以去哪看看。',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0,['event_id']=0}
+rows[13] = {['tmpl']=10011,['text']='嗯？ 其实我也打算去救其他猴子的，奈何这事有点难办',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10012,['event_id']=0}
+rows[14] = {['tmpl']=10012,['text']='我们需要两块虎符才能调动猴军，另一块在崩将军那，他和流元帅都不想惹事。',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10013,['event_id']=0}
+rows[15] = {['tmpl']=10013,['text']='对了！崩将军嗜酒而且酒量小的吓人，你可以做点果酒让他喝，然后偷取虎符，就可以调猴军了！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10014,['event_id']=0}
+rows[16] = {['tmpl']=10014,['text']='酿酒的原材料可以问问果园的猴老赖，但是在他手中拿果子可需要一点造化呦。想知道他在那先通过我的考验吧',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[17] = {['tmpl']=10015,['text']='你是为了酒果而来？想得到酒果也可以，帮我出去果园四害巴木巴巴、木巴巴巴、巴巴木巴、巴巴巴木，它们都在香果园和甜果园中。',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0,['event_id']=0}
+rows[18] = {['tmpl']=10016,['text']='干得不错，那没你什么事了，该忙啥忙啥去吧。',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10017,['event_id']=0}
+rows[19] = {['tmpl']=10017,['text']='酒果？我没说给你啊，只是说要帮帮我，啦啦啦。',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10018,['event_id']=0}
+rows[20] = {['tmpl']=10018,['text']='开玩笑啦孩子，后面的果园有采好的果子，去拿吧！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[21] = {['tmpl']=10019,['text']='你已经拿到果酒了，现在快去找崩将军吧，他在一线天的营寨里',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10020,['event_id']=0}
+rows[22] = {['tmpl']=10020,['text']='去找他时最好沿路收集一些武器给他，这样事情会好办很多',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[23] = {['tmpl']=10021,['text']='你收集好了武器给我送过来了，真是辛苦了！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10022,['event_id']=0}
+rows[24] = {['tmpl']=10022,['text']='嗯？还有笆将军送我的酒？！还是他懂我！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10023,['event_id']=0}
+rows[25] = {['tmpl']=10023,['text']='啊，好喝~~~~好~~~~~喝~~~~~呼呼呼Zzzz',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[26] = {['tmpl']=10024,['text']='你手持虎符，可是有什么重大的事情？',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10025,['event_id']=0}
+rows[27] = {['tmpl']=10025,['text']='正合我意！猴儿们听令！全猴出击！进攻监神者营地',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[28] = {['tmpl']=10026,['text']='你这是刚从山上下来吧！刚才大圣园出现大的动静，到底发生了什么事情？ ',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10036,['event_id']=0}
+rows[29] = {['tmpl']=10027,['text']='不要在浪费时间了，跟我们一起冲出刘家村吧！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[30] = {['tmpl']=10028,['text']='这几天见过刘眉盈，你可以去旁边的阵营看看。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[31] = {['tmpl']=10029,['text']='刘眉盈背个竹篮去东边树林采药。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[32] = {['tmpl']=10030,['text']='我好想看到刘眉盈去东边的树林里去了',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[33] = {['tmpl']=10031,['text']='刘眉盈一直在照顾刘伯清的母亲刘婆婆，经常去树林',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[34] = {['tmpl']=10032,['text']='刘伯钦有段时间没回来了，我和刘婆婆分头在找，我一时不敢下去了，刘婆婆也应该回家了，帮我先照顾一下她。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[35] = {['tmpl']=10033,['text']='屋内空无一人，仿佛听到屋外有狗叫。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[36] = {['tmpl']=10034,['text']='感谢来救我，此地危险不宜久留，先回家里再说吧。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[37] = {['tmpl']=10035,['text']='妖怪们报复刘伯钦，已经将他魂魄打散出肉身，最难的是找魂魄，法门寺貌似可以，但守寺人说我心存杂念不让我进去。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[38] = {['tmpl']=10036,['text']='你是说监神者在抓猴子，竟然有这样的事情！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0,['event_id']=0}
+rows[39] = {['tmpl']=10037,['text']='怎么会发生这样的事情，这件事得马上汇报流元帅',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10038,['event_id']=0}
+rows[40] = {['tmpl']=10038,['text']='刻不容缓了，他现在就在水帘洞大厅，快去找他把！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[41] = {['tmpl']=10039,['text']='我们猴族有自己酿酒的方式，看到旁边的水车了没有，那就是秘密所在',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0,['event_id']=0}
+rows[42] = {['tmpl']=10040,['text']='你需要跳上水车到顶部去逐次往酒罐里面放酒果发酵，这个酿酒方式是我发明的，怎么样厉害吧！',['audio']=0,['host_name']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0,['event_id']=0}
+rows[43] = {['tmpl']=10041,['text']='是你……你的身上，有印记，难道你是他说过的那个人？',['audio']=0,['host_name']=20102013,['anim']='',['another']=10042,['event_id']=0}
+rows[44] = {['tmpl']=10042,['text']='你知道我这个印记的事情？',['audio']=0,['host_name']=0,['anim']='',['another']=10043,['event_id']=0}
+rows[45] = {['tmpl']=10043,['text']='曾经有个人跟我说过，会有一个有印记的人来帮助我们……',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[46] = {['tmpl']=10044,['text']='陌生人，我们的现状你也看到了，这里本不是我们的家，后方的山谷里的刘家村才是我们原本的住处，3个月前监神者不明缘由的将我们强行赶了出去。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10045,['event_id']=0}
+rows[47] = {['tmpl']=10045,['text']='也不知道他们抢我们的村子干什么用。我们跟他们素来无怨，平日里还经常的送礼上下打点，没想到他们就这样对待我们！',['audio']=0,['host_name']=20102013,['anim']='',['another']=10046,['event_id']=0}
+rows[48] = {['tmpl']=10046,['text']='自从我们离开村子在这里扎营后，周围狼就激增了很多，还经常袭击我们，很多村民都被这些畜生给咬死咬伤了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10047,['event_id']=0}
+rows[49] = {['tmpl']=10047,['text']='我们村仅剩下的男壮丁也只能勉强守住门口，根本无力反击。刘祥刘猎户告诉我说这群狼里面几匹头狼，只要把它们杀了就能减轻狼患。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[50] = {['tmpl']=10048,['text']='西汉王莽年间，半空中跌落一天降石猴，石猴跌落处，寸草不生。这天地万钧的下落之力，均集中于五行山附近。而五行山附近佛寺——法门寺，也不得不遭此大难，昔日佛寺轰然耸动，零落不堪。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[51] = {['tmpl']=10049,['text']='法门僧人忙于修整寺庙，不知何时，荒野缝隙处竟从地底涌出层出不穷之怪物。怪物并无双眼，入夜则出，见人即杀，寸土不留，可怜老实僧人，皆被其所害。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[52] = {['tmpl']=10050,['text']='如此疲于应付数月。忽一日，法门僧人阿诺发现，怪物遇佛像则退，此怪虽无双目，却如视线被金光灼烧，再不敢进一步。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[53] = {['tmpl']=10051,['text']='白日，僧人即将佛像封于地表裂隙处，举寺搬迁于一山高之处。由此，佛像填处，渐渐再无怪物所出。荒野又颤动几次，为土覆盖。经年累月方才止息。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[54] = {['tmpl']=10052,['text']='而今五百年过去，然月光之夜，依然依稀可辨，地表深处，嗷嗷兽鸣奔啸于地底，震颤荒野。',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[55] = {['tmpl']=10053,['text']='你知不知道你究竟在干什么？你是在帮一个罪人！既然多说无益，只有送你去死！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[56] = {['tmpl']=10054,['text']='这山洞好黑啊，也不知道我们走到了什么地方，你确定通过这里就能到大圣园吗？',['audio']=100254,['host_name']=1054,['anim']='base_chat_01',['another']=10055,['event_id']=0}
+rows[57] = {['tmpl']=10055,['text']='就是因为相信你，才弄得现在黑得我娘都不认识我了。',['audio']=100255,['host_name']=1054,['anim']='base_chat_02',['another']=10056,['event_id']=0}
+rows[58] = {['tmpl']=10056,['text']='快走吧，前面好像有亮光了',['audio']=100256,['host_name']=1054,['anim']='base_chat_01',['another']=0,['event_id']=0}
+rows[59] = {['tmpl']=10057,['text']='啊，你是村子里的人，这附近有好多天兵巡逻，不知道他们想干什么',['audio']=100257,['host_name']=1055,['anim']='',['another']=10058,['event_id']=0}
+rows[60] = {['tmpl']=10058,['text']='莲花湖下面有很多猴子被抓了，希望你也能救救他们',['audio']=100258,['host_name']=1055,['anim']='',['another']=0,['event_id']=0}
+rows[61] = {['tmpl']=10059,['text']='莲花湖下面有很多猴子被抓了，希望你也能救救他们',['audio']=100258,['host_name']=1055,['anim']='',['another']=0,['event_id']=0}
+rows[62] = {['tmpl']=10060,['text']='你也是因为月光宝盒被抓的吧？哞哞',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[63] = {['tmpl']=10061,['text']='玩家：月光宝盒？',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[64] = {['tmpl']=10062,['text']='',['audio']=0,['host_name']=20102013,['anim']='',['another']=0,['event_id']=0}
+rows[65] = {['tmpl']=10063,['text']='刘大走起',['audio']=0,['host_name']=20102036,['anim']='',['another']=10000,['event_id']=0}
+rows[66] = {['tmpl']=10064,['text']='刘二走起',['audio']=0,['host_name']=20102041,['anim']='',['another']=10000,['event_id']=0}
+rows[67] = {['tmpl']=10065,['text']='刘三走起',['audio']=0,['host_name']=20102043,['anim']='',['another']=10000,['event_id']=0}
+rows[68] = {['tmpl']=10066,['text']='刘四走起',['audio']=0,['host_name']=20102044,['anim']='',['another']=10000,['event_id']=0}
+rows[69] = {['tmpl']=10067,['text']='大英雄，能不能帮我一个忙？我在离开旧营地的时候弄丢了两筐水果，你能否帮我去那找找？外面现在全是狼，我不敢去。如果你能帮我找到我会万分感谢你的！',['audio']=0,['host_name']=20102017,['anim']='',['another']=10000,['event_id']=0}
+rows[70] = {['tmpl']=10068,['text']='渴啊！好渴啊！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10069,['event_id']=0}
+rows[71] = {['tmpl']=10069,['text']='为何你觉得这么渴？旁边不就是河吗。',['audio']=0,['host_name']=0,['anim']='',['another']=10070,['event_id']=0}
+rows[72] = {['tmpl']=10070,['text']='那臭水沟里的水谁会去喝？我从小就是喝迷露森林中的天然泉水长大的！想当初我也算是当地刘家小有名气的财主，就连村长也让我三分。',['audio']=0,['host_name']=20102034,['anim']='',['another']=10071,['event_id']=0}
+rows[73] = {['tmpl']=10071,['text']='自从那些该死的监神者来到我们村子后就全变了，他们先是霸占了我的财产，之后又把我的妻儿全部杀死。该死的监神者，全都不得好死！',['audio']=0,['host_name']=0,['anim']='',['another']=10072,['event_id']=0}
+rows[74] = {['tmpl']=10072,['text']='你想喝水就自己去森林里面去喝不就好了？',['audio']=0,['host_name']=20102034,['anim']='',['another']=10073,['event_id']=0}
+rows[75] = {['tmpl']=10073,['text']='现在到处都是妖兽跟饿狼，还有贪婪的监神者，我前几天独自去取水，差点连命都搭上了。陌生人你能不能帮我去取点水来，我实在是太渴了……',['audio']=0,['host_name']=20102034,['anim']='',['another']=10074,['event_id']=0}
+rows[76] = {['tmpl']=10074,['text']='……',['audio']=0,['host_name']=0,['anim']='',['another']=10075,['event_id']=0}
+rows[77] = {['tmpl']=10075,['text']='如果你能帮我的话我会告诉你一个秘密',['audio']=0,['host_name']=20102034,['anim']='',['another']=10076,['event_id']=0}
+rows[78] = {['tmpl']=10076,['text']='好吧',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[79] = {['tmpl']=10077,['text']='嘿伙计，想不想找点事干？',['audio']=0,['host_name']=20102012,['anim']='',['another']=10078,['event_id']=0}
+rows[80] = {['tmpl']=10078,['text']='什么事情？',['audio']=0,['host_name']=0,['anim']='',['another']=10079,['event_id']=0}
+rows[81] = {['tmpl']=10079,['text']='你也看到了，最近我们这一点也不太平，自从被赶出刘家村后周围的饿狼就经常肆无忌惮的骚扰我们。',['audio']=0,['host_name']=20102012,['anim']='',['another']=10080,['event_id']=0}
+rows[82] = {['tmpl']=10080,['text']='这段期间这些畜生伤害了我们不少人，身为猎人的我如果不是因为站在这抽不开身，我倒是真想把他们一锅端了',['audio']=0,['host_name']=20102012,['anim']='',['another']=10081,['event_id']=0}
+rows[83] = {['tmpl']=10081,['text']='以前出去打猎找半天能遇见一两只都很幸运了，现在这么多送上门来，真是看得我真是手痒痒',['audio']=0,['host_name']=20102012,['anim']='',['another']=10082,['event_id']=0}
+rows[84] = {['tmpl']=10082,['text']='看你身手不凡，能否帮我宰几头狼回来？既能帮我解解恨，又能弄几张狼皮来做衣服穿。',['audio']=0,['host_name']=20102012,['anim']='',['another']=10083,['event_id']=0}
+rows[85] = {['tmpl']=10083,['text']='你放心，报酬少不了你的！',['audio']=0,['host_name']=20102012,['anim']='',['another']=10000,['event_id']=0}
+rows[86] = {['tmpl']=10084,['text']='挺厉害嘛！拿着，这是你的奖励，如果有空可以多杀几只，我这的狼皮绝不嫌多，尽管送来就是了！',['audio']=0,['host_name']=20102012,['anim']='',['another']=10390,['event_id']=0}
+rows[87] = {['tmpl']=10085,['text']='咕咚咕咚，哎，真是太爽了，你再不来我就要渴死了！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10086,['event_id']=0}
+rows[88] = {['tmpl']=10086,['text']='作为交换，我现在就把秘密告诉你。我们被监神者赶出村子前我扔了一包宝贝在村子里的水井下。当时想与其被监神者抢走还不如扔掉。',['audio']=0,['host_name']=20102034,['anim']='',['another']=10087,['event_id']=0}
+rows[89] = {['tmpl']=10087,['text']='既然你这么厉害，你可以帮我把这个包裹取回来，我们五五分，你看怎么样？',['audio']=0,['host_name']=20102034,['anim']='',['another']=10000,['event_id']=0}
+rows[90] = {['tmpl']=10088,['text']='怎么样？我说的没错吧！来，让我们看看里面都有什么。',['audio']=0,['host_name']=20102034,['anim']='',['another']=10089,['event_id']=0}
+rows[91] = {['tmpl']=10089,['text']='这不是你自己丢的包裹吗，你不知道里面有什么吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10090,['event_id']=0}
+rows[92] = {['tmpl']=10090,['text']='嗯…… 哦……，啊，我老糊涂了，有点忘记了,你看我这记性，哈哈哈',['audio']=0,['host_name']=20102034,['anim']='',['another']=10091,['event_id']=0}
+rows[93] = {['tmpl']=10091,['text']='来，这是你应得的',['audio']=0,['host_name']=20102034,['anim']='',['another']=10092,['event_id']=0}
+rows[94] = {['tmpl']=10092,['text']='不是说好了五五分吗？',['audio']=0,['host_name']=20102034,['anim']='',['another']=10093,['event_id']=0}
+rows[95] = {['tmpl']=10093,['text']='啊，对，是对半分没错，但你能否再帮我一个小忙，这个忙你帮完之后我会把剩下的全都给你！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10094,['event_id']=0}
+rows[96] = {['tmpl']=10094,['text']='你！',['audio']=0,['host_name']=0,['anim']='',['another']=10095,['event_id']=0}
+rows[97] = {['tmpl']=10095,['text']='哎呀，别生气嘛，你只需要再把一个东西交给一个人就可以了，没什么难度，我腿脚不好也不会跑，放心好了！我这次绝对说话算数！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10000,['event_id']=0}
+rows[98] = {['tmpl']=10096,['text']='你就是那个送东西的人吗？东西那？',['audio']=0,['host_name']=20102042,['anim']='',['another']=10097,['event_id']=0}
+rows[99] = {['tmpl']=10097,['text']='刘富贵不是跟你们有不共戴天之仇吗？怎么还会跟你们有交易？',['audio']=0,['host_name']=0,['anim']='',['another']=10098,['event_id']=0}
+rows[100] = {['tmpl']=10098,['text']='你这人废话太多了，兄弟们，教训教训他',['audio']=0,['host_name']=20102042,['anim']='',['another']=10000,['event_id']=0}
+rows[101] = {['tmpl']=10099,['text']='哎呀，好汉饶命，好汉饶命啊，都是误会，误会啊！',['audio']=0,['host_name']=20102042,['anim']='',['another']=10100,['event_id']=0}
+rows[102] = {['tmpl']=10100,['text']='这究竟是怎么回事，快说！',['audio']=0,['host_name']=0,['anim']='',['another']=10101,['event_id']=0}
+rows[103] = {['tmpl']=10101,['text']='我们监神者一直想找一个快速获取功德的手段，后来我们的头想到了可以用刘家村的村民当诱饵来吸引妖兽。',['audio']=0,['host_name']=20102042,['anim']='',['another']=10102,['event_id']=0}
+rows[104] = {['tmpl']=10102,['text']='这样我们就可以快速的收拾妖怪获取功德了，但刘家村内一直有一颗法门寺送的一颗佛舍利作为镇邪之物。妖兽都不敢靠近村子。',['audio']=0,['host_name']=20102042,['anim']='',['another']=10103,['event_id']=0}
+rows[105] = {['tmpl']=10103,['text']='于是我们借着帮刘家村驱邪之名占领了村子，赶走了村民。但是一直就找不到那颗佛舍利。',['audio']=0,['host_name']=20102042,['anim']='',['another']=10105,['event_id']=0}
+rows[106] = {['tmpl']=10105,['text']='最近听到有个刘家村老乞丐知道这东西在哪，打算告诉我们。但条件是许他富贵荣华。上面答应了他',['audio']=0,['host_name']=20102042,['anim']='',['another']=10106,['event_id']=0}
+rows[107] = {['tmpl']=10106,['text']='如果不是监神者的戒条限制着我的行动，我们早就能逼问出舍利的下落了',['audio']=0,['host_name']=20102042,['anim']='',['another']=10107,['event_id']=0}
+rows[108] = {['tmpl']=10107,['text']='我知道的我全都说了，放我走吧！',['audio']=0,['host_name']=20102042,['anim']='',['another']=10108,['event_id']=0}
+rows[109] = {['tmpl']=10108,['text']='赶紧滚',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[110] = {['tmpl']=10109,['text']='说！你让我送的东西怎么回事？',['audio']=0,['host_name']=0,['anim']='',['another']=10110,['event_id']=0}
+rows[111] = {['tmpl']=10110,['text']='你，你都知道了？',['audio']=0,['host_name']=20102034,['anim']='',['another']=10111,['event_id']=0}
+rows[112] = {['tmpl']=10111,['text']='少废话，如果你不跟我说实话我就把你干的这点事情跟村里面的人说，到时候自有人来收拾你',['audio']=0,['host_name']=0,['anim']='',['another']=10112,['event_id']=0}
+rows[113] = {['tmpl']=10112,['text']='别，好汉，千万别这样，让刘㯖胜知道了他会找人扒了我的皮的！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10113,['event_id']=0}
+rows[114] = {['tmpl']=10113,['text']='刘㯖胜？',['audio']=0,['host_name']=0,['anim']='',['another']=10114,['event_id']=0}
+rows[115] = {['tmpl']=10114,['text']='有一天我睡觉时半睡半醒间一个声音告诉我让我去井边拿个宝物，我也不知道怎么回事，就迷迷糊糊的过去了。',['audio']=0,['host_name']=20102034,['anim']='',['another']=10115,['event_id']=0}
+rows[116] = {['tmpl']=10115,['text']='结果看到刘㯖胜在那偷偷摸摸的藏东西。等他走后我刚想去取，就看到大队的监神者来到村里，我当时吓的马上跑了回来，没能取走那包裹。',['audio']=0,['host_name']=20102034,['anim']='',['another']=10116,['event_id']=0}
+rows[117] = {['tmpl']=10116,['text']='后来在我拾荒期间听到几个监神者聊天，谈到他们在找一个舍利。我一猜那包裹里面可能就有，于是我就让你帮我……',['audio']=0,['host_name']=20102034,['anim']='',['another']=10117,['event_id']=0}
+rows[118] = {['tmpl']=10117,['text']='有一个声音？什么声音？',['audio']=0,['host_name']=0,['anim']='',['another']=10118,['event_id']=0}
+rows[119] = {['tmpl']=10118,['text']='就是一个女人的声音，那声音听得我骨头都酥了，她让我干什么我都会毫无反抗的去干，从来没有听过那么好听的声音……',['audio']=0,['host_name']=20102034,['anim']='',['another']=10119,['event_id']=0}
+rows[120] = {['tmpl']=10119,['text']='够了，你知不知道如果你们村没有了这个东西，你现在可能早就喂狼了？',['audio']=0,['host_name']=0,['anim']='',['another']=10120,['event_id']=0}
+rows[121] = {['tmpl']=10120,['text']='什么？这个我真不知道，如果早知道这样打死我也不会这么干啊，好死不如懒活着，我可不想死啊！',['audio']=0,['host_name']=20102034,['anim']='',['another']=10121,['event_id']=0}
+rows[122] = {['tmpl']=10121,['text']='你自己在野外自生自灭吧！',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[123] = {['tmpl']=10122,['text']='这是你的东西吧？',['audio']=0,['host_name']=0,['anim']='',['another']=10123,['event_id']=0}
+rows[124] = {['tmpl']=10123,['text']='这，这是我的包裹！你怎么找到的？我明明把他丢在了村子的井里面了！',['audio']=0,['host_name']=20102032,['anim']='',['another']=10124,['event_id']=0}
+rows[125] = {['tmpl']=10124,['text']='你这个包裹里面有一个东西是你们村子镇守此地的关键，你知道吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10125,['event_id']=0}
+rows[126] = {['tmpl']=10125,['text']='什么东西？这包裹里面全是我的宝贝，我当时听到风声说监神者要来村里抢东西，我就把它藏起来了',['audio']=0,['host_name']=20102032,['anim']='',['another']=10126,['event_id']=0}
+rows[127] = {['tmpl']=10126,['text']='你不知道这里面有一颗佛舍利吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10127,['event_id']=0}
+rows[128] = {['tmpl']=10127,['text']='你是说那个我哥给我的，法门寺送我们的小礼物吗？那个我知道，不值什么钱，你要是开个好价，我可以卖给你！',['audio']=0,['host_name']=20102032,['anim']='',['another']=10128,['event_id']=0}
+rows[129] = {['tmpl']=10128,['text']='这颗佛舍利有法力效应，可以帮你们有效的减少妖兽的骚扰。这是你们的性命，真把它卖了你们全村都有危险！',['audio']=0,['host_name']=0,['anim']='',['another']=10129,['event_id']=0}
+rows[130] = {['tmpl']=10129,['text']='哇，原来这东西能保护我们？那我得赶快把这东西还给我哥！作为你帮我拿回包裹的酬劳，我这有点东西你就收下吧。',['audio']=0,['host_name']=20102032,['anim']='',['another']=10000,['event_id']=0}
+rows[131] = {['tmpl']=10130,['text']='大侠，求求你帮帮我的兄弟吧，他们被监神者都抓走了，就因为他们坚持不离开自己的家，跟监神者发生了冲突。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10131,['event_id']=0}
+rows[132] = {['tmpl']=10131,['text']='我本想跟监神者理论，结果被他们打了出来！',['audio']=0,['host_name']=20102015,['anim']='',['another']=10132,['event_id']=0}
+rows[133] = {['tmpl']=10132,['text']='我去找过村长，但是他也无能为力，他说我们跟监神者的关系很微妙。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10133,['event_id']=0}
+rows[134] = {['tmpl']=10133,['text']='我们能比较安定的生活在妖兽横行的大唐边境的重要原因之一就是一直受到他们的庇护。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10134,['event_id']=0}
+rows[135] = {['tmpl']=10134,['text']='一旦我们跟监神者撕破脸，失去了他们的庇护对我们一点好处都没有。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10135,['event_id']=0}
+rows[136] = {['tmpl']=10135,['text']='所以求求你能不能救我的兄弟出来，我将很感谢你的大恩大德。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10000,['event_id']=0}
+rows[137] = {['tmpl']=10136,['text']='我救出了你的兄弟，但是他们回来后怕牵连刘家村的村民，所以决定先躲起来。',['audio']=0,['host_name']=0,['anim']='',['another']=10137,['event_id']=0}
+rows[138] = {['tmpl']=10137,['text']='还是我大哥有远见啊，我都没想到那么远，虽然见不到他们，但是知道他们安全我也就放心了。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10138,['event_id']=0}
+rows[139] = {['tmpl']=10138,['text']='感谢你的帮助，大恩人，这是我的一点点谢意，希望你收下。',['audio']=0,['host_name']=20102015,['anim']='',['another']=10000,['event_id']=0}
+rows[140] = {['tmpl']=10139,['text']='',['audio']=0,['host_name']=20102027,['anim']='',['another']=10300,['event_id']=0}
+rows[141] = {['tmpl']=10140,['text']='站住！现在是非常时期，说出我们灵猴一族暗语，说错了乖乖等着被抓起来吧',['audio']=0,['host_name']=1058,['anim']='',['another']=10141,['event_id']=0}
+rows[142] = {['tmpl']=10141,['text']='啊，你说大圣园被毁了！发生了这么大的事情需要尽快告诉芭将军才行',['audio']=0,['host_name']=1058,['anim']='n_ca_linghou003_chat_01',['another']=10142,['event_id']=0}
+rows[143] = {['tmpl']=10142,['text']='就拜托你了，你可以去村子里找找芭将军',['audio']=0,['host_name']=1058,['anim']='',['another']=10228,['event_id']=0}
+rows[144] = {['tmpl']=10228,['text']='',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[145] = {['tmpl']=10143,['text']='唉嘿，小兄弟这么急急忙忙的赶去干嘛啊',['audio']=0,['host_name']=1060,['anim']='',['another']=10144,['event_id']=0}
+rows[146] = {['tmpl']=10144,['text']='什么！你说监神者在大圣园聚集，而且抓了不少猴子！',['audio']=0,['host_name']=1060,['anim']='',['another']=10145,['event_id']=0}
+rows[147] = {['tmpl']=10145,['text']='我带你去找芭将军，他刚好在水帘洞生活区！事不宜迟',['audio']=0,['host_name']=1060,['anim']='',['another']=10146,['event_id']=0}
+rows[148] = {['tmpl']=10146,['text']='',['audio']=0,['host_name']=1060,['anim']='',['another']=0,['event_id']=0}
+rows[149] = {['tmpl']=10147,['text']='几天之前监神者突然驻扎在村子外面，当时就知道他们没安好心！',['audio']=0,['host_name']=1061,['anim']='',['another']=10148,['event_id']=0}
+rows[150] = {['tmpl']=10148,['text']='芭将军也已经怀疑监神者已经潜入了村子，所以派我们过来排查',['audio']=0,['host_name']=1061,['anim']='n_ca_linghou003_mood_05',['another']=10149,['event_id']=0}
+rows[151] = {['tmpl']=10149,['text']='找出藏在猴村的监神者了，看看他们到底要干什么！',['audio']=0,['host_name']=1061,['anim']='',['another']=10150,['event_id']=0}
+rows[152] = {['tmpl']=10150,['text']='',['audio']=0,['host_name']=1061,['anim']='',['another']=0,['event_id']=0}
+rows[153] = {['tmpl']=10151,['text']='哼，这里天兵偷偷潜入水帘洞不知道是为了什么',['audio']=0,['host_name']=1061,['anim']='',['another']=10152,['event_id']=0}
+rows[154] = {['tmpl']=10152,['text']='干的不错！这里交给我们就好了，其余的监神者也逃不掉了',['audio']=0,['host_name']=1061,['anim']='n_ca_linghou003_chat_01',['another']=10153,['event_id']=0}
+rows[155] = {['tmpl']=10153,['text']='你猴四队长那看看有什么需要帮助，他应该可以告诉你芭将军在哪',['audio']=0,['host_name']=1061,['anim']='',['another']=10154,['event_id']=0}
+rows[156] = {['tmpl']=10154,['text']='',['audio']=0,['host_name']=1061,['anim']='',['another']=0,['event_id']=0}
+rows[157] = {['tmpl']=10155,['text']='嗯，已经抓到了一些隐藏在村里的天兵了么',['audio']=0,['host_name']=1078,['anim']='',['another']=10156,['event_id']=0}
+rows[158] = {['tmpl']=10156,['text']='旁边房子有之前抓到的天兵，花很多办法都没打探出消息',['audio']=0,['host_name']=1078,['anim']='m_hzxs002_chat_01',['another']=10157,['event_id']=0}
+rows[159] = {['tmpl']=10157,['text']='你去看看有没有什么办法让他们开口！',['audio']=0,['host_name']=1078,['anim']='',['another']=10158,['event_id']=0}
+rows[160] = {['tmpl']=10158,['text']='',['audio']=0,['host_name']=1078,['anim']='',['another']=0,['event_id']=0}
+rows[161] = {['tmpl']=10159,['text']='你是来参加我家小姐喜宴的？交出请帖。',['audio']=0,['host_name']=30201009,['anim']='',['another']=10230,['event_id']=0}
+rows[162] = {['tmpl']=10160,['text']='你是来向芭将军汇报任务的？确认了天兵已经潜入水帘洞了么',['audio']=0,['host_name']=1059,['anim']='',['another']=10161,['event_id']=0}
+rows[163] = {['tmpl']=10161,['text']='这些事情芭将军也早有感觉，但苦无没有证据想派遣猴兵也没办法',['audio']=0,['host_name']=1059,['anim']='n_ca_linghou003_mood_11',['another']=10162,['event_id']=0}
+rows[164] = {['tmpl']=10162,['text']='芭将军就在圣桃台，你过去和告诉他所有事情吧',['audio']=0,['host_name']=1059,['anim']='',['another']=10163,['event_id']=0}
+rows[165] = {['tmpl']=10163,['text']='',['audio']=0,['host_name']=1059,['anim']='',['another']=0,['event_id']=0}
+rows[166] = {['tmpl']=10164,['text']='监神者摧毁了大圣园，还封锁了水帘洞天抓了刘元帅和其他猴子，我居然这么大意',['audio']=0,['host_name']=1067,['anim']='',['another']=10165,['event_id']=0}
+rows[167] = {['tmpl']=10165,['text']='现在正是灵猴一族危难之时，还有很多事需要你来完成',['audio']=0,['host_name']=1067,['anim']='n_ca_linghou002_chat_01',['another']=10166,['event_id']=0}
+rows[168] = {['tmpl']=10166,['text']='在此之前我要先考验考验你的实力怎么样，放心我只动用自己的分身',['audio']=0,['host_name']=1067,['anim']='',['another']=10167,['event_id']=0}
+rows[169] = {['tmpl']=10167,['text']='',['audio']=0,['host_name']=1067,['anim']='',['another']=0,['event_id']=0}
+rows[170] = {['tmpl']=10168,['text']='我认可你的实力了灵猴，接下来的事就好办了',['audio']=0,['host_name']=1067,['anim']='',['another']=10169,['event_id']=0}
+rows[171] = {['tmpl']=10169,['text']='我们必须夺回被占领的水帘洞天，再做进一步打算',['audio']=0,['host_name']=1067,['anim']='n_ca_linghou002_standby001',['another']=10170,['event_id']=0}
+rows[172] = {['tmpl']=10170,['text']='这是我的调兵令牌，你带着它去召集我的部下，我稍后就过来',['audio']=0,['host_name']=1067,['anim']='',['another']=10171,['event_id']=0}
+rows[173] = {['tmpl']=10171,['text']='',['audio']=0,['host_name']=1067,['anim']='',['another']=0,['event_id']=0}
+rows[174] = {['tmpl']=10172,['text']='干的不错！这下夺回水帘洞天就没问题了，水帘洞天内部不知道是什么情况！',['audio']=0,['host_name']=1088,['anim']='',['another']=10173,['event_id']=0}
+rows[175] = {['tmpl']=10173,['text']='芭将军去猴寨召猴兵了，现在需要你去水帘洞内打探一下监神者虚实！',['audio']=0,['host_name']=1088,['anim']='n_ca_linghou003_mood_11',['another']=10174,['event_id']=0}
+rows[176] = {['tmpl']=10174,['text']='水帘洞内有个箱子里面放着天兵衣服，进去后伪装成天兵行事会更方便一些',['audio']=0,['host_name']=1088,['anim']='',['another']=10175,['event_id']=0}
+rows[177] = {['tmpl']=10175,['text']='',['audio']=0,['host_name']=1088,['anim']='',['another']=0,['event_id']=0}
+rows[178] = {['tmpl']=10176,['text']='别看了，我和你一样也是猴子',['audio']=0,['host_name']=1091,['anim']='',['another']=10177,['event_id']=0}
+rows[179] = {['tmpl']=10177,['text']='芭将军已经着手准备夺回水帘洞天了？那我们也得尽自己最大的努力，这些天兵抓了刘元帅和众猴子之后就天天喝酒，这或许是个可以利用的点',['audio']=0,['host_name']=1091,['anim']='m_dym011_base_chat_03',['another']=10178,['event_id']=0}
+rows[180] = {['tmpl']=10178,['text']='那边的天兵又没酒喝了，快过去看看，我们可以从这件事上着手',['audio']=0,['host_name']=1091,['anim']='',['another']=10179,['event_id']=0}
+rows[181] = {['tmpl']=10179,['text']='',['audio']=0,['host_name']=1091,['anim']='',['another']=0,['event_id']=0}
+rows[182] = {['tmpl']=10180,['text']='你，就是你！我们这么多人都没酒喝了，快去帮我们找酒来！',['audio']=0,['host_name']=1090,['anim']='',['another']=10181,['event_id']=0}
+rows[183] = {['tmpl']=10181,['text']='天上呆的好好的非要找什么月光宝盒，排我们到这破地方来',['audio']=0,['host_name']=1090,['anim']='',['another']=10182,['event_id']=0}
+rows[184] = {['tmpl']=10182,['text']='去看看附近还有就没有酒，快点给我带过来，别，先给台子上的瘦将军送过去',['audio']=0,['host_name']=1090,['anim']='',['another']=10183,['event_id']=0}
+rows[185] = {['tmpl']=10183,['text']='',['audio']=0,['host_name']=1090,['anim']='',['another']=0,['event_id']=0}
+rows[186] = {['tmpl']=10184,['text']='嗯？你也是伪装的猴子啊，我之前也遇到了一个',['audio']=0,['host_name']=1055,['anim']='',['another']=10185,['event_id']=0}
+rows[187] = {['tmpl']=10185,['text']='你想帮助芭将军夺回水帘洞天，我正好可以出一份力',['audio']=0,['host_name']=1055,['anim']='',['another']=10186,['event_id']=0}
+rows[188] = {['tmpl']=10186,['text']='你说天兵要酒喝，嘿嘿，我正好藏了一罐“上好”的猴儿酒，保证他们喝的神魂颠倒毫无战斗力可言',['audio']=0,['host_name']=1055,['anim']='',['another']=10187,['event_id']=0}
+rows[189] = {['tmpl']=10187,['text']='',['audio']=0,['host_name']=1055,['anim']='',['another']=0,['event_id']=0}
+rows[190] = {['tmpl']=10188,['text']='嗯！月光宝盒还没有消息么，我可不能落给胖将军，让他们赶紧拷问月光宝盒下落',['audio']=0,['host_name']=1056,['anim']='',['another']=10189,['event_id']=0}
+rows[191] = {['tmpl']=10189,['text']='哼，刚才的响动应该是胖将军已经完成任务了吧，我们也不能怠慢',['audio']=0,['host_name']=1056,['anim']='m_dym301_chat_02',['another']=10190,['event_id']=0}
+rows[192] = {['tmpl']=10190,['text']='不过这猴儿酒真不错，剩下的就就拿去分给众天兵吧，喝完之后立即打起精神干活！',['audio']=0,['host_name']=1056,['anim']='',['another']=10191,['event_id']=0}
+rows[193] = {['tmpl']=10191,['text']='',['audio']=0,['host_name']=1056,['anim']='',['another']=0,['event_id']=0}
+rows[194] = {['tmpl']=10192,['text']='大家都在喝酒，差点忘记正事了，等下瘦将军追究起来就惨了',['audio']=0,['host_name']=1104,['anim']='',['another']=10193,['event_id']=0}
+rows[195] = {['tmpl']=10193,['text']='你快去旁边的密室内看看月光宝盒的事情怎么样了',['audio']=0,['host_name']=1104,['anim']='',['another']=0,['event_id']=0}
+rows[196] = {['tmpl']=10194,['text']='',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[197] = {['tmpl']=10195,['text']='胖将军已经不见了，看这样子天兵们是已经失去战斗力了',['audio']=0,['host_name']=1072,['anim']='',['another']=10196,['event_id']=0}
+rows[198] = {['tmpl']=10196,['text']='嗯应该是你那加料的酒产生了作用，这样一来就好办了                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ',['audio']=0,['host_name']=1072,['anim']='n_ca_linghou001_chat_01',['another']=10197,['event_id']=0}
+rows[199] = {['tmpl']=10197,['text']='现在猴兵的士气高涨，快去击败还在反抗的天兵夺回水帘洞天',['audio']=0,['host_name']=1072,['anim']='',['another']=10198,['event_id']=0}
+rows[200] = {['tmpl']=10198,['text']='',['audio']=0,['host_name']=1072,['anim']='',['another']=0,['event_id']=0}
+rows[201] = {['tmpl']=10199,['text']='哈哈哈，干的漂亮，就知道你能行的，这下看监神者还嚣张',['audio']=0,['host_name']=1091,['anim']='',['another']=10200,['event_id']=0}
+rows[202] = {['tmpl']=10200,['text']='瘦将军带着残余的神者进入了生活区，不过临走之前关闭了密道机关',['audio']=0,['host_name']=1091,['anim']='m_dym011_base_chat_03',['another']=10201,['event_id']=0}
+rows[203] = {['tmpl']=10201,['text']='去打开密道机关，继续追击剩余的天兵吧',['audio']=0,['host_name']=1091,['anim']='',['another']=10202,['event_id']=0}
+rows[204] = {['tmpl']=10202,['text']='',['audio']=0,['host_name']=1091,['anim']='',['another']=0,['event_id']=0}
+rows[205] = {['tmpl']=10203,['text']='水帘洞天的形式如何了，这里么多天兵你是为了为何而来？',['audio']=0,['host_name']=1073,['anim']='',['another']=10204,['event_id']=0}
+rows[206] = {['tmpl']=10204,['text']='已经夺回了，谢天谢地，你想询问虎符的下落？',['audio']=0,['host_name']=1073,['anim']='m_hzxs002_mood_10',['another']=10205,['event_id']=0}
+rows[207] = {['tmpl']=10205,['text']='先帮我除掉果园的监神者吧，他们肆意的毁坏我珍惜的果树，真是可恶！',['audio']=0,['host_name']=1073,['anim']='',['another']=10206,['event_id']=0}
+rows[208] = {['tmpl']=10206,['text']='',['audio']=0,['host_name']=1073,['anim']='',['another']=0,['event_id']=0}
+rows[209] = {['tmpl']=10207,['text']='真是迅速啊，果然这任务交给你没错',['audio']=0,['host_name']=1073,['anim']='',['another']=10208,['event_id']=0}
+rows[210] = {['tmpl']=10208,['text']='再去采集一些酒果给我吧酿酒用吧，猴儿们喝了酒之后战斗力成倍增加',['audio']=0,['host_name']=1073,['anim']='m_hzxs002_chat_01',['another']=10209,['event_id']=0}
+rows[211] = {['tmpl']=10209,['text']='小心旁边巡视的监神者，不小心遇到就除掉吧',['audio']=0,['host_name']=1073,['anim']='',['another']=10210,['event_id']=0}
+rows[212] = {['tmpl']=10210,['text']='',['audio']=0,['host_name']=1073,['anim']='',['another']=0,['event_id']=0}
+rows[213] = {['tmpl']=10211,['text']='灵猴一族现在正处于危难的边缘，每个人都应该尽自己的一份力',['audio']=0,['host_name']=1073,['anim']='',['another']=10212,['event_id']=0}
+rows[214] = {['tmpl']=10212,['text']='',['audio']=0,['host_name']=1073,['anim']='',['another']=0,['event_id']=0}
+rows[215] = {['tmpl']=10213,['text']='虎符已经拿到了么，快去一线天和芭将军会合，猴兵已经在集结了',['audio']=0,['host_name']=1089,['anim']='',['another']=10214,['event_id']=0}
+rows[216] = {['tmpl']=10214,['text']='崩将军还在一线天指挥战斗，不要让他们久等了',['audio']=0,['host_name']=1089,['anim']='n_ca_linghou003_chat_01',['another']=10215,['event_id']=0}
+rows[217] = {['tmpl']=10215,['text']='前面的区域有一些零散的监神者，要小心他们',['audio']=0,['host_name']=1089,['anim']='',['another']=10216,['event_id']=0}
+rows[218] = {['tmpl']=10216,['text']='',['audio']=0,['host_name']=1089,['anim']='',['another']=0,['event_id']=0}
+rows[219] = {['tmpl']=10217,['text']='我们 已经取得了虎符，这下可以全力进攻监神者营地了，首先我们先要把监神者从一线天赶出去',['audio']=0,['host_name']=1105,['anim']='',['another']=10218,['event_id']=0}
+rows[220] = {['tmpl']=10218,['text']='猴寨上有很多炸药桶，推到炸药桶攻击一线天的监神者，为芭将军创造优势',['audio']=0,['host_name']=1105,['anim']='',['another']=10219,['event_id']=0}
+rows[221] = {['tmpl']=10219,['text']='',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[222] = {['tmpl']=10220,['text']='芭将军已经收复了一线天，还是你小子有勇有谋啊 ',['audio']=0,['host_name']=1076,['anim']='',['another']=10221,['event_id']=0}
+rows[223] = {['tmpl']=10221,['text']='还有笆将军送我的酒？！还是他懂我！',['audio']=0,['host_name']=1076,['anim']='n_ca_linghou003_mood_05',['another']=10222,['event_id']=0}
+rows[224] = {['tmpl']=10222,['text']='去一线天门口和他会和吧，从跳跃下去速度会更快一些',['audio']=0,['host_name']=1076,['anim']='n_ca_linghou003_mood_11',['another']=10223,['event_id']=0}
+rows[225] = {['tmpl']=10223,['text']='',['audio']=0,['host_name']=1076,['anim']='',['another']=0,['event_id']=0}
+rows[226] = {['tmpl']=10224,['text']='花果山内部的监神者差不多已经没有威胁了，我们得一口做气',['audio']=0,['host_name']=1077,['anim']='',['another']=10225,['event_id']=0}
+rows[227] = {['tmpl']=10225,['text']='巨灵神派遣胖将军毁我大圣园，又占我水帘洞这口气不出不行',['audio']=0,['host_name']=1077,['anim']='n_ca_linghou002_chat_01',['another']=10226,['event_id']=0}
+rows[228] = {['tmpl']=10226,['text']='去监神者营地门口等待我和崩将军到了，届时我们已经攻入监神者营地',['audio']=0,['host_name']=1077,['anim']='',['another']=10227,['event_id']=0}
+rows[229] = {['tmpl']=10227,['text']='',['audio']=0,['host_name']=1077,['anim']='',['another']=0,['event_id']=0}
+rows[230] = {['tmpl']=10229,['text']='去监神者营地门口等待我和崩将军到了，届时我们已经攻入监神者营地',['audio']=0,['host_name']=1076,['anim']='',['another']=10227,['event_id']=0}
+rows[231] = {['tmpl']=10230,['text']='我没有请帖。',['audio']=0,['host_name']=0,['anim']='',['another']=10231,['event_id']=0}
+rows[232] = {['tmpl']=10231,['text']='没有请帖？叫我一声爷爷也是可以的。',['audio']=0,['host_name']=30201009,['anim']='',['another']=10000,['event_id']=0}
+rows[233] = {['tmpl']=10232,['text']='消息送到了么，走开走开我们还得站岗',['audio']=0,['host_name']=1058,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[234] = {['tmpl']=10233,['text']='芭将军现在正在生活区快去找他吧',['audio']=0,['host_name']=1059,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[235] = {['tmpl']=10234,['text']='山路已封，闲杂人等禁止从此上山',['audio']=0,['host_name']=1080,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[236] = {['tmpl']=10235,['text']='嘿，伙计！',['audio']=0,['host_name']=1054,['anim']='',['another']=0,['event_id']=0}
+rows[237] = {['tmpl']=10236,['text']='山上传来那么大动静到底是发生了什么事',['audio']=0,['host_name']=1081,['anim']='n_ca_linghou001_chat_01',['another']=0,['event_id']=0}
+rows[238] = {['tmpl']=10237,['text']='花果山的景色真美啊',['audio']=0,['host_name']=1078,['anim']='n_ca_linghou001_chat_01',['another']=0,['event_id']=0}
+rows[239] = {['tmpl']=10238,['text']='饭后走一走，能活九十九啊，知道了么！',['audio']=0,['host_name']=1082,['anim']='m_hzxs002_mood_10',['another']=0,['event_id']=0}
+rows[240] = {['tmpl']=10239,['text']='嗯？快走吧，芭将军还在等着我们呢！',['audio']=0,['host_name']=1060,['anim']='n_ca_linghou002_chat_01',['another']=0,['event_id']=0}
+rows[241] = {['tmpl']=10240,['text']='这些巡逻猴兵整天都在干什么啊，发生了那么大动静也不去看看',['audio']=0,['host_name']=1083,['anim']='chat_01',['another']=0,['event_id']=0}
+rows[242] = {['tmpl']=10241,['text']='哼，毁了大圣石，我倒是想知道他们还想干什么',['audio']=0,['host_name']=1061,['anim']='n_ca_linghou003_chat_01',['another']=0,['event_id']=0}
+rows[243] = {['tmpl']=10242,['text']='干什么呢，你们这些猴兵到底在查什么！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[244] = {['tmpl']=10243,['text']='啊？天兵已经渗入了村子了？',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[245] = {['tmpl']=10244,['text']='我可是好猴啊，可别冤枉好猴！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[246] = {['tmpl']=10245,['text']='这么大动静，难道真出了啥大事！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[247] = {['tmpl']=10246,['text']='这些天兵到底是想找些什么东西！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[248] = {['tmpl']=10247,['text']='该好好拷问这些天兵到底想干嘛',['audio']=0,['host_name']=1078,['anim']='m_hzxs002_mood_10',['another']=0,['event_id']=0}
+rows[249] = {['tmpl']=10248,['text']='这些天兵真傻，以为我们发现不了么！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[250] = {['tmpl']=10249,['text']='我在好好的看守，请不要打扰我',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[251] = {['tmpl']=10250,['text']='不能再靠前了，问完就离开吧，我们需要继续保持警戒',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[252] = {['tmpl']=10251,['text']='也不知道芭将军在干嘛，明显发生了什么事情了',['audio']=0,['host_name']=1059,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[253] = {['tmpl']=10252,['text']='嗯，原大圣保佑我们猴村躲过这一劫啊',['audio']=0,['host_name']=1067,['anim']='n_ca_linghou002_chat_01',['another']=0,['event_id']=0}
+rows[254] = {['tmpl']=10253,['text']='记得进入水帘洞天后一切小心',['audio']=0,['host_name']=1088,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[255] = {['tmpl']=10254,['text']='快换上旁边箱子里的衣服，小心被天兵发现！',['audio']=0,['host_name']=0,['anim']='',['another']=0,['event_id']=0}
+rows[256] = {['tmpl']=10255,['text']='一定要小心啊',['audio']=0,['host_name']=1091,['anim']='',['another']=0,['event_id']=0}
+rows[257] = {['tmpl']=10256,['text']='快去找酒别给我磨叽，慢了小心我抽你',['audio']=0,['host_name']=1090,['anim']='',['another']=0,['event_id']=0}
+rows[258] = {['tmpl']=10257,['text']='记得去找角落里那一罐酒，别拿错啊',['audio']=0,['host_name']=1055,['anim']='',['another']=0,['event_id']=0}
+rows[259] = {['tmpl']=10258,['text']='喝了些酒心情果然好了很多',['audio']=0,['host_name']=1056,['anim']='m_dym301_chat_01',['another']=0,['event_id']=0}
+rows[260] = {['tmpl']=10259,['text']='快去帮帮猴兵，这些天兵可不太好对付啊',['audio']=0,['host_name']=1072,['anim']='n_ca_linghou001_mood_07',['another']=0,['event_id']=0}
+rows[261] = {['tmpl']=10260,['text']='这些树都是我的宝贝啊，一颗都不能损坏',['audio']=0,['host_name']=1073,['anim']='m_hzxs002_mood_10',['another']=0,['event_id']=0}
+rows[262] = {['tmpl']=10261,['text']='也不知道一线天现在怎么样了',['audio']=0,['host_name']=1089,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[263] = {['tmpl']=10262,['text']='我们的猴兵都是好样的哈哈哈',['audio']=0,['host_name']=1105,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[264] = {['tmpl']=10263,['text']='做得好，哈哈哈，该我们来反击天兵了',['audio']=0,['host_name']=1076,['anim']='n_ca_linghou003_mood_11',['another']=0,['event_id']=0}
+rows[265] = {['tmpl']=10264,['text']='多亏了你我们才能收复一线天啊',['audio']=0,['host_name']=1076,['anim']='n_ca_linghou002_chat_01',['another']=0,['event_id']=0}
+rows[266] = {['tmpl']=10300,['text']='你果然是来帮助我们的人，看来玄奘法师说的一点都没错',['audio']=0,['host_name']=20102013,['anim']='',['another']=10302,['event_id']=0}
+rows[267] = {['tmpl']=10302,['text']='他曾经告诉我说未来会有一个身上带有印记的人前来帮助我们度过危难，摆脱压迫。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10303,['event_id']=0}
+rows[268] = {['tmpl']=10303,['text']='起初我只是怀疑长老说的话，但是我完全相信了，因为你有这个能力',['audio']=0,['host_name']=20102013,['anim']='',['another']=10335,['event_id']=0}
+rows[269] = {['tmpl']=10304,['text']='监神者占领我们村庄的目的其实是在找一件东西？而我们其实是他们吸引妖兽的诱饵？',['audio']=0,['host_name']=20102013,['anim']='',['another']=10305,['event_id']=0}
+rows[270] = {['tmpl']=10305,['text']='他们要什么东西为什么不跟我们说，却把我们赶到荒郊野外？我们都被妖兽吃了对他们来说有什么好处啊？',['audio']=0,['host_name']=20102013,['anim']='',['another']=10306,['event_id']=0}
+rows[271] = {['tmpl']=10306,['text']='枉我以前年年送礼，岁岁朝贡的给他们送东西，就希望他们能保护我们，没想到他们这么冷血无情……',['audio']=0,['host_name']=20102013,['anim']='',['another']=10307,['event_id']=0}
+rows[272] = {['tmpl']=10307,['text']='我要去人皇，去神佛，去东天那里揭发他们的罪行！',['audio']=0,['host_name']=20102013,['anim']='',['another']=10308,['event_id']=0}
+rows[273] = {['tmpl']=10308,['text']='年轻人，我知道下级监神者的所有命令都是通过一种叫做神旨的东西由上至下传递给下级监神者',['audio']=0,['host_name']=20102013,['anim']='',['another']=10309,['event_id']=0}
+rows[274] = {['tmpl']=10309,['text']='只要找到这些神旨，我们就掌握了他们的犯罪证据，到时候就能以此胁迫他们将村子还给我们！',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[275] = {['tmpl']=10310,['text']='你们监神者这么做就是为了那点功德吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10311,['event_id']=0}
+rows[276] = {['tmpl']=10311,['text']='你以为吾们真的是需要那么点功德？你知道那颗佛舍利的威力有多么大吗？',['audio']=0,['host_name']=20102052,['anim']='',['another']=10312,['event_id']=0}
+rows[277] = {['tmpl']=10312,['text']='吾们奉命看守这边境地区的妖兽之乱，然而前阵子，不知为何，许多妖兽突破封印，从边境地底溢出',['audio']=0,['host_name']=20102052,['anim']='',['another']=10313,['event_id']=0}
+rows[278] = {['tmpl']=10313,['text']='吾们消灭了几只，但妖兽却越来越多，吾们看不出几个月，这妖兽必定要吞并整个边境地区',['audio']=0,['host_name']=20102052,['anim']='',['another']=10314,['event_id']=0}
+rows[279] = {['tmpl']=10314,['text']='刘家村有一佛舍利，本是法门寺法宝，有净化妖兽之特效，可惜村民愚蠢，世代相传的法宝竟然被当做一块破石头。',['audio']=0,['host_name']=20102052,['anim']='',['another']=10315,['event_id']=0}
+rows[280] = {['tmpl']=10315,['text']='神佛现在都在专注着唐僧的西行之路，哪有闲心管这边的事。',['audio']=0,['host_name']=20102052,['anim']='',['another']=10316,['event_id']=0}
+rows[281] = {['tmpl']=10316,['text']='如果舍利不在我们手里，等妖兽之乱真的爆发了，我们大家都得死，与其这样不如牺牲一小部分人，换来大家的太平。',['audio']=0,['host_name']=20102052,['anim']='',['another']=10317,['event_id']=0}
+rows[282] = {['tmpl']=10317,['text']='这就是你们把村民赶出村庄当做诱饵的理由？',['audio']=0,['host_name']=0,['anim']='',['another']=10318,['event_id']=0}
+rows[283] = {['tmpl']=10318,['text']='牺牲一小撮人就能换来一大群人的安全，换做是你你会怎么办？',['audio']=0,['host_name']=20102052,['anim']='',['another']=10000,['event_id']=0}
+rows[284] = {['tmpl']=10319,['text']='监神者把你们赶到这里来是为了稀释兽潮，也就是减少大规模的妖兽之乱，并想用那颗舍利的能量消灭妖兽。',['audio']=0,['host_name']=0,['anim']='',['another']=10320,['event_id']=0}
+rows[285] = {['tmpl']=10320,['text']='妖兽之乱？我记得小时候听祖辈说起过类似的事情。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10321,['event_id']=0}
+rows[286] = {['tmpl']=10321,['text']='我们刘家村其实不是姓刘，而是因为祖辈是被朝廷流放在此地用来监视妖兽动向的一伙人组成的村落。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10322,['event_id']=0}
+rows[287] = {['tmpl']=10322,['text']='听祖辈说，这边境地底，是五百年前为祸的妖族镇压之地。如果发现妖兽异动，就需要向人皇报告',['audio']=0,['host_name']=20102013,['anim']='',['another']=10323,['event_id']=0}
+rows[288] = {['tmpl']=10323,['text']='不过自从孙悟空被神佛打入五行山后，周围的妖兽就老实了很多，已经好久都没听过这个词了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10324,['event_id']=0}
+rows[289] = {['tmpl']=10324,['text']='那看来周围有这么多怪物也不难解释了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10325,['event_id']=0}
+rows[290] = {['tmpl']=10325,['text']='既然监神者用我们当诱饵，我们的安全就不能再指望他们了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10326,['event_id']=0}
+rows[291] = {['tmpl']=10326,['text']='我这有一封信，请帮我带到猎人营地去，既然求助神佛之路已无用，起码我们不能坐以待毙',['audio']=0,['host_name']=20102013,['anim']='',['another']=10327,['event_id']=0}
+rows[292] = {['tmpl']=10327,['text']='那的人有能力帮我们把现状快速的传回给大唐，请求人皇的帮助。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[293] = {['tmpl']=10328,['text']='妖兽之乱…… 怪不得最近妖兽如此猖獗，好，我这就让我最得力的手下帮你把这封信送出去。',['audio']=0,['host_name']=20102046,['anim']='',['another']=10000,['event_id']=0}
+rows[294] = {['tmpl']=10329,['text']='我们的职业就是猎杀妖兽，拿着猎物的首级向监神者去邀赏，他们再去换功德，各取所需，哈哈哈哈！',['audio']=0,['host_name']=20102046,['anim']='',['another']=10330,['event_id']=0}
+rows[295] = {['tmpl']=10330,['text']='最近一点也不太平，妖兽的活动十分猖獗，虽然大批的妖兽出现让我们发现他们变得容易很多。',['audio']=0,['host_name']=20102046,['anim']='',['another']=10331,['event_id']=0}
+rows[296] = {['tmpl']=10331,['text']='但是他们的数量让我们经验丰富的猎手也感到头痛，朋友，能否帮助我们猎杀几头妖兽回来，减轻一下我们的负担？',['audio']=0,['host_name']=20102046,['anim']='',['another']=10332,['event_id']=0}
+rows[297] = {['tmpl']=10332,['text']='猎杀的功劳全部归功于你，我只是想减轻一下大家的负担，再好的猎手也会累吗，哈哈！',['audio']=0,['host_name']=20102046,['anim']='',['another']=10333,['event_id']=0}
+rows[298] = {['tmpl']=10333,['text']='等任务完成后你去找院子里的监神者领赏就好，他在这就是负责记录你猎杀妖兽数量的记录员。',['audio']=0,['host_name']=20102046,['anim']='',['another']=10000,['event_id']=0}
+rows[299] = {['tmpl']=10334,['text']='嗯，干的不错，再努努力，做的更好点，奖励少不了你的',['audio']=0,['host_name']=20102047,['anim']='',['another']=10000,['event_id']=0}
+rows[300] = {['tmpl']=10335,['text']='你可能也看到了，有一些乞丐一直在村子门口乞讨，其实他们都是在村里面做了错事，被我们放逐了的一些人',['audio']=0,['host_name']=20102013,['anim']='',['another']=10336,['event_id']=0}
+rows[301] = {['tmpl']=10336,['text']='他们平时游手好闲，经常干一些偷鸡摸狗的事，村里的制度对这种人都是采取放逐的措施。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10337,['event_id']=0}
+rows[302] = {['tmpl']=10337,['text']='现在外面妖兽横行，虽然村民们都不喜欢他们进来，但是作为他们曾经的村长，我希望你能代表村子给他们发点粮食',['audio']=0,['host_name']=20102013,['anim']='',['another']=10338,['event_id']=0}
+rows[303] = {['tmpl']=10338,['text']='不要说是我让你去的，就让他们觉得是一个陌生人的帮助吧。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[304] = {['tmpl']=10339,['text']='给，这是你的食物',['audio']=0,['host_name']=0,['anim']='',['another']=10340,['event_id']=0}
+rows[305] = {['tmpl']=10340,['text']='还，还有吗？我快饿死了，求求你再给我一点吧！求求你了！',['audio']=0,['host_name']=20102048,['anim']='',['another']=10000,['event_id']=0}
+rows[306] = {['tmpl']=10341,['text']='来，这是你的吃的，快来吃吧',['audio']=0,['host_name']=0,['anim']='',['another']=10342,['event_id']=0}
+rows[307] = {['tmpl']=10342,['text']='喂喂喂！这么点东西？打发要饭的那？想我以前在村里也是吃香的喝辣的，要不是拿刘猎户家点东西被他抓住，我至于这样吗？',['audio']=0,['host_name']=20102049,['anim']='',['another']=10000,['event_id']=0}
+rows[308] = {['tmpl']=10343,['text']='来，给你',['audio']=0,['host_name']=0,['anim']='',['another']=10344,['event_id']=0}
+rows[309] = {['tmpl']=10344,['text']='好心人，谢谢你啊，你如果再不来恐怕我们都得饿死了！',['audio']=0,['host_name']=20102050,['anim']='',['another']=10345,['event_id']=0}
+rows[310] = {['tmpl']=10345,['text']='年轻人既然你这么好心我就告诉你一个我刚刚知道的秘密。',['audio']=0,['host_name']=20102050,['anim']='',['another']=10346,['event_id']=0}
+rows[311] = {['tmpl']=10346,['text']='我偷听到监神者说他们把村民赶出刘家村是为了拿到什么东西，这东西对他们很重要。这与这是什么东西，我倒是不知道。',['audio']=0,['host_name']=20102050,['anim']='',['another']=10347,['event_id']=0}
+rows[312] = {['tmpl']=10347,['text']='我一个老乞丐也就知道这么多了，嗯，希望对你有用。',['audio']=0,['host_name']=20102050,['anim']='',['another']=10000,['event_id']=0}
+rows[313] = {['tmpl']=10348,['text']='村长，一名乞丐告诉我监神者去刘家村的目的其实是在找一样东西',['audio']=0,['host_name']=0,['anim']='',['another']=10349,['event_id']=0}
+rows[314] = {['tmpl']=10349,['text']='什么东西？',['audio']=0,['host_name']=20102013,['anim']='',['another']=10350,['event_id']=0}
+rows[315] = {['tmpl']=10350,['text']='他也没说清楚，只是隐约的听到一些消息',['audio']=0,['host_name']=0,['anim']='',['another']=10351,['event_id']=0}
+rows[316] = {['tmpl']=10351,['text']='要是能确切的打听到一些消息就好了。这样吧，我手里有一个祖上传下来的法器，能让人仪容成任何人。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10352,['event_id']=0}
+rows[317] = {['tmpl']=10352,['text']='我怕居心不良的人用它干坏事，所以从来都没跟任何人提过。但是我觉得你为人正义，把他交给你应该没什么问题。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10353,['event_id']=0}
+rows[318] = {['tmpl']=10353,['text']='你只要变成监神者，去跟他们说说话，估计就能打听出他们来刘家村的实际目的了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10354,['event_id']=0}
+rows[319] = {['tmpl']=10354,['text']='切记，法器法能有限，只能勉强维持一小段时间，你要尽快打听出监神者的目的。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10000,['event_id']=0}
+rows[320] = {['tmpl']=10355,['text']='年轻人，很感谢你的帮助，现在狼患没有那么猖獗了。',['audio']=0,['host_name']=20102013,['anim']='',['another']=10335,['event_id']=0}
+rows[321] = {['tmpl']=10356,['text']='你什么时候出去的？我怎么没看见你？',['audio']=0,['host_name']=20102053,['anim']='',['another']=10357,['event_id']=0}
+rows[322] = {['tmpl']=10357,['text']='哦…… 我是……',['audio']=0,['host_name']=0,['anim']='',['another']=10358,['event_id']=0}
+rows[323] = {['tmpl']=10358,['text']='吞吞吐吐的干什么？又去偷偷的收集功德去了吧？老老实实的在村里找东西得了，别到时候什么也没找到，看到时候上面怎么罚你!',['audio']=0,['host_name']=20102054,['anim']='',['another']=10359,['event_id']=0}
+rows[324] = {['tmpl']=10359,['text']='东…东西找到了吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10360,['event_id']=0}
+rows[325] = {['tmpl']=10360,['text']='当然没有啊，找到了我们还用在这跟你废话吗？麻烦你们在里面搜查的人用点心，早点找到我们就能用那东西去收个功德了！',['audio']=0,['host_name']=20102053,['anim']='',['another']=10361,['event_id']=0}
+rows[326] = {['tmpl']=10361,['text']='别到时候东西没找到，难民营里的人都死光了，看到时候拿什么当诱饵吸引妖兽。',['audio']=0,['host_name']=20102054,['anim']='',['another']=10362,['event_id']=0}
+rows[327] = {['tmpl']=10362,['text']='吸引妖兽？',['audio']=0,['host_name']=0,['anim']='',['another']=10363,['event_id']=0}
+rows[328] = {['tmpl']=10363,['text']='你怎么什么都不知道啊？你是新来的吗？行了行了，不跟你废话了，我们俩在这站累了，你帮我们把守一会儿，我们去休息一下。',['audio']=0,['host_name']=20102053,['anim']='',['another']=10364,['event_id']=0}
+rows[329] = {['tmpl']=10364,['text']='我跟你讲，别再偷偷跑去收功德了！有人溜进去的话你我都吃不了兜着走！',['audio']=0,['host_name']=20102054,['anim']='',['another']=10000,['event_id']=0}
+rows[330] = {['tmpl']=10365,['text']='是你兄弟刘叶让我来救你们出来的',['audio']=0,['host_name']=0,['anim']='',['another']=10366,['event_id']=0}
+rows[331] = {['tmpl']=10366,['text']='他怎么样了？监神者也把他抓起来了吗？',['audio']=0,['host_name']=20102027,['anim']='',['another']=10367,['event_id']=0}
+rows[332] = {['tmpl']=10367,['text']='只是被监神者打了一顿，他没事',['audio']=0,['host_name']=0,['anim']='',['another']=10368,['event_id']=0}
+rows[333] = {['tmpl']=10368,['text']='该死的监神者！好吧，恩人，我知道刘家村有一个后门，那的人比较少，你如果逃出去的时候可以走那里',['audio']=0,['host_name']=20102027,['anim']='',['another']=10369,['event_id']=0}
+rows[334] = {['tmpl']=10369,['text']='我们既然已经逃出来了，就不能回到刘家村了，那样会牵连村民们，我们三兄弟已经决定暂时离开大唐边境了',['audio']=0,['host_name']=20102027,['anim']='',['another']=10370,['event_id']=0}
+rows[335] = {['tmpl']=10370,['text']='感谢你，大恩人，希望你见到我的兄弟时候帮我告诉他我们的苦衷，日后如有缘再见，定会重谢！',['audio']=0,['host_name']=20102027,['anim']='',['another']=10000,['event_id']=0}
+rows[336] = {['tmpl']=10371,['text']='刘家村其实都是不同姓氏的犯人‘流’放过来，统一改名姓‘刘’后形成的村子，定期都要实名上报一次。',['audio']=0,['host_name']=20102055,['anim']='',['another']=10372,['event_id']=0}
+rows[337] = {['tmpl']=10372,['text']='还有几个未记录，我最近不舒服，不方便走动，希望你能帮我此忙。这是刘家村实名薄，记载了所有你要去拜访的人。',['audio']=0,['host_name']=20102055,['anim']='',['another']=10373,['event_id']=0}
+rows[338] = {['tmpl']=10373,['text']='哦，实名薄第一个找的人是刘韵诗。',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[339] = {['tmpl']=10374,['text']='又要记一次呀，我原名杜秋娘，原江宁头牌，四品以上官员不知多少都拜倒在我的石榴裙之下。',['audio']=0,['host_name']=20102056,['anim']='',['another']=10375,['event_id']=0}
+rows[340] = {['tmpl']=10375,['text']='御史权万纪想独自霸占我，我不肯，他说他得不到的别人也别想得到，就把我定为有罪之人发配到这里，我冤枉啊！！',['audio']=0,['host_name']=20102056,['anim']='',['another']=10376,['event_id']=0}
+rows[341] = {['tmpl']=10376,['text']='第一个记录完毕，第二个找的是刘冲。',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[342] = {['tmpl']=10377,['text']='我以前就姓刘，这是我本名，曾是禁军教头，很莫名其妙的得罪了御史权万纪被流放此地，甚是冤枉！',['audio']=0,['host_name']=20102057,['anim']='',['another']=10378,['event_id']=0}
+rows[343] = {['tmpl']=10378,['text']='哦！对了，有个离奇的事，在我被流放之前曾有蒙面之人想雇我去杀人，目标一个女人，我当场就拒绝了！',['audio']=0,['host_name']=20102057,['anim']='',['another']=10379,['event_id']=0}
+rows[344] = {['tmpl']=10379,['text']='第二个记录完毕，第三个找的是刘叶。',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[345] = {['tmpl']=10380,['text']='我叫石千，以前干的都是飞檐走壁的活，有一次摸到了一个御史的家中，无意中听到那个御史在跟监神者谈论什么妖兽之乱的事。',['audio']=0,['host_name']=20102058,['anim']='',['another']=10381,['event_id']=0}
+rows[346] = {['tmpl']=10381,['text']='说起来挺奇怪，听到关键时候就觉得有人推我，一下子我就掉落到院子中，当场就被他们抓个正着，真是见了鬼了！',['audio']=0,['host_name']=20102058,['anim']='',['another']=10382,['event_id']=0}
+rows[347] = {['tmpl']=10382,['text']='第三个记录完毕，第四个找的是刘若莹',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[348] = {['tmpl']=10383,['text']='我乃将军府大小姐，我父亲是朝廷股肱之臣！我们全家都是无辜的！',['audio']=0,['host_name']=20102059,['anim']='',['another']=10384,['event_id']=0}
+rows[349] = {['tmpl']=10384,['text']='之前我的夫君居然喜欢那个江宁的妓女，本小姐看不惯想找人杀了她，却在准备下手前父亲被陷害牵连全家，哎，算那个狐狸精走运！',['audio']=0,['host_name']=20102059,['anim']='',['another']=10385,['event_id']=0}
+rows[350] = {['tmpl']=10385,['text']='第四个记录完毕，第五个找的是刘飞',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[351] = {['tmpl']=10386,['text']='虽然我知道实名记录是保密的，但还是希望你能跟我保证我说的这些东西不会外漏',['audio']=0,['host_name']=20102014,['anim']='',['another']=10387,['event_id']=0}
+rows[352] = {['tmpl']=10387,['text']='我从小是个孤儿，无名无姓，江湖上叫我阿飞，平时干的就是拿人钱财替人消灾的事情。',['audio']=0,['host_name']=20102014,['anim']='',['another']=10388,['event_id']=0}
+rows[353] = {['tmpl']=10388,['text']='有一次有一桩生意让我去解决一个风尘女子，我刚准备动手的时候却遇到了大批的官兵，把我跟那个女子都抓了起来，真是邪了门了！',['audio']=0,['host_name']=20102014,['anim']='',['another']=10389,['event_id']=0}
+rows[354] = {['tmpl']=10389,['text']='后来我发现抓我的人是御史权万纪的人,他怎么跟这个青楼女子有关系？',['audio']=0,['host_name']=20102014,['anim']='',['another']=10390,['event_id']=0}
+rows[355] = {['tmpl']=10390,['text']='第五个记录完毕，可以把实名薄送回去了。',['audio']=0,['host_name']=0,['anim']='',['another']=10391,['event_id']=0}
+rows[356] = {['tmpl']=10391,['text']='谢谢帮我，这是一点酬劳，不知你从中了解到了什么？嘿嘿。',['audio']=0,['host_name']=20102055,['anim']='',['another']=10000,['event_id']=0}
+rows[357] = {['tmpl']=10390,['text']='从现在的情况来看，树林中的情况日渐恶化，群妖盘踞在各自的区域之中，村民们根本不敢出行。',['audio']=0,['host_name']=20102012,['anim']='',['another']=10391,['event_id']=0}
+rows[358] = {['tmpl']=10391,['text']='请你带上我的猎户笔记，上面有行动指引，帮我调查一下现在树林各个位置的实际情况，我将会有重谢。',['audio']=0,['host_name']=20102012,['anim']='',['another']=10000,['event_id']=0}
+rows[359] = {['tmpl']=10392,['text']='看来水源已经被彻底污染，树木已经开始枯萎，山石崩裂，这是大灾的象征啊！',['audio']=0,['host_name']=20102012,['anim']='',['another']=10000,['event_id']=0}
+rows[360] = {['tmpl']=10393,['text']='最近无名湖那里多出许多妖怪，导致以前向大唐传传递预警信息的烽火好久都没人敢去维护了',['audio']=0,['host_name']=20102012,['anim']='',['another']=10394,['event_id']=0}
+rows[361] = {['tmpl']=10394,['text']='不知道你能不能帮我上山上检查一下烽火的情况？',['audio']=0,['host_name']=20102018,['anim']='',['another']=10000,['event_id']=0}
+rows[362] = {['tmpl']=10395,['text']='看来是我多虑了，烽火台没有遭到损坏。',['audio']=0,['host_name']=20102018,['anim']='',['another']=10396,['event_id']=0}
+rows[363] = {['tmpl']=10396,['text']='那个烽火还有用吗？',['audio']=0,['host_name']=0,['anim']='',['another']=10397,['event_id']=0}
+rows[364] = {['tmpl']=10397,['text']='那些烽火台在很久以前村民用帮大唐预警妖兽的入侵的，后来妖兽平息，长久的和平状态但导致了这个装置很久都没人使用了。',['audio']=0,['host_name']=20102018,['anim']='',['another']=10398,['event_id']=0}
+rows[365] = {['tmpl']=10398,['text']='如今妖兽再起，我不知道帝国那边的人还能不能读懂烽火的意思，但是点上总比什么都不做要好吧？',['audio']=0,['host_name']=20102018,['anim']='',['another']=10000,['event_id']=0}
+rows[366] = {['tmpl']=10399,['text']='我现在活着只有痛苦，好羡慕你们这些有战斗能力的人，求你带给我点想活下去的希望吧！',['audio']=0,['host_name']=20102051,['anim']='',['another']=10400,['event_id']=0}
+rows[367] = {['tmpl']=10400,['text']='我本生活在湖对岸的小屋中，湖中突然出现的水族号称要响应什么妖兽之乱，见人就杀，我们被迫逃离到这里。',['audio']=0,['host_name']=20102051,['anim']='',['another']=10401,['event_id']=0}
+rows[368] = {['tmpl']=10401,['text']='我唯一挂念的也只有和我相依为命的老伴，现在都不知在哪，帮我去打探一下她的下落吧。',['audio']=0,['host_name']=20102051,['anim']='',['another']=10402,['event_id']=0}
+rows[369] = {['tmpl']=10402,['text']='可以去湖心岛的货箱、小屋的磨盘和湖边废弃的荒井处看看。',['audio']=0,['host_name']=20102051,['anim']='',['another']=10000,['event_id']=0}
+rows[370] = {['tmpl']=10403,['text']='（货箱没有被动过的迹象）',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[371] = {['tmpl']=10404,['text']='（磨盘的轴已经断裂，不会有再使用的痕迹）',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[372] = {['tmpl']=10405,['text']='井里漂浮着一只腐烂的手臂）',['audio']=0,['host_name']=0,['anim']='',['another']=10000,['event_id']=0}
+rows[373] = {['tmpl']=10406,['text']='不！不！这些不能证明什么！谁知道那个手臂是谁的！老伴还在！老伴肯定在其他地方等着我呢！我还要继续去寻她！',['audio']=0,['host_name']=20102051,['anim']='',['another']=10000,['event_id']=0}
+
+local datas = {
+	[0] = rows[1],
+	[10000] = rows[2],
+	[10001] = rows[3],
+	[10002] = rows[4],
+	[10003] = rows[5],
+	[10004] = rows[6],
+	[10005] = rows[7],
+	[10006] = rows[8],
+	[10007] = rows[9],
+	[10008] = rows[10],
+	[10009] = rows[11],
+	[10010] = rows[12],
+	[10011] = rows[13],
+	[10012] = rows[14],
+	[10013] = rows[15],
+	[10014] = rows[16],
+	[10015] = rows[17],
+	[10016] = rows[18],
+	[10017] = rows[19],
+	[10018] = rows[20],
+	[10019] = rows[21],
+	[10020] = rows[22],
+	[10021] = rows[23],
+	[10022] = rows[24],
+	[10023] = rows[25],
+	[10024] = rows[26],
+	[10025] = rows[27],
+	[10026] = rows[28],
+	[10027] = rows[29],
+	[10028] = rows[30],
+	[10029] = rows[31],
+	[10030] = rows[32],
+	[10031] = rows[33],
+	[10032] = rows[34],
+	[10033] = rows[35],
+	[10034] = rows[36],
+	[10035] = rows[37],
+	[10036] = rows[38],
+	[10037] = rows[39],
+	[10038] = rows[40],
+	[10039] = rows[41],
+	[10040] = rows[42],
+	[10041] = rows[43],
+	[10042] = rows[44],
+	[10043] = rows[45],
+	[10044] = rows[46],
+	[10045] = rows[47],
+	[10046] = rows[48],
+	[10047] = rows[49],
+	[10048] = rows[50],
+	[10049] = rows[51],
+	[10050] = rows[52],
+	[10051] = rows[53],
+	[10052] = rows[54],
+	[10053] = rows[55],
+	[10054] = rows[56],
+	[10055] = rows[57],
+	[10056] = rows[58],
+	[10057] = rows[59],
+	[10058] = rows[60],
+	[10059] = rows[61],
+	[10060] = rows[62],
+	[10061] = rows[63],
+	[10062] = rows[64],
+	[10063] = rows[65],
+	[10064] = rows[66],
+	[10065] = rows[67],
+	[10066] = rows[68],
+	[10067] = rows[69],
+	[10068] = rows[70],
+	[10069] = rows[71],
+	[10070] = rows[72],
+	[10071] = rows[73],
+	[10072] = rows[74],
+	[10073] = rows[75],
+	[10074] = rows[76],
+	[10075] = rows[77],
+	[10076] = rows[78],
+	[10077] = rows[79],
+	[10078] = rows[80],
+	[10079] = rows[81],
+	[10080] = rows[82],
+	[10081] = rows[83],
+	[10082] = rows[84],
+	[10083] = rows[85],
+	[10084] = rows[86],
+	[10085] = rows[87],
+	[10086] = rows[88],
+	[10087] = rows[89],
+	[10088] = rows[90],
+	[10089] = rows[91],
+	[10090] = rows[92],
+	[10091] = rows[93],
+	[10092] = rows[94],
+	[10093] = rows[95],
+	[10094] = rows[96],
+	[10095] = rows[97],
+	[10096] = rows[98],
+	[10097] = rows[99],
+	[10098] = rows[100],
+	[10099] = rows[101],
+	[10100] = rows[102],
+	[10101] = rows[103],
+	[10102] = rows[104],
+	[10103] = rows[105],
+	[10105] = rows[106],
+	[10106] = rows[107],
+	[10107] = rows[108],
+	[10108] = rows[109],
+	[10109] = rows[110],
+	[10110] = rows[111],
+	[10111] = rows[112],
+	[10112] = rows[113],
+	[10113] = rows[114],
+	[10114] = rows[115],
+	[10115] = rows[116],
+	[10116] = rows[117],
+	[10117] = rows[118],
+	[10118] = rows[119],
+	[10119] = rows[120],
+	[10120] = rows[121],
+	[10121] = rows[122],
+	[10122] = rows[123],
+	[10123] = rows[124],
+	[10124] = rows[125],
+	[10125] = rows[126],
+	[10126] = rows[127],
+	[10127] = rows[128],
+	[10128] = rows[129],
+	[10129] = rows[130],
+	[10130] = rows[131],
+	[10131] = rows[132],
+	[10132] = rows[133],
+	[10133] = rows[134],
+	[10134] = rows[135],
+	[10135] = rows[136],
+	[10136] = rows[137],
+	[10137] = rows[138],
+	[10138] = rows[139],
+	[10139] = rows[140],
+	[10140] = rows[141],
+	[10141] = rows[142],
+	[10142] = rows[143],
+	[10228] = rows[144],
+	[10143] = rows[145],
+	[10144] = rows[146],
+	[10145] = rows[147],
+	[10146] = rows[148],
+	[10147] = rows[149],
+	[10148] = rows[150],
+	[10149] = rows[151],
+	[10150] = rows[152],
+	[10151] = rows[153],
+	[10152] = rows[154],
+	[10153] = rows[155],
+	[10154] = rows[156],
+	[10155] = rows[157],
+	[10156] = rows[158],
+	[10157] = rows[159],
+	[10158] = rows[160],
+	[10159] = rows[161],
+	[10160] = rows[162],
+	[10161] = rows[163],
+	[10162] = rows[164],
+	[10163] = rows[165],
+	[10164] = rows[166],
+	[10165] = rows[167],
+	[10166] = rows[168],
+	[10167] = rows[169],
+	[10168] = rows[170],
+	[10169] = rows[171],
+	[10170] = rows[172],
+	[10171] = rows[173],
+	[10172] = rows[174],
+	[10173] = rows[175],
+	[10174] = rows[176],
+	[10175] = rows[177],
+	[10176] = rows[178],
+	[10177] = rows[179],
+	[10178] = rows[180],
+	[10179] = rows[181],
+	[10180] = rows[182],
+	[10181] = rows[183],
+	[10182] = rows[184],
+	[10183] = rows[185],
+	[10184] = rows[186],
+	[10185] = rows[187],
+	[10186] = rows[188],
+	[10187] = rows[189],
+	[10188] = rows[190],
+	[10189] = rows[191],
+	[10190] = rows[192],
+	[10191] = rows[193],
+	[10192] = rows[194],
+	[10193] = rows[195],
+	[10194] = rows[196],
+	[10195] = rows[197],
+	[10196] = rows[198],
+	[10197] = rows[199],
+	[10198] = rows[200],
+	[10199] = rows[201],
+	[10200] = rows[202],
+	[10201] = rows[203],
+	[10202] = rows[204],
+	[10203] = rows[205],
+	[10204] = rows[206],
+	[10205] = rows[207],
+	[10206] = rows[208],
+	[10207] = rows[209],
+	[10208] = rows[210],
+	[10209] = rows[211],
+	[10210] = rows[212],
+	[10211] = rows[213],
+	[10212] = rows[214],
+	[10213] = rows[215],
+	[10214] = rows[216],
+	[10215] = rows[217],
+	[10216] = rows[218],
+	[10217] = rows[219],
+	[10218] = rows[220],
+	[10219] = rows[221],
+	[10220] = rows[222],
+	[10221] = rows[223],
+	[10222] = rows[224],
+	[10223] = rows[225],
+	[10224] = rows[226],
+	[10225] = rows[227],
+	[10226] = rows[228],
+	[10227] = rows[229],
+	[10229] = rows[230],
+	[10230] = rows[231],
+	[10231] = rows[232],
+	[10232] = rows[233],
+	[10233] = rows[234],
+	[10234] = rows[235],
+	[10235] = rows[236],
+	[10236] = rows[237],
+	[10237] = rows[238],
+	[10238] = rows[239],
+	[10239] = rows[240],
+	[10240] = rows[241],
+	[10241] = rows[242],
+	[10242] = rows[243],
+	[10243] = rows[244],
+	[10244] = rows[245],
+	[10245] = rows[246],
+	[10246] = rows[247],
+	[10247] = rows[248],
+	[10248] = rows[249],
+	[10249] = rows[250],
+	[10250] = rows[251],
+	[10251] = rows[252],
+	[10252] = rows[253],
+	[10253] = rows[254],
+	[10254] = rows[255],
+	[10255] = rows[256],
+	[10256] = rows[257],
+	[10257] = rows[258],
+	[10258] = rows[259],
+	[10259] = rows[260],
+	[10260] = rows[261],
+	[10261] = rows[262],
+	[10262] = rows[263],
+	[10263] = rows[264],
+	[10264] = rows[265],
+	[10300] = rows[266],
+	[10302] = rows[267],
+	[10303] = rows[268],
+	[10304] = rows[269],
+	[10305] = rows[270],
+	[10306] = rows[271],
+	[10307] = rows[272],
+	[10308] = rows[273],
+	[10309] = rows[274],
+	[10310] = rows[275],
+	[10311] = rows[276],
+	[10312] = rows[277],
+	[10313] = rows[278],
+	[10314] = rows[279],
+	[10315] = rows[280],
+	[10316] = rows[281],
+	[10317] = rows[282],
+	[10318] = rows[283],
+	[10319] = rows[284],
+	[10320] = rows[285],
+	[10321] = rows[286],
+	[10322] = rows[287],
+	[10323] = rows[288],
+	[10324] = rows[289],
+	[10325] = rows[290],
+	[10326] = rows[291],
+	[10327] = rows[292],
+	[10328] = rows[293],
+	[10329] = rows[294],
+	[10330] = rows[295],
+	[10331] = rows[296],
+	[10332] = rows[297],
+	[10333] = rows[298],
+	[10334] = rows[299],
+	[10335] = rows[300],
+	[10336] = rows[301],
+	[10337] = rows[302],
+	[10338] = rows[303],
+	[10339] = rows[304],
+	[10340] = rows[305],
+	[10341] = rows[306],
+	[10342] = rows[307],
+	[10343] = rows[308],
+	[10344] = rows[309],
+	[10345] = rows[310],
+	[10346] = rows[311],
+	[10347] = rows[312],
+	[10348] = rows[313],
+	[10349] = rows[314],
+	[10350] = rows[315],
+	[10351] = rows[316],
+	[10352] = rows[317],
+	[10353] = rows[318],
+	[10354] = rows[319],
+	[10355] = rows[320],
+	[10356] = rows[321],
+	[10357] = rows[322],
+	[10358] = rows[323],
+	[10359] = rows[324],
+	[10360] = rows[325],
+	[10361] = rows[326],
+	[10362] = rows[327],
+	[10363] = rows[328],
+	[10364] = rows[329],
+	[10365] = rows[330],
+	[10366] = rows[331],
+	[10367] = rows[332],
+	[10368] = rows[333],
+	[10369] = rows[334],
+	[10370] = rows[335],
+	[10371] = rows[336],
+	[10372] = rows[337],
+	[10373] = rows[338],
+	[10374] = rows[339],
+	[10375] = rows[340],
+	[10376] = rows[341],
+	[10377] = rows[342],
+	[10378] = rows[343],
+	[10379] = rows[344],
+	[10380] = rows[345],
+	[10381] = rows[346],
+	[10382] = rows[347],
+	[10383] = rows[348],
+	[10384] = rows[349],
+	[10385] = rows[350],
+	[10386] = rows[351],
+	[10387] = rows[352],
+	[10388] = rows[353],
+	[10389] = rows[354],
+	[10390] = rows[357],
+	[10391] = rows[358],
+	[10392] = rows[359],
+	[10393] = rows[360],
+	[10394] = rows[361],
+	[10395] = rows[362],
+	[10396] = rows[363],
+	[10397] = rows[364],
+	[10398] = rows[365],
+	[10399] = rows[366],
+	[10400] = rows[367],
+	[10401] = rows[368],
+	[10402] = rows[369],
+	[10403] = rows[370],
+	[10404] = rows[371],
+	[10405] = rows[372],
+	[10406] = rows[373],
+}
+return datas

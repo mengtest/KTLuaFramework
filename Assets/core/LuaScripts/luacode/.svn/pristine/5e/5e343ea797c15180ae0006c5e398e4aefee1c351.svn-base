@@ -1,0 +1,43 @@
+local M=class("Giver")
+
+Attribute.decl(M,"tmpl",nil)
+Attribute.decl(M,"pos",function() return Vector3(0,0,0) end)
+Attribute.decl(M,"dir",function() return 0 end)
+Event.decl(M,"dialog_bgn")
+
+function M:initialize(id)
+    Attribute.init(self)
+    self.m_id=id
+end
+
+function M:on_init(type)
+end
+
+function M:on_destroy()
+end
+
+function M:set_property(name,value)
+    self:set_attr(name,value)
+    self:emit_event("on_event_"..name.."_set",value)
+end
+
+function M:get_id()
+    return self.m_id
+end
+
+function M:update(delta)
+end
+
+function M:dialog_bgn(tkt)
+    self:emit_event("dialog_bgn", tkt)
+end
+
+function M:cell_call(method_name, ...)
+	app:getKBESDK():entity_cell_call(self.m_id, method_name, ...)
+end
+
+function M:base_call(method_name, ...)
+	app:getKBESDK():entity_base_call(self.m_id, method_name, ...)
+end
+
+return M

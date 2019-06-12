@@ -1,0 +1,958 @@
+local View = require("system.view")
+local equipment_tips_view = class("equipment_tips_view", View)
+
+function equipment_tips_view:doInit()
+    local world = self:getFrame("world")
+    self.m_unit = world:get_main_player()
+    self.m_ui_manager = app:get_ui_manager()
+    --当装备位戒指或者饰品时用于存储装备位
+    self.m_put_on_equipment_index = 0
+    --装备表
+    self.m_equipment_item = dbc.item
+    --装备专精属性列表，用于存放专精属性控件下面的子物体
+    self.m_major_child_list = {}
+    --装备基础属性列表，用于存放基础属性控件下面的子物体
+    self.m_normal_attr_child_list = {}
+    --装备进阶属性列表，用于存放进阶属性控件下面的子物体
+    self.m_advance_attr_child_list = {}
+    --无效的专精属性列表，用于存放无效专精属性控件下的子物体
+    self.m_useless_major_child_list = {}
+    --装备第三属性列表，用于存放第三属性控件下面的子物体
+    self.m_third_attr_child_list = {}
+    --装备宝石列表，用于存放宝石控件下面的子物体
+    self.m_gem_child_list = {}
+
+    --计算属性值用到的参数列表
+    self.m_calculate_param_list = {}
+    --穿戴限制，标记是否符合穿戴条件
+    self.m_put_on_limit = true
+
+    local frame = self:getFrame()
+
+    ----初始化参数列表
+    self:do_calculate_param_list()
+
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+
+    self.m_tips_parent_view = self.m_mgr:getView("equipment_tips_parent")
+    self:load_prefab("ui/EquipmentTipsParent.prefab", function(loaded_go)
+        local template_go = loaded_go.transform:Find("equipment_tips_parent_bg/equipment_tips_parent/equipment_tips_bg").gameObject
+        local tipsGo = Object.Instantiate(template_go)
+        self:getGO():AddComponent(RectTransform)
+        tipsGo.transform:SetParent(self:getGO().transform)
+        tipsGo.transform.localPosition = Vector3.zero
+        tipsGo.transform.localScale = Vector3.one
+        tipsGo:SetActive(true)
+
+        ------装备Tips头信息区域
+        self.m_equipment_top = tipsGo.transform:Find("equipment_tips_top")
+        self.m_equipment_icon = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+        --装备品质底纹
+        self.m_equipment_quality_icon = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_quality").gameObject:GetComponent(UnityEngine.UI.Image)
+        self.m_equipment_top_level = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_level_bg/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        ----不同品质时显示的装备名称  普通、优秀、精良、史诗、传说
+        self.m_equipment_name_normal = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name_normal").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_name_great = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name_great").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_name_excellent = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name_excellent").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_name_epic = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name_epic").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_name_legendary = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_name_legendary").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        --self.m_equipment_state = self.m_equipment_name.transform:Find("equipment_state").gameObject--:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_type = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_type").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_source = self.m_equipment_type.transform:Find("equipment_qiju").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_demand_level_normal = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_demand_level_normal").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_demand_level_useless = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_demand_level_useless").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_lock = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_lock_bg")
+        --不满足穿戴需求时的红色遮罩
+        self.m_equipment_inconformity = self.m_equipment_top:Find("equipment_tips_top_area/equipment_icon_bg/equipment_inconformity")
+        ----不同品质时显示的品质名称  普通、优秀、精良、史诗、传说
+        self.m_equipment_quality_normal = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality_normal").gameObject
+        self.m_equipment_quality_great = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality_great").gameObject
+        self.m_equipment_quality_excellent = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality_excellent").gameObject
+        self.m_equipment_quality_epic = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality_epic").gameObject
+        self.m_equipment_quality_legendary = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_quality_legendary").gameObject
+        --装备等级提升的随机词缀类型  战火  泰坦
+        self.m_equipment_way_farware = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_way_warfare")
+        self.m_equipment_way_titan = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_way_titan")
+        --以下暂未显示，待做
+        self.m_equipment_occu = self.m_equipment_top:Find("equipment_tips_top_area/equipment_normaal_info/equipment_occu").gameObject:GetComponent(UnityEngine.UI.Text)
+        ------装备Tips信息滑动区域
+        self.m_equip_info_scroll_view = tipsGo.transform:Find("equipment_tips_info")
+        self.m_scrollbar = self.m_equip_info_scroll_view.transform:Find("Scrollbar").gameObject:GetComponent(UnityEngine.UI.Scrollbar)
+        --显示基础属性值的模板
+        self.equipment_normal_attr_item = tipsGo.transform:Find("equipment_normal_attr_item").gameObject
+        --显示进阶属性值的模板
+        self.equipment_advance_attr_item = tipsGo.transform:Find("equipment_advance_attr_item").gameObject
+        --显示无效的专精主属性的模板
+        self.m_equipment_useless_major_item = tipsGo.transform:Find("equipment_useless_major_item").gameObject
+        ------装备属性部分
+        self.m_equipment_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_attr")
+        ----装备专精属性列表，存放所有的专精属性
+        self.m_equipment_major_attr_list = self.m_equipment_attr:Find("equipment_major_attr_list")
+        ----装备基础属性列表，存放所有的基础属性
+        self.m_equipment_normal_attr_list = self.m_equipment_attr:Find("equipment_normal_attr_list")
+        ----装备进阶属性列表，存放所有的进阶属性
+        self.m_equipment_advance_attr_list = self.m_equipment_attr:Find("equipment_advance_attr_list")
+        ----无效的专精属性列表，存放和角色当前专精不匹配的专精属性
+        self.m_equipment_useless_major_list = self.m_equipment_attr:Find("equipment_useless_major_list")
+        ----武器信息
+        self.m_weapon_info_area = self.m_equipment_attr:Find("weapon_info_area")
+        --伤害最小值
+        self.m_weapon_attack_min = self.m_weapon_info_area:Find("weapon_info/equipment_attack_info/attack_min").gameObject:GetComponent(UnityEngine.UI.Text)
+        --伤害最大值
+        self.m_weapon_attack_max = self.m_weapon_info_area:Find("weapon_info/equipment_attack_info/attack_max").gameObject:GetComponent(UnityEngine.UI.Text)
+        --攻速
+        self.m_weapon_attack_speed = self.m_weapon_info_area:Find("weapon_info/attack_speed").gameObject:GetComponent(UnityEngine.UI.Text)
+        --每秒伤害
+        self.m_attack_per_second = self.m_weapon_info_area:Find("attack_per_second/attack_per_second_value").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        ----宝石部分
+        self.m_equipment_gem = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_gem")
+        self.m_equipment_gem_list = self.m_equipment_gem:Find("gem_list")
+        --显示宝石的模板
+        self.m_gem_item = tipsGo.transform:Find("equipment_gem_item").gameObject
+
+        --装备显示等级
+        self.m_equipment_level_info = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/equipment_level_area/equipment_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        --装备随机等级
+        self.m_equipment_level_random = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/equipment_level_area/equipment_level_random").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.m_equipment_level_up = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/level_up").gameObject
+        self.m_equipment_level_down = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/level_down").gameObject
+        ----第三属性
+        self.m_equipment_third_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_third_attr")
+        self.m_equipment_third_attr_list = self.m_equipment_third_attr:Find("equipment_third_attr_list")
+
+        self.m_equipment_des = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_des/equipment_des_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        ------装备Tips按钮区域
+        self.m_btn_area = tipsGo.transform:Find("button_area")
+        self.m_sell_btn = self.m_btn_area:Find("sell_btn").gameObject
+        self.m_inset_btn = self.m_btn_area:Find("inset_btn").gameObject
+        self.m_put_on_btn = self.m_btn_area:Find("put_on_btn").gameObject
+        self.m_get_off_btn = self.m_btn_area:Find("get_off_btn").gameObject
+        ------切换显示装备按钮区域的显示位置
+        self.m_equipment_choice = self.m_equipment_top:Find("equipment_tips_top_area/equipment_chioce")
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            view_go.transform.parent = self.m_equipment_choice
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+
+        ------为按钮添加点击事件
+        self.m_sell_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --出售按钮点击事件
+        end)
+
+        self.m_inset_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --镶嵌按钮点击事件
+        end)
+
+        self.m_put_on_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            if self.m_put_on_limit then
+                ----满足装备条件，按钮点击事件,请求服务器
+                local equip_type = self.m_equipment_msg.derived_params[2]
+                if equip_type == SharedEnum.WearableTarget.FINGER then
+                    self:put_on_equipment_index(1)
+                    self.m_inventory_mgr:put_on_equipment_request_server(self.m_put_on_equipment_index, self.m_equip_unique, self.m_equip_id)
+
+                elseif equip_type == SharedEnum.WearableTarget.ACCESSORY then
+                    self:put_on_equipment_index(2)
+                    self.m_inventory_mgr:put_on_equipment_request_server(self.m_put_on_equipment_index, self.m_equip_unique, self.m_equip_id)
+                else
+                    self.m_inventory_mgr:put_on_equipment_request_server(equip_type, self.m_equip_unique, self.m_equip_id)
+                end
+            else
+                ----不满足穿戴需求时飘字提示
+                local float_hint_frame = self:getFrame("float_hint")
+                float_hint_frame:add_float("角色不满足等级需求")
+            end
+            self.m_tips_parent_view:close_tips()
+        end)
+
+        self.m_get_off_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+            --卸下按钮点击事件,请求服务器
+            local equip_type = self.m_equipment_msg.derived_params[2]
+            if self.m_type then
+                equip_type = self.m_type
+            end
+            self.m_inventory_mgr:get_off_equipment_request_server(equip_type)
+            self.m_tips_parent_view:close_tips()
+        end)
+    end)
+
+    self:subscribe(frame:on_event("refresh_view"), function(params, equipment_type)
+        self:refresh(params, equipment_type)
+    end)
+end
+
+------Tips采用激活和隐藏的形式，用来在每次显示Tips时初始化信息
+function equipment_tips_view:refresh(param, equipment_type)
+    if equipment_type then
+        self.m_type = equipment_type
+    end
+
+    --装备的序号id和物品id
+    self.m_equip_unique = param.wearable['unique']
+    self.m_equip_id = param.wearable['tmpl']
+
+    --tips的最大限制高度
+    local max_height = param['max_height']
+    local show_btn_area = param['need_show_button']
+    --装备绑定状态
+    local is_bound = param['bound']
+    --装备的信息
+    self.m_equipment_msg = self.m_equipment_item[self.m_equip_id]
+    --装备的显示等级
+    self.m_show_level = self.m_equipment_msg['level_label']
+    --参与计算使用的等级
+    self.m_calculate_level = param.wearable['level']
+    --装备由词缀生成的随机等级
+    self.m_enhanced_level = param.wearable['enhanced_level']
+
+    ----默认戒指、饰品类装备在装备栏一上
+    if self.m_equipment_msg.derived_params[2] == SharedEnum.WearableTarget.FINGER then
+        self.m_tips_parent_view:set_bag_tips_equipment_index(SharedEnum.WearableTarget.FINGER1)
+    elseif self.m_equipment_msg.derived_params[2] == SharedEnum.WearableTarget.ACCESSORY then
+        self.m_tips_parent_view:set_bag_tips_equipment_index(SharedEnum.WearableTarget.ACCESSORY1)
+    end
+
+    ------判断是否需要显示下方按钮区域
+    if show_btn_area == 1 then
+        self.m_btn_area.gameObject:SetActive(true)
+        self.m_sell_btn.gameObject:SetActive(true)
+        self.m_put_on_btn.gameObject:SetActive(true)
+        self.m_inset_btn.gameObject:SetActive(false)
+        self.m_get_off_btn.gameObject:SetActive(false)
+    elseif show_btn_area == 2 then
+        self.m_btn_area.gameObject:SetActive(true)
+        self.m_sell_btn.gameObject:SetActive(false)
+        self.m_put_on_btn.gameObject:SetActive(false)
+        self.m_inset_btn.gameObject:SetActive(true)
+        self.m_get_off_btn.gameObject:SetActive(true)
+    else
+        self.m_btn_area.gameObject:SetActive(false)
+    end
+
+    ----判断是否绑定
+    if is_bound == 0 then
+        self.m_equipment_lock.gameObject:SetActive(true)
+    else
+        self.m_equipment_lock.gameObject:SetActive(false)
+    end
+
+    ------填充装备的信息
+    --基础属性
+    self:gain_equipment_normal_attr(self.m_equipment_msg['mods'], self.m_equipment_msg['majors'])
+    --进阶属性
+    self:gain_equipment_advance_attr(self.m_equipment_msg['more_mods'])
+    --第三属性
+    local third_attr = param.wearable['additional_mods']
+    self:gain_equipment_third_attr(third_attr)
+    --宝石镶嵌孔
+    self:gain_equipment_gem_list(param.wearable['plugins'])
+    self:change_sprite(self.m_equipment_icon, self.m_equipment_msg['bag_icon'])
+    --获取并更换装备品质的底纹
+    local equip_quality = self.m_inventory_mgr:gain_equipment_quality(self.m_equip_id, self.m_show_level + self.m_enhanced_level)
+    local equipment_quality_icon_path = dbc.equip_quality_client[equip_quality]['backpack_icon']
+    self:change_sprite(self.m_equipment_quality_icon, equipment_quality_icon_path)
+
+    self.m_equipment_top_level.text = tostring(self.m_show_level + self.m_enhanced_level)
+
+    local equip_name_text = self:do_value_by_quality(equip_quality)
+    --显示装备名称
+    equip_name_text.text = self.m_inventory_mgr:gain_equipment_name(self.m_equip_id, self.m_show_level + self.m_enhanced_level)
+    equip_name_text.gameObject:SetActive(true)
+    --显示装备描述
+    self.m_equipment_des.text = self:gain_equipment_describe(self.m_show_level + self.m_enhanced_level)
+    --当不满足装备穿戴需求时打开红色遮罩
+    local equipment_inconformity = self.m_inventory_mgr:gain_equip_or_unequip(self.m_equip_id, self.m_show_level + self.m_enhanced_level)
+    ----判断是否符合装备条件(暂时只有等级)
+    if equipment_inconformity == 0 then
+        self.m_equipment_inconformity.gameObject:SetActive(true)
+        self.m_equipment_demand_level_normal.gameObject:SetActive(false)
+        self.m_equipment_demand_level_useless.gameObject:SetActive(true)
+        self.m_equipment_demand_level_useless.text = tostring(self:gain_equipment_demand_level(self.m_show_level + self.m_enhanced_level))
+        self.m_put_on_limit = false
+    else
+        self.m_equipment_inconformity.gameObject:SetActive(false)
+        self.m_equipment_demand_level_normal.gameObject:SetActive(true)
+        self.m_equipment_demand_level_useless.gameObject:SetActive(false)
+        self.m_equipment_demand_level_normal.text = tostring(self:gain_equipment_demand_level(self.m_show_level + self.m_enhanced_level))
+        self.m_put_on_limit = true
+    end
+
+    if param['is_equip'] then
+        equip_name_text.transform:Find("equipment_state").gameObject:SetActive(true)
+    else
+        equip_name_text.transform:Find("equipment_state").gameObject:SetActive(false)
+    end
+    self.m_equipment_type.text = self:gain_equipment_type(self.m_equipment_msg['derived_params'][2])
+    self.m_equipment_source.text = self:gain_equipment_source(self.m_equipment_msg['derived_params'][1])
+    --self.m_equipment_normal_info_level.text = self.m_show_level + self.m_enhanced_level .. "级"
+    self.m_equipment_level_info.text = tostring(self.m_show_level)
+    ----当随机等级大于0时才显示
+    if self.m_enhanced_level > 0 then
+        self.m_equipment_level_random.gameObject:SetActive(true)
+        --打开连接的加号
+        self.m_equipment_level_info.transform.parent:Find("item").gameObject:SetActive(true)
+        self.m_equipment_level_random.text = tostring(self.m_enhanced_level)
+    else
+        self.m_equipment_level_info.transform.parent:Find("item").gameObject:SetActive(false)
+        self.m_equipment_level_random.gameObject:SetActive(false)
+    end
+    self:gain_enhanced_type(self.m_enhanced_level)
+
+    --判断是否显示绑定状态
+    if param['not_show_lock'] then
+        self.m_equipment_lock.gameObject:SetActive(false)
+    else
+        self.m_equipment_lock.gameObject:SetActive(true)
+    end
+
+    ------对比信息
+    if param['level_high'] then
+        if param['level_high'] == 0 then
+            self.m_equipment_level_up:SetActive(false)
+            self.m_equipment_level_down:SetActive(false)
+        elseif param['level_high'] == 1 then
+            self.m_equipment_level_up:SetActive(true)
+            self.m_equipment_level_down:SetActive(false)
+        else
+            self.m_equipment_level_up:SetActive(false)
+            self.m_equipment_level_down:SetActive(true)
+        end
+    else
+        self.m_equipment_level_up:SetActive(false)
+        self.m_equipment_level_down:SetActive(false)
+    end
+
+    ------设置滑动区域的高度
+    local equip_info_view = self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.RectTransform)
+    local content_rect_transform = self.m_equip_info_scroll_view.transform:GetChild(0):GetChild(0).gameObject:GetComponent(UnityEngine.RectTransform)
+    local equip_top_height = self.m_equipment_top.gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+    local button_area_height = self.m_btn_area.gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+    --当按钮区域没有显示，则不计算高度
+    if not self.m_btn_area.gameObject.activeSelf then
+        button_area_height = 0
+    end
+    UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(content_rect_transform)
+
+    equip_info_view.sizeDelta = Vector2(self:GetContentPreferredSize(content_rect_transform, 0), self:GetContentPreferredSize(content_rect_transform, 1))
+    --当高度超过最大限制高度时，设置其高度为最大限制高度，并可以滑动
+    if equip_info_view.rect.height > max_height - equip_top_height - button_area_height then
+        equip_info_view.sizeDelta = Vector2(equip_info_view.rect.width, max_height - equip_top_height - button_area_height)
+        --self.m_equip_info_scroll_view:GetChild(0).gameObject:GetComponent(UnityEngine.UI.Image).raycastTarget = true
+        self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.UI.ScrollRect).enabled = true
+    end
+end
+
+------获取实时的RectTransform的宽高  axis 0-宽度，1-高度
+function equipment_tips_view:GetContentPreferredSize(rectTransform, axis)
+    return UnityEngine.UI.LayoutUtility.GetPreferredSize(rectTransform, axis)
+end
+
+------当装备为戒指或饰品时，获取需要穿上此装备的装备位  index 1-戒指  2-饰品
+function equipment_tips_view:put_on_equipment_index(index)
+    --获取装备位数据
+    local equipping_dic = self.m_inventory_mgr:gain_equiping_dic()
+    if index == 1 then
+        if equipping_dic["finger1"]["level"] == 0 then
+            self.m_put_on_equipment_index = SharedEnum.WearableTarget.FINGER1
+        elseif equipping_dic["finger2"]["level"] == 0 then
+            self.m_put_on_equipment_index = SharedEnum.WearableTarget.FINGER2
+        end
+    else
+        if equipping_dic["accessory1"]["level"] == 0 then
+            self.m_put_on_equipment_index = SharedEnum.WearableTarget.ACCESSORY1
+        elseif equipping_dic["accessory2"]["level"] == 0 then
+            self.m_put_on_equipment_index = SharedEnum.WearableTarget.ACCESSORY2
+        end
+    end
+end
+
+------根据装备等级随机提升的等级确认词缀类型
+function equipment_tips_view:gain_enhanced_type(enhanced_level)
+    local list = dbc.enhanced[1]['enhanced_type']
+    local enhanced_type = 0
+    for i = #list - 1, 1, -2 do
+        if enhanced_level >= list[i] then
+            enhanced_type = list[i + 1]
+            break
+        end
+    end
+    ---- 1->战火  2->泰坦
+    if enhanced_type == 1 then
+        self.m_equipment_way_farware.gameObject:SetActive(true)
+        self.m_equipment_way_titan.gameObject:SetActive(false)
+    elseif enhanced_type == 2 then
+        self.m_equipment_way_farware.gameObject:SetActive(false)
+        self.m_equipment_way_titan.gameObject:SetActive(true)
+    else
+        self.m_equipment_way_farware.gameObject:SetActive(false)
+        self.m_equipment_way_titan.gameObject:SetActive(false)
+    end
+end
+
+------根据装备等级获取装备描述  参数为装备等级
+function equipment_tips_view:gain_equipment_describe(level)
+    local list = self.m_equipment_msg.describe
+    for i = #list - 1, 1, -2 do
+        if level >= tonumber(list[i]) then
+            return list[i + 1]
+        end
+    end
+    Debug.LogError("表中未索引到此描述装备，检查表结构" .. tostring(level))
+    return '不知道该描述点啥'
+end
+
+------根据装备品质改变名称颜色以及更改品质名称
+function equipment_tips_view:do_value_by_quality(quality)
+    if quality == SharedEnum.WearableQuality.COMMON then
+        self.m_equipment_quality_normal:SetActive(true)
+        return self.m_equipment_name_normal
+    elseif quality == SharedEnum.WearableQuality.GREAT then
+        self.m_equipment_quality_great:SetActive(true)
+        return self.m_equipment_name_great
+    elseif quality == SharedEnum.WearableQuality.EXCELLENT then
+        self.m_equipment_quality_excellent:SetActive(true)
+        return self.m_equipment_name_excellent
+    elseif quality == SharedEnum.WearableQuality.EPIC then
+        self.m_equipment_quality_epic:SetActive(true)
+        return self.m_equipment_name_epic
+    elseif quality == SharedEnum.WearableQuality.LEGENDARY then
+        self.m_equipment_quality_legendary:SetActive(true)
+        return self.m_equipment_name_legendary
+    end
+end
+
+------获取装备需要的角色等级  参数为装备等级
+function equipment_tips_view:gain_equipment_demand_level(equip_level)
+    local list = self.m_equipment_msg.levels
+    for i = 2, #list, 2 do
+        if equip_level <= list[i] then
+            return list[i - 1]
+        end
+    end
+    Debug.LogError("没有配置这个等级的装备，目前只有神能穿这件装备---->"..tostring(equip_level))
+    return 999
+end
+
+------获取装备的专精属性
+function equipment_tips_view:gain_equipment_major_attr(attr_type, major_type_list)
+    --获取当前角色专精
+    local specialization = self.m_unit:get_specialization()
+    local major_type_list_temp = {}
+    local index = 1
+    for k, v in pairs(major_type_list) do
+        table.insert(major_type_list_temp, v)
+    end
+    local major_attr_list = {}
+    if #major_type_list_temp == 0 then
+        --如果这个表中没有元素，说明装备是通用的，所有专精都可以使用
+        major_type_list_temp = SharedEnum.TalentSpecialization
+    end
+    for key, value in pairs(major_type_list_temp) do
+        if value == specialization then
+            --如果跟主角专精匹配，则生成在基础属性列表中
+            local major_type, major_value = self:gain_equipment_attr_name(attr_type, value)
+            local child_item = self.m_major_child_list[index]
+            if child_item then
+                --如果当前还有空闲的子物体，则激活用来显示
+                child_item:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = major_type .. " +"
+                child_item:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = tostring(major_value)
+                if major_value > 0 then
+                    child_item.gameObject:SetActive(true)
+                end
+            else
+                --如果没有，就根据模板创建一个子物体用来显示
+                local itemGo = Object.Instantiate(self.equipment_normal_attr_item)
+                itemGo.transform:SetParent(self.m_equipment_major_attr_list)
+                itemGo.transform.localPosition = Vector3.zero
+                itemGo.transform.localScale = Vector3.one
+                itemGo.transform:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = major_type .. " +"
+                itemGo.transform:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = major_value
+                --将创建的子物体保存起来
+                table.insert(self.m_major_child_list, itemGo.transform)
+                if major_value > 0 then
+                    itemGo:SetActive(true)
+                end
+            end
+            --将已添加的元素删除,并将已添加过的值保存起来
+            --table.remove(major_type_list_temp, key)
+            table.insert(major_attr_list, major_type)
+            break
+        end
+    end
+    for key, value in pairs(major_type_list_temp) do
+        local major_type, major_value = self:gain_equipment_attr_name(attr_type, value)
+        local has_same_item = false
+        for k, v in pairs(major_attr_list) do
+            if v == major_type then
+                --如果已存在该属性
+                has_same_item = true
+                break
+            end
+        end
+        if not has_same_item then
+            local child_item = self.m_useless_major_child_list[key]
+            if child_item then
+                child_item:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = major_type .. " +"
+                child_item:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = major_value
+                if major_value > 0 then
+                    child_item.gameObject:SetActive(true)
+                end
+            else
+                local itemGo = Object.Instantiate(self.m_equipment_useless_major_item)
+                itemGo.transform:SetParent(self.m_equipment_useless_major_list)
+                itemGo.transform.localPosition = Vector3.zero
+                itemGo.transform.localScale = Vector3.one
+                itemGo.transform:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = major_type .. " +"
+                itemGo.transform:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = major_value
+                --将创建的子物体保存起来
+                table.insert(self.m_useless_major_child_list, itemGo.transform)
+                if major_value > 0 then
+                    itemGo:SetActive(true)
+                end
+            end
+            table.insert(major_attr_list, major_type)
+        end
+    end
+end
+
+------获取装备的基础属性
+function equipment_tips_view:gain_equipment_normal_attr(normal_attr_list, major_type_list)
+    local index = 1
+    local min = 0
+    local max = 0
+    local speed = 0
+    for k, v in pairs(normal_attr_list) do
+        if v == SharedEnum.PropMod.DAMAGE then
+            --如果属性是伤害，则使用显示伤害的UI
+            self.m_weapon_info_area.gameObject:SetActive(true)
+            --最小、最大伤害
+            min, max = self:gain_equipment_attr_name(v)
+            self.m_weapon_attack_min.text = tostring(min)
+            self.m_weapon_attack_max.text = tostring(max)
+        elseif v == SharedEnum.PropMod.MAJOR then
+            --如果属性是专精
+            self:gain_equipment_major_attr(v, major_type_list)
+        elseif v == SharedEnum.PropMod.ATTACK then
+            --如果属性是攻速
+            speed = self:gain_equipment_attr_name(v)
+            self.m_weapon_attack_speed.text = tostring(speed)
+        else
+            local child_item = self.m_normal_attr_child_list[index]
+            local attr_type, attr_value = self:gain_equipment_attr_name(v)
+            --print(attr_type, attr_value, "基础属性")
+            if child_item then
+                --如果当前还有空闲的子物体，则激活用来显示
+                child_item:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_type .. " +"
+                child_item:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+                index = index + 1
+                if attr_value > 0 then
+                    child_item.gameObject:SetActive(true)
+                end
+            else
+                --如果没有，就根据模板创建一个子物体用来显示
+                local itemGo = Object.Instantiate(self.equipment_normal_attr_item)
+                itemGo.transform:SetParent(self.m_equipment_normal_attr_list)
+                itemGo.transform.localPosition = Vector3.zero
+                itemGo.transform.localScale = Vector3.one
+                itemGo.transform:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_type .. " +"
+                itemGo.transform:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+                --将创建的子物体保存起来
+                table.insert(self.m_normal_attr_child_list, itemGo.transform)
+                index = index + 1
+                if attr_value > 0 then
+                    itemGo:SetActive(true)
+                end
+            end
+        end
+    end
+    if min > 0 and max > 0 and speed > 0 then
+        local attac_per_second = (min + max) / 2 / speed
+        self.m_attack_per_second.text = tostring(attac_per_second)
+    end
+end
+
+------获取装备的进阶属性
+function equipment_tips_view:gain_equipment_advance_attr(advance_attr_list)
+    for k, v in pairs(advance_attr_list) do
+        ----进阶属性最多只有两个，多于两个的部分不做处理
+        if k > 2 then
+            return
+        end
+        local attr_name, attr_value = self:gain_equipment_attr_name(v, nil, k)
+        local child_item = self.m_advance_attr_child_list[k]
+        if child_item then
+            --如果当前还有空闲的子物体，则激活用来显示
+            child_item:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_name .. " +"
+            child_item:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+            if attr_value > 0 then
+                child_item.gameObject:SetActive(true)
+            end
+        else
+            --如果没有，就根据模板创建一个子物体用来显示
+            local itemGo = Object.Instantiate(self.equipment_advance_attr_item)
+            itemGo.transform:SetParent(self.m_equipment_advance_attr_list)
+            itemGo.transform.localPosition = Vector3.zero
+            itemGo.transform.localScale = Vector3.one
+            itemGo.transform:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_name .. " +"
+            itemGo.transform:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+            --将创建的子物体保存起来
+            table.insert(self.m_advance_attr_child_list, itemGo.transform)
+            if attr_value > 0 then
+                itemGo:SetActive(true)
+            end
+        end
+    end
+end
+
+------获取装备的第三属性
+function equipment_tips_view:gain_equipment_third_attr(additional_mods)
+    if #additional_mods > 0 then
+        self.m_equipment_third_attr.gameObject:SetActive(true)
+        for k, v in pairs(additional_mods) do
+            local child_item = self.m_third_attr_child_list[k]
+            local attr_name, attr_value = self:gain_equipment_attr_name(v)
+            if child_item then
+                child_item:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_name .. " +"
+                child_item:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+                if attr_value > 0 then
+                    child_item.gameObject:SetActive(true)
+                end
+            else
+                local itemGo = Object.Instantiate(self.equipment_advance_attr_item)
+                itemGo.transform:SetParent(self.m_equipment_third_attr_list)
+                itemGo.transform.localPosition = Vector3.zero
+                itemGo.transform.localScale = Vector3.one
+                itemGo.transform:Find("equipment_attr_type").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_name .. " +"
+                itemGo.transform:Find("equipment_attr_type/equipment_attr_value").gameObject:GetComponent(UnityEngine.UI.Text).text = attr_value
+                table.insert(self.m_third_attr_child_list, itemGo.transform)
+                if attr_value > 0 then
+                    itemGo:SetActive(true)
+                end
+            end
+        end
+    else
+        self.m_equipment_third_attr.gameObject:SetActive(false)
+    end
+end
+
+------获取装备的天生宝石镶嵌孔
+function equipment_tips_view:gain_equipment_gem_list(gem_list)
+    if #gem_list > 0 then
+        self.m_equipment_gem.gameObject:SetActive(true)
+        for k, v in pairs(gem_list) do
+            local child_item = self.m_gem_child_list[k]
+            if child_item then
+                child_item:Find("gem_des/gem_type").gameObject:GetComponent(UnityEngine.UI.Text).text = self:gain_gem_type_name(v['gem'])
+                child_item.gameObject:SetActive(true)
+            else
+                local itemGo = Object.Instantiate(self.m_gem_item)
+                itemGo.transform:SetParent(self.m_equipment_gem_list)
+                itemGo.transform.localPosition = Vector3.zero
+                itemGo.transform.localScale = Vector3.one
+                itemGo.transform:Find("gem_des/gem_type").gameObject:GetComponent(UnityEngine.UI.Text).text = self:gain_gem_type_name(v['gem'])
+                table.insert(self.m_gem_child_list, itemGo.transform)
+                itemGo:SetActive(true)
+            end
+        end
+    else
+        self.m_equipment_gem.gameObject:SetActive(false)
+    end
+end
+
+------获取装备的部位
+function equipment_tips_view:gain_equipment_type(type)
+    local equip_type = ""
+    if type == SharedEnum.WearableTarget.HEAD then
+        equip_type = "头盔"
+    elseif type == SharedEnum.WearableTarget.SHOULDER then
+        equip_type = "肩甲"
+    elseif type == SharedEnum.WearableTarget.CHEST then
+        equip_type = "胸甲"
+    elseif type == SharedEnum.WearableTarget.WRIST then
+        equip_type = "护腕"
+    elseif type == SharedEnum.WearableTarget.HANDS then
+        equip_type = "手套"
+    elseif type == SharedEnum.WearableTarget.WAIST then
+        equip_type = "腰带"
+    elseif type == SharedEnum.WearableTarget.LEGS then
+        equip_type = "腿甲"
+    elseif type == SharedEnum.WearableTarget.FEET then
+        equip_type = "战靴"
+    elseif type == SharedEnum.WearableTarget.NECK then
+        equip_type = "项链"
+    elseif type == SharedEnum.WearableTarget.BACK then
+        equip_type = "披风"
+    elseif type == SharedEnum.WearableTarget.FINGER then
+        equip_type = "戒指"
+    elseif type == SharedEnum.WearableTarget.ACCESSORY then
+        equip_type = "饰品"
+    elseif type == SharedEnum.WearableTarget.MAINHAND_WEAPON then
+        equip_type = "主手武器"
+    elseif type == SharedEnum.WearableTarget.OFFHAND_WEAPON then
+        equip_type = "副手武器"
+    elseif type == SharedEnum.WearableTarget.ONEHAND_WEAPON then
+        equip_type = "单手武器"
+    elseif type == SharedEnum.WearableTarget.TWOHAND_WEAPON then
+        equip_type = "双手武器"
+    end
+    return equip_type
+end
+
+------获取装备材质
+function equipment_tips_view:gain_equipment_source(source)
+    local equip_source = ""
+    if source == SharedEnum.WearableSource.OTHER then
+        equip_source = "(其他)"
+    elseif source == SharedEnum.WearableSource.CLOTH then
+        equip_source = "(布)"
+    elseif source == SharedEnum.WearableSource.LEATHER then
+        equip_source = "(皮)"
+    elseif source == SharedEnum.WearableSource.MAIL then
+        equip_source = "(锁)"
+    elseif source == SharedEnum.WearableSource.PLATE then
+        equip_source = "(板)"
+    elseif source == SharedEnum.WearableSource.SWORD then
+        equip_source = "(剑)"
+    elseif source == SharedEnum.WearableSource.DAGGER then
+        equip_source = "(匕首)"
+    elseif source == SharedEnum.WearableSource.MACE then
+        equip_source = "(锤)"
+    elseif source == SharedEnum.WearableSource.AXE then
+        equip_source = "(斧)"
+    elseif source == SharedEnum.WearableSource.WAND then
+        equip_source = "(杖)"
+    elseif source == SharedEnum.WearableSource.SHIELD then
+        equip_source = "(盾)"
+    elseif source == SharedEnum.WearableSource.STAFF then
+        equip_source = "(棍)"
+    elseif source == SharedEnum.WearableSource.FAN then
+        equip_source = "(扇)"
+    elseif source == SharedEnum.WearableSource.GUN then
+        equip_source = "(枪)"
+    elseif source == SharedEnum.WearableSource.BOW then
+        equip_source = "(弓)"
+    elseif source == SharedEnum.WearableSource.CROSSBOW then
+        equip_source = "(弩)"
+    elseif source == SharedEnum.WearableSource.MORTAR then
+        equip_source = "(炮)"
+    end
+    return equip_source
+end
+
+------获取对应的icon的图片
+function equipment_tips_view:change_sprite(image, icon_path)
+    local equipment_icon
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+    return equipment_icon
+end
+
+------根据计算公式计算装备的属性值
+--param1 参数1
+--param2 参数2
+--param3 参数3
+--level  物品等级
+--coefficient 修正系数
+function equipment_tips_view:gain_equipment_attr_value(param1, param2, param3, level, coefficient)
+    local result = param1 * math.exp(param2 / param3 * level) * coefficient
+    result = (result % 1 >= 0.5 and math.ceil(result)) or math.floor(result)
+    return result
+end
+
+------根据配置表获取装备属性类型的名称
+function equipment_tips_view:gain_equipment_attr_name(attr_type, major_type, index)
+    if not index then
+        -----因为不是所有的都用得到index，防止报空情况，如果index为空就默认为0
+        index = 0
+    end
+    local equip_type = self.m_equipment_msg.derived_params[2]
+    if equip_type == SharedEnum.WearableTarget.FINGER1 or equip_type == SharedEnum.WearableTarget.FINGER2 then
+        equip_type = SharedEnum.WearableTarget.FINGER
+    end
+    if equip_type == SharedEnum.WearableTarget.ACCESSORY1 or equip_type == SharedEnum.WearableTarget.ACCESSORY2 then
+        equip_type = SharedEnum.WearableTarget.ACCESSORY
+    end
+    if attr_type == SharedEnum.PropMod.MAJOR then
+        local specialization = dbc.specialization[major_type]['primary_stat']
+        if specialization == SharedEnum.StatType.STRENGTH then
+            local value = self:gain_equipment_attr_value(0.46286, 0.0467, 5, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['major'])
+            return '力量', value
+        elseif specialization == SharedEnum.StatType.INTELLECT then
+            local value = self:gain_equipment_attr_value(0.46286, 0.0467, 5, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['major'])
+            return '智力', value
+        elseif specialization == SharedEnum.StatType.AGILITY then
+            local value = self:gain_equipment_attr_value(0.46286, 0.0467, 5, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['major'])
+            return '敏捷', value
+        end
+    elseif attr_type == SharedEnum.PropMod.STAMINA then
+        local value = self:gain_equipment_attr_value(0.46286, 0.0467, 5, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['stamina'])
+        return '耐力', value
+    elseif attr_type == SharedEnum.PropMod.DEFENSE then
+        local value = self:gain_equipment_attr_value(9.97286, 0.0467, 13, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['defense'])
+        return '护甲', value
+    elseif attr_type == SharedEnum.PropMod.ATTACK then
+        local value = 2.6
+        return value--'攻速',
+    elseif attr_type == SharedEnum.PropMod.DAMAGE then
+        local min = self:gain_equipment_attr_value(4.34126, 0.0457, 5, self.m_calculate_level + self.m_enhanced_level, 2.886)
+        local max = self:gain_equipment_attr_value(4.34126, 0.0457, 5, self.m_calculate_level + self.m_enhanced_level, 4.811)
+        return min, max--'伤害'
+    elseif attr_type == SharedEnum.PropMod.CRITICAL then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '暴击', value
+    elseif attr_type == SharedEnum.PropMod.RUSH then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '急速', value
+    elseif attr_type == SharedEnum.PropMod.MASTER then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '精通', value
+    elseif attr_type == SharedEnum.PropMod.DODGE then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '闪躲', value
+    elseif attr_type == SharedEnum.PropMod.PARRY then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '招架', value
+    elseif attr_type == SharedEnum.PropMod.BLOCK then
+        local value = 0
+        if index == 1 then
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        else
+            value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr2'])
+        end
+        return '格挡', value
+    elseif attr_type == SharedEnum.PropMod.LIFESTEAL then
+        local value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        return '吸血', value
+    elseif attr_type == SharedEnum.PropMod.SPEED then
+        local value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        return '加速', value
+    elseif attr_type == SharedEnum.PropMod.EVASION then
+        local value = self:gain_equipment_attr_value(0.0187, 5, 54.3413, self.m_calculate_level + self.m_enhanced_level, self.m_calculate_param_list[equip_type]['more_attr1'])
+        return '闪避', value
+    else
+        Debug.LogError("找不到这种类型，请检查表里是否配置正确------->>" .. tostring(attr_type))
+        return "不知名属性", 0
+    end
+end
+
+function equipment_tips_view:gain_gem_type_name(gem_type)
+    if gem_type == SharedEnum.WearablePlugin.GEM_A then
+        return '宝石A'
+    elseif gem_type == SharedEnum.WearablePlugin.GEM_B then
+        return '宝石B'
+    elseif gem_type == SharedEnum.WearablePlugin.GEM_C then
+        return '宝石C'
+    elseif gem_type == SharedEnum.WearablePlugin.GEM_D then
+        return '宝石D'
+    elseif gem_type == SharedEnum.WearablePlugin.GEM_E then
+        return '宝石E'
+    else
+        Debug.LogError("找不到这样的宝石，请检查表里是否配置正确------->>" .. tostring(gem_type))
+        return '不知名的宝石'
+    end
+end
+
+------在隐藏tips的时候执行该方法
+function equipment_tips_view:close_self()
+    self.m_equipment_name_normal.gameObject:SetActive(false)
+    self.m_equipment_name_great.gameObject:SetActive(false)
+    self.m_equipment_name_excellent.gameObject:SetActive(false)
+    self.m_equipment_name_epic.gameObject:SetActive(false)
+    self.m_equipment_name_legendary.gameObject:SetActive(false)
+
+    self.m_equipment_quality_normal.gameObject:SetActive(false)
+    self.m_equipment_quality_great.gameObject:SetActive(false)
+    self.m_equipment_quality_excellent.gameObject:SetActive(false)
+    self.m_equipment_quality_epic.gameObject:SetActive(false)
+    self.m_equipment_quality_legendary.gameObject:SetActive(false)
+
+    --关闭武器伤害
+    self.m_weapon_info_area.gameObject:SetActive(false)
+
+    --关闭专精属性列表中的所有元素
+    for i = 0, self.m_equipment_major_attr_list.childCount - 1 do
+        self.m_equipment_major_attr_list:GetChild(i).gameObject:SetActive(false)
+    end
+    --关闭基础属性列表中的所有元素
+    for i = 0, self.m_equipment_normal_attr_list.childCount - 1 do
+        self.m_equipment_normal_attr_list:GetChild(i).gameObject:SetActive(false)
+    end
+    --关闭进阶属性列表中的所有元素
+    for i = 0, self.m_equipment_advance_attr_list.childCount - 1 do
+        self.m_equipment_advance_attr_list:GetChild(i).gameObject:SetActive(false)
+    end
+    --关闭无效的专精属性列表中的所有元素
+    for i = 0, self.m_equipment_useless_major_list.childCount - 1 do
+        self.m_equipment_useless_major_list:GetChild(i).gameObject:SetActive(false)
+    end
+    --关闭第三属性及其列表中的所有元素
+    self.m_equipment_third_attr.gameObject:SetActive(false)
+    for i = 0, self.m_equipment_third_attr_list.childCount - 1 do
+        self.m_equipment_third_attr_list:GetChild(i).gameObject:SetActive(false)
+    end
+    --关闭宝石列表中的所有元素
+    for i = 0, self.m_equipment_gem_list.childCount - 1 do
+        self.m_equipment_gem_list:GetChild(i).gameObject:SetActive(false)
+    end
+
+    self.m_scrollbar.value = 1
+    --将tips滑动关闭
+    self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.UI.ScrollRect).enabled = false
+end
+
+function equipment_tips_view:do_calculate_param_list()
+    self.m_calculate_param_list[SharedEnum.WearableTarget.WEAPON] = { ['major'] = 1, ['stamina'] = 1.1, ['more_attr1'] = 0.71, ['more_attr2'] = 0, ['defense'] = 1.866 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.OFFHAND_WEAPON] = { ['major'] = 0, ['stamina'] = 0, ['more_attr1'] = 0, ['more_attr2'] = 0, ['defense'] = 1.866 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.HEAD] = { ['major'] = 1, ['stamina'] = 1, ['more_attr1'] = 1, ['more_attr2'] = 1, ['defense'] = 0.81 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.CHEST] = { ['major'] = 1, ['stamina'] = 1, ['more_attr1'] = 1, ['more_attr2'] = 1, ['defense'] = 1 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.LEGS] = { ['major'] = 1, ['stamina'] = 1, ['more_attr1'] = 1, ['more_attr2'] = 1, ['defense'] = 0.87 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.NECK] = { ['major'] = 0, ['stamina'] = 0.5625, ['more_attr1'] = 1.25, ['more_attr2'] = 0.5625, ['defense'] = 0 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.FINGER] = { ['major'] = 0, ['stamina'] = 0.5625, ['more_attr1'] = 1.25, ['more_attr2'] = 0.5625, ['defense'] = 0 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.BACK] = { ['major'] = 0.5625, ['stamina'] = 0.5625, ['more_attr1'] = 0.5625, ['more_attr2'] = 0.5625, ['defense'] = 0.5 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.WRIST] = { ['major'] = 0.5625, ['stamina'] = 0.5625, ['more_attr1'] = 0.5625, ['more_attr2'] = 0.5625, ['defense'] = 0.43 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.SHOULDER] = { ['major'] = 0.75, ['stamina'] = 0.75, ['more_attr1'] = 0.75, ['more_attr2'] = 0.75, ['defense'] = 0.75 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.FEET] = { ['major'] = 0.75, ['stamina'] = 0.75, ['more_attr1'] = 0.75, ['more_attr2'] = 0.75, ['defense'] = 0.68 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.HANDS] = { ['major'] = 0.75, ['stamina'] = 0.75, ['more_attr1'] = 0.75, ['more_attr2'] = 0.75, ['defense'] = 0.62 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.WAIST] = { ['major'] = 0.75, ['stamina'] = 0.75, ['more_attr1'] = 0.75, ['more_attr2'] = 0.75, ['defense'] = 0.56 }
+    self.m_calculate_param_list[SharedEnum.WearableTarget.ACCESSORY] = { ['major'] = 0.95, ['stamina'] = 0, ['more_attr1'] = 0.7, ['more_attr2'] = 0.9, ['defense'] = 0 }
+end
+
+return equipment_tips_view

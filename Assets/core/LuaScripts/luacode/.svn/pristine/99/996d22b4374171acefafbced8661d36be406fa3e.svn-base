@@ -1,0 +1,134 @@
+﻿
+local Quest_detail = require "subsystem.quest.quest_bar.quest_detail"
+
+
+local View = require("system.view")
+
+local Quest_bar_view = class("Quest_bar_view", View)
+
+
+function Quest_bar_view:doInit()
+	self:load("ui/sidebar/tab_quest.prefab", function (go)
+		--local parent_node = self:getParent():getGO().transform:Find("border/border_mask/border_detail")
+        local parent_node = self:getParent():getGO().transform:GetChild(0):Find("quest_bar")
+		self:init_with_go(go, parent_node)
+	end)
+	
+	self.m_quest_manager = self:getFrame("quest_manager")
+	self.m_quest_list = {}
+end
+
+function Quest_bar_view:on_prepared()
+	Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+	Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:add_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+	Event_system:add_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_condition))
+	
+	self.m_rect = self.m_go:GetComponent(RectTransform)
+	self.m_rect.sizeDelta = Vector2(0, 0)
+	self.m_quest_item_node = self.m_rect:Find("viewport/vertical_group_quest")
+	self.m_line_pref_go = self.m_rect:Find("viewport/vertical_group_quest/line").gameObject
+	
+	self:subscribe(self.m_frame:on_event("show"), function ()
+		--Debug.LogError("Quest_bar_view:show")
+		self.m_go:SetActive(true)
+	end)
+	self:subscribe(self.m_frame:on_event("hide"), function ()
+		--Debug.LogError("Quest_bar_view:hide")
+		self.m_go:SetActive(false)
+	end)
+	self:refresh_all()
+end
+
+function Quest_bar_view:doDestroy()
+	Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+	Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:del_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+	Event_system:del_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_condition))
+end
+
+function Quest_bar_view:show()
+	--Debug.LogError("Quest_bar_view:show")
+	self.m_go:SetActive(true)
+end
+
+function Quest_bar_view:hide()
+	--Debug.LogError("Quest_bar_view:hide")
+	self.m_go:SetActive(false)
+end
+
+function Quest_bar_view:refresh_all()
+	local quest_list = self.m_quest_manager:get_quest_list()
+	for quest_id, quest_data in pairs(quest_list) do
+        if quest_id ~= 911 then
+		    self:add_quest(quest_id, quest_data)
+        end
+		--self:refresh_quest(quest_data)
+		--self.m_quest_list[quest_id]:refresh_by_quest_data(quest_data)
+	end
+end
+
+function Quest_bar_view:add_quest(quest_id, quest_data)
+    --app:logError(string.format("Quest_bar_view:add_quest \t quest_id: %d", quest_id))
+    if self.m_quest_list[quest_id] then
+        self.m_quest_list[quest_id]:refresh_by_quest_data(quest_data)
+        return
+    end
+
+	local this = self
+	self:load("ui/sidebar/item_quest/sidebar_quest_detail_item.prefab", function (go)
+		local quest_detail = Quest_detail:new(go)
+		this.m_quest_list[quest_id] = quest_detail
+		quest_detail:set_parent(this.m_quest_item_node)
+		local data = dbc.quest[quest_id]
+		quest_detail:set_title(data)
+		quest_detail:init_condition(data, quest_data)
+		local copy_line_go = Object.Instantiate(this.m_line_pref_go)
+		copy_line_go.transform.parent = this.m_quest_item_node
+		copy_line_go:SetActive(true)
+		quest_detail:link_with(copy_line_go)
+		--[[local rt = go:GetComponent(RectTransform)
+		rt.sizeDelta = Vector2(0, 0)
+		rt.parent = this.m_quest_item_node--]]
+		--[[this.m_quest_item_dict[quest_id]["go"] = go
+		this.m_quest_item_dict[quest_id]["condition_list"] = {}--]]
+		
+		--[[self:load("ui/sidebar/item_quest/border_siderbar_quest_condition_detail.prefab", function (go2)
+			local rt_detail = go2:GetComponent(RectTransform)
+			rt_detail.sizeDelta = Vector2(0, 0)
+			rt_detail.parent = rt
+		end)--]]
+--        if quest_data then
+--            quest_detail:refresh_by_quest_data(quest_data)
+--        end
+	end)
+end
+
+function Quest_bar_view:del_quest(quest_id)
+    self.m_quest_list[quest_id]:destroy()
+    self.m_quest_list[quest_id] = nil
+    
+    local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 80, ["end_y"] = 180, ["duration"] = 3})
+    scroll_text:set_attr("msg", string.format("【%d】任务已完成", quest_id))
+end
+
+function Quest_bar_view:add_new_quest(quest_id)
+    local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 50, ["end_y"] = 150, ["duration"] = 3})
+    scroll_text:set_attr("msg", string.format("【%d】任务已接取", quest_id))
+end
+
+--[[function Quest_bar_view:update_condition(id, num, cond)
+	self.m_quest_list[id]
+end--]]
+
+function Quest_bar_view:refresh_condition(id, num, cond)
+	local quest = self.m_quest_list[id]
+	assert(quest, "quest_id = " .. id)
+    local quest_manager = self:getFrame("quest_manager")
+    local quest_data = quest_manager:get_quest_list()[id]
+    local quest_condition = quest_data:get_condition_dict()[num]
+    local fixed_param = quest_condition:get_fixed_param()
+	quest:refresh_condition(num, fixed_param)
+end
+
+return Quest_bar_view

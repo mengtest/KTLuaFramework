@@ -1,0 +1,227 @@
+local Frame = require("system.frame")
+local spirit_property_skill_list = class("spirit_property_skill_list", Frame)
+
+-- 奖励1文字
+Attribute.decl(spirit_property_skill_list, "bonus1", "")
+-- 奖励1数字
+Attribute.decl(spirit_property_skill_list, "bonus1_num", "")
+-- 奖励2文字
+Attribute.decl(spirit_property_skill_list, "bonus2", "")
+-- 奖励2数字
+Attribute.decl(spirit_property_skill_list, "bonus2_num", "")
+-- 奖励3文字
+Attribute.decl(spirit_property_skill_list, "bonus3", "")
+-- 奖励3数字
+Attribute.decl(spirit_property_skill_list, "bonus3_num", "")
+-- 奖励4文字
+Attribute.decl(spirit_property_skill_list, "bonus4", "")
+-- 奖励4数字
+Attribute.decl(spirit_property_skill_list, "bonus4_num", "")
+-- 奖励5文字
+Attribute.decl(spirit_property_skill_list, "bonus5", "")
+-- 奖励5数字
+Attribute.decl(spirit_property_skill_list, "bonus5_num", "")
+-- 奖励6文字
+Attribute.decl(spirit_property_skill_list, "bouns6", "")
+-- 奖励6数字
+Attribute.decl(spirit_property_skill_list, "bonus6_num", "")
+
+
+function spirit_property_skill_list:doInit()
+    self:set_is_add_rect_trans(true)
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+
+end
+
+function spirit_property_skill_list:on_loaded()
+
+    -- 装备灵兽
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data, args)
+        self:refresh_data(spirit_data)
+    end)
+
+    -- 当点击左侧槽位时
+    self:subscribe(self:getFrame("spirit_property"):on_event("change_slot"), function(spirit_data, slot)
+        if spirit_data == nil then
+            return
+        else
+            self:check_skill_of_the_spirit(spirit_data)
+        end
+    end)
+    self:refresh_data()
+end
+
+
+-- 刷新信息
+function spirit_property_skill_list:refresh_data(spirit_data)
+
+    -- 技能列表
+    self.m_skills_list = {}
+    -- 左侧槽位列表
+    self.m_spirit_slot_list = self:getFrame("spirit_property"):get_slot_list()
+    if spirit_data then
+        for i, v in pairs(self.m_spirit_slot_list) do
+            if i == dbc.sprite[spirit_data.tmpl].slot then
+                v:set_spirit_data(spirit_data)
+            end
+        end
+    end
+
+
+    for i, spirit_slot_frame in pairs(self.m_spirit_slot_list) do
+        if spirit_slot_frame:get_spirit_data() ~= nil then
+            -- 遍历槽位  得到每个槽位中灵兽所带的技能
+            local skill_data_list = spirit_slot_frame:get_spirit_data().assists
+            for k, skill_data in pairs(skill_data_list) do
+                -- 遍历每只灵兽身上的技能，得到每一个技能的信息
+                local tmpl = skill_data.tmpl
+                local cur_level = skill_data.stat
+                if #self.m_skills_list == 0 then
+                    -- 如果技能列表长度是0  则向表中添加数据
+                    self.m_skills_list[#self.m_skills_list + 1] = { tmpl = tmpl, stat = cur_level }
+                else
+                    -- 如果技能列表长度不为0 则遍历列表
+                    local flag, index = self:tab_is_contain_skill(self.m_skills_list, tmpl)
+                    if flag then
+                        -- 如果表中包含此技能
+                        self.m_skills_list[index].stat = self.m_skills_list[index].stat + cur_level
+                    else
+                        -- 如果表中没有此技能
+                        self.m_skills_list[#self.m_skills_list + 1] = { tmpl = tmpl, stat = cur_level }
+                    end
+                end
+            end
+        end
+    end
+    -- 创建技能图标
+    -- TODO 现在技能先走一下创建删除试试，今后会改成全都创建出来，用哪个显示哪个/ 或者用设置tmpl的方式
+    if self.m_skill_btn_list ~= nil then
+        for i, v in pairs(self.m_skill_btn_list) do
+            self:destroyChild(v)
+        end
+    end
+    self.m_skill_btn_list = {}
+    for i, v in ipairs(self.m_skills_list) do
+        local skill_data = v
+        self.m_skill_btn_list[i] = self:createChild("spirit_property_skill_btn" .. skill_data.tmpl, "spirit_beast.spirit_property.spirit_property_skill_btn", skill_data)
+    end
+
+    self:refresh_bonus(self.m_spirit_slot_list)
+end
+
+-- 刷新奖励们
+function spirit_property_skill_list:refresh_bonus(slot_frame_list)
+    -- 奖励列表
+    local bonus_list = {}
+    for i, spirit_slot_frame in pairs(slot_frame_list) do
+        -- 遍历槽位
+        if spirit_slot_frame:get_spirit_data() ~= nil then
+            local spirit_data = spirit_slot_frame:get_spirit_data()
+            for _, v in ipairs(self:get_enum_tab()) do
+                for index, bonus_type in ipairs(dbc.sprite[spirit_data.tmpl].upgrade_bonuses) do
+                    -- 遍历奖励类型
+                    if v == bonus_type then
+                        self:insert_value_to_tab(spirit_data, bonus_list, index, bonus_type)
+                    end
+                end
+            end
+        end
+    end
+    self:set_bonuses(bonus_list)
+end
+
+-- 设置几个奖励值
+function spirit_property_skill_list:set_bonuses(bonus_list)
+    for i, v in ipairs(bonus_list) do
+        self:set_attr("bonus" .. i, v.text)
+        self:set_attr("bonus" .. i .. "_num", v.value)
+    end
+end
+
+-- 将所有的奖励加到表中
+function spirit_property_skill_list:insert_value_to_tab(spirit_data, bonus_list, index, bonus_type)
+    for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+        local num = tonumber(string.match(key, "%d+"))
+        if num == bonus_type then
+            -- 如果奖励类型对上了 从枚举中把奖励类型的文字加到奖励表中
+            if #bonus_list == 0 then
+                -- 如果技能列表长度是0  则向表中添加数据
+                bonus_list[#bonus_list + 1] = { text = str, value = self:get_bonus_value(spirit_data, index) }
+            else
+                -- 如果技能列表长度不为0 则遍历列表
+                local flag, x = self:tab_is_contain_bonus(bonus_list, str)
+                if flag then
+                    -- 如果表中包含此奖励
+                    bonus_list[index].value = bonus_list[index].value + self:get_bonus_value(spirit_data, index)
+                else
+                    -- 如果表中没有此奖励
+                    bonus_list[#bonus_list + 1] = { text = str, value = self:get_bonus_value(spirit_data, index) }
+                end
+            end
+        end
+    end
+end
+
+
+-- 判断表中是否有相同的技能
+function spirit_property_skill_list:tab_is_contain_skill(tbl, val)
+    for k, v in pairs(tbl) do
+        if v.tmpl == val then
+            return true, k
+        end
+    end
+    return false, nil
+end
+
+-- 判断表中是否存在重复的奖励
+function spirit_property_skill_list:tab_is_contain_bonus(tbl, val)
+    for k, v in pairs(tbl) do
+        if v.text == val then
+            return true, k
+        end
+    end
+    return false, nil
+end
+
+-- 遍历枚举，去掉重复的
+function spirit_property_skill_list:get_enum_tab()
+    local tab = {}
+    for k, v in pairs(enum.shared.PropMod) do
+        if not utility.table:is_contain(tab, v) then
+            table.insert(tab, v)
+        end
+    end
+    return tab
+end
+
+
+
+-- 获取奖励数值
+function spirit_property_skill_list:get_bonus_value(spirit_data, order)
+    local bonus = 99999
+    for index, level in ipairs(dbc.sprite[spirit_data.tmpl]["upgrade" .. order .. "_levels"]) do
+        if spirit_data.stat == level then
+            bonus = dbc.sprite[spirit_data.tmpl]["upgrade" .. order .. "_params"][index]
+        elseif 0 < spirit_data.stat - level and spirit_data.stat - level < 3 then
+            bonus = dbc.sprite[spirit_data.tmpl]["upgrade" .. order .. "_params"][index]
+        end
+    end
+    return bonus
+end
+
+-- 当点击左侧的槽位时，属于本灵兽的技能要亮起来~~
+function spirit_property_skill_list:check_skill_of_the_spirit(spirit_data)
+    if self.m_skill_btn_list then
+        for _, skill_frame in ipairs(self.m_skill_btn_list) do
+            skill_frame:emit_event("unselected")
+            for _, skill_data in pairs(spirit_data.assists) do
+                if skill_frame:get_tmpl() == skill_data.tmpl then
+                    skill_frame:emit_event("selected")
+                end
+            end
+        end
+    end
+end
+
+
+return spirit_property_skill_list

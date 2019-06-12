@@ -1,0 +1,35 @@
+local Frame = require("system.frame")
+local spirit_beast = class("spirit_beast", Frame)
+
+Attribute.decl(spirit_beast, "id", 0)
+Event.decl(spirit_beast, "spirit_beast_created")
+function spirit_beast:doInit(param)
+    self.m_unit = param.unit
+    -- 存放模型的字典
+    self.m_model_dict = {}
+    -- 当前出战的模型
+    self.m_cur_model = nil
+    self:set_is_dont_create_go_automatic(true)
+    self:set_id(param.id)
+end
+
+
+function spirit_beast:create_ctrller(id)
+
+    self:subscribe(app:getResMgr():rxLoad(app:get_model_mgr().GetPrefabPathById(id)), function(asset)
+        if asset then
+            local pet_go = Object.Instantiate(asset)
+            pet_go.name = "spirit_beast_" .. self.m_unit:get_id() .. id
+            self:emit_event("spirit_beast_created", pet_go)
+        end
+    end)
+end
+
+function spirit_beast:enchanted_weapon(light_ball_go, spirit_id)
+    self.m_unit:emit_event("run_function", "enchanted_weapon", light_ball_go, spirit_id)
+end
+
+function spirit_beast:unenchanted_weapon(unenchanted_weapon_cb)
+    self.m_unit:emit_event("run_function", "unenchanted_weapon", unenchanted_weapon_cb)
+end
+return spirit_beast

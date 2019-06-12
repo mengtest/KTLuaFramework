@@ -1,0 +1,157 @@
+local HeadOverlayItemView = {}
+
+function HeadOverlayItemView:doInit()
+	local frame = self:getFrame()
+	self.m_cam = self:getView("world"):getCamera()
+	self.m_item_go = nil
+	self.m_color = Color.white
+	self.m_scale = 1
+    self.m_base_scale = 1
+
+	local this = self
+	self:load("UI/HeadOverlay.prefab", function(go)
+        local parent_node = self:getParent():getGO().transform
+		self.m_item_go = go
+        go.name = frame:getFrameName()
+
+		local item_ts = go.transform:Find("HeadOverlay/Item")
+
+		self:subscribe(frame:on_event_pos_set(true):combineLatest(self.m_cam:on_event_position_set(true)), function(world_pos)
+			self:refresh_to_screen_pos(world_pos)
+		end)
+
+		local slider = go.transform:Find("HeadOverlay/Item/HPBar"):GetComponent(UI.Slider)
+
+		local text_name_go = item_ts:Find("Name")
+		local text_name = text_name_go:GetComponentInChildren(UI.Text)
+
+		local hp_percent_text_go = item_ts:Find("HpPercent")
+		local hp_percent_text = hp_percent_text_go:GetComponentInChildren(UI.Text)
+
+		self:subscribe(frame:on_event_name_set(true), function(val)
+			text_name.text = val
+		end)
+		self:subscribe(frame:on_event_hp_percent_set(true), function(val)
+			if (not func.is_inf(val)) and (not func.is_nan(val))  then
+				slider.value = val
+				hp_percent_text.text = string.format("%d%%", val * 100)
+			end
+		end)
+		self:subscribe(frame:on_event_attr_set("color", true), function (color)
+			self:set_color(color)
+		end)
+		self:subscribe(frame:on_event_attr_set("scale", true), function (scale)
+			self:set_scale(scale)
+		end)
+        self:subscribe(frame:on_event_attr_set("base_scale", true), function (scale)
+            self:set_base_scale(scale)
+        end)
+		self:subscribe(frame:on_event("refresh"), function ()
+			self:refresh()
+		end)
+        self:subscribe(frame:on_event("show"), function ()
+            self:show()
+        end)
+        self:subscribe(frame:on_event("hide"), function ()
+            self:hide()
+        end)
+        self:subscribe(frame:on_event("fade"), function ()
+            self:fade()
+        end)
+        self:subscribe(frame:on_event("dye"), function ()
+            self:dye()
+        end)
+		self:refresh()
+        
+		self:init_with_go(go, parent_node)
+	end)
+end
+
+function HeadOverlayItemView:show()
+    self:getGO():SetActive(true)
+end
+
+function HeadOverlayItemView:hide()
+    self:getGO():SetActive(false)
+end
+
+function HeadOverlayItemView:fade()
+    local graphic_arr = self:getGO():GetComponentsInChildren(UnityEngine.UI.Graphic)
+    for i = 1, graphic_arr.Length do
+        graphic_arr[i]:CrossFadeAlpha(0.5, 0.1, true)
+    end
+    self.m_is_faded_flag = true
+end
+
+function HeadOverlayItemView:dye()
+    local graphic_arr = self:getGO():GetComponentsInChildren(UnityEngine.UI.Graphic)
+    for i = 1, graphic_arr.Length do
+        graphic_arr[i]:CrossFadeAlpha(1, 0.1, true)
+    end
+    self.m_is_faded_flag = false
+end
+
+function HeadOverlayItemView:on_prepared()
+    
+end
+
+function HeadOverlayItemView:set_color(color)
+	self.m_color = color
+    
+    if not self.m_item_go then
+		return
+	end
+    
+    local img = self.m_item_go.transform:Find("HeadOverlay/Item/HPBar/Fill Area/Fill"):GetComponent(UI.Image)
+	img.color = self.m_color
+end
+
+function HeadOverlayItemView:set_scale(scale)
+	self.m_scale = scale
+end
+
+function HeadOverlayItemView:set_base_scale(scale)
+    self.m_base_scale = scale
+end
+
+function HeadOverlayItemView:refresh()
+	if not self.m_item_go then
+		return
+	end
+
+	local img = self.m_item_go.transform:Find("HeadOverlay/Item/HPBar/Fill Area/Fill"):GetComponent(UI.Image)
+	img.color = self.m_color
+
+	local item_tr = self.m_item_go.transform:Find("HeadOverlay/Item")
+	item_tr.localScale = Vector3.one * self.m_scale * self.m_base_scale
+
+	self:refresh_to_screen_pos(self:getFrame():get_pos())
+end
+
+function HeadOverlayItemView:refresh_to_screen_pos(world_pos)
+--	local item_tr = self.m_item_go.transform:Find("HeadOverlay/Item")
+--	local is_front = self.m_cam:checkFront(world_pos)
+--	if is_front then
+--		item_tr.gameObject:SetActive(true)
+--		item_tr.position = world_pos
+--		item_tr:LookAt(UnityEngine.Camera.main.transform)
+--	else
+--		item_tr.gameObject:SetActive(false)
+--	end
+    
+	local item_tr = self.m_item_go.transform:Find("HeadOverlay/Item")
+	local spos, is_front = self.m_cam:worldToUIScreenPoint(world_pos)
+	if is_front then
+        if not item_tr.gameObject.activeSelf then
+            item_tr.gameObject:SetActive(true)
+            if self.m_is_faded_flag then
+                self:fade()
+            end
+        end
+        item_tr.position = Vector3(spos.x, spos.y, spos.z)
+	else
+		item_tr.gameObject:SetActive(false)
+	end
+end
+
+return HeadOverlayItemView

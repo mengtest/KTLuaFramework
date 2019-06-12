@@ -1,0 +1,27 @@
+local View = require("system.view")
+local skill_ui_list_btn_view = class("skill_ui_list_btn_view", View)
+
+function skill_ui_list_btn_view:doInit(param)
+    self:loadRes()
+end
+
+function skill_ui_list_btn_view:loadRes()
+    self:load_prefab("ui/SkillShowList.prefab", function(loaded_go)
+        self.m_res_loaded = true
+        local template_go = loaded_go.transform:Find("skill_list/grid/frame_image").gameObject
+        local go = Object.Instantiate(template_go)
+
+        self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+        local frame = self:getFrame()
+    end)
+end
+
+return skill_ui_list_btn_view

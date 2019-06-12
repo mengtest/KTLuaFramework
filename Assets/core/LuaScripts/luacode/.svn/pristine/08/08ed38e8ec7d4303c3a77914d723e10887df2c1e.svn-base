@@ -1,0 +1,134 @@
+-- buff列表，用于管理某个entity身上的buff集合
+
+local require_relative = REQUIRE_BASE(...)
+local BuffData = require_relative("buff_data")
+local BuffDataList = class("BuffDataList")
+
+-------------------------
+-- Attribute & Event
+-------------------------
+Event.decl(BuffDataList, "add_buff")        -- 新增buff
+Event.decl(BuffDataList, "remove_buff")       -- 移除buff
+
+
+function BuffDataList:initialize(host)
+    --print("BuffDataList initialize")
+    Attribute.init(self)
+
+    self.m_buff_list = {}
+    self.m_host = host        -- 宿主(Combat)对象
+
+end
+
+-- 获取宿主对象
+function BuffDataList:get_host()
+    return self.m_host
+end
+
+
+-- 添加buff
+function BuffDataList:add_buff(buff_info, emit_event)
+    emit_event = emit_event or true
+
+    local buff = BuffData:new(self.m_host)
+
+    buff:set_spell_id(buff_info.spell_id)
+    buff:set_slot(buff_info.slot)
+    buff:set_caster_id(buff_info.caster_id)
+    buff:set_duration(buff_info.duration)
+    buff:set_remaining(buff_info.remaining)
+    buff:set_stack_num(buff_info.stack_num)
+    --Debug.LogError("添加buff："..tostring(buff_info.spell_id).."  层数:"..tostring(buff_info.stack_num))
+    self.m_buff_list[buff_info.slot] = buff
+
+    if emit_event then
+        self:emit_event("add_buff", {buff})
+    end
+
+    return buff
+end
+
+-- 添加一组buff
+function BuffDataList:add_buff_list(buff_info_list)
+    if #buff_info_list == 0 then
+        --print("-----------empty buff_info_list")
+        return
+    end
+
+    local added_list = {}
+
+    for k, v in pairs(buff_info_list) do
+        local buff = self:add_buff(v, false)
+        table.insert(added_list, buff)
+    end
+
+    --print("----------- add_buff", added_list)
+    self:emit_event("add_buff", added_list)
+end
+
+
+-- 更新buff
+function BuffDataList:update_buff(buff_info)
+    local buff = self.m_buff_list[buff_info.index]
+    buff:set_end_time(buff_info.end_time)
+    buff:set_stack(buff_info.stack)
+end
+
+
+-- 更新一组buff
+function BuffDataList:update_buff_list(buff_info_list)
+    for k, v in pairs(buff_info_list) do
+        self:update_buff(buff_info)
+    end
+end
+
+-- 移除buff
+function BuffDataList:remove_buff(slot, emit_event)
+    emit_event = emit_event or true
+
+    local buff = self.m_buff_list[slot]
+    self.m_buff_list[slot] = nil
+
+    if emit_event then
+        self:emit_event("remove_buff", {buff})
+    end
+
+    return buff
+end
+
+
+-- 移除一组buff
+function BuffDataList:remove_buff_list(buff_slot_list)
+    local removed_list = {}
+    for _, v in pairs(buff_slot_list) do
+        local buff = self:remove_buff(v, false)
+        table.insert(removed_list, buff)
+    end
+    self:emit_event("remove_buff", removed_list)
+end
+
+-- 返回当前列表的副本
+function BuffDataList:get_table()
+    local copy = {}
+
+    for k, v in pairs(self.m_buff_list) do
+        copy[k] = v
+    end
+
+    return copy
+end
+
+
+function BuffDataList:update(delta)
+    for _, v in pairs(self.m_buff_list) do
+        v:update(delta)
+    end
+end
+
+function BuffDataList:find_unit()
+
+
+end
+
+
+return BuffDataList

@@ -1,0 +1,126 @@
+local Frame = require("system.frame")
+local quest_ui_show = class("quest_ui_show", Frame)
+
+Attribute.decl(quest_ui_show, "quest_id", 0)
+
+-- 尝试用 outlet 来搞  注释掉的还没有写进去
+-- 任务名称
+Attribute.decl(quest_ui_show, "quest_name", "")
+-- 任务状态
+Attribute.decl(quest_ui_show, "quest_stat", "")
+-- 任务目的地
+Attribute.decl(quest_ui_show, "quest_destination", "")
+-- 任务和角色之间距离
+Attribute.decl(quest_ui_show, "quest_distance", "")
+-- 任务目标信息
+Attribute.decl(quest_ui_show, "quest_target_info", "")
+-- 任务详细信息
+Attribute.decl(quest_ui_show, "quest_detail_info", "")
+-- 任务奖励经验
+Attribute.decl(quest_ui_show, "quest_reward_xp", 0)
+-- 任务奖励金币
+Attribute.decl(quest_ui_show, "quest_reward_money", 0)
+
+--Event.decl(quest_ui_show, "refresh_quest_data")
+
+function quest_ui_show: doInit(param)
+
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self:subscribe(self:getFrame("quest_ui_list"):on_event_have_quest_set(), function(have)
+        if have then
+            self:refresh_show_data(self:getFrame("quest_ui_list"):get_curr_selected_item())
+        end
+        self:getFrame("quest_ui_list"):set_have_quest(false)
+    end)
+    Event_system:add_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_schdule))
+    Event_system:add_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.del_quest))
+end
+
+---- 获取当前显示的任务id
+--function quest_ui_show:request_quest_id(quest_id)
+--    self:emit_event("refresh_quest_data", quest_id)
+--end
+
+-- 刷新当前页面显示的信息  尝试使用outlet
+function quest_ui_show:refresh_show_data(quest_id)
+    -- 任务名称
+    local quest_name = dbc.quest[quest_id].name
+    self:set_quest_name(quest_name)
+
+    -- 任务状态
+    local quest_data = self.m_quest_manager:get_quest_list()[quest_id]
+    local quest_stat = quest_data:get_stat()
+    if quest_stat == Enum_Quest.Quest_State.Received then
+        self:set_quest_stat("已接取")
+    elseif quest_stat == Enum_Quest.Quest_State.Finished then
+        self:set_quest_stat("已完成")
+    end
+
+    -- 获得经验
+    local exp = dbc.quest[quest_id].exp
+    self:set_quest_reward_xp(exp)
+
+    -- 获得金币
+    local gold = dbc.quest[quest_id].gold
+    self:set_quest_reward_money(gold)
+
+    -- 任务简述
+    self.m_sketchy = dbc.quest[quest_id].sketchy
+    --self:set_quest_target_info(self.m_sketchy .. self.m_quest_schedule)
+
+    -- 详细信息
+    local quest_detail = dbc.quest[quest_id].desc
+    self:set_quest_detail_info(quest_detail)
+
+
+    -- 任务目的地
+    local quest_destination = dbc.quest[quest_id].destination
+    self:set_quest_destination(quest_destination)
+
+
+
+    self:set_quest_id(quest_id)
+    self:refresh_schdule(quest_id)
+end
+function quest_ui_show:del_quest(quest_id)
+    if quest_id == self:get_quest_id() then
+        self:set_quest_id(0)
+    end
+end
+
+-- 刷新进度
+function quest_ui_show:refresh_schdule(quest_id)
+    if quest_id == self:get_quest_id() then
+        local quest_data = self.m_quest_manager:get_quest_list()[quest_id]
+        -- 任务当前进度
+        self.m_quest_schedule = string.format("(%d/%d)", quest_data:get_cur_weights(), quest_data:get_aim_weights())
+        -- 把进度改到简述后面
+        self:set_quest_target_info(self.m_sketchy .. self.m_quest_schedule)
+        --self:set_quest_schedule(quest_schedule)
+    else
+        return
+    end
+end
+
+function quest_ui_show:doUpdate()
+
+    if self:get_quest_id() ~= 0 then
+        local quest_data = self.m_quest_manager:get_quest_list()[self:get_quest_id()]
+        local dis_aim, dir_aim = quest_data:get_closest_aim_info()
+        self:refresh_aim_info(dis_aim, dir_aim)
+    else
+
+    end
+
+end
+
+-- 刷新距离
+function quest_ui_show:refresh_aim_info(dis_aim, dir_aim)
+    if not dis_aim or not dir_aim then
+        return
+    end
+    -- 任务和角色之间距离
+    self:set_quest_distance(string.format("距您%dm", math.floor(dis_aim) + 1))
+end
+
+return quest_ui_show

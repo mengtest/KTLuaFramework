@@ -1,0 +1,50 @@
+local M = {}
+-- 临时做法，等boss出现信息需求进一步完善之后 重构此功能 - 凌志 2017年9月1日
+function M:doInit()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BossShow"), function(go)
+        local name_group_tra = self["name_group_GUIImage"].transform
+        local desc_group_tra = self["desc_group_GUIText"].transform
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(),go)
+        local tempMaterial = Material(self["name_back_GUIImage"].material.shader)
+        tempMaterial.color = Color(1,1,1,0)
+        self["name_back_GUIImage"].material = tempMaterial
+        self["desc_back_GUIImage"].material = tempMaterial
+
+        if (self.ori == nil) then
+            self.ori = {name_group_tra.localScale, desc_group_tra.localScale}
+        end
+        self:subscribe(self:getFrame():on_event_start(), function()
+            --self["skip_boss_show_GUIButton"].gameObject:SetActive(true)
+            self["border_GUIImage"].gameObject:SetActive(true)
+        end)
+
+        self:subscribe(self:getFrame():on_event_show(), function()
+            name_group_tra.gameObject:SetActive(true)
+            desc_group_tra.gameObject:SetActive(true)
+            self["name_back_GUIImage"].gameObject:SetActive(true)
+            self["desc_back_GUIImage"].gameObject:SetActive(true)
+            ShortcutExtensions.DOScaleX(name_group_tra, 1, 0.1)
+            ShortcutExtensions.DOScaleY(name_group_tra, 1, 0.1)
+            ShortcutExtensions.DOScaleX(desc_group_tra, 1, 0.1)
+            ShortcutExtensions.DOScaleY(desc_group_tra, 1, 0.1)
+            ShortcutExtensions.DOFade(tempMaterial, 1, 0.5)
+        end)
+        
+        self:subscribe(self:getFrame():on_event_hide(), function()
+            --self["skip_boss_show_GUIButton"].gameObject:SetActive(false)
+            self["border_GUIImage"].gameObject:SetActive(false)
+            name_group_tra.localScale = self.ori[1]
+            desc_group_tra.localScale = self.ori[2]
+            tempMaterial.color = Color(1,1,1,0)
+            self["name_back_GUIImage"].gameObject:SetActive(false)
+            self["desc_back_GUIImage"].gameObject:SetActive(false)
+            name_group_tra.gameObject:SetActive(false)
+            desc_group_tra.gameObject:SetActive(false)
+        end)
+    end)
+end
+
+
+
+return M

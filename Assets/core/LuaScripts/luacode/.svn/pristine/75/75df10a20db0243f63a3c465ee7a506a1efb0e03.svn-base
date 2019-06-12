@@ -1,0 +1,68 @@
+local ObserverHost = require "system.observer_host"
+local BPCreature = class("BPCreature")
+
+--¶à¼Ì³Ð
+BPCreature:include(ObserverHost)
+
+Attribute.decl(BPCreature, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(BPCreature, "dir", function() return 0 end)
+Attribute.decl(BPCreature, "move_state", 0)
+Attribute.decl(BPCreature, "move_speed", 0)
+Attribute.decl(BPCreature, "name", "")
+Attribute.decl(BPCreature, "target_id", 0)
+
+Event.decl(BPCreature, "spell_start")
+Event.decl(BPCreature, "be_hit")
+Event.decl(BPCreature, "set_position")
+Event.decl(BPCreature, "update_position")
+Event.decl(BPCreature, "play_anim")
+
+function BPCreature:initialize(id)
+	Attribute.init(self)
+	self.m_id = id
+end
+
+function BPCreature:on_init()
+
+	CombatState.on_init(self)
+end
+
+function BPCreature:on_destroy()
+
+	CombatState.on_destroy(self)
+end
+
+function BPCreature:set_property(name, value)
+	self:set_attr(name, value)
+end
+
+function BPCreature:get_id()
+	return self.m_id
+end
+
+function BPCreature:reset_pos()
+    self:emit_event("set_position",self:get_pos())
+end
+
+function BPCreature:move_to(pos)
+    self:emit_event("update_position",pos)
+end
+
+function BPCreature:spell_start(cast_id, spell_id, target_id, target_pos, dir, cast_time)	
+	self:emit_event("spell_start", cast_id, spell_id, target_id, target_pos, dir, cast_time)
+end
+
+function BPCreature:be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)	
+	self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+end
+
+function BPCreature:play_anim(anima_name,has_camera,is_loop)
+	self:emit_event("play_anim",anima_name,has_camera,is_loop)
+end
+
+function BPCreature:update(delta)
+	Combat.update(self, delta)
+	CombatState.update(self, delta)
+end
+
+return BPCreature

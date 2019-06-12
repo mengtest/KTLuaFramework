@@ -1,0 +1,12 @@
+
+local Enum_Scene = {}
+
+-- 触发区域类型
+Enum_Scene.Trigger_Area = {
+    Box = 1,        -- 立方体
+    Sphere = 2,     -- 圆球体
+    Capsule = 3,    -- 胶囊体
+    Cylinder = 4,   -- 圆柱体
+}
+
+return Enum_Scene

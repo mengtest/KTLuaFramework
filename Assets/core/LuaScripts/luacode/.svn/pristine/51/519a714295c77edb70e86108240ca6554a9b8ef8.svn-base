@@ -1,0 +1,8 @@
+local row_0 = {['id']=1001,['name']='测试地图',['type']=0,['map_file']='res/map/hgs_jsz1_0.json',['res_server']='spaces/test',['res_client']='hgs_jsz1_0',['spawn_pos']={94.0,59.46,97.21},['spawn_dir']=2.4}
+local row_1 = {['id']=1002,['name']='测试地图2',['type']=0,['map_file']='',['res_server']='spaces/test',['res_client']='test2',['spawn_pos']={318.23,30.46,77.04},['spawn_dir']=4.88}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+}
+return datas

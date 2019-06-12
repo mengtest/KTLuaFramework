@@ -1,0 +1,17 @@
+local Frame = require("system.frame")
+local matching_continue = class("matching_continue", Frame)
+
+function matching_continue:doInit(param)
+    self.m_matching_manager = self:getFrame("matching_manager")
+end
+
+function matching_continue:on_sure()
+    self.m_matching_manager:req_match_lose_duty()
+    self:destroySelf()
+end
+
+function matching_continue:on_cancle()
+    self:destroySelf()
+end
+
+return matching_continue

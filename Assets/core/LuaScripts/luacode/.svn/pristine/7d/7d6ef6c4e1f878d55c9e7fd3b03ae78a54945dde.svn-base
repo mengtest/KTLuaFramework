@@ -1,0 +1,165 @@
+local M = {}
+
+--受击类型
+M.Enum_Damage = {
+	Dodge = 0,
+	Parry = 1,
+	Crit = 2,
+	Normal = 3
+}
+
+-- 动画事件类型
+M.Anim_Evt_Type = {
+	STRIKE = "strike",		-- 打击点
+	CAST = "cast",			-- 施展点
+	POSE = "pose",          -- 开始/结束pose动画
+	SHOOT = "shoot",        -- 过程特效出手  
+	WEAPON = "weapon"       -- 武器动画
+}
+
+-- 角色动作类型
+-- pacman 2017-09-26 日后把UnitActFsm中的常量都转移到这里
+M.Unit_Main_Act = {
+    MOVE = 0,
+    JUMP = 1,
+    DEAD = 2,
+	INTERACT = 4,
+	CLIMB = 5, -- 攀爬
+	Auto_Move = 6, -- 自动移动
+    -- 陆续完善
+
+    SKILL_SING = 10,
+    SKILL_CHANNEL = 11,
+    EXHIBITION = 12,
+	SKILL_JUMP = 13,
+	
+
+    -- 特殊
+    PLAY_CG = 21,
+}
+
+-- 技能 --
+-- 技能特效类别 表字段名
+M.Skill_Sfx_Type = {
+	SING = "sing_sfx",				-- 吟唱特效
+	INSTANT = "instant_sfx",		-- 施法出手特效
+	CAST = "cast_sfx",				-- 过程特效
+	HIT = "hit_sfx",				-- 受击特效
+	BUFF = "buff_sfx",				-- buff特效
+	AIM = "cast_sfx_aim",			-- 锁定特效
+	INSTANT_PROCESS = "instant_pro_sfx", -- 施法过程特效
+	CHARGE = "charge_sfx" -- 充能特效
+}
+
+-- 技能 -- add by lijunfeng 2017.11.24 战斗编辑器专用字段
+-- 技能特效类别 表字段名
+M.Skill_Sfx_Type_Bp = {
+	SING = "singVfx",				-- 吟唱特效
+	INSTANT = "castEndVfx",			-- 施法出手特效
+	CAST = "processVfx",				-- 过程特效
+	HIT = "gethitVfx",				-- 受击特效
+	BUFF = "buff_sfx",				-- buff特效
+	AIM = "processLockVfx",			-- 锁定特效
+	INSTANT_PROCESS = "castVfx"  -- 施法过程特效
+}
+
+-- 技能特效挂点 表字段名
+M.Skill_Mount_Point_Type = {
+	SING = "sing_mount_point",				-- 吟唱特效挂点
+	INSTANT = "instant_mount_point",		-- 施法出手特效挂点
+	CAST_START = "cast_start_mount_point",		-- 过程特效起始挂点
+	CAST_END = "cast_end_mount_point",			-- 过程特效结束挂点
+	HIT = "hit_mount_point",				-- 受击特效挂点
+	BUFF = "buff_mount_point",				-- buff特效挂点
+	AIM = "cast_sfx_aim_mount",			-- 锁定特效挂点
+	INSTANT_PROCESS = "instant_pro_mount_point", -- 施法过程特效挂点
+	CHARGE = "charge_mount_point"	-- 充能特效挂点
+}
+
+-- 技能特效挂点 表字段名 -- add by lijunfeng 2017.11.24 战斗编辑器专用字段
+M.Skill_Mount_Point_Type_Bp = {
+	SING = "singVfxMountPoint",				-- 吟唱特效挂点
+	INSTANT = "castEndVfxMountPoint",		-- 施法出手特效挂点
+	CAST_START = "processVfxMountPoint",		-- 过程特效起始挂点
+	CAST_END = "processEndVfxMountPoint",	-- 过程特效结束挂点
+	HIT = "gethitVfxMountPoint",			-- 受击特效挂点
+	BUFF = "buff_mount_point",				-- buff特效挂点
+	AIM = "processLockVfxMountPoint",		-- 锁定特效挂点
+	INSTANT_PROCESS = "processVfxMountPoint" -- 施法过程特效挂点
+}
+
+-- 目标模式
+M.Skill_Target_Mode = {
+	NO = 0,					-- 无需目标
+	ENTITY = 1,				-- 需要目标对象
+	AREA = 2,				-- 选取区域
+	DIRECTION = 3,			-- 旋转方向
+}
+
+
+-- 是否要显示小队成员
+M.Skill_Show_Team_Member = {
+	NO = 0,				-- 显示
+	SHOW = 1,			-- 不显示
+}
+
+
+-- 弹道类型
+M.Projectile_Type = {
+	WAGGLE = 1, -- 晃动
+	PARABOLA = 2, -- 抛物线
+	SPIRAL = 3, -- 螺旋
+	FLASH = 4,  -- 闪电链
+	GROUND = 5, -- 贴地
+	CUSTOM = 6, -- 自定义
+}
+
+-- 弹道朝向
+M.Projectile_Direction = {
+	TRACK = 1, -- 轨迹
+	Target = 2, -- 目标
+}
+
+-- 职业专精
+M.TalentSpecialization = {
+	INVALID = -1,		-- 不可用
+}
+
+-- 吟唱结束原因
+M.Sing_Finish = {
+	BREAK = 1,         -- 被打断
+	CANCEL = 2,		-- 主动取消(如位移)
+    FINISH = 3,     -- 正常结束
+}
+
+
+-- 玩家操作类型
+M.Player_Controll_Type = {
+    WOW_8D = 1,             -- WOW风格8sssss向
+    ALL_DIRECTION = 2,      -- 万向移动
+    ALL_DIRECTION_SP = 3,     -- 特殊万向移动(不操作角色朝向)
+    ALL_DIRECTION_X = 4,    -- X万向移动(参见斗战神操作设计)
+	CLIMB = 5,				-- 攀爬
+}
+
+-- 静态方法 --
+-- 根据类型获取Role法力消耗值属性名称
+function M.get_spell_cost_att_name(cost_type)
+    M.cost_att_name_list = M.cost_att_name_list or {
+        [SharedEnum.SpellCostType.NONE] = nil,
+        [SharedEnum.SpellCostType.MANA] = {"mana", "mana_max"},
+        [SharedEnum.SpellCostType.PAIN] = {"pain", "pain_max"},
+        [SharedEnum.SpellCostType.FURY] = {"fury", "fury_max"},
+    }
+
+    local ret = M.cost_att_name_list[cost_type]
+    if ret ~= nil then
+        return unpack(ret)
+    end
+    return nil
+end
+
+
+
+return M
+

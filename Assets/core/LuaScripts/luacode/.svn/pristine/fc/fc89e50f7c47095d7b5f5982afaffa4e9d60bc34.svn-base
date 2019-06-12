@@ -1,0 +1,117 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil       
+local Unit = nil
+
+local M = class("UnitActStateSkill", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+
+function M:enter()
+    --print("UnitActStateSkill:enter")
+    UnitActStateBase.enter(self)
+
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.SKILL)
+
+    -- 计算状态剩余时间，日后会改从服务器获取
+    local duration = nil
+    local skill_state = self.m_unit:get_skill_state()
+    if skill_state == Unit.SKILL_STATE.SINGING then
+        duration = dbc.spell[self.m_unit:get_skill_id()].cast_time
+    elseif skill_state == Unit.SKILL_STATE.CHANNEL then
+        duration = dbc.spell[self.m_unit:get_skill_id()].cast_time
+    end
+    assert(duration ~= nil, string.format("fail to get duration of %d, state %d", self.m_unit:get_skill_id(), skill_state))
+
+    self.m_end_time = app:get_server_time() + duration
+end
+
+
+function M:exit()
+     --print("UnitActStateSkill:exit")
+    UnitActStateBase.exit(self)
+end
+
+
+
+function M:update()
+     --print("UnitActStateSkill:update")
+    UnitActStateBase.update(self)
+
+    local cc = self.m_unit:get_cc()
+    if cc == nil then
+        return
+    end
+    local delta_time = app.get_delta_time()
+
+    --------------------
+    -- 结束施法
+    if self.m_end_time >= server_time then
+        local skill_state = self.m_unit:get_skill_state()
+
+        if skill_state == Unit.SKILL_STATE.SINGING then
+            -- 结束吟唱
+            self.m_unit:on_skill_sing_state_exit(self.m_unit:get_skill_id())
+        elseif skill_state == Unit.SKILL_STATE.CHANNEL then
+            -- 结束引导
+            self.m_fsm:change_state(UAFsm.MAIN_ACT.MOVE)
+        end
+        return
+    end
+
+
+
+    --------------------
+    -- 方位计算---
+    
+    -- 同步朝向
+    self.m_unit:update_dir()
+    
+    -- 移动处理 ---
+    local angle_8d = Unit.get_angle8d_from_move_state(self.m_unit:get_move_state())
+    if angle_8d ~= nil then
+        
+        local move_speed_xz = self.m_unit:get_move_speed()
+
+        if self.m_unit:get_back() then
+            move_speed_xz = move_speed_xz * Unit.BACK_SPEED_SCALE
+        end
+        -- print(move_speed_xz)
+
+        local move_dir = self.m_unit:get_dir() + angle_8d
+
+        -- 重力速度
+        -- 不用关心是否着地，都设置gravity_speed，以便在起伏的地形上移动
+        -- 因为本状态下，角色处于着地状态，所以gravity_speed设为 -Unit.GRAVITY，即每次都是重新开始下落
+        -- self.m_unit:set_gravity_speed(-Unit.GRAVITY * delta_time)    --这个变化幅度值太小了
+        self.m_unit:set_gravity_speed(-Unit.GRAVITY)
+
+        -- 位移
+        local movespeed = Quaternion.AngleAxis(move_dir, Vector3.up) * Vector3.forward *  move_speed_xz
+        movespeed.y = self.m_unit:get_gravity_speed()
+        local movement = movespeed * delta_time
+        cc:Move(movement)
+
+        self.m_unit:set_pos(cc.transform.position)
+        self.m_unit:set_move_dir(move_dir)
+
+    end
+
+end
+
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+
+
+return M

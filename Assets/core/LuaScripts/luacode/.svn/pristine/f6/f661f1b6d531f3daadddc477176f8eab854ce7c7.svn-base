@@ -1,0 +1,132 @@
+
+local View = require("system.view")
+local dungeon_join_view = class("dungeon_join_view", View)
+-------几个界面是一样的，出于综合考虑，数量不多，所以目前先采用写死的方式，方便开发
+function dungeon_join_view:doInit(param)
+
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_drag_area_list = {}
+    self.m_level_btn_list = {}
+    self.m_curr_level = nil
+    self.m_target_level = nil
+
+    self:load("ui/DungeonJoinSelect.prefab",function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        local drag_area_root = go.transform:Find("dungeon_join_select/bg_image").transform
+        -----页面公共的按钮
+        local close_btn = drag_area_root:Find("close_btn/bg_image"):GetComponent(UI.Button)
+        local left_btn = drag_area_root:Find("change_btn_container/left_btn"):GetComponent(UI.Button)
+        local right_btn = drag_area_root:Find("change_btn_container/right_btn"):GetComponent(UI.Button)
+        -----普通难度界面的信息
+        local normal_area_image =  go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/normal_image")
+        self.m_drag_area_list[1] = normal_area_image
+        local normal_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/normal_image/show")
+        local normal_level_text = normal_show_root:Find("level_bg_image/level_text"):GetComponent(UI.Text)
+        local normal_condition_tip_text = normal_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        local normal_join_btn = normal_show_root:Find("join_btn"):GetComponent(UI.Button)
+        ----显示不能进入的条件
+        local normal_no_join_tip = normal_show_root:Find("other/nocondition_bg_image/Text"):GetComponent(UI.Text)
+
+        -----英雄难度界面的信息
+        local hero_area_image =  go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/hero_image")
+        self.m_drag_area_list[2] = hero_area_image
+        local hero_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/hero_image/show").transform
+        local hero_level_text = hero_show_root:Find("level_bg_image/level_text"):GetComponent(UI.Text)
+        --local hero_condition_tip_text = hero_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        local hero_join_btn = hero_show_root:Find("join_btn"):GetComponent(UI.Button)
+        local hero_no_join_tip = hero_show_root:Find("other/nocondition_bg_image/Text"):GetComponent(UI.Text)
+
+        -----史诗难度界面的信息
+        local epic_area_image =  go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/epic_image")
+        self.m_drag_area_list[3] = epic_area_image
+        local epic_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/epic_image/show").transform
+        local epic_level_text = epic_show_root:Find("level_bg_image/level_text"):GetComponent(UI.Text)
+        local epic_condition_tip_text = epic_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        local epic_join_btn = epic_show_root:Find("join_btn"):GetComponent(UI.Button)
+        local epic_no_join_tip = epic_show_root:Find("other/nocondition_bg_image/Text"):GetComponent(UI.Text)
+
+        -----秘境难度界面的信息
+        local fairyland_area_image =  go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/fairyland_image")
+        self.m_drag_area_list[4] = fairyland_area_image
+        local fairyland_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/fairyland_image/show").transform
+        local fairyland_level_text = fairyland_show_root:Find("level_bg_image/level_text"):GetComponent(UI.Text)
+        local fairyland_condition_tip_text = fairyland_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        local fairyland_join_btn = fairyland_show_root:Find("join_btn"):GetComponent(UI.Button)
+        -----这里是一个秘境显示的节点
+        local fairy_land_show = fairyland_show_root:Find("fairyland_show").transform
+        local fairy_key_image = fairy_land_show:Find("key_image"):GetComponent(UI.Image)
+        local fairyland_no_join_tip = fairy_land_show:Find("nocondition_bg_image/Text"):GetComponent(UI.Text)
+        local fairy_land_name = fairy_land_show:Find("name_text"):GetComponent(UI.Text)
+        local fairy_land_word_text = fairy_land_show:Find("word_text"):GetComponent(UI.Text)
+        ----各难度的按钮
+        local scrollbar = go.transform:Find("dungeon_join_select/level_btn_bg_image/drag_area_scrollbar"):GetComponent(UI.Scrollbar)
+        local level_btn_root = scrollbar.transform:Find("level_btn_container").transform
+        ----普通难度按钮
+        local normal_btn_bg = level_btn_root:Find("normal").transform
+        local normal_btn = normal_btn_bg:Find("Text"):GetComponent(UI.Button)
+        local normal_text = normal_btn_bg:Find("Text"):GetComponent(UI.Text)
+        self.m_level_btn_list[1] = normal_btn_bg
+        -----英雄难度按钮
+        local hero_btn_bg = level_btn_root:Find("hero").transform
+        local hero_btn = hero_btn_bg:Find("Text"):GetComponent(UI.Button)
+        local hero_text = hero_btn_bg:Find("Text"):GetComponent(UI.Text)
+        self.m_level_btn_list[2] = hero_btn_bg
+        -----史诗难度按钮
+        local epic_btn_bg = level_btn_root:Find("epic").transform
+        local epic_btn = epic_btn_bg:Find("Text"):GetComponent(UI.Button)
+        local epic_text = epic_btn_bg:Find("Text"):GetComponent(UI.Text)
+        self.m_level_btn_list[3] = epic_btn_bg
+        -----秘境难度按钮
+        local fairyland_btn_bg = level_btn_root:Find("fairyland").transform
+        local fairyland_btn = fairyland_btn_bg:Find("Text"):GetComponent(UI.Button)
+        local fairyland_text = fairyland_btn_bg:Find("Text"):GetComponent(UI.Text)
+        self.m_level_btn_list[4] = fairyland_btn_bg
+
+        ---------注册按钮事件
+        close_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_join")
+        end)
+
+        left_btn.onClick:AddListener(function()
+            --print("向左滑")
+        end)
+
+        right_btn.onClick:AddListener(function()
+            --print("向右滑")
+        end)
+
+        normal_join_btn.onClick:AddListener(function()
+            --print("normal进入")
+        end)
+
+        hero_join_btn.onClick:AddListener(function()
+            --print("normal进入")
+        end)
+
+        epic_join_btn.onClick:AddListener(function()
+            --print("normal进入")
+        end)
+
+        fairyland_join_btn.onClick:AddListener(function()
+            --print("normal进入")
+        end)
+
+        normal_btn.onClick:AddListener(function()
+            --print("normal")
+        end)
+
+        hero_btn.onClick:AddListener(function()
+            --print("hero")
+        end)
+
+        epic_btn.onClick:AddListener(function()
+            --print("epic")
+        end)
+
+        fairyland_btn.onClick:AddListener(function()
+            --print("fairyland")
+        end)
+    end)
+end
+
+return dungeon_join_view

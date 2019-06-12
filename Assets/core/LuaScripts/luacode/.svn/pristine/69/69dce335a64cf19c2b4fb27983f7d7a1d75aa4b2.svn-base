@@ -1,0 +1,19 @@
+local Frame = require("system.frame")
+local equipment_tips_choice = class("equipment_tips_choice", Frame)
+
+Event.decl(equipment_tips_choice, "refresh_view")
+Event.decl(equipment_tips_choice, "close")
+
+function equipment_tips_choice:doInit()
+
+end
+
+function equipment_tips_choice:refresh_view(param1, param2)
+    self:emit_event("refresh_view", param1, param2)
+end
+
+function equipment_tips_choice:close_tips_choice()
+    self:emit_event("close")
+end
+
+return equipment_tips_choice

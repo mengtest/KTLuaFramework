@@ -1,0 +1,1290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" readonly="true" id="2fb7c9b7-1f41-489b-8ee6-21eb5fe010b4" name="Default" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_TABLE_DETAILS" value="true" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FavoritesManager">
+    <favorites_list name="luacode" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="quest_manager.lua" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/subsystem/quest/quest_manager.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="146">
+              <caret line="1008" column="36" lean-forward="false" selection-start-line="1008" selection-start-column="36" selection-end-line="1008" selection-end-column="36" />
+              <folding>
+                <element signature="e#12727#13715#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="world.lua" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/frame/world.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-5968">
+              <caret line="435" column="38" lean-forward="false" selection-start-line="435" selection-start-column="38" selection-end-line="435" selection-end-column="38" />
+              <folding>
+                <element signature="e#9240#10882#0" expanded="false" />
+                <marker date="1520585527666" expanded="true" signature="15032:15502" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="15533:15538" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="15564:15565" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="15632:16109" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="15651:15675" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="15721:15846" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="15756:15838" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16151:16438" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16232:16434" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16281:16426" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16320:16414" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16479:16717" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16565:16614" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="16832:17464" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="16991:17201" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="17531:17810" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="17885:18194" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18265:18270" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18302:18303" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18368:18373" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18400:18401" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18434:18568" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18491:18564" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18601:18606" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18633:18634" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18678:18801" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18720:18797" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18759:18772" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18780:18789" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18841:19251" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18863:18865" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="18908:19054" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18934:18947" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="18973:19037" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="19037:19046" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19085:19094" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19104:19109" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19162:19171" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19193:19198" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19462:21349" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19574:19576" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="19618:21277" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="19704:21269" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20042:20127" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20144:20157" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20232:20419" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20283:20369" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20386:20403" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20473:20721" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20585:20671" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20688:20705" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20815:21145" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="20978:21095" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21112:21129" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21207:21224" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21243:21256" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21304:21313" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21324:21329" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21438:21691" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21729:21881" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21919:21924" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21954:21955" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="21994:22618" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22035:22069" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22079:22084" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22110:22112" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="22222:22390" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22270:22283" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22309:22373" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="22373:22382" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22421:22457" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22467:22472" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22525:22534" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22556:22561" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22702:22921" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="22954:23084" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23117:23122" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23150:23151" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23235:23462" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23497:23631" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23666:23671" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23701:23702" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="23787:24107" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24044:24053" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24079:24084" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24142:24351" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24249:24346" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24386:24391" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24422:24423" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24479:24484" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24501:24502" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24582:24879" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="24791:24814" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="24934:25150" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="25062:25085" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="25354:25759" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="25465:25735" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="25814:26079" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26117:27199" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26614:26707" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26715:26729" ph="/** ... */" />
+                <marker date="1520585527666" expanded="true" signature="26806:26815" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26845:26850" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26910:26919" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="26944:26949" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27137:27146" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27190:27195" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27328:27333" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27363:27364" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27398:27502" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27415:27417" ph="{ ... }" />
+                <marker date="1520585527666" expanded="true" signature="27459:27468" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27478:27483" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27507:27534" ph="/** ... */" />
+                <marker date="1520585527666" expanded="true" signature="27570:27575" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27602:27603" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27699:28310" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27780:27957" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="27879:27949" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="28064:28074" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="28112:28117" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="28247:28256" ph="..." />
+                <marker date="1520585527666" expanded="true" signature="28301:28306" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="table_def.rb" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../tables/table_def.rb">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="770">
+              <caret line="64" column="55" lean-forward="false" selection-start-line="64" selection-start-column="55" selection-end-line="64" selection-end-column="55" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="hint.lua" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/frame/hint.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="481">
+              <caret line="31" column="12" lean-forward="false" selection-start-line="31" selection-start-column="12" selection-end-line="31" selection-end-column="12" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="hint_view.lua" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/view/hint_view.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="340">
+              <caret line="44" column="80" lean-forward="true" selection-start-line="44" selection-start-column="80" selection-end-line="44" selection-end-column="80" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="asset_paths.lua" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/system/asset_paths.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="398">
+              <caret line="564" column="37" lean-forward="true" selection-start-line="564" selection-start-column="37" selection-end-line="564" selection-end-column="37" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="game_packages.lua" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/system/package/game_packages.lua">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="560">
+              <caret line="213" column="40" lean-forward="false" selection-start-line="213" selection-start-column="19" selection-end-line="213" selection-end-column="40" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="NewLua" />
+      </list>
+    </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>EVENT_QUEST_DEL_QUEST</find>
+      <find>del_quest</find>
+      <find>reset</find>
+      <find>mob_giver_view</find>
+      <find>无法找到正确骨骼</find>
+      <find>set_state</find>
+      <find>insert</find>
+      <find>m_main_player_unit</find>
+      <find>self.m_skill_drag_bg</find>
+      <find>on_skill_btn_swipe</find>
+      <find>skill_controll_btn_view</find>
+      <find>quick_swipe</find>
+      <find>get_bone</find>
+      <find>destroy_trigger</find>
+      <find>init_warp_gate</find>
+      <find>check_unit_vhcl_type</find>
+      <find>area_change_map</find>
+      <find>top_hint_resource</find>
+      <find>top_hint_image</find>
+      <find>def_package</find>
+      <find>get_weather_resource</find>
+      <find>specialization</find>
+      <find>_uis</find>
+      <find>get_weather_config</find>
+      <find>ui_prefab</find>
+      <find>get_skill_cd_bar_fill</find>
+      <find>get_ui_main_view_resource</find>
+      <find>get_area_id_in_map</find>
+      <find>get_head_overlay_item_view</find>
+      <find>get_player_controller_view_resource</find>
+    </findStrings>
+    <replaceStrings>
+      <replace>已接取的任务</replace>
+      <replace />
+    </replaceStrings>
+    <dirStrings>
+      <dir>E:\workspace\douzhanshen\dev\trunk\client\luacode\subsystem\popup_text</dir>
+    </dirStrings>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_data2.lua" />
+        <option value="$PROJECT_DIR$/common/util/Util_table.lua" />
+        <option value="$PROJECT_DIR$/subsystem/map/mini_map/mini_map_view.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_bar/quest_bar_view.lua" />
+        <option value="$PROJECT_DIR$/system/skill_mgr.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_ui/quest_ui_show.lua" />
+        <option value="$PROJECT_DIR$/data/bp_battle_cfg.lua" />
+        <option value="$PROJECT_DIR$/frame/bp/bp_game.lua" />
+        <option value="$PROJECT_DIR$/frame/bp/bp_player_controller.lua" />
+        <option value="$PROJECT_DIR$/frame/unit_act_state/ua_state_base.lua" />
+        <option value="$PROJECT_DIR$/view/player_controller_view.lua" />
+        <option value="$PROJECT_DIR$/shared_enum.lua" />
+        <option value="$PROJECT_DIR$/subsystem/component/trigger_component.lua" />
+        <option value="$PROJECT_DIR$/subsystem/component/interact_component.lua" />
+        <option value="$PROJECT_DIR$/frame/kbe/MobGiver.lua" />
+        <option value="$PROJECT_DIR$/frame/kbe/world_watcher_kbe.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_level.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_skill.lua" />
+        <option value="$PROJECT_DIR$/common/Enum/Enum_Quest.lua" />
+        <option value="$PROJECT_DIR$/common/language.lua" />
+        <option value="$PROJECT_DIR$/frame/head_overlay.lua" />
+        <option value="$PROJECT_DIR$/enum/enum_quest.lua" />
+        <option value="$USER_HOME$/Desktop/mob_giver_view.lua" />
+        <option value="$PROJECT_DIR$/frame/interact_obj.lua" />
+        <option value="$PROJECT_DIR$/frame/unit.lua" />
+        <option value="$PROJECT_DIR$/frame/player_controller.lua" />
+        <option value="$PROJECT_DIR$/common/util/on_role_trigger_enter_event.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quiz/quiz_manager.lua" />
+        <option value="$PROJECT_DIR$/frame/unit_act_state/ua_state_climb.lua" />
+        <option value="$PROJECT_DIR$/frame/kbe/Role.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_enter_area.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_collect.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_base.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_hunt.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/condition/quest_condition_talk.lua" />
+        <option value="$PROJECT_DIR$/common/util/util_table.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_bar/trace_quest_bar.lua" />
+        <option value="$PROJECT_DIR$/frame/mob_giver.lua" />
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_data.lua" />
+        <option value="$PROJECT_DIR$/view/unit_view.lua" />
+        <option value="$PROJECT_DIR$/view/skill_controll_btn_view.lua" />
+        <option value="$PROJECT_DIR$/view/mob_giver_view.lua" />
+        <option value="$PROJECT_DIR$/view/world_view.lua" />
+        <option value="$PROJECT_DIR$/frame/hint.lua" />
+        <option value="$PROJECT_DIR$/frame/world.lua" />
+        <option value="$PROJECT_DIR$/../tables/table_def.rb" />
+        <option value="$PROJECT_DIR$/subsystem/quest/quest_manager.lua" />
+        <option value="$PROJECT_DIR$/system/collector/def_packages.lua" />
+        <option value="$PROJECT_DIR$/system/package/game_packages.lua" />
+        <option value="$PROJECT_DIR$/system/asset_paths.lua" />
+        <option value="$PROJECT_DIR$/view/hint_view.lua" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scratches" />
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="system" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="system" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="package" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="luacode" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="enum" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="luacode">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="luacode">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="subsystem">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="luacode">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="subsystem">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="backpack_equipment">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../luainterface" />
+    <property name="settings.editor.selected.configurable" value="vcs.Subversion" />
+    <property name="nodejs_interpreter_path" value="C:/Program Files (x86)/nodejs/node" />
+    <property name="SearchEverywhereHistoryKey" value="underscore&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/common/util/underscore.lua&#10;package_collector&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/collector/package_collector.lua&#10;def_p&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/collector/def_packages.lua&#10;game_p&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/package/game_packages.lua&#10;unit&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/unit.lua&#10;world&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/world_view.lua&#10;wor&#9;null&#9;null&#10;LuaQueue&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/common/util/lua_queue.lua&#10;univ&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/unit_view.lua&#10;bu&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/bubble_item.lua&#10;bubble&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/bubble_item.lua&#10;Unit&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/unit.lua&#10;mob&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/mob_giver_view.lua&#10;hint&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/hint_view.lua&#10;trace&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_bar/trace_quest_bar.lua&#10;ui_main&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/ui_main_view.lua&#10;player&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/player_controller.lua&#10;ques&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_data.lua&#10;bubb&#9;null&#9;null&#10;on_role&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/common/util/on_role_trigger_enter_event.lua&#10;quest_data&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_data.lua&#10;inter&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/interact_obj_view.lua&#10;interact&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/interact_obj.lua&#10;quest&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_manager.lua&#10;q&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quiz/quiz_manager.lua&#10;quiz&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quiz/quiz_manager.lua&#10;que&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_manager.lua&#10;pla&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/player_controller.lua&#10;asset_paths&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/asset_paths.lua&#10;res&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/res_mgr.lua&#10;meven&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/common/util/mevent.lua&#10;un&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/unit_view.lua&#10;comm_init&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/common/comm_init.lua&#10;trigger_component&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/component/trigger_component.lua&#10;unit_view&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/unit_view.lua&#10;view&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/view.lua&#10;res_mgr&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/res_mgr.lua&#10;qu&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_data.lua&#10;head_over&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/head_overlay_item_view.lua&#10;GCFG&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/gcfg.lua&#10;unit_&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/view/unit_view.lua&#10;over&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/head_overlay.lua&#10;head_overlay&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/frame/head_overlay.lua&#10;observer_host&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/observer_host.lua&#10;I18nMgr&#9;null&#9;null&#10;quiz_w&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quiz/quiz_window.lua&#10;trace_quest&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/quest/quest_bar/trace_quest_bar.lua&#10;dungeon_manager&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/dungeon/dungeon_manager.lua&#10;teamm&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/subsystem/team/team_manager.lua&#10;camera&#9;FILE&#9;file://E:/workspace/douzhanshen/dev/trunk/client/luacode/system/camera.lua" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\workspace\douzhanshen\dev\trunk\client\luacode\subsystem\quest" />
+      <recent name="E:\workspace\douzhanshen\dev\trunk\client\luacode\common\util" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Lua Remote(Mobdebug).debug">
+    <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="TARGET" value="" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerJest" factoryName="Jest">
+      <node-interpreter value="project" />
+      <working-dir value="" />
+      <envs />
+      <scope-kind value="ALL" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerProtractor" factoryName="Protractor">
+      <config-file value="" />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
+      <method />
+    </configuration>
+    <configuration default="true" type="PyBehaveRunConfigurationType" factoryName="Behave">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="ADDITIONAL_ARGS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="PyLettuceRunConfigurationType" factoryName="Lettuce">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="ADDITIONAL_ARGS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="Python.AppEngineServer" factoryName="App Engine server">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="host" value="127.0.0.1" />
+      <option name="browserUrl" value="" />
+      <option name="additionalOptions" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <module name="luacode" />
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.gulp" factoryName="Gulp.js">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <gulpfile />
+      <tasks />
+      <arguments />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.npm" factoryName="npm">
+      <command value="run" />
+      <scripts />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="lua.app" factoryName="Lua Application">
+      <option name="program" value="lua.exe" />
+      <option name="file" value="" />
+      <option name="workingDir" value="" />
+      <option name="debuggerType" value="1" />
+      <option name="params" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="lua.mobdebug" factoryName="Lua Remote(Mobdebug)">
+      <option name="PORT" value="8172" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Unittests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="luacode" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;.&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method />
+    </configuration>
+    <configuration default="false" name="debug" type="lua.mobdebug" factoryName="Lua Remote(Mobdebug)">
+      <option name="PORT" value="8172" />
+      <method />
+    </configuration>
+    <list size="1">
+      <item index="0" class="java.lang.String" itemvalue="Lua Remote(Mobdebug).debug" />
+    </list>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="SvnConfiguration" cleanupOnStartRun="true">
+    <configuration>C:\Users\7\AppData\Roaming\Subversion</configuration>
+    <supportedVersion>125</supportedVersion>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2fb7c9b7-1f41-489b-8ee6-21eb5fe010b4" name="Default" comment="" />
+      <created>1512119908956</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1512119908956</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.10115912" sideWeight="0.50208336" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="LuaCheck" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19166666" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.10432034" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.10115912" sideWeight="0.49791667" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.10115912" sideWeight="0.50208336" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="LuaCheck" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19166666" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.10432034" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.10115912" sideWeight="0.49791667" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="processedProjectFiles" value="true" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <option name="time" value="44" />
+    </breakpoint-manager>
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/frame/unit_act_state/ua_state_base.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="722">
+          <caret line="38" column="20" lean-forward="false" selection-start-line="38" selection-start-column="9" selection-end-line="38" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/interact_obj.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-627">
+          <caret line="6" column="42" lean-forward="false" selection-start-line="6" selection-start-column="42" selection-end-line="6" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/unit_act_state/ua_state_climb.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="481">
+          <caret line="135" column="58" lean-forward="true" selection-start-line="135" selection-start-column="58" selection-end-line="135" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tables/map.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="19">
+          <caret line="1" column="150" lean-forward="false" selection-start-line="1" selection-start-column="140" selection-end-line="1" selection-end-column="150" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tables/map_area.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tables/map_gate.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/head_overlay.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="274">
+          <caret line="105" column="21" lean-forward="false" selection-start-line="105" selection-start-column="21" selection-end-line="105" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/bubble_item_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-336">
+          <caret line="26" column="57" lean-forward="true" selection-start-line="26" selection-start-column="57" selection-end-line="26" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/player_controller.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="535" column="81" lean-forward="false" selection-start-line="535" selection-start-column="63" selection-end-line="535" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tables/scene/zhandouceshi.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="265">
+          <caret line="1883" column="27" lean-forward="false" selection-start-line="1883" selection-start-column="14" selection-end-line="1883" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/ui_main_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="6" column="32" lean-forward="false" selection-start-line="6" selection-start-column="32" selection-end-line="6" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/util/parser.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="341">
+          <caret line="69" column="8" lean-forward="false" selection-start-line="69" selection-start-column="8" selection-end-line="69" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/util/on_role_trigger_enter_event.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="234">
+          <caret line="43" column="63" lean-forward="false" selection-start-line="43" selection-start-column="63" selection-end-line="43" selection-end-column="63" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_enter_area.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="304">
+          <caret line="16" column="18" lean-forward="false" selection-start-line="16" selection-start-column="9" selection-end-line="16" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_level.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_skill.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="14" column="19" lean-forward="false" selection-start-line="14" selection-start-column="19" selection-end-line="14" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_collect.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="247">
+          <caret line="13" column="0" lean-forward="false" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="68" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/kbe/Role.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="831">
+          <caret line="314" column="65" lean-forward="false" selection-start-line="314" selection-start-column="65" selection-end-line="314" selection-end-column="65" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/util/util_table.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="353">
+          <caret line="20" column="20" lean-forward="false" selection-start-line="20" selection-start-column="14" selection-end-line="20" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/quest_bar/trace_quest_bar.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="323">
+          <caret line="71" column="36" lean-forward="true" selection-start-line="71" selection-start-column="36" selection-end-line="71" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_hunt.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="152">
+          <caret line="8" column="58" lean-forward="false" selection-start-line="8" selection-start-column="58" selection-end-line="8" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_quiz.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="209">
+          <caret line="11" column="27" lean-forward="false" selection-start-line="11" selection-start-column="16" selection-end-line="11" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_talk.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="15" column="0" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/condition/quest_condition_base.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="684">
+          <caret line="87" column="20" lean-forward="false" selection-start-line="87" selection-start-column="9" selection-end-line="87" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quiz/quiz_manager.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="149" column="31" lean-forward="false" selection-start-line="149" selection-start-column="31" selection-end-line="149" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/unit_act_state/ua_state_auto_move.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="190">
+          <caret line="10" column="31" lean-forward="false" selection-start-line="10" selection-start-column="21" selection-end-line="10" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/unit_act_state/ua_state_die.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/quest_data.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="265">
+          <caret line="218" column="25" lean-forward="false" selection-start-line="218" selection-start-column="20" selection-end-line="218" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/enum/enum_quest.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="342">
+          <caret line="18" column="22" lean-forward="false" selection-start-line="18" selection-start-column="4" selection-end-line="18" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/util/lua_queue.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="209">
+          <caret line="71" column="3" lean-forward="true" selection-start-line="71" selection-start-column="3" selection-end-line="71" selection-end-column="3" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/unit_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1010">
+          <caret line="2483" column="0" lean-forward="false" selection-start-line="2483" selection-start-column="0" selection-end-line="2483" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/bubble_item.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="274">
+          <caret line="29" column="9" lean-forward="false" selection-start-line="29" selection-start-column="9" selection-end-line="29" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/player_controller_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="336">
+          <caret line="1178" column="28" lean-forward="false" selection-start-line="1178" selection-start-column="28" selection-end-line="1178" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/skill_controll_btn_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="336">
+          <caret line="92" column="81" lean-forward="false" selection-start-line="92" selection-start-column="81" selection-end-line="92" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/mob_giver_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="405">
+          <caret line="518" column="7" lean-forward="false" selection-start-line="518" selection-start-column="7" selection-end-line="518" selection-end-column="7" />
+          <folding>
+            <marker date="1520477268891" expanded="false" signature="3164:6888" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/world_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="160">
+          <caret line="161" column="0" lean-forward="true" selection-start-line="161" selection-start-column="0" selection-end-line="161" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../luainterface/Lua_UnityEngine_AccelerationEvent.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="10" lean-forward="false" selection-start-line="0" selection-start-column="10" selection-end-line="0" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/mob_giver.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="353">
+          <caret line="23" column="0" lean-forward="true" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/unit.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="303">
+          <caret line="560" column="29" lean-forward="false" selection-start-line="560" selection-start-column="21" selection-end-line="560" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../tables/table_def.rb">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="770">
+          <caret line="64" column="55" lean-forward="false" selection-start-line="64" selection-start-column="55" selection-end-line="64" selection-end-column="55" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/subsystem/quest/quest_manager.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="146">
+          <caret line="1008" column="36" lean-forward="false" selection-start-line="1008" selection-start-column="36" selection-end-line="1008" selection-end-column="36" />
+          <folding>
+            <element signature="e#12727#13715#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/world.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-5968">
+          <caret line="435" column="38" lean-forward="false" selection-start-line="435" selection-start-column="38" selection-end-line="435" selection-end-column="38" />
+          <folding>
+            <element signature="e#9240#10882#0" expanded="false" />
+            <marker date="1520585527666" expanded="true" signature="15032:15502" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="15533:15538" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="15564:15565" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="15632:16109" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="15651:15675" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="15721:15846" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="15756:15838" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16151:16438" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16232:16434" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16281:16426" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16320:16414" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16479:16717" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16565:16614" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="16832:17464" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="16991:17201" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="17531:17810" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="17885:18194" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18265:18270" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18302:18303" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18368:18373" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18400:18401" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18434:18568" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18491:18564" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18601:18606" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18633:18634" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18678:18801" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18720:18797" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18759:18772" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18780:18789" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18841:19251" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18863:18865" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="18908:19054" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18934:18947" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="18973:19037" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="19037:19046" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19085:19094" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19104:19109" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19162:19171" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19193:19198" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19462:21349" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19574:19576" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="19618:21277" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="19704:21269" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20042:20127" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20144:20157" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20232:20419" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20283:20369" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20386:20403" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20473:20721" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20585:20671" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20688:20705" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20815:21145" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="20978:21095" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21112:21129" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21207:21224" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21243:21256" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21304:21313" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21324:21329" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21438:21691" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21729:21881" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21919:21924" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21954:21955" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="21994:22618" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22035:22069" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22079:22084" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22110:22112" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="22222:22390" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22270:22283" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22309:22373" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="22373:22382" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22421:22457" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22467:22472" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22525:22534" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22556:22561" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22702:22921" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="22954:23084" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23117:23122" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23150:23151" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23235:23462" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23497:23631" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23666:23671" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23701:23702" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="23787:24107" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24044:24053" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24079:24084" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24142:24351" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24249:24346" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24386:24391" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24422:24423" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24479:24484" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24501:24502" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24582:24879" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="24791:24814" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="24934:25150" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="25062:25085" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="25354:25759" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="25465:25735" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="25814:26079" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26117:27199" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26614:26707" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26715:26729" ph="/** ... */" />
+            <marker date="1520585527666" expanded="true" signature="26806:26815" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26845:26850" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26910:26919" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="26944:26949" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27137:27146" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27190:27195" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27328:27333" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27363:27364" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27398:27502" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27415:27417" ph="{ ... }" />
+            <marker date="1520585527666" expanded="true" signature="27459:27468" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27478:27483" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27507:27534" ph="/** ... */" />
+            <marker date="1520585527666" expanded="true" signature="27570:27575" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27602:27603" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27699:28310" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27780:27957" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="27879:27949" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="28064:28074" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="28112:28117" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="28247:28256" ph="..." />
+            <marker date="1520585527666" expanded="true" signature="28301:28306" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/frame/hint.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="481">
+          <caret line="31" column="12" lean-forward="false" selection-start-line="31" selection-start-column="12" selection-end-line="31" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/collector/package_collector.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="563">
+          <caret line="31" column="2" lean-forward="true" selection-start-line="31" selection-start-column="2" selection-end-line="31" selection-end-column="2" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/collector/def_packages.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="592">
+          <caret line="173" column="0" lean-forward="true" selection-start-line="173" selection-start-column="0" selection-end-line="173" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common/util/underscore.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-7138">
+          <caret line="16" column="59" lean-forward="false" selection-start-line="16" selection-start-column="59" selection-end-line="16" selection-end-column="59" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/package/package_dsl.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="57">
+          <caret line="3" column="41" lean-forward="false" selection-start-line="3" selection-start-column="31" selection-end-line="3" selection-end-column="41" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/package/package_main.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="399">
+          <caret line="21" column="3" lean-forward="false" selection-start-line="21" selection-start-column="3" selection-end-line="21" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/asset_paths.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="398">
+          <caret line="564" column="37" lean-forward="true" selection-start-line="564" selection-start-column="37" selection-end-line="564" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/system/package/game_packages.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="560">
+          <caret line="213" column="40" lean-forward="false" selection-start-line="213" selection-start-column="19" selection-end-line="213" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/view/hint_view.lua">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="340">
+          <caret line="44" column="80" lean-forward="true" selection-start-line="44" selection-start-column="80" selection-end-line="44" selection-end-column="80" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

@@ -1,0 +1,31 @@
+local dungeon_confirm_progress_view = {}
+
+function dungeon_confirm_progress_view:doInit()
+    self.ui_manager = app:get_ui_manager()
+    self:load("ui/ConfirmDungeonProgress.prefab",function(go)
+        self.ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        local root =  go.transform:Find("confirm_dungeon_progress").transform
+        ---关闭按钮  temp 是否需要还不明确
+        local close_btn = root:Find("bg/close_btn"):GetComponent(UnityEngine.UI.Button)
+        --接受拒绝按钮
+        local accept_btn = root:Find("accept_btn"):GetComponent(UnityEngine.UI.Button)
+        local refuse_btn = root:Find("refuse_btn"):GetComponent(UnityEngine.UI.Button)
+        local content_text = root:Find("content_tip_image/tip_bg_image/tip_image/content_text"):GetComponent(UnityEngine.UI.Text)
+        close_btn.onClick:AddListener(function()
+            --print("关闭UI")
+            self.ui_manager:DestroyUI("dungeon_confirm_progress")
+        end)
+
+        accept_btn.onClick:AddListener(function()
+            --print("接受，关闭UI")
+            self.ui_manager:DestroyUI("dungeon_confirm_progress")
+        end)
+
+        refuse_btn.onClick:AddListener(function()
+            --print("拒绝，关闭UI")
+            self.ui_manager:DestroyUI("dungeon_confirm_progress")
+        end)
+    end)
+end
+
+return dungeon_confirm_progress_view

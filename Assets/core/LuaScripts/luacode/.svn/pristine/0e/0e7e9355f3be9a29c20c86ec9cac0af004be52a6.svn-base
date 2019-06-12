@@ -1,0 +1,39 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    
+
+    local view_go = self:getGO()
+    view_go.transform.position = self.m_frame:get_pos()
+    view_go.transform.localEulerAngles = Vector3(0, self.m_frame:get_dir(), 0)
+    view_go.transform.localScale = Vector3.one
+    view_go.gameObject.layer = LayerMask.NameToLayer("Role")
+    view_go.gameObject:SetActive(false)
+
+    self:subscribe(self.m_frame:on_event_pos_set(true),function(val)
+        view_go.transform.position = val
+    end)
+
+    self:subscribe(self.m_frame:on_event_show_view(),function()
+        self:loadPrefab(view_go)
+        
+    end)
+end
+
+function M:loadPrefab(view_go)
+    local model_id = self.m_frame:get_model_id()
+    local path = app:get_model_mgr().GetPrefabPathById(model_id)
+    self:load(
+        path,
+        function(go)
+            go.transform.localPosition = Vector3.zero
+            go.transform.localEulerAngles = Vector3.zero
+            go.transform.localScale = Vector3.one
+            -- 表现特效
+            app:get_model_mgr().LoadAppearanceSfx(model_id, go)
+            view_go.gameObject:SetActive(true)
+        end)
+end
+
+return M

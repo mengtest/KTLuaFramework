@@ -1,0 +1,19 @@
+local ObserverHost = require "system.observer_host"
+
+local BpVfxMgr = class("BpVfxMgr")
+
+BpVfxMgr:include(ObserverHost)
+
+function BpVfxMgr:initialize()
+
+end
+
+function BpVfxMgr:destroy()
+	self:unsubscribeAll()
+end
+
+function BpVfxMgr:update()
+
+end
+
+return BpVfxMgr

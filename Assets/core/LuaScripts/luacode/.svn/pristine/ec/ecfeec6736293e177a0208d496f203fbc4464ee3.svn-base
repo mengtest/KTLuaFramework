@@ -1,0 +1,93 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+    
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.CLIMB)
+    
+    self.m_unit:set_anim_trigger("climb")
+    
+    self.m_ladder = self.m_param.ladder
+    
+    local start_pos = self.m_ladder:getEnterPos(self.m_param.collider:GetInstanceID()).position
+    
+    self.m_unit:set_pos(start_pos)
+    self.m_unit:emit_event("set_position", start_pos)
+
+    self.m_param.collider.enabled = false
+    self.m_unit:lookAt(start_pos)
+end
+
+
+function M:exit()
+    --print("UnitActStateSkillSing:exit")
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+    
+    
+    local delta_time = app.get_delta_time()
+    
+    -------------------
+    -- 方位计算---
+    local move_speed = self.m_unit:get_move_speed()
+    
+    local move_dir = self.m_unit:get_move_state()
+
+    -- 我能怎么办 我也很绝望啊
+    if(move_dir == 1) then
+        self:Move(Vector3(0,move_speed * delta_time,0))
+    elseif(move_dir == 5) then
+        self:Move(Vector3(0,-move_speed * delta_time,0))
+    elseif(move_dir == 3) then
+    
+    elseif(move_dir == 4) then
+    
+    end
+
+   
+    
+   
+
+end
+
+
+function M:Move(V3)
+
+    local cc = self.m_unit:get_cc()
+
+    if cc == nil then
+        return
+    end
+
+    cc:Move(V3)
+    
+    self.m_unit:set_pos(cc.transform.position)
+    
+    if(self.m_param.collider.enabled == false) then
+        self.m_param.collider.enabled = true
+    end
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+return M

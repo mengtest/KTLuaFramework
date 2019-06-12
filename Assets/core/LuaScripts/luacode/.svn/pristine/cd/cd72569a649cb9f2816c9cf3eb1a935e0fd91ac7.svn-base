@@ -1,0 +1,30 @@
+﻿
+--由于是全局事件，为防止重名应遵守一些命名规则
+--例如：
+--		所有事件名以"EVENT_"开头
+--		之后尽量按系统层次划分，以"_"分隔，如
+--		武器系统->装备武器 事件，可如此命名："EVENT_WEAPON_EQUIP"
+--		技能系统->释放技能 事件，可如此命名："EVENT_SKILL_USESKILL"
+
+
+Event_counter = require("event.event_counter")
+
+-- 任务系统 Quest System
+EVENT_QUEST_ADD_QUEST = Event_counter:get_event_value()             -- 添加任务（不一定是新接到的任务，可能是第一次进游戏后收到的已接任务）
+EVENT_QUEST_ADD_NEW_QUEST = Event_counter:get_event_value()         -- 添加新任务（一定是收到的新任务）
+EVENT_QUEST_DEL_QUEST = Event_counter:get_event_value()             -- 删除任务
+EVENT_QUEST_FIRST_TRIGGER = Event_counter:get_event_value()         -- 首次触发指定任务
+EVENT_QUEST_UPDATE_QUEST = Event_counter:get_event_value()          -- 更新任务状态
+EVENT_QUEST_ADD_AREA_CONDITION = Event_counter:get_event_value()    -- 添加区域触发条件
+EVENT_QUEST_FINISH_QUEST = Event_counter:get_event_value()          -- 完成任务
+EVENT_QUEST_DELIVER = Event_counter:get_event_value()               -- 交付任务
+
+-- 团队系统 Team System
+EVENT_TEAM_ADD_MEMBER = Event_counter:get_event_value()             -- 添加队员
+EVENT_TEAM_DEL_MEMBER = Event_counter:get_event_value()             -- 移除队员
+EVENT_TEAM_STATUS_CHANGED = Event_counter:get_event_value()         -- 状态改变
+
+
+-- 场景
+EVENT_SCENE_LOADED = Event_counter:get_event_value()                -- 场景加载完毕
+EVENT_SCENE_UNLOADED = Event_counter:get_event_value()              -- 场景卸载完毕

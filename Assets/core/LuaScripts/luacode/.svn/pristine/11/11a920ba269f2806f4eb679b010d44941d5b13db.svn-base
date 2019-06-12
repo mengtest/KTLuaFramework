@@ -1,0 +1,49 @@
+local View = require("system.view")
+local spirit_handbook_info_view = class("spirit_handbook_info_view", View)
+
+function spirit_handbook_info_view:doInit()
+    self.m_stars_go_list = {}
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritHandBookInfo"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+        local frame = self:getFrame()
+
+        -- 暂时是5颗星  以后有变再说
+        for i = 1, 5 do
+            local star = self["stars_gameObject"].transform:GetChild(i - 1)
+            table.insert(self.m_stars_go_list, star.gameObject)
+        end
+
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 技能
+            if string.find(name, "spirit_handbook_info_skill_btn") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self["skill_panel_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+
+        -- 刷新星星
+        self:subscribe(frame:on_event("refresh_star"), function(id)
+            for i, v in ipairs(self.m_stars_go_list) do
+                if i <= dbc.sprite[id].max_rating then
+                    v.transform.gameObject:SetActive(true)
+                else
+                    v.transform.gameObject:SetActive(false)
+                end
+            end
+        end )
+
+        frame:on_loaded()
+    end)
+
+end
+
+return spirit_handbook_info_view

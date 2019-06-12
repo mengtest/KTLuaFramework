@@ -1,0 +1,80 @@
+local Frame = require("system.frame")
+local skill_ui_setting = class("skill_ui_setting", Frame)
+
+
+
+Attribute.decl(skill_ui_setting, "source_skill_id", 0) -- 原技能id
+Attribute.decl(skill_ui_setting, "target_skill_id", 0) -- 目标技能id
+Attribute.decl(skill_ui_setting, "is_dropped", false) -- 扔下技能
+Attribute.decl(skill_ui_setting, "is_created_skill_list", false) -- 是否已经创建了技能列表
+
+Event.decl(skill_ui_setting, "skill_btn_on_click")  -- 技能按钮被点击事件
+
+
+
+function skill_ui_setting:doInit(param)
+
+    -- 已经学习的主动技能  资讯列表
+    self.m_skill_info_list = {}
+
+end
+
+function skill_ui_setting:on_loaded()
+
+    local skill_ui_manager = self:getFrame("skill_ui_manager")
+    local master_info_list = skill_ui_manager:get_master_info_list()
+    for i, v in ipairs(master_info_list) do
+        if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+            table.insert(self.m_skill_info_list, v)
+        end
+    end
+
+    -- 初始化 创建全部技能按钮
+    self.m_skill_btn_list = {}
+    local skill_num = 0
+    local slot = 0
+    for i = 1, 11 do
+        skill_num = skill_num + 1
+        slot = i - 1
+        local skill_id = v
+        local skill_btn = self:createChild("skill_ui_setting_btn" .. slot, "%subsystem/skill_system_ui/skill_ui_setting_btn", slot)
+        self.m_skill_btn_list[skill_num] = skill_btn
+    end
+
+    -- 监听发来的新学习技能列表
+    self:subscribe(skill_ui_manager:on_event("master_info_add"), function(skill_info)
+        for i, v in ipairs(skill_info) do
+            if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+                table.insert(self.m_skill_info_list, v)
+            end
+        end
+    end)
+
+end
+
+-- 创建技能列表
+function skill_ui_setting:create_skill_list()
+    self.skill_ui_setting_list = self:createChild("skill_ui_setting_list", "%subsystem/skill_system_ui/skill_ui_setting_list")
+    return self.skill_ui_setting_list
+end
+-- 销毁技能列表
+function skill_ui_setting:destroy_skill_list()
+    self:destroyChild(self.skill_ui_setting_list)
+
+end
+-- 点击技能按钮并且记录所点击的技能frame
+function skill_ui_setting:on_click_btn(btn_frame)
+    self:emit_event("skill_btn_on_click", btn_frame)
+end
+
+-- 返回主动技能资讯列表[可能没有用了]
+function skill_ui_setting:get_skill_info_list()
+    return self.m_skill_info_list
+end
+-- 返回当前所有槽位的frame
+function skill_ui_setting:get_skill_btn_list()
+    return self.m_skill_btn_list
+end
+
+
+return skill_ui_setting

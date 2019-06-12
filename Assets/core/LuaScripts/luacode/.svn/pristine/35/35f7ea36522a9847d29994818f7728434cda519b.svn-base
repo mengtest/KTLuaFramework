@@ -1,0 +1,18 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/27 15:54
+---
+local mini_map_icon_template = require("frame.map.mini_map.mini_map_icon_template")
+local mini_map_quest_icon = class("mini_map_quest_icon", mini_map_icon_template)
+
+function mini_map_quest_icon:doInit(params)
+    self:set_is_add_rect_trans(true)
+
+    self.m_icon_path = params.icon_path
+end
+
+function mini_map_quest_icon:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return mini_map_quest_icon

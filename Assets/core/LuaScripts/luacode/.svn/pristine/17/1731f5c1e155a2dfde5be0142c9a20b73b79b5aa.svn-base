@@ -1,0 +1,12 @@
+local row_0 = {['tmpl']=11,['name']='情书',['derived']=0,['derived_params']={1},['bag_icon']='',['inventory_type']=0,['equip_path']=''}
+local row_1 = {['tmpl']=22,['name']='秘笈',['derived']=0,['derived_params']={1},['bag_icon']='',['inventory_type']=0,['equip_path']=''}
+local row_2 = {['tmpl']=99,['name']='棒球帽',['derived']=1,['derived_params']={0,1,0},['bag_icon']='',['inventory_type']=0,['equip_path']=''}
+local row_3 = {['tmpl']=100,['name']='剑',['derived']=1,['derived_params']={0,10,15},['bag_icon']='',['inventory_type']=0,['equip_path']=''}
+
+local datas = {
+	[11] = row_0,
+	[22] = row_1,
+	[99] = row_2,
+	[100] = row_3,
+}
+return datas

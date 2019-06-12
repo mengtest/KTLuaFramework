@@ -1,0 +1,10 @@
+local row_0 = {['id']=1,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+local row_1 = {['id']=2,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+local row_2 = {['id']=3,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+}
+return datas

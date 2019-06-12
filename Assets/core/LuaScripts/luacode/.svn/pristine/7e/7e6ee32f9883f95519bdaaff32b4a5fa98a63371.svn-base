@@ -1,0 +1,286 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/10/27 10:00
+local View = require("system.view")
+local skill_show_view = class("skill_show_view", View)
+
+function skill_show_view : doInit(param)
+    -- 获取当前角色unit 为的是get_skill
+    self.m_unit = self:getFrame("world"):get_main_player()
+    self.m_skill_data = nil
+    local frame = self:getFrame()
+    self.m_curr_skill_data_list = {}
+    self.ui_manager = app:get_ui_manager()
+    self.isShow = false
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    -------还可以升级几次，这是一个数字
+    self.m_is_level = nil
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Skill_show_hint"), function(go)
+
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        -- 名称
+        self.m_name_text = go.transform:Find("bg/show/name"):GetComponent(UI.Text)
+        -- 等级
+        self.m_level_text = go.transform:Find("bg/show/name/level"):GetComponent(UI.Text)
+        -- 来源类型
+        self.m_type_text = go.transform:Find("bg/show/type"):GetComponent(UI.Text)
+        -- 消耗
+        self.m_cost_text = go.transform:Find("bg/show/cost"):GetComponent(UI.Text)
+        self.m_cost_pos = self.m_cost_text.gameObject.transform.localPosition
+        -- 射程
+        self.m_cast_dist_text = go.transform:Find("bg/show/cast_dist"):GetComponent(UI.Text)
+        self.m_cast_dist_pos = self.m_cast_dist_text.gameObject.transform.localPosition
+        -- 施法时间
+        self.m_cast_time_text = go.transform:Find("bg/show/cast_time"):GetComponent(UI.Text)
+        self.m_cast_time_pos = self.m_cast_time_text.gameObject.transform.localPosition
+        -- 自cd
+        self.m_cd_text = go.transform:Find("bg/show/cd"):GetComponent(UI.Text)
+        self.m_cd_pos = self.m_cd_text.gameObject.transform.localPosition
+        -- 简述
+        self.m_description_text = go.transform:Find("bg/show/description"):GetComponent(UI.Text)
+        self.m_description_pos = self.m_description_text.gameObject.transform.localPosition
+        -- 公cd
+        self.m_g_cd_text = go.transform:Find("bg/show/description/g_cd"):GetComponent(UI.Text)
+        -- 升级按钮
+        self.m_level_up_btn = go.transform:Find("bg/show/level_up"):GetComponent(UI.Button)
+
+
+        self:refresh_show_data(self:getFrame("skill_ui_list"):get_curr_selected_skill())
+        -- 专精切换
+        self:subscribe(self.m_skill_ui_manager:on_event("change_specilization"), function()
+            self:refresh_show_data(self:getFrame("skill_ui_list"):get_curr_selected_skill())
+        end)
+
+
+        self:subscribe(frame:on_event("refrsh_data_list"), function(data)
+            self.m_curr_skill_data_list = data
+            self:refresh_show_data(data)
+        end)
+
+        ------当最大等级提升时作出的处理
+        self:subscribe(frame:on_event("refrsh_max_level"), function(max_level)
+            self.m_curr_skill_data_list["max_level"] = max_level
+            if self.m_curr_skill_data_list["curr_level"] < self.m_curr_skill_data_list["max_level"] then
+                self.m_level_up_btn.gameObject:SetActive(true)
+            end
+        end)
+
+        self:subscribe(self.m_skill_ui_manager:on_event("skill_curr_level_up"), function(skill_id)
+            self:refresh_show_level(skill_id)
+        end)
+
+        ----处理升级
+        self.m_level_up_btn.onClick:AddListener(function()
+            self.m_skill_ui_manager:req_master_learn(self.m_curr_skill_data_list["id"])
+        end)
+    end)
+end
+
+-----升级之后做的判断，是否可以继续升级
+function skill_show_view:refresh_show_level(skill_id)
+
+    if skill_id == self.m_curr_skill_data_list["id"] then
+        self.m_curr_skill_data_list["curr_level"] = self.m_curr_skill_data_list["curr_level"] + 1
+
+        --详细信息__等级
+        self.m_level_text.text = "lv." .. self.m_curr_skill_data_list["curr_level"]
+        local result = self.m_curr_skill_data_list["max_level"] - self.m_curr_skill_data_list["curr_level"]
+        --是否显示升级按钮
+        if result <= 0 then
+            self.m_level_up_btn.gameObject:SetActive(false)
+        end
+    end
+end
+
+-----点击技能之后的处理
+function skill_show_view:refresh_show_data(data)
+
+    local id = data["id"]
+    local curr_level = data["curr_level"]
+    local max_level = data["max_level"]
+    local state = data["state"]
+    ------初始化列表
+
+
+    -- 急速率
+    local haste = self:get_role():get_attr("haste") / 10000
+    -- 获取当前技能的skill_data
+    self.m_skill_data = self.m_unit:get_skill(id)
+    -- 此界面需要显示的冷却时间[通过急速率的一系列计算放到了skill_data中]
+    local cd_time = utility.math:GetPreciseDecimal(self.m_skill_data:get_cooldown(), 2)
+    --print("冷却时间:", cool_down_from_skill_data, haste, cd_time)
+
+    -- 获取skill_data中经过计算的施法时间
+    local cast_time_from_skill_data = self.m_skill_data:get_cast_time()
+    -- 通过急速率算出的不保留小数位数的施法时间
+    local cast_time_total = cast_time_from_skill_data / (haste + 1)
+    -- 此界面需要显示的施法时间
+    local cast_time = utility.math:GetPreciseDecimal(cast_time_total, 2)
+    --print("施法时间:", cast_time_from_skill_data, haste, cast_time, type(cast_time))
+    ---- 2017.12.11 临时先加一个公cd的显示位置【只是为了策划验证】
+    self.m_g_cd_text.text = utility.math:GetPreciseDecimal(self.m_skill_data:get_global_cooldown_time(), 2)
+
+
+
+    self.m_curr_skill_data_list["id"] = id
+    self.m_curr_skill_data_list["curr_level"] = curr_level
+    self.m_curr_skill_data_list["max_level"] = max_level
+    self.m_curr_skill_data_list["state"] = state
+
+    if curr_level < max_level then
+        self.m_level_up_btn.gameObject:SetActive(true)
+    else
+        self.m_level_up_btn.gameObject:SetActive(false)
+    end
+
+
+
+    -- 被动技能的话 好多东西都隐藏掉
+    if dbc.spell_ui[id].passivity_skill == enum.ui.Enum_UI_SkillType.PASSIVE_SKILL then
+        -- 法力消耗处填写被动技能
+        self.m_cost_text.text = "被动技能"
+        -- 施法时间不填
+        self.m_cast_time_text.text = ""
+        -- 冷却时间不填
+        self.m_cd_text.text = ""
+        -- 射程不填
+        self.m_cast_dist_text.text = ""
+        -- 简述上移
+        self.m_description_text.gameObject.transform.localPosition = Vector3(self.m_description_pos.x, self.m_description_pos.y + 50, 0)
+    else
+        --详细信息__技能消耗
+        if self.m_skill_data:get_cost_type() == enum.shared.SpellCostType.MANA then
+            local cost_num = self.m_skill_data:get_cost_num() / 10000 * self:get_role():get_mana_max()
+            self.m_cost_text.text = tostring( cost_num .. "法力值")
+            -- 消耗
+            self.m_cost_text.gameObject.transform.localPosition = self.m_cost_pos
+            -- 射程
+            self.m_cast_dist_text.gameObject.transform.localPosition = self.m_cast_dist_pos
+            -- 施法时间
+            self.m_cast_time_text.gameObject.transform.localPosition = self.m_cast_time_pos
+            -- 自cd
+            self.m_cd_text.gameObject.transform.localPosition = self.m_cd_pos
+            -- 简述
+            self.m_description_text.gameObject.transform.localPosition = self.m_description_pos
+        elseif self.m_skill_data:get_cost_type() == enum.shared.SpellCostType.PAIN then
+            local cost_num = self.m_skill_data:get_cost_num()
+            self.m_cost_text.text = tostring( self.m_skill_data:get_cost_num() .. "痛苦值")
+            -- 消耗
+            self.m_cost_text.gameObject.transform.localPosition = self.m_cost_pos
+            -- 射程
+            self.m_cast_dist_text.gameObject.transform.localPosition = self.m_cast_dist_pos
+            -- 施法时间
+            self.m_cast_time_text.gameObject.transform.localPosition = self.m_cast_time_pos
+            -- 自cd
+            self.m_cd_text.gameObject.transform.localPosition = self.m_cd_pos
+            -- 简述
+            self.m_description_text.gameObject.transform.localPosition = self.m_description_pos
+        elseif self.m_skill_data:get_cost_type() == enum.shared.SpellCostType.FURY then
+            local cost_num = self.m_skill_data:get_cost_num() / 10000 * self:get_role():get_mana_max()
+            self.m_cost_text.text = tostring( self.m_skill_data:get_cost_num() .. "恶魔值")
+            -- 消耗
+            self.m_cost_text.gameObject.transform.localPosition = self.m_cost_pos
+            -- 射程
+            self.m_cast_dist_text.gameObject.transform.localPosition = self.m_cast_dist_pos
+            -- 施法时间
+            self.m_cast_time_text.gameObject.transform.localPosition = self.m_cast_time_pos
+            -- 自cd
+            self.m_cd_text.gameObject.transform.localPosition = self.m_cd_pos
+            -- 简述
+            self.m_description_text.gameObject.transform.localPosition = self.m_description_pos
+        elseif self.m_skill_data:get_cost_type() == enum.shared.SpellCostType.NONE then
+            self.m_cost_text.text = ""
+            -- 当无消耗有射程的时候 射程位置变到消耗处
+            if dbc.spell[id].cast_dist ~= 0 then
+                -- 射程[消耗的文本写射程]
+                self.m_cost_text.text = tostring(dbc.spell[id].cast_dist .. "码射程")
+                -- 施法时间
+                self.m_cast_time_text.gameObject.transform.localPosition = self.m_cast_time_pos
+                -- 自cd
+                self.m_cd_text.gameObject.transform.localPosition = self.m_cd_pos
+                -- 简述
+                self.m_description_text.gameObject.transform.localPosition = self.m_description_pos
+            else
+                -- 当无消耗无射程时，施法时间和冷却时间上移
+                self.m_cast_time_text.gameObject.transform.localPosition = self.m_cost_pos
+                self.m_cd_text.gameObject.transform.localPosition = self.m_cast_dist_pos
+                self.m_description_text.gameObject.transform.localPosition = Vector3(self.m_description_pos.x, self.m_description_pos.y + 50, 0)
+            end
+        end
+
+        --详细信息__施法时间
+        if cast_time ~= "0.0" then
+            self.m_cast_time_text.text = tostring(cast_time .. "秒施法时间")
+        else
+            self.m_cast_time_text.text = "瞬发"
+        end
+        --详细信息__射程
+        if dbc.spell[id].cast_dist ~= 0 then
+            if self.m_skill_data:get_cost_type() == enum.shared.SpellCostType.NONE then
+                self.m_cast_dist_text.text = ""
+            else
+                self.m_cast_dist_text.text = tostring(dbc.spell[id].cast_dist .. "码射程")
+            end
+        else
+            self.m_cast_dist_text.text = ""
+        end
+        --详细信息__冷却时间
+        if cd_time ~= "0.0" then
+            self.m_cd_text.text = tostring(cd_time .. "秒冷却")
+        else
+            self.m_cd_text.text = ""
+        end
+    end
+
+
+    --详细信息__名字
+    self.m_name_text.text = dbc.spell_ui[id].name
+    --详细信息__显示
+    self.m_description_text.text = dbc.spell_ui[id].detail_explain_skill
+    --详细信息__等级
+    self.m_level_text.text = "Lv." .. curr_level
+
+    --伤害类型
+    if dbc.spell_ui[id].source_type_skill == 0 then
+        self.m_type_text.text = ""
+    elseif dbc.spell_ui[id].source_type_skill == 1 then
+        if dbc.spell_ui[id].source_parameters_skill == 0 then
+            self.m_type_text.text = "专精技能"
+        elseif dbc.spell_ui[id].source_parameters_skill == 1 then
+            ---- TODO 这个具体规则还没定
+        end
+    elseif dbc.spell_ui[id].source_type_skill == 2 then
+        if dbc.spell_ui[id].source_parameters_skill == 0 then
+            self.m_type_text.text = "神器技能"
+        end
+    elseif dbc.spell_ui[id].source_type_skill == 3 then
+        if dbc.spell_ui[id].source_parameters_skill == 0 then
+            self.m_type_text.text = "天赋技能"
+        elseif dbc.spell_ui[id].source_parameters_skill == 1 then
+            ---- TODO 这个具体规则还没定
+        end
+    elseif dbc.spell_ui[id].source_type_skill == 4 then
+        if dbc.spell_ui[id].source_parameters_skill == 0 then
+            self.m_type_text.text = "工会技能"
+        elseif dbc.spell_ui[id].source_parameters_skill == 1 then
+            ---- TODO 这个具体规则还没定
+        end
+    elseif dbc.spell_ui[id].source_type_skill == 5 then
+        if dbc.spell_ui[id].source_parameters_skill == 0 then
+            self.m_type_text.text = "装备技能"
+        end
+    end
+
+end
+
+function skill_show_view:get_role()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    return role
+end
+
+
+return skill_show_view

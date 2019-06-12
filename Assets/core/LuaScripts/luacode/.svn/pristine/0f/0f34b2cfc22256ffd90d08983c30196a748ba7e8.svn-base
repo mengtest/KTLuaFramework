@@ -1,0 +1,1051 @@
+local require_relative = REQUIRE_BASE(...)
+local ObserverHost = require "system.observer_host"
+local Combat = require_relative("interfaces.Combat")
+local CombatState = require_relative("interfaces.CombatState")
+local M = class("Role")
+
+-- include mixin
+M:include(ObserverHost, Combat, CombatState)
+
+Attribute.decl(M, "pos", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "dir", function()
+    return 0
+end)
+Attribute.decl(M, "move_state", 0)
+Attribute.decl(M, "move_speed", 0)
+Attribute.decl(M, "name", "")
+Attribute.decl(M, "health", 0)
+Attribute.decl(M, "health_max", 0)
+Attribute.decl(M, "target_id", 0)
+Attribute.decl(M, "in_combat", 0)
+Attribute.decl(M, "dbid", 0)
+Attribute.decl(M, "rclass", -1)
+Attribute.decl(M, "specialization", -1)
+Attribute.decl(M, "is_main_player", false)
+Attribute.decl(M, "world_time", 0)
+
+--公共载具相关
+Attribute.decl(M, "vhcl", 0)
+Attribute.decl(M, "vpos", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "vdir", function()
+    return Vector3(0, 0, 0)
+end)
+
+-- rjy 2017.10.28 技能消耗
+Attribute.decl(M, "mana", 0)
+Attribute.decl(M, "mana_max", 0)
+Attribute.decl(M, "mana_regain", 0)
+Attribute.decl(M, "pain", 0)
+Attribute.decl(M, "pain_max", 0)
+Attribute.decl(M, "fury", 0)
+Attribute.decl(M, "fury_max", 0)
+
+----ke 添加角色是否在副本的属性  2017.11.13
+Attribute.decl(M, "inst_id", 0)
+
+---- 出战灵兽属性
+Attribute.decl(M, "attached_sprite", 0)
+Attribute.decl(M, "target_giver_id", nil) --by lijunfeng 2018/1/27 休闲npc对话停止移动的npc id
+
+Event.decl(M, "quest_all")
+Event.decl(M, "quest_jobs")
+Event.decl(M, "quest_ready")
+Event.decl(M, "quest_remove")
+Event.decl(M, "quest_revert")
+Event.decl(M, "quest_update")
+Event.decl(M, "quest_token_ticket")
+Event.decl(M, "quest_status") --by lijunfeng 2018/2/6 任务重置时间戳
+Event.decl(M, "quiz_bgn")
+Event.decl(M, "quiz_end")
+
+Event.decl(M, "jump")
+Event.decl(M, "treasure_touching")
+Event.decl(M, "treasure_touched")
+-- ↓↓↓↓↓位移相关↓↓↓↓↓
+Event.decl(M, "special_move")
+Event.decl(M, "set_position")
+Event.decl(M, "update_position")
+-- ↑↑↑↑↑位移相关↑↑↑↑↑
+Event.decl(M, "play_anim")
+
+-- 组队
+Event.decl(M, "team_info")
+Event.decl(M, "member_info")
+Event.decl(M, "invite_team")
+Event.decl(M, "resp_result")
+Event.decl(M, "change_leader")
+Event.decl(M, "change_hp_for_team")
+Event.decl(M, "change_max_hp_for_team")
+Event.decl(M, "change_specialization_for_team")
+Event.decl(M, "member_add_aura_for_team")
+Event.decl(M, "member_del_aura_for_team")
+Event.decl(M, "join_team_notify")
+Event.decl(M, "leave_team_notify")
+Event.decl(M, "member_state_change")
+Event.decl(M, "member_position")
+
+--匹配
+Event.decl(M, "resp_get_match_data")
+Event.decl(M, "will_create_matching")
+Event.decl(M, "will_create_matching_inst")
+Event.decl(M, "come_back_matching_inst")
+Event.decl(M, "can_join_matching")
+--副本
+Event.decl(M, "resp_unlock_instance")
+Event.decl(M, "unlock_new_instance")
+Event.decl(M, "instance_diffculty_select")
+Event.decl(M, "resp_inst_progress")
+Event.decl(M, "sync_inst_data")
+Event.decl(M, "sync_inst_time")
+Event.decl(M, "sync_inst_data_before_enter")
+Event.decl(M, "resp_kill_pro_for_diff_sel")
+
+-- 技能天赋
+Event.decl(M, "master_all")
+Event.decl(M, "master_enabled")
+Event.decl(M, "master_learnt")
+Event.decl(M, "master_available")
+Event.decl(M, "master_level")
+Event.decl(M, "master_stat")
+Event.decl(M, "master_page")
+Event.decl(M, "master_slot")
+Event.decl(M, "master_status")
+
+
+-- 技能
+Event.decl(M, "cast_prepare")
+Event.decl(M, "cast_failed")
+Event.decl(M, "spell_start")
+Event.decl(M, "spell_go")
+Event.decl(M, "spell_failure")
+Event.decl(M, "be_hit")
+-- 技能模板修改 --
+Event.decl(M, "add_spell_mod")
+-- cd重置
+Event.decl(M, "spell_cd_reset")
+-- cd变化
+Event.decl(M, "spell_cd_mod")
+
+----装备背包
+Event.decl(M, "inventory_all")
+Event.decl(M, "inventory_countables")
+Event.decl(M, "inventory_wearables")
+Event.decl(M, "inventory_equipped_head")
+Event.decl(M, "inventory_unequipped_head")
+Event.decl(M, "inventory_equipped_shoulder")
+Event.decl(M, "inventory_unequipped_shoulder")
+Event.decl(M, "inventory_equipped_chest")
+Event.decl(M, "inventory_unequipped_chest")
+Event.decl(M, "inventory_equipped_wrist")
+Event.decl(M, "inventory_unequipped_wrist")
+Event.decl(M, "inventory_equipped_hands")
+Event.decl(M, "inventory_unequipped_hands")
+Event.decl(M, "inventory_equipped_waist")
+Event.decl(M, "inventory_unequipped_waist")
+Event.decl(M, "inventory_equipped_legs")
+Event.decl(M, "inventory_unequipped_legs")
+Event.decl(M, "inventory_equipped_feet")
+Event.decl(M, "inventory_unequipped_feet")
+Event.decl(M, "inventory_equipped_neck")
+Event.decl(M, "inventory_unequipped_neck")
+Event.decl(M, "inventory_equipped_back")
+Event.decl(M, "inventory_unequipped_back")
+Event.decl(M, "inventory_equipped_finger1")
+Event.decl(M, "inventory_unequipped_finger1")
+Event.decl(M, "inventory_equipped_finger2")
+Event.decl(M, "inventory_unequipped_finger2")
+Event.decl(M, "inventory_equipped_accessory1")
+Event.decl(M, "inventory_unequipped_accessory1")
+Event.decl(M, "inventory_equipped_accessory2")
+Event.decl(M, "inventory_unequipped_accessory2")
+Event.decl(M, "inventory_equipped_mainhand_weapon")
+Event.decl(M, "inventory_unequipped_mainhand_weapon")
+Event.decl(M, "inventory_equipped_offhand_weapon")
+Event.decl(M, "inventory_unequipped_offhand_weapon")
+----灵兽
+Event.decl(M, "inventory_attachable")
+
+Event.decl(M, "inventory_equipped_metal_sprite")
+Event.decl(M, "inventory_unequipped_metal_sprite")
+Event.decl(M, "inventory_attached_metal_sprite")
+Event.decl(M, "inventory_skinned_metal_sprite")
+
+Event.decl(M, "inventory_equipped_wood_sprite")
+Event.decl(M, "inventory_unequipped_wood_sprite")
+Event.decl(M, "inventory_attached_wood_sprite")
+Event.decl(M, "inventory_skinned_wood_sprite")
+
+Event.decl(M, "inventory_equipped_water_sprite")
+Event.decl(M, "inventory_unequipped_water_sprite")
+Event.decl(M, "inventory_attached_water_sprite")
+Event.decl(M, "inventory_skinned_water_sprite")
+
+Event.decl(M, "inventory_equipped_fire_sprite")
+Event.decl(M, "inventory_unequipped_fire_sprite")
+Event.decl(M, "inventory_attached_fire_sprite")
+Event.decl(M, "inventory_skinned_fire_sprite")
+
+Event.decl(M, "inventory_upgraded_sprite")
+Event.decl(M, "inventory_unattached_sprite")
+Event.decl(M, "inventory_inverted_sprites")
+Event.decl(M, "inventory_merged_sprites")
+
+----套装
+Event.decl(M, "suit_all")
+Event.decl(M, "suit_unlocked")
+Event.decl(M, "suit_collected_upper")
+Event.decl(M, "suit_collected_lower")
+Event.decl(M, "suit_collected_weapon")
+Event.decl(M, "suit_collected_face")
+Event.decl(M, "suit_collected_shoulder")
+Event.decl(M, "suit_collected_back")
+Event.decl(M, "suit_collected_tail")
+Event.decl(M, "suit_collected_waist")
+Event.decl(M, "suit_collected_hands")
+Event.decl(M, "suit_collected_feet")
+Event.decl(M, "suit_dressed_upper")
+Event.decl(M, "suit_dressed_lower")
+Event.decl(M, "suit_dressed_weapon")
+Event.decl(M, "suit_dressed_face")
+Event.decl(M, "suit_dressed_shoulder")
+Event.decl(M, "suit_dressed_back")
+Event.decl(M, "suit_dressed_tail")
+Event.decl(M, "suit_dressed_waist")
+Event.decl(M, "suit_dressed_hands")
+Event.decl(M, "suit_dressed_feet")
+
+----复活状态
+Event.decl(M, "revival_conds")
+----地图系统
+Event.decl(M, "resp_unlock_tele_point")
+
+
+-- ↓↓↓↓↓ 地图编辑器信息 ↓↓↓↓↓↓↓
+--  地图事件
+Event.decl(M, "map_event")
+-- ↑↑↑↑↑ 地图编辑器信息 ↑↑↑↑↑↑↑
+
+
+-- 2017.12.16 rjy 镜头动画事件
+Event.decl(M, "camera_animation")
+-- 屏幕震动
+Event.decl(M, "screen_shake")
+Event.decl(M, "mumble_bgn") --by lijunfeng 2018/1/27 休闲npc对话停止移动
+--------------------------------------------------------------------------------
+-- base call
+--------------------------------------------------------------------------------
+function M:base_call(method, ...)
+    app:getKBESDK():entity_base_call(self.m_id, method, ...)
+end
+
+--------------------------------------------------------------------------------
+-- cell call
+--------------------------------------------------------------------------------
+function M:cell_call(method, ...)
+    app:getKBESDK():entity_cell_call(self.m_id, method, ...)
+end
+
+function M:set_vehicle_state(state)
+    self:cell_call('vehicle_switch', state)
+end
+
+function M:set_vehicle_detail(v_pos, v_dir)
+    local server_support_pos = Vector3(v_pos.x, v_pos.y, v_pos.z)
+    self:cell_call('vehicle_locate', server_support_pos, Vector3(0, 0, 0))
+end
+
+function M:set_move_state(state)
+    self:cell_call('set_move_state', state)
+end
+
+function M:use_skill(skill_id, target_id, target_pos, dir)
+    --Debug.LogError("请求释放技能："..skill_id)
+    self:cell_call('cast_spell', 1, skill_id, target_id, target_pos, dir)
+end
+
+-- pacman 2018-01-25 请求取消施法
+function M:cancel_cast()
+    self:cell_call('cancel_cast')
+end
+
+-- 请求广播采集结束
+function M:treasure_end()
+    self:cell_call('c2s_perform', enum.shared.RoleAction.MOTION_TREASURE_END)
+end
+
+--- 请求广播动作角色状态变化
+function M:c2s_perform(state)
+    self:cell_call('c2s_perform', state)
+end
+
+-- 请求广播开始采集(需要等待服务器验证)
+function M:treasure_begin(id, func)
+    self.m_treasure_begin_func = func
+    self:cell_call("treasure_touch_bgn", id)
+end
+
+-- 请求广播采集结束(需要等待服务器验证)
+function M:treasure_end(id, result)
+    if (result == true) then
+        -- 因为现在服务器还没有做验证 所以我们需要自己判断是否上传此消息
+        --Debug.LogError("self.server_ticket--->"..tostring(self.server_ticket))
+        self:cell_call("treasure_touch_end", id, self.server_ticket)
+    end
+
+    self:c2s_perform(enum.shared.RoleAction.MOTION_TREASURE_END)
+end
+-- 切换专精
+function M:active_talent_specialization(specialization)
+    self:cell_call("active_talent_specialization", specialization)
+end
+
+--[[function M:set_target(target_id)
+self:cell_call('set_target', target_id)
+end--]]
+--------------------------------------------------------------------------------
+-- call from server
+--------------------------------------------------------------------------------
+
+--by lijunfeng 2018/3/5 添加marks参数
+function M:quest_all(timestamp, infos, nexts, prevs, panels, marks)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_all, timestamp =\n" .. utility.string:get_string_by_tbl(timestamp))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_all, infos =\n" .. utility.string:get_string_by_tbl(infos))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_all, nexts =\n" .. utility.string:get_string_by_tbl(nexts))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_all, prevs =\n" .. utility.string:get_string_by_tbl(prevs))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_all, panels =\n" .. utility.string:get_string_by_tbl(panels))
+    self:emit_event("quest_all", timestamp, infos, nexts, prevs, panels, marks)
+end
+
+function M:quest_jobs(infos, nexts, prevs, panels)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_jobs, infos =\n" .. utility.string:get_string_by_tbl(infos))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_jobs, nexts =\n" .. utility.string:get_string_by_tbl(nexts))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_jobs, prevs =\n" .. utility.string:get_string_by_tbl(prevs))
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_jobs, panels =\n" .. utility.string:get_string_by_tbl(panels))
+    self:emit_event("quest_jobs", infos, nexts, prevs, panels)
+end
+
+function M:quest_ready(infos)
+end
+
+function M:quest_remove(id)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_remove, id = " .. tostring(id))
+    print("任务完成", id)
+    self:emit_event("quest_remove", id)
+end
+
+function M:quest_revert(id)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_revert, id = " .. tostring(id))
+    self:emit_event("quest_revert", id)
+end
+
+function M:quest_update(id, num, cond)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, string.format("Role::quest_update, id = %s, num = %s, cond = %s", tostring(id), tostring(num), utility.string:get_string_by_tbl(cond)))
+    print("quest_update", id, num, cond)
+    self:emit_event("quest_update", id, num, cond)
+end
+
+function M:dialog_bgn(token_ticket, entity_id)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::dialog_bgn, " .. token_ticket)
+    print("dialog_bgn", token_ticket, entity_id)
+    self:emit_event("quest_token_ticket", token_ticket, entity_id)
+end
+
+function M:quest_done_bgn(token_ticket, entity_id)
+    --utility.log:logError(utility.log.Mask.SJG_Quest, "Role::quest_done_bgn, " .. token_ticket)
+    print("quest_done_bgn", token_ticket, entity_id)
+    self:emit_event("quest_token_ticket", token_ticket, entity_id)
+end
+
+function M:quiz_bgn(quiz_id, index, answer1, answer2, hint)
+    --utility.log:logError(utility.log.Mask.SJG_Quiz, "Role::quiz_bgn(),\n quiz_id = %s,\n index = %s,\n answer1 = %s,\n answer2 = %s,\n hint = %s", quiz_id, index, answer1, answer2, hint)
+    self:emit_event("quiz_bgn", quiz_id, index, answer1, answer2, hint)
+end
+
+function M:quiz_end(quiz_id, index, is_correct)
+    --utility.log:logError(utility.log.Mask.SJG_Quiz, "Role::quiz_end(),\n quiz_id = %s,\n index = %s,\n is_correct = %s", quiz_id, index, is_correct)
+    self:emit_event("quiz_end", quiz_id, index, is_correct)
+end
+
+--by lijunfeng 2018/2/6 重置任务时间戳
+function M:quest_status(quiz_id, timestamp)
+    --utility.log:logError(utility.log.Mask.SJG_Quiz, "Role::quiz_end(),\n quiz_id = %s,\n index = %s,\n is_correct = %s", quiz_id, index, is_correct)
+    self:emit_event("quest_status", quiz_id, timestamp)
+end
+
+-- ↓↓↓  技能  ↓↓↓
+
+function M:cast_prepare(client_cast_id, server_cast_id)
+    --app:logError("我要施法！！  client_cast_id = "..client_cast_id.." server_cast_id = "..server_cast_id)
+    self:emit_event("cast_prepare", client_cast_id, server_cast_id)
+end
+
+function M:cast_failed(cast_id, spell_id, reason)
+    self:emit_event("cast_failed", cast_id, spell_id, reason)
+end
+
+-- 技能开始
+function M:spell_start(cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    -- Debug.LogError(self:get_id().." 准备！！技能："..cast_id.." ---> "..spell_id.." cast_time = "..cast_time)
+    self:emit_event("spell_start", cast_id, spell_id, target_id, target_pos, dir, cast_time)
+end
+
+-- 技能释放
+function M:spell_go(cast_id, spell_id, hit_targets, miss_targets)
+    -- Debug.LogError(self:get_id().." 去吧！！技能："..cast_id.." ---> "..spell_id)
+    self:emit_event("spell_go", cast_id, spell_id, hit_targets, miss_targets)
+end
+
+-- 技能失败
+function M:spell_failure(cast_id, spell_id, reason)
+    --Debug.LogError("释放技能失败："..spell_id.." ---> reason = "..reason)
+    self:emit_event("spell_failure", cast_id, spell_id, reason)
+end
+
+-- 命中
+function M:be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)
+    -- if(is_buff == 0) then
+    --     Debug.LogError("咬他！！技能："..attacker_id.." ---> cast_id = "..cast_id.." health = "..health)
+    -- end
+    self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)
+end
+
+-- 技能模板修改 --
+function M:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+    self:emit_event("add_spell_mod", skill_id, spell_mod_op, spell_mod_type, value)
+end
+
+-- 技能CD重置
+function M:spell_cd_reset(spell_id)
+    --app:logError("spell_cd_reset :" .. spell_id)
+    self:emit_event("spell_cd_reset", spell_id)
+end
+
+-- 技能CD变化
+function M:spell_cd_mod(spell_id, second)
+    --app:logError("spell_cd_mod :" .. spell_id .."second :"..second)
+    self:emit_event("spell_cd_mod", spell_id, second)
+end
+
+
+-- ↑↑↑  技能  ↑↑↑
+
+
+function M:s2c_perform(state)
+    self:emit_event("s2c_perform", state)
+end
+
+
+
+-- 播放相机动画(传过来的是id)
+function M:camera_animation(id)
+    self:emit_event("camera_animation", id)
+end
+
+-- 屏幕震动
+function M:screen_shake(id)
+    --print(id)
+    self:emit_event("screen_shake", id)
+end
+
+-- ↓↓↓↓↓↓↓↓ 技能天赋相关 ↓↓↓↓↓↓↓↓ -- rjy 10.31
+-- 取得所有技能
+function M:master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+    self:emit_event("master_all", flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+end
+
+-- 取得天赋技能
+function M:master_enabled(talent_id)
+    self:emit_event("master_enabled", talent_id)
+end
+
+-- 取得新增已学习技能(参数为列表)
+function M:master_learnt(master_info)
+    self:emit_event("master_learnt", master_info)
+end
+
+-- 取得新增已解锁技能(参数为id列表)
+function M:master_available(available_id_list)
+    self:emit_event("master_available", available_id_list)
+end
+
+-- 更新技能等级
+function M:master_level(skill_id)
+    self:emit_event("master_level", skill_id)
+end
+
+-- 更新技能状态
+function M:master_stat(skill_id)
+    self:emit_event("master_stat", skill_id)
+end
+
+-- 更新技能页面
+function M:master_page(page_id)
+    self:emit_event("master_page", page_id)
+end
+
+-- 更新技能位置
+function M:master_slot(skill_id, slot)
+    self:emit_event("master_slot", skill_id, slot)
+end
+
+-- 更新外部技能状态(技能id，最大等级，当前等级，依赖激活【与灵兽中attachable_info中的associated 对应】)
+function M:master_status(skill_id, max_level, curr_level, associated )
+    self:emit_event("master_status", skill_id, max_level, curr_level, associated )
+end
+
+-- ↑↑↑↑↑↑↑↑ 技能天赋相关 ↑↑↑↑↑↑↑↑ --
+
+
+-- ↓↓↓↓↓↓↓↓ 采集相关 ↓↓↓↓↓↓↓↓ -- 
+-- 正在采集
+function M:treasure_touching(live, server_ticket)
+
+    if (self.m_treasure_begin_func ~= nil) then
+        -- 这里以后会根据服务器修改
+        self.m_treasure_begin_func(true)
+    end
+    self.server_ticket = server_ticket
+    self:c2s_perform(enum.shared.RoleAction.MOTION_TREASURE_BGN)
+end
+
+-- 采集完成
+function M:treasure_touched(live, result)
+    --Debug.LogError("treasure_touched")
+end
+
+
+-- ↑↑↑↑↑↑↑↑ 采集相关 ↑↑↑↑↑↑↑↑ -- 
+
+-- ↓↓↓↓↓↓↓↓ 地图编辑器相关 ↓↓↓↓↓↓↓↓ -- 
+-- 地图事件
+function M:map_event(event, arg1, arg2)
+    --self:emit_event(event, arg1,arg2)
+end
+-- ↑↑↑↑↑↑↑↑ 地图编辑器相关 ↑↑↑↑↑↑↑↑ --
+
+--------------------------------------------------------------------------------
+-- 组队
+--------------------------------------------------------------------------------
+function M:team_info(db_id, data)
+    self:emit_event("team_info", db_id, data)
+end
+
+function M:member_info(data)
+    self:emit_event("member_info", data)
+end
+
+function M:invite_team(db_id, inviter_name, team_id)
+    self:emit_event("invite_team", db_id, inviter_name, team_id)
+end
+
+function M:resp_result(team_args_info)
+    self:emit_event("resp_result", team_args_info)
+end
+
+function M:change_leader(db_id)
+    self:emit_event("change_leader", db_id)
+end
+
+function M:change_hp_for_team(db_id, hp)
+    self:emit_event("change_hp_for_team", db_id, hp)
+end
+
+function M:change_max_hp_for_team(db_id, max_hp)
+    self:emit_event("change_max_hp_for_team", db_id, max_hp)
+end
+
+function M:change_specialization_for_team(db_id, specialization)
+    self:emit_event("change_specialization_for_team", db_id, specialization)
+end
+
+function M:member_add_aura_for_team(db_id, aura_info)
+    self:emit_event("member_add_aura_for_team", db_id, aura_info)
+end
+
+function M:member_del_aura_for_team(db_id, index)
+    self:emit_event("member_del_aura_for_team", db_id, index)
+end
+
+function M:join_team_notify(data)
+    self:emit_event("join_team_notify", data)
+end
+
+function M:leave_team_notify(db_id)
+    self:emit_event("leave_team_notify", db_id)
+end
+
+function M:member_state_change(db_id, index)
+    self:emit_event("member_state_change", db_id, index)
+end
+
+function M:member_position(map_id, team_member_position_info)
+    self:emit_event("member_position", map_id, team_member_position_info)
+end
+
+--匹配
+function M:resp_get_match_data(challenge_num, is_maching, dungeon_id, time, duty, diff)
+    self:emit_event("resp_get_match_data", challenge_num, is_maching, dungeon_id, time, duty, diff)
+end
+
+function M:will_create_matching(diff_type, dungeon_id)
+    self:emit_event("will_create_matching", diff_type, dungeon_id)
+end
+
+function M:will_create_matching_inst(dbid, dungeon_id)
+    self:emit_event("will_create_matching_inst", dbid, dungeon_id)
+end
+
+function M:come_back_matching_inst()
+    self:emit_event("come_back_matching_inst")
+end
+
+function M:can_join_matching()
+    self:emit_event("can_join_matching")
+end
+
+---副本
+function M:resp_unlock_instance(unlock_dungeon_list)
+    self:emit_event("resp_unlock_instance", unlock_dungeon_list)
+end
+
+function M:unlock_new_instance(dungeon_id)
+    self:emit_event("unlock_new_instance", dungeon_id)
+end
+
+function M:instance_diffculty_select(map_id)
+    self:emit_event("instance_diffculty_select", map_id)
+end
+
+function M:resp_inst_progress(progress_arry)
+    self:emit_event("resp_inst_progress", progress_arry)
+end
+
+function M:sync_inst_data(time, progress_arry, drag_arry)
+    self:emit_event("sync_inst_data", time, progress_arry, drag_arry)
+end
+
+function M:sync_inst_time(time)
+    self:emit_event("sync_inst_time", time)
+end
+
+function M:sync_inst_data_before_enter(id, progress_arry, drag_arry, reset)
+    self:emit_event("sync_inst_data_before_enter", id, progress_arry, drag_arry, reset)
+end
+
+function M:resp_kill_pro_for_diff_sel(progress_arry, drag_arry)
+    self:emit_event("resp_kill_pro_for_diff_sel", progress_arry, drag_arry)
+end
+
+----装备背包
+function M:inventory_all(countable_info, wearable_info, attachable_info, equipped_inventory, slot_flag, inspiration, handbook)
+    self:emit_event("inventory_all", countable_info, wearable_info, attachable_info, equipped_inventory, slot_flag, inspiration, handbook)
+end
+
+function M:inventory_countables(countable_info)
+    self:emit_event("inventory_countables", countable_info)
+end
+
+function M:inventory_wearables(wearable_info)
+    self:emit_event("inventory_wearables", wearable_info)
+end
+
+function M:inventory_equipped_head(wearable_info)
+    self:emit_event("inventory_equipped_head", wearable_info)
+end
+
+function M:inventory_unequipped_head()
+    self:emit_event("inventory_unequipped_head")
+end
+
+function M:inventory_equipped_shoulder(wearable_info)
+    self:emit_event("inventory_equipped_shoulder", wearable_info)
+end
+
+function M:inventory_unequipped_shoulder()
+    self:emit_event("inventory_unequipped_shoulder")
+end
+
+function M:inventory_equipped_chest(wearable_info)
+    self:emit_event("inventory_equipped_chest", wearable_info)
+end
+
+function M:inventory_unequipped_chest()
+    self:emit_event("inventory_unequipped_chest")
+end
+
+function M:inventory_equipped_wrist(wearable_info)
+    self:emit_event("inventory_equipped_wrist", wearable_info)
+end
+
+function M:inventory_unequipped_wrist()
+    self:emit_event("inventory_unequipped_wrist")
+end
+
+function M:inventory_equipped_hands(wearable_info)
+    self:emit_event("inventory_equipped_hands", wearable_info)
+end
+
+function M:inventory_unequipped_hands()
+    self:emit_event("inventory_unequipped_hands")
+end
+
+function M:inventory_equipped_waist(wearable_info)
+    self:emit_event("inventory_equipped_waist", wearable_info)
+end
+
+function M:inventory_unequipped_waist()
+    self:emit_event("inventory_unequipped_waist")
+end
+
+function M:inventory_equipped_legs(wearable_info)
+    self:emit_event("inventory_equipped_legs", wearable_info)
+end
+
+function M:inventory_unequipped_legs()
+    self:emit_event("inventory_unequipped_legs")
+end
+
+function M:inventory_equipped_feet(wearable_info)
+    self:emit_event("inventory_equipped_feet", wearable_info)
+end
+
+function M:inventory_unequipped_feet()
+    self:emit_event("inventory_unequipped_feet")
+end
+
+function M:inventory_equipped_neck(wearable_info)
+    self:emit_event("inventory_equipped_neck", wearable_info)
+end
+
+function M:inventory_unequipped_neck()
+    self:emit_event("inventory_unequipped_neck")
+end
+
+function M:inventory_equipped_back(wearable_info)
+    self:emit_event("inventory_equipped_back", wearable_info)
+end
+
+function M:inventory_unequipped_back()
+    self:emit_event("inventory_unequipped_back")
+end
+
+function M:inventory_equipped_finger1(wearable_info)
+    self:emit_event("inventory_equipped_finger1", wearable_info)
+end
+
+function M:inventory_unequipped_finger1()
+    self:emit_event("inventory_unequipped_finger1")
+end
+
+function M:inventory_equipped_finger2(wearable_info)
+    self:emit_event("inventory_equipped_finger2", wearable_info)
+end
+
+function M:inventory_unequipped_finger2()
+    self:emit_event("inventory_unequipped_finger2")
+end
+
+function M:inventory_equipped_accessory1(wearable_info)
+    self:emit_event("inventory_equipped_accessory1", wearable_info)
+end
+
+function M:inventory_unequipped_accessory1()
+    self:emit_event("inventory_unequipped_accessory1")
+end
+
+function M:inventory_equipped_accessory2(wearable_info)
+    self:emit_event("inventory_equipped_accessory2", wearable_info)
+end
+
+function M:inventory_unequipped_accessory2()
+    self:emit_event("inventory_unequipped_accessory2")
+end
+
+function M:inventory_equipped_mainhand_weapon(wearable_info)
+    self:emit_event("inventory_equipped_mainhand_weapon", wearable_info)
+end
+
+function M:inventory_unequipped_mainhand_weapon()
+    self:emit_event("inventory_unequipped_mainhand_weapon")
+end
+
+function M:inventory_equipped_offhand_weapon(wearable_info)
+    self:emit_event("inventory_equipped_offhand_weapon", wearable_info)
+end
+
+function M:inventory_unequipped_offhand_weapon()
+    self:emit_event("inventory_unequipped_offhand_weapon")
+end
+
+--------------------------------------------------------------------------------
+---灵兽
+--------------------------------------------------------------------------------
+-- 背包系统中的取得新增可附加物品   暂时只有灵兽
+function M:inventory_attachables(attachable_info)
+    self:emit_event("inventory_attachable", attachable_info)
+end
+-- 金
+function M:inventory_equipped_metal_sprite(attachable_info, args)
+    self:emit_event("inventory_equipped_metal_sprite", attachable_info, args)
+end
+function M:inventory_unequipped_metal_sprite(unequipped_type)
+    self:emit_event("inventory_unequipped_metal_sprite", unequipped_type)
+end
+function M:inventory_attached_metal_sprite()
+    self:emit_event("inventory_attached_metal_sprite")
+end
+function M:inventory_skinned_metal_sprite(skin_id)
+    self:emit_event("inventory_skinned_metal_sprite", skin_id)
+end
+-- 木
+function M:inventory_equipped_wood_sprite(attachable_info, args)
+    self:emit_event("inventory_equipped_wood_sprite", attachable_info, args)
+end
+function M:inventory_unequipped_wood_sprite(unequipped_type)
+    self:emit_event("inventory_unequipped_wood_sprite", unequipped_type)
+end
+function M:inventory_attached_wood_sprite()
+    self:emit_event("inventory_attached_wood_sprite")
+end
+function M:inventory_skinned_wood_sprite(skin_id)
+    self:emit_event("inventory_skinned_wood_sprite", skin_id)
+end
+-- 水
+function M:inventory_equipped_water_sprite(attachable_info, args)
+    self:emit_event("inventory_equipped_water_sprite", attachable_info, args)
+end
+function M:inventory_unequipped_water_sprite(unequipped_type)
+    self:emit_event("inventory_unequipped_water_sprite", unequipped_type)
+end
+function M:inventory_attached_water_sprite()
+    self:emit_event("inventory_attached_water_sprite")
+end
+function M:inventory_skinned_water_sprite(skin_id)
+    self:emit_event("inventory_skinned_water_sprite", skin_id)
+end
+-- 火
+function M:inventory_equipped_fire_sprite(attachable_info, args)
+    self:emit_event("inventory_equipped_fire_sprite", attachable_info, args)
+end
+function M:inventory_unequipped_fire_sprite(unequipped_type)
+    self:emit_event("inventory_unequipped_fire_sprite", unequipped_type)
+end
+function M:inventory_attached_fire_sprite()
+    self:emit_event("inventory_attached_fire_sprite")
+end
+function M:inventory_skinned_fire_sprite(skin_id)
+    self:emit_event("inventory_skinned_fire_sprite", skin_id)
+end
+-- 完成升级
+function M:inventory_upgraded_sprite(unique, tmpl, arg)
+    self:emit_event("inventory_upgraded_sprite", unique, tmpl, arg)
+end
+-- 解除出战
+function M:inventory_unattached_sprite()
+    self:emit_event("inventory_unattached_sprite")
+end
+-- 确定灵兽分解
+function M:inventory_inverted_sprites(sprite_unique_list, sprite_id_list)
+    self:emit_event("inventory_inverted_sprites", sprite_unique_list, sprite_id_list)
+end
+-- 完成融灵
+function M:inventory_merged_sprites(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+    self:emit_event("inventory_merged_sprites", main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+end
+
+
+--------------------------------------------------------------------------------
+---套装
+--------------------------------------------------------------------------------
+function M:suit_all(outer_appearance, dressed_cabinet)
+
+    self:emit_event("suit_all", outer_appearance, dressed_cabinet)
+end
+
+function M:suit_unlocked(suit_id, suit_timestamp)
+    self:emit_event("suit_unlocked", suit_id, suit_timestamp)
+end
+
+function M:suit_collected_upper(suit_id)
+    self:emit_event("suit_collected_upper", suit_id)
+end
+
+function M:suit_collected_lower(suit_id)
+    self:emit_event("suit_collected_lower", suit_id)
+end
+
+function M:suit_collected_weapon(suit_id)
+    self:emit_event("suit_collected_weapon", suit_id)
+end
+
+function M:suit_collected_face(suit_id)
+    self:emit_event("suit_collected_face", suit_id)
+end
+
+function M:suit_collected_shoulder(suit_id)
+    self:emit_event("suit_collected_shoulder", suit_id)
+end
+
+function M:suit_collected_back(suit_id)
+    self:emit_event("suit_collected_back", suit_id)
+end
+
+function M:suit_collected_tail(suit_id)
+    self:emit_event("suit_collected_tail", suit_id)
+end
+
+function M:suit_collected_waist(suit_id)
+    self:emit_event("suit_collected_waist", suit_id)
+end
+
+function M:suit_collected_hands(suit_id)
+    self:emit_event("suit_collected_hands", suit_id)
+end
+
+function M:suit_collected_feet(suit_id)
+    self:emit_event("suit_collected_feet", suit_id)
+end
+
+function M:suit_dressed_upper(suit_id)
+    self:emit_event("suit_dressed_upper", suit_id)
+end
+
+function M:suit_dressed_lower(suit_id)
+    self:emit_event("suit_dressed_lower", suit_id)
+end
+
+function M:suit_dressed_weapon(suit_id)
+    self:emit_event("suit_dressed_weapon", suit_id)
+end
+
+function M:suit_dressed_face(suit_id)
+    self:emit_event("suit_dressed_face", suit_id)
+end
+
+function M:suit_dressed_shoulder(suit_id)
+    self:emit_event("suit_dressed_shoulder", suit_id)
+end
+
+function M:suit_dressed_back(suit_id)
+    self:emit_event("suit_dressed_back", suit_id)
+end
+
+function M:suit_dressed_tail(suit_id)
+    self:emit_event("suit_dressed_tail", suit_id)
+end
+
+function M:suit_dressed_waist(suit_id)
+    self:emit_event("suit_dressed_waist", suit_id)
+end
+
+function M:suit_dressed_hands(suit_id)
+    self:emit_event("suit_dressed_hands", suit_id)
+end
+
+function M:suit_dressed_feet(suit_id)
+    self:emit_event("suit_dressed_feet", suit_id)
+end
+
+function M:resp_unlock_tele_point(unlock_tele_point)
+    self:emit_event("resp_unlock_tele_point", unlock_tele_point)
+end
+--死亡复活
+function M:revival_conds(fighting_phase_number, fighting_phase_state)
+    self:emit_event("revival_conds", fighting_phase_number, fighting_phase_state)
+end
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+function M:print_quests(infos)
+    for job = 1, #infos do
+        curr = "quest id=" .. infos[job].id
+        for cond = 1, #infos[job].finishes do
+            curr = curr .. " done" .. cond .. "=" .. infos[job].finishes[cond].done .. " stats"
+            for num = 1, #infos[job].finishes[cond].stats do
+                curr = curr .. "=" .. infos[job].finishes[cond].stats[num]
+            end
+        end
+        print(curr)
+    end
+end
+
+function M:initialize(id)
+    --print("kbe.Role initialize")
+    Attribute.init(self)
+
+    -- 各mixin初始化
+    Combat.initialize(self)
+    CombatState.initialize(self)
+
+    self.m_id = id
+    self.m_move_to = nil
+end
+
+function M:on_init()
+    --print("Role:on_init")
+    -- 各mixin
+    Combat.on_init(self)
+    CombatState.on_init(self)
+end
+
+function M:on_destroy()
+    --print("Role:on_destroy")
+    -- 各mixin
+    Combat.on_destroy(self)
+    CombatState.on_destroy(self)
+end
+
+function M:set_property(name, value)
+    self:set_attr(name, value)
+    self:emit_event("on_event_" .. name .. "_set", value)
+end
+
+function M:get_id()
+    return self.m_id
+end
+
+function M:get_role_world_time()
+    return self:get_world_time()
+end
+
+function M:get_role_type()
+    local type_data = dbc.vocation[self:get_rclass()]
+    return (type_data and dbc.creature[type_data.creature_id]) and type_data.creature_id or 1001
+end
+
+function M:special_move(type, targetV3, skill_id)
+    self.m_special_move_type = { type = type, targetV3 = targetV3, skill_id = skill_id }
+    -- 暂时不处理special_move
+    --self:emit_event("special_move", type, targetV3, skill_id)    
+end
+
+function M:reset_pos(position)
+    if (self.m_special_move_type ~= nil) then
+        self.m_special_move_type = nil
+        return
+    end
+
+    self:set_pos(position)
+    self:emit_event("set_position", position)
+end
+
+function M:move_to(pos)
+    self:emit_event("update_position", self:get_pos())
+end
+
+
+function M:update(delta)
+    -- 各mixin update
+    Combat.update(self, delta)
+    CombatState.update(self, delta)
+end
+-- by lijunfeng 2018/1/27
+function M:mumble_bgn(giver_id)
+    print("收到移动停止消息")
+    self:emit_event("mumble_bgn", giver_id)
+end
+
+return M

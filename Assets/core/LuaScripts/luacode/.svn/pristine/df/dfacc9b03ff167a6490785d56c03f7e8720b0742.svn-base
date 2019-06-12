@@ -1,0 +1,133 @@
+local View = require("system.view")
+local backpack_list_view = class("backpack_list_view", View)
+
+function backpack_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+    -----按钮列表
+    self.m_btn_list = {}
+    ----当前选中的按钮
+    self.m_curr_selected_btn = nil
+    -----开始拖拽的位置
+    self.m_drag_begin_pos = nil
+    ---结束拖拽的位置
+    self.m_drag_end_pos = nil
+    self:load("UI/BackpackEquip.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local left_btn_container = go.transform:Find("backpack/left_btn_container").transform
+        self.m_weapon_btn = left_btn_container:Find("weapon_btn"):GetComponent(UI.Button)
+        self.m_weapon_image = left_btn_container:Find("weapon_image").transform
+        self:add_btn_list(self.m_weapon_btn, self.m_weapon_image, 1, -303)
+        self.m_armor_btn = left_btn_container:Find("armor_btn"):GetComponent(UI.Button)
+        self.m_armor_image = left_btn_container:Find("armor_image").transform
+        self:add_btn_list(self.m_armor_btn, self.m_armor_image, 0.5, -423)
+        self.m_ring_btn = left_btn_container:Find("ring_btn"):GetComponent(UI.Button)
+        self.m_ring_image = left_btn_container:Find("ring_image").transform
+        self:add_btn_list(self.m_ring_btn, self.m_ring_image, 0, -544)
+        self.m_selected_image = left_btn_container:Find("selected_image").transform
+        self.m_drag_area_container = go.transform:Find("backpack/scroll_view").gameObject:GetComponent("DragSkill")
+        self.m_scroll_bar = go.transform:Find("backpack/scroll_view/scrollbar"):GetComponent(UI.Scrollbar)
+        local sub_list_parent = go.transform:Find("backpack/scroll_view/viewport/content").transform
+        self.m_weapon_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_weapon_btn)
+        end)
+
+        self.m_armor_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_armor_btn)
+        end)
+
+        self.m_ring_btn.onClick:AddListener(function()
+            self:click_btn_callback(self.m_ring_btn)
+        end)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function(eventdata)
+            --self.m_need_move = false
+            self.m_drag_begin_pos = eventdata.position
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function(eventdata)
+            --self:end_drag_callback()
+            self.m_drag_end_pos = eventdata.position
+            if self.m_drag_end_pos.y > self.m_drag_begin_pos.y then
+                for i = 1, #self.m_btn_list do
+                    if self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i >= 1 and i < 3 then
+                        self:click_btn_callback(self.m_btn_list[i + 1]["btn"])
+                        break
+                    end
+                end
+            elseif self.m_drag_end_pos.y < self.m_drag_begin_pos.y then
+                for i = 1, #self.m_btn_list do
+                    if self.m_curr_selected_btn == self.m_btn_list[i]["btn"] and i <= 3 and i > 1 then
+                        self:click_btn_callback(self.m_btn_list[i - 1]["btn"])
+                        break
+                    end
+                end
+            end
+        end)
+
+        self:click_btn_callback(self.m_weapon_btn)
+
+        self.m_frame:on_loaded()
+    end)
+end
+
+function backpack_list_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+---点击左侧按钮的回调
+function backpack_list_view:click_btn_callback(press_btn)
+    self.m_curr_selected_btn = press_btn
+    self:change_btn_to_selected(press_btn)
+    self.m_need_move = true
+    self.m_move_speed = 0
+end
+
+-----按钮高亮
+function backpack_list_view:change_btn_to_selected(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn"] == press_btn then
+            v["btn"].transform.gameObject:SetActive(false)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            self:selected_image_move(v["pos"])
+            self.m_scroll_bar_target_value = v["value"]
+        else
+            v["btn"].transform.transform.gameObject:SetActive(true)
+            v["selected_show"].transform.gameObject:SetActive(false)
+        end
+    end
+end
+
+-----向按钮列表中添加内容
+function backpack_list_view:add_btn_list(btn, selected_show, value, pos)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["btn"] = btn, ["selected_show"] = selected_show, ["value"] = value, ["pos"] = pos }
+end
+
+function backpack_list_view:selected_image_move(target)
+    ShortcutExtensions.DOLocalMoveY(self.m_selected_image.gameObject.transform, target, 0.6, false)
+end
+
+return backpack_list_view

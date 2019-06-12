@@ -1,0 +1,104 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/11 15:32
+---
+local View = require("system.view")
+local threat_manager_view = class("threat_manager_view", View)
+
+function threat_manager_view:doInit()
+
+    --是否显示仇恨列表
+    self.m_threat_is_open = false
+
+    self.m_world = self:getFrame("world")
+    self.m_threat_info_tr_list = {}
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("threat_manager"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        self["threat_info_gameObject"]:SetActive(false)
+        self["panel_gameObject"]:SetActive(false)
+        self["toggle_GUIToggle"].gameObject:SetActive(false)
+
+        self:subscribe(self:getFrame():on_event("on_toggle"), function(is_on)
+            if is_on then
+                self:show()
+            else
+                self:hide()
+            end
+        end)
+
+        self:subscribe(self:getFrame():on_event("refresh"), function(threat_info)
+            self:local_log("threat_manager_view------------------>>refresh")
+            self:destroy_all()
+            if threat_info and utility.table:count(threat_info) ~= 0 then
+                for i, v in pairs(threat_info) do
+                    self:add_threat(v)
+                end
+            end
+        end)
+    end)
+end
+
+function threat_manager_view:show()
+    self["panel_gameObject"]:SetActive(true)
+end
+
+function threat_manager_view:hide()
+    self["panel_gameObject"]:SetActive(false)
+end
+
+------添加一个仇恨行
+function threat_manager_view:add_threat(threat_info)
+    local entity_id = threat_info["entity_id"]
+    local threat = threat_info["threat"]
+    local name = self.m_world:getUnit(entity_id):get_name()
+
+    local threat_info_tr = Object.Instantiate(self["threat_info_gameObject"]).transform
+    threat_info_tr.gameObject:SetActive(true)
+    threat_info_tr.parent = self["grid_gameObject"].transform
+    threat_info_tr.localPosition = Vector3.zero
+    threat_info_tr.localScale = Vector3.one
+
+    threat_info_tr:Find("name"):GetComponent(UnityEngine.UI.Text).text = name
+    threat_info_tr:Find("threat"):GetComponent(UnityEngine.UI.Text).text = threat
+
+    self.m_threat_info_tr_list[entity_id] = {}
+    self.m_threat_info_tr_list[entity_id]["tr"] = threat_info_tr
+    self.m_threat_info_tr_list[entity_id]["name"] = name
+    self.m_threat_info_tr_list[entity_id]["threat"] = threat
+end
+
+function threat_manager_view:destroy_all()
+    if self.m_threat_info_tr_list == nil or utility.table:count(self.m_threat_info_tr_list) == 0 then
+        return
+    end
+
+    for i, v in pairs(self.m_threat_info_tr_list) do
+        Object.Destroy(v["tr"].gameObject)
+    end
+
+    self.m_threat_info_tr_list = nil
+    self.m_threat_info_tr_list = {}
+end
+
+function threat_manager_view:doUpdate()
+    if Input.GetKeyDown(KeyCode.BackQuote) then
+        if not self.m_threat_is_open then
+            self["toggle_GUIToggle"].gameObject:SetActive(true)
+            self["panel_gameObject"].gameObject:SetActive(self["toggle_GUIToggle"].isOn)
+            self.m_threat_is_open = true
+        else
+            self["toggle_GUIToggle"].gameObject:SetActive(false)
+            self["panel_gameObject"].gameObject:SetActive(false)
+            self.m_threat_is_open = false
+        end
+    end
+end
+
+function threat_manager_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return threat_manager_view

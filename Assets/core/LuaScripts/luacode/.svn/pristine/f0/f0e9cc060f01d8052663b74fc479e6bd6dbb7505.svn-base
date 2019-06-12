@@ -1,0 +1,37 @@
+local Launcher = {}
+
+Attribute.decl(Launcher, "message", "")
+Attribute.decl(Launcher, "progress", 0)
+
+function Launcher:doInit()
+	self:startUpdateResource()
+end
+
+function Launcher:startUpdateResource()
+	local updateLoader = KTGame.instance.updateLoader
+	local c = coroutine.create(function()
+		Yield(WaitForSeconds(1))
+		local handler = KTUpdateDirectoryAssetLoader.RefreshHandler()
+		handler.errorCallback = function( state )
+			self:set_message(state)
+		end
+		handler.stateCallback = function( state )
+			self:set_message(state)
+		end
+		handler.progressCallback = function( progress )
+			self:set_progress(progress)
+		end
+
+		Yield(updateLoader:Refresh(handler))
+		
+		self:destroySelf()
+		if updateLoader.newManifest then
+			app:doRestart()
+		else
+			app:doLogin()
+		end
+	end)
+	coroutine.resume(c)
+end
+
+return Launcher

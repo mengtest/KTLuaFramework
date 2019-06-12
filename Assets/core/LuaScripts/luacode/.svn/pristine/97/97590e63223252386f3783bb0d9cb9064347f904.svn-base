@@ -1,0 +1,27 @@
+local rows = {}
+rows[1] = {['id']=100001,['group']='BGM/Map',['name']='Sence_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[2] = {['id']=100101,['group']='BGM/Area',['name']='Area_001.wav',['is_3d']=false,['max_dis']=10.0,['volume']=1.0,['loop_times']=1}
+rows[3] = {['id']=100102,['group']='BGM/Area',['name']='Area_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+rows[4] = {['id']=100103,['group']='Role',['name']='not_enough_mana.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[5] = {['id']=100201,['group']='Role/Talk',['name']='quiz_1.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[6] = {['id']=100202,['group']='Role/Talk',['name']='quiz_2.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[7] = {['id']=100203,['group']='Role/Talk',['name']='quiz_3.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[8] = {['id']=100204,['group']='Role/Talk',['name']='quiz_right_1.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[9] = {['id']=100205,['group']='Role/Talk',['name']='quiz_right_2.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[10] = {['id']=100206,['group']='Role/Talk',['name']='quiz_wrong_1.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+rows[11] = {['id']=100207,['group']='Role/Talk',['name']='quiz_wrong_2.mp3',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=1}
+
+local datas = {
+	[100001] = rows[1],
+	[100101] = rows[2],
+	[100102] = rows[3],
+	[100103] = rows[4],
+	[100201] = rows[5],
+	[100202] = rows[6],
+	[100203] = rows[7],
+	[100204] = rows[8],
+	[100205] = rows[9],
+	[100206] = rows[10],
+	[100207] = rows[11],
+}
+return datas

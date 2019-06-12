@@ -1,0 +1,90 @@
+local View = require("system.view")
+local dungeon_reset_view = class("dungeon_reset_view", View)
+
+function dungeon_reset_view:doInit(param)
+    local dungeon_id = param.dungeon_id
+    local dungeon_progress = param.progress_arry
+    local drag_progress = param.drag_arry
+    local dungeon_reset = param.reset
+    self.m_pro_dic = {}
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self:load(app:getAssetPathMgr().get_ui_view_asset("DungeonReset"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        self.tip_text = go.transform:Find("confirm_dungeon_reset/Scroll View/Viewport/Content"):GetComponent(UI.Text)
+
+        local name_list = self.tip_text.transform:Find("name_list").transform
+        local state_list = self.tip_text.transform:Find("state_list").transform
+        local drop_list = self.tip_text.transform:Find("drop_list").transform
+
+        local clone_go = name_list.transform:Find("Text").transform
+
+        local reset_tip = go.transform:Find("confirm_dungeon_reset/reset_tip"):GetComponent(UI.Text)
+        local show_color = "red"
+        local normal_color = Color(1, 1, 1, 1)
+        local red_color = Color(1, 0, 0, 1)
+        local level_tip_text = go.transform:Find("confirm_dungeon_reset/level_tip_text"):GetComponent(UI.Text)
+        local dungeon_name = dbc.instances[dungeon_id].name
+        level_tip_text.text = "您将进入进行中的"
+        level_tip_text.text = level_tip_text.text .. "<color=" .. show_color .. ">" .. dungeon_name .. "</color>副本"
+        local type = dbc.instances[dungeon_id].diff_name
+        level_tip_text.text = level_tip_text.text .. "<color=" .. show_color .. ">" .. type .. "</color>难度"
+        level_tip_text.text = level_tip_text.text .. "，当前副本进度如下："
+
+        if dungeon_reset == 1 then
+            reset_tip.gameObject:SetActive(false)
+        else
+            reset_tip.gameObject:SetActive(true)
+            self["reset_btn_GUIButton"].interactable = false
+        end
+        -- 当前副本的需要显示的进度节点  这是一个列表  一个进度点在instance_progress中对应一个boss表
+        local progress_point = dbc.instances[dungeon_id].progresses
+        -- 用一个字典来记载进度点  以及每一个进度点表示的boss的id组
+        for k, v in pairs(progress_point) do
+            local boss_name = dbc.creature[v].name
+            local progress_point_id = v
+            local boss_drag_state = drag_progress[k]
+            -- 1代表存活状态  0代表死亡
+            self.m_pro_dic[progress_point_id] = { ["boss_name"] = boss_name, ["boss_state"] = 1, ["boss_drag_state"] = boss_drag_state }
+        end
+        -- 判断收到服务器进度消息的处理  如果已经通过boss进度，则修改其存活状态
+        for k, v in pairs(dungeon_progress) do
+            if self.m_pro_dic[v] ~= nil then
+                self.m_pro_dic[v]["boss_state"] = 0
+            end
+        end
+
+        -- 接下来做对应的英雄名字状态的显示
+        for k, v in pairs(self.m_pro_dic) do
+            self:init_text(clone_go, name_list, v["boss_name"], normal_color)
+            if v["boss_state"] == 1 then
+                self:init_text(clone_go, state_list, "存活", normal_color)
+                if v["boss_drag_state"] == 1 then
+                    self:init_text(clone_go, drop_list, "可拾取", normal_color)
+                else
+                    self:init_text(clone_go, drop_list, "不可拾取", red_color)
+                end
+            elseif v["boss_state"] == 0 then
+                self:init_text(clone_go, state_list, "死亡", red_color)
+                if v["boss_drag_state"] == 1 then
+                    self:init_text(clone_go, drop_list, "可拾取", normal_color)
+                else
+                    self:init_text(clone_go, drop_list, "不可拾取", red_color)
+                end
+            end
+        end
+    end)
+end
+
+function dungeon_reset_view:init_text(clone_go, parent, show_text, color)
+    local go = Object.Instantiate(clone_go)
+    go.transform:SetParent(parent)
+    go.transform.localPosition = Vector3.zero
+    go.transform.localScale = Vector3.one
+    go.gameObject:SetActive(true)
+    local go_text = go.transform:GetComponent(UI.Text)
+    go_text.text = show_text
+    go_text.color = color
+end
+
+return dungeon_reset_view

@@ -1,0 +1,481 @@
+local Frame = require("system.frame")
+local quest_ui_list = class("quest_ui_list", Frame)
+
+Event.decl(quest_ui_list, "map_btn_down")
+Event.decl(quest_ui_list, "normal_btn_down")
+Event.decl(quest_ui_list, "dungeon_btn_down")
+Event.decl(quest_ui_list, "activity_btn_down")
+
+function quest_ui_list:doInit()
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self:set_is_add_rect_trans(true)
+    -- 存储子列表的结构      list[index][num]   index 表示种类  num表示页数的索引
+    self.m_sub_list = {}
+    self.m_sub_list[enum.quest.Quest_ui_type.Map] = {}
+    self.m_sub_list[enum.quest.Quest_ui_type.Normal] = {}
+    self.m_sub_list[enum.quest.Quest_ui_type.Dungeon] = {}
+    self.m_sub_list[enum.quest.Quest_ui_type.Activity] = {}
+    self.m_sub_frame_list = {}
+    self.m_sub_frame_list[enum.quest.Quest_ui_type.Map] = {}
+    self.m_sub_frame_list[enum.quest.Quest_ui_type.Normal] = {}
+    self.m_sub_frame_list[enum.quest.Quest_ui_type.Dungeon] = {}
+    self.m_sub_frame_list[enum.quest.Quest_ui_type.Activity] = {}
+    --self:local_log("Activity_list    .........        %s", #activity_list)
+    --for i = 1, #activity_list do
+    --    self:local_log("Activity_list    ...%s......        %s", i, activity_list[i]:get_quest_id())
+    --end
+    -- 当前选中的item
+    self.m_cur_sel_item = nil
+end
+
+function quest_ui_list:event_or_att_init()
+    self:subscribe(self.m_quest_manager:on_event("update_ui_main"), function(quest_type)
+        self:on_update_ui_main(quest_type)
+    end)
+    self:subscribe(self.m_quest_manager:on_event("add_quest_note"), function(quest_data)
+        self:on_add_quest_note(quest_data)
+    end)
+    self:subscribe(self.m_quest_manager:on_event("del_quest_note"), function(quest_data)
+        self:on_del_quest_note(quest_data)
+    end)
+end
+
+-- Map  按钮回调
+function quest_ui_list:on_map_btn()
+    self:emit_event("map_btn_down")
+end
+
+-- Normal  按钮回调
+function quest_ui_list:on_normal_btn()
+    self:emit_event("normal_btn_down")
+end
+
+-- Dungeon  按钮回调
+function quest_ui_list:on_dungeon_btn()
+    self:emit_event("dungeon_btn_down")
+end
+
+-- Activity  按钮回调
+function quest_ui_list:on_activity_btn()
+    self:emit_event("activity_btn_down")
+end
+
+-- 当任务发生更新时
+function quest_ui_list:on_update_ui_main(quest_type)
+    if quest_type == enum.quest.Quest_ui_type.Map then
+        self.m_sub_list[enum.quest.Quest_ui_type.Map] = nil
+        self.m_sub_list[enum.quest.Quest_ui_type.Map] = {}
+        local map_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Map)
+        self:local_log("map_list    .........        %s", #map_list)
+        utility.table:copy_list(map_list, self.m_sub_list[enum.quest.Quest_ui_type.Map])
+        self:refresh_sub_list_data(self.m_sub_list[enum.quest.Quest_ui_type.Map], enum.quest.Quest_ui_type.Map)
+    elseif quest_type == enum.quest.Quest_ui_type.Normal then
+        self.m_sub_list[enum.quest.Quest_ui_type.Normal] = nil
+        self.m_sub_list[enum.quest.Quest_ui_type.Normal] = {}
+        local normal_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Normal)
+        self:local_log("normal_list    .........        %s", #normal_list)
+        utility.table:copy_list(normal_list, self.m_sub_list[enum.quest.Quest_ui_type.Normal])
+        self:refresh_sub_list_data(self.m_sub_list[enum.quest.Quest_ui_type.Normal], enum.quest.Quest_ui_type.Normal)
+    elseif quest_type == enum.quest.Quest_ui_type.Dungeon then
+        self.m_sub_list[enum.quest.Quest_ui_type.Dungeon] = nil
+        self.m_sub_list[enum.quest.Quest_ui_type.Dungeon] = {}
+        local dungeon_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Dungeon)
+        self:local_log("dungeon_list    .........        %s", #dungeon_list)
+        utility.table:copy_list(dungeon_list, self.m_sub_list[enum.quest.Quest_ui_type.Dungeon])
+        self:refresh_sub_list_data(self.m_sub_list[enum.quest.Quest_ui_type.Dungeon], enum.quest.Quest_ui_type.Dungeon)
+    elseif quest_type == enum.quest.Quest_ui_type.Activity then
+        self.m_sub_list[enum.quest.Quest_ui_type.Activity] = nil
+        self.m_sub_list[enum.quest.Quest_ui_type.Activity] = {}
+        local activity_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Activity)
+        self:local_log("activity_list    .........        %s", #activity_list)
+        utility.table:copy_list(activity_list, self.m_sub_list[enum.quest.Quest_ui_type.Activity])
+        self:refresh_sub_list_data(self.m_sub_list[enum.quest.Quest_ui_type.Activity], enum.quest.Quest_ui_type.Activity)
+    end
+end
+
+function quest_ui_list:on_loaded()
+    local map_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Map)
+    utility.table:copy_list(map_list, self.m_sub_list[enum.quest.Quest_ui_type.Map])
+    local normal_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Normal)
+    utility.table:copy_list(normal_list, self.m_sub_list[enum.quest.Quest_ui_type.Normal])
+    local dungeon_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Dungeon)
+    utility.table:copy_list(dungeon_list, self.m_sub_list[enum.quest.Quest_ui_type.Dungeon])
+    local activity_list = self.m_quest_manager:get_quests_by_ui_type(enum.quest.Quest_ui_type.Activity)
+    utility.table:copy_list(activity_list, self.m_sub_list[enum.quest.Quest_ui_type.Activity])
+    self:create_sub_list(self.m_sub_list[enum.quest.Quest_ui_type.Map], enum.quest.Quest_ui_type.Map)
+    self:create_sub_list(self.m_sub_list[enum.quest.Quest_ui_type.Normal], enum.quest.Quest_ui_type.Normal)
+    self:create_sub_list(self.m_sub_list[enum.quest.Quest_ui_type.Dungeon], enum.quest.Quest_ui_type.Dungeon)
+    self:create_sub_list(self.m_sub_list[enum.quest.Quest_ui_type.Activity], enum.quest.Quest_ui_type.Activity)
+    self:event_or_att_init()
+end
+
+-- 刷新子列表数据
+function quest_ui_list:refresh_sub_list_data(list, index)
+    -- 首先判断目前已有的格子数是否多还是少
+    if index == enum.quest.Quest_ui_type.Map then
+        local cur_num = (#self.m_sub_frame_list[index] - 1) * 4 + 5
+        local data_num = #self.m_sub_list[index]
+        local temp = cur_num - data_num
+        if temp == 0 then
+            -- 说明刚刚好  直接刷新数据就好
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+        elseif temp > 0 then
+            -- item比目前的数据多  继续判断是否需要删除
+            if #self.m_sub_frame_list[index] > 1 then
+                local del_num = temp / 4
+                local num = math.floor(del_num)
+                for i = 1, num do
+                    self.m_sub_frame_list[index][#self.m_sub_frame_list[index]]:des_go()
+                    self.m_sub_frame_list[index][#self.m_sub_frame_list[index]]:destroySelf()
+                    table.remove(self.m_sub_frame_list[index], #self.m_sub_frame_list[index])
+                end
+            end
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+        elseif temp < 0 then
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+            -- item比目前的数据少  需要添加  判断需要添加几页  这里需要先刷新已有的  再去创建不足的
+            temp = data_num - cur_num
+            local cre_num = temp / 4
+            local end_num = temp % 4
+            local num = math.ceil(cre_num)
+            for i = 1, num do
+                local temp_len = #self.m_sub_frame_list[index]
+                local length = temp_len + 1
+                if i == num then
+                    self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "map" .. length, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        index, 0, 1, end_num, length, self.m_sub_list[index]
+                    })
+                else
+                    self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "map" .. length, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        index, 0, 1, 4, length, self.m_sub_list[index]
+                    })
+                end
+
+            end
+        end
+    else
+        local cur_num = #self.m_sub_frame_list[index] * 4
+        local data_num = #self.m_sub_list[index]
+        local temp = cur_num - data_num
+        if temp == 0 then
+            --  说明刚刚好  直接刷新数据就好
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+        elseif temp > 0 then
+            -- item多于data
+            if #self.m_sub_frame_list[index] > 1 then
+                local del_num = temp / 4
+                local num = math.floor(del_num)
+                for i = 1, num do
+                    self.m_sub_frame_list[index][#self.m_sub_frame_list[index]]:des_go()
+                    self.m_sub_frame_list[index][#self.m_sub_frame_list[index]]:destroySelf()
+                    table.remove(self.m_sub_frame_list[index], #self.m_sub_frame_list[index])
+                end
+            end
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+        elseif temp < 0 then
+            --  先刷新已有的item  再去创建新的item
+            for i, v in ipairs(self.m_sub_frame_list[index]) do
+                v:refresh_item_data(self.m_sub_list[index])
+            end
+            -- item少于data
+            temp = data_num - cur_num
+            local cre_num = temp / 4
+            local end_num = temp % 4
+            local num = math.ceil(cre_num)
+            for i = 1, num do
+                local temp_len = #self.m_sub_frame_list[index]
+                local length = temp_len + 1
+                if index == enum.quest.Quest_ui_type.Normal then
+                    if i == num then
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "normal" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, end_num, length, self.m_sub_list[index]
+                        })
+                    else
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "normal" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, 4, length, self.m_sub_list[index]
+                        })
+                    end
+                elseif index == enum.quest.Quest_ui_type.Dungeon then
+                    if i == num then
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "dungeon" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, end_num, length, self.m_sub_list[index]
+                        })
+                    else
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "dungeon" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, 4, length, self.m_sub_list[index]
+                        })
+                    end
+                elseif index == enum.quest.Quest_ui_type.Activity then
+                    if i == num then
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "activity" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, end_num, length, self.m_sub_list[index]
+                        })
+                    else
+                        self.m_sub_frame_list[index][length] = self:createChild("quest_sub" .. "activity" .. length, "quest/quest_ui/quest_ui_sub_list",
+                        {
+                            index, 0, 1, 4, length, self.m_sub_list[index]
+                        })
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 新关注的任务
+function quest_ui_list:on_add_quest_note(quest_data)
+    for i, v in pairs(self.m_sub_frame_list) do
+        for k, val in pairs(v) do
+            local list = val:gain_item_list()
+            for key, value in pairs(list) do
+                if quest_data == self.m_sub_list[i][key] then
+                    local send = {}
+                    send[1] = 1
+                    send[2] = quest_data
+                    value:refresh_view(send)
+                    return
+                end
+            end
+        end
+    end
+end
+
+-- 取消关注任务
+function quest_ui_list:on_del_quest_note(quest_data)
+    for i, v in pairs(self.m_sub_frame_list) do
+        for k, val in pairs(v) do
+            local list = val:gain_item_list()
+            for key, value in pairs(list) do
+                if quest_data == self.m_sub_list[i][key] then
+                    local send = {}
+                    send[1] = 1
+                    send[2] = quest_data
+                    value:refresh_view(send)
+                    return
+                end
+            end
+        end
+    end
+end
+
+-- 创建子列表  根据获取到的对应的列表的长度来生成对应的page
+function quest_ui_list:create_sub_list(sub_list, type)
+    local length = #sub_list
+    -- [1] index 表示类型
+    -- [2] 1表示生成5个的page 0表示生成4个的page
+    -- [3] 是否显示 1表示显示  0表示隐藏
+    -- [4] 表示显示item个数
+    -- [5] 表示第几页
+    -- [6] quest_data
+    local page_num = 1
+    if type == enum.quest.Quest_ui_type.Map then
+        if length < 5 and length ~= 0 then
+            self.m_sub_frame_list[enum.quest.Quest_ui_type.Map][1] = self:createChild("quest_sub" .. "map" .. 1, "quest/quest_ui/quest_ui_sub_list",
+            {
+                type, 1, 1, length, 1, self.m_sub_list[enum.quest.Quest_ui_type.Map]
+            })
+
+        elseif length == 0 then
+            self.m_sub_frame_list[enum.quest.Quest_ui_type.Map][1] = self:createChild("quest_sub" .. "map" .. 1, "quest/quest_ui/quest_ui_sub_list",
+            {
+                type, 1, 1, 0, 1, self.m_sub_list[enum.quest.Quest_ui_type.Map]
+            })
+        elseif length >= 5 then
+            local cal_num = length - 5
+            local temp = cal_num / 4
+            local num = math.floor(temp)
+            local end_num = cal_num % 4
+            if end_num == 0 then
+                page_num = num + 1
+            else
+                page_num = num + 2
+            end
+            for i = 1, page_num do
+                if i == 1 then
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Map][i] = self:createChild("quest_sub" .. "map" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 1, 1, 5, i, self.m_sub_list[enum.quest.Quest_ui_type.Map]
+                    })
+                elseif i == page_num then
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Map][i] = self:createChild("quest_sub" .. "map" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, end_num, i, self.m_sub_list[enum.quest.Quest_ui_type.Map]
+                    })
+                else
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Map][i] = self:createChild("quest_sub" .. "map" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, 4, i, self.m_sub_list[enum.quest.Quest_ui_type.Map]
+                    })
+                end
+            end
+        end
+    elseif type == enum.quest.Quest_ui_type.Normal then
+        if length == 0 then
+            self.m_sub_frame_list[enum.quest.Quest_ui_type.Normal][1] = self:createChild("quest_sub" .. "normal" .. 1, "quest/quest_ui/quest_ui_sub_list",
+            {
+                type, 0, 1, 0, 1, self.m_sub_list[enum.quest.Quest_ui_type.Normal]
+            })
+        else
+            local temp = length / 4
+            local num = math.ceil(temp)
+            local end_num = length % 4
+            page_num = num
+
+            for i = 1, page_num do
+                if i == page_num then
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Normal][i] = self:createChild("quest_sub" .. "normal" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, end_num, i, self.m_sub_list[enum.quest.Quest_ui_type.Normal]
+                    })
+                else
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Normal][i] = self:createChild("quest_sub" .. "normal" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, 4, i, self.m_sub_list[enum.quest.Quest_ui_type.Normal]
+                    })
+                end
+            end
+        end
+    elseif type == enum.quest.Quest_ui_type.Dungeon then
+        if length == 0 then
+            self.m_sub_frame_list[enum.quest.Quest_ui_type.Dungeon][1] = self:createChild("quest_sub" .. "dungeon" .. 1, "quest/quest_ui/quest_ui_sub_list",
+            {
+                type, 0, 1, 0, 1, self.m_sub_list[enum.quest.Quest_ui_type.Dungeon]
+            })
+        else
+            local temp = length / 4
+            local num = math.ceil(temp)
+            local end_num = length % 4
+            page_num = num
+            for i = 1, page_num do
+                if i == page_num then
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Dungeon][i] = self:createChild("quest_sub" .. "dungeon" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, end_num, i, self.m_sub_list[enum.quest.Quest_ui_type.Dungeon]
+                    })
+                else
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Dungeon][i] = self:createChild("quest_sub" .. "dungeon" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, 4, i, self.m_sub_list[enum.quest.Quest_ui_type.Dungeon]
+                    })
+                end
+            end
+        end
+    elseif type == enum.quest.Quest_ui_type.Activity then
+        if length == 0 then
+            self.m_sub_frame_list[enum.quest.Quest_ui_type.Activity][1] = self:createChild("quest_sub" .. "activity" .. 1, "quest/quest_ui/quest_ui_sub_list",
+            {
+                type, 0, 1, 0, 1, self.m_sub_list[enum.quest.Quest_ui_type.Activity]
+            })
+        else
+            local temp = length / 4
+            local num = math.ceil(temp)
+            local end_num = length % 4
+            page_num = num
+            for i = 1, page_num do
+                if i == page_num then
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Activity][i] = self:createChild("quest_sub" .. "activity" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, end_num, i, self.m_sub_list[enum.quest.Quest_ui_type.Activity]
+                    })
+                else
+                    self.m_sub_frame_list[enum.quest.Quest_ui_type.Activity][i] = self:createChild("quest_sub" .. "activity" .. i, "quest/quest_ui/quest_ui_sub_list",
+                    {
+                        type, 0, 1, 4, i, self.m_sub_list[enum.quest.Quest_ui_type.Activity]
+                    })
+                end
+            end
+        end
+    end
+end
+
+-- 当点击item时
+function quest_ui_list:item_change(item)
+    if self.m_cur_sel_item == nil then
+        self.m_cur_sel_item = item
+    elseif item == self.m_cur_sel_item then
+        return
+    else
+        self.m_cur_sel_item:on_item_sel_cancle()
+        self.m_cur_sel_item = item
+    end
+end
+
+-- 当打开任务主ui时做的默认选中处理
+function quest_ui_list:quest_default(quest_data)
+    -- 当参数为0时表示没有任务  选中最后一页即可
+    if quest_data == 0 then
+        self:emit_event("activity_btn_down")
+        return
+    end
+    if self.m_cur_sel_item ~= nil then
+        self.m_cur_sel_item:on_item_sel_cancle()
+        for i, v in pairs(self.m_sub_frame_list) do
+            for k, val in pairs(v) do
+                local list = val:gain_item_list()
+                for key, value in pairs(list) do
+                    if quest_data == self.m_sub_list[i][key] then
+                        self.m_cur_sel_item = value
+                        self.m_cur_sel_item:on_item_btn()
+                        self:select_sub_page(i)
+                        return
+                    end
+                end
+            end
+        end
+    else
+        for i, v in ipairs(self.m_sub_frame_list) do
+            for k, val in pairs(v) do
+                local list = val:gain_item_list()
+                for key, value in pairs(list) do
+                    if quest_data == self.m_sub_list[i][key] then
+                        self.m_cur_sel_item = value
+                        self.m_cur_sel_item:on_item_btn()
+                        self:select_sub_page(i)
+                        return
+                    end
+                end
+            end
+        end
+    end
+end
+
+--  选中二级分页
+function quest_ui_list:select_sub_page(index)
+    if index == enum.quest.Quest_ui_type.Map then
+        self:emit_event("map_btn_down")
+    elseif index == enum.quest.Quest_ui_type.Normal then
+        self:emit_event("normal_btn_down")
+    elseif index == enum.quest.Quest_ui_type.Dungeon then
+        self:emit_event("dungeon_btn_down")
+    elseif index == enum.quest.Quest_ui_type.Activity then
+        self:emit_event("activity_btn_down")
+    end
+end
+
+--  获取sub_list
+function quest_ui_list:gain_sub_list()
+    return self.m_sub_frame_list
+end
+
+function quest_ui_list:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return quest_ui_list

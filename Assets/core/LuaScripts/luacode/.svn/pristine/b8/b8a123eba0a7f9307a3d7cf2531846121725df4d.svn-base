@@ -1,0 +1,24 @@
+--套装选择界面view
+local View = require("system.view")
+local fashion_select_view = class("fashion_select_view", View)
+function fashion_select_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+ self:load("UI/Fashion_select.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+     local template_go = go.transform:Find("Fashion_select_slippage/ScrollView/Viewport/Content")
+     self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            local parent_transform = template_go.transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+     self.m_frame:on_loaded()
+end)
+
+end
+return fashion_select_view

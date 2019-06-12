@@ -1,0 +1,15 @@
+local Frame = require("system.frame")
+local fashion_select_card = class("fashion_select_card", Frame)
+
+Event.decl(fashion_select_card, "close_icons")
+
+function fashion_select_card:doInit()
+
+end
+
+------关闭自身的选中效果
+function fashion_select_card:close_icons()
+    self:emit_event("close_icons")
+end
+
+return fashion_select_card

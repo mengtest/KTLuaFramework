@@ -1,0 +1,77 @@
+local Popup_item = class("Popup_item")
+
+function Popup_item:initialize(go)
+	self.mTr = go.transform
+	self.m_cur_duration = 0
+	self.m_update_func = nil
+end
+
+function Popup_item:set_start_and_end_pos(startPos, endPos)
+	--可调参数
+	self.m_max_duration = 0.6	--最大滑行时长
+	self.m_side_coef = 0.2		--曲率系数（系数越大曲率越大）
+	
+	self.m_slip_end_dis = startPos
+	local fwdVec = endPos - startPos
+	self.m_fwd_speed = fwdVec.magnitude / self.m_max_duration
+	self.m_fwd_dir = fwdVec.normalized
+	local upDir = Vector3.up
+	self.m_side_dir = (upDir - Vector3.Dot(self.m_fwd_dir, upDir) * self.m_fwd_dir).normalized
+	self.m_side_G = (8 * self.m_side_coef * fwdVec.magnitude) / (self.m_max_duration * self.m_max_duration)
+	self.m_side_v0 = self.m_side_G * self.m_max_duration / 2
+	
+	self.mTr.position = startPos
+	self.m_update_func = self.update_slip
+end
+
+function Popup_item:set_start_and_end_pos2(start_pos, end_pos)
+	self.mTr.position = start_pos
+	
+	local tweener_pos = ShortcutExtensions.DOMove(self.mTr, end_pos, 0.15, false)
+	DG_DOTweenUtil.SetEase(tweener_pos, Ease.OutBack)
+	local tweener_scale = ShortcutExtensions.DOScale(self.mTr, 1.6, 0.2)
+	DG_DOTweenUtil.SetEase(tweener_scale, Ease.OutBack)
+	
+	
+	--可调参数
+	self.m_max_duration_bigger = 0.2	--显示大号字的最大时长
+	self.m_max_duration = 0.6			--显示的总最大时长
+	
+	--[[self.mTr.localScale = self.mTr.localScale * 1.5
+	self.mTr.position = stay_pos--]]
+	
+	self.m_update_func = self.update_stay
+end
+
+function Popup_item:update(delta_time)
+	self.mTr:LookAt(UnityEngine.Camera.main.transform)
+	return self.m_update_func(self, delta_time)
+end
+
+function Popup_item:update_slip(delta_time)
+	local is_running = true
+	self.m_cur_duration = self.m_cur_duration + delta_time
+	if self.m_cur_duration >= self.m_max_duration then
+		self.m_cur_duration = self.m_max_duration
+		is_running = false
+	end
+	local fwdVec = self.m_fwd_dir * (self.m_fwd_speed * self.m_cur_duration)
+	local sideVec = self.m_side_dir * (self.m_side_v0 * self.m_cur_duration - 0.5 * self.m_side_G * self.m_cur_duration * self.m_cur_duration)
+	local curPos = self.m_slip_end_dis + fwdVec + sideVec
+	self.mTr.position = curPos
+	return is_running
+end
+
+function Popup_item:update_stay(delta_time)
+	local is_running = true
+	self.m_cur_duration = self.m_cur_duration + delta_time
+	--[[if self.m_cur_duration >= self.m_max_duration_bigger then
+		self.mTr.localScale = Vector3.one
+	end--]]
+	if self.m_cur_duration >= self.m_max_duration then
+		is_running = false
+	end
+	return is_running
+end
+
+return Popup_item

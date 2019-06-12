@@ -1,0 +1,83 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/9/22 17:38
+---
+local BubbleInfo = { }
+Event.decl(BubbleInfo,"reset")
+Attribute.decl(BubbleInfo,"bubbletext"," ")
+Attribute.decl(BubbleInfo,"posbubble", function() return Vector3(0, 0, 0) end)
+Attribute.decl(BubbleInfo,"scalebubble", function() return Vector3(0, 0, 0) end)
+
+
+local function show_scale(main_player_dist)
+    local main_player_dist_max = 20
+    local main_player_dist_min = 2
+    local change = 0.5
+    if(main_player_dist>main_player_dist_max) then
+        return Vector3(0.5,0.5,0.5)
+    end
+    if(main_player_dist<main_player_dist_min) then
+        return Vector3(1,1,1)
+    end
+    local diff = main_player_dist_max- main_player_dist_min
+    local scale = 1- main_player_dist / diff * 0.5
+    local sca = Vector3(scale,scale,scale)
+    return sca
+end
+function BubbleInfo:doInit(param)
+    local unit_id = param.enemy_id
+    --因为对话框是在主角上的，所以应先获取主角的位置main_unit
+    self.world = self:getFrame("world")
+    self.unit = self.world:getUnit(unit_id)
+    self.cc = self.unit:get_cc()
+    self.m_complete_cb = nil
+    self.m_main_player = self:getFrame("world"):get_main_player()
+    print("获取npc cc", self.cc==nil,unit_id)
+    -- by lijunfeng 2017/12/28 需要等到npc cc 资源加载完毕再播放
+    if self.cc==nil then
+        self:subscribe(self.unit:on_event_attr_set("cc_loaded", false), function(value)
+            if value then
+                print("延迟播放cc泡泡")
+                self.cc = self.unit:get_cc()
+                --对话泡泡在主角位置上的偏移量
+                self.offset = Vector3(self.cc.center.x + self.cc.height * -0.3, self.cc.center.y + self.cc.height * 1, 0)
+                self:subscribe(self.unit:on_event_pos_set(true), function(val)
+                    local main_player_dist = Vector3.Distance(self.m_main_player:get_pos(),val)
+                    local show_scale = show_scale(main_player_dist)
+                    local show_bone = self.unit:get_bone("top")
+                    local pos = show_bone and Vector3(show_bone.position.x+0.2,show_bone.position.y-0.6,show_bone.position.z) or Vector3.up * 3
+                    self:set_posbubble(pos )
+                    self:set_scalebubble(show_scale)
+                end)
+            end
+        end)
+        return
+    end
+
+    --对话泡泡在主角位置上的偏移量
+    self.offset = Vector3(self.cc.center.x + self.cc.height * -0.3, self.cc.center.y + self.cc.height * 1,0)
+    self:subscribe(self.unit:on_event_pos_set(true), function(val)
+        local main_player_dist = Vector3.Distance(self.m_main_player:get_pos(),val)
+        local show_scale = show_scale(main_player_dist)
+        local show_bone = self.unit:get_bone("top")
+        local pos = show_bone and Vector3(show_bone.position.x+0.2,show_bone.position.y-0.6,show_bone.position.z) or Vector3.up * 3
+        self:set_posbubble(pos)
+        self:set_scalebubble(show_scale)
+    end)
+end
+function BubbleInfo:reset()
+    self:emit_event("reset")
+end
+
+function BubbleInfo:doDestroy()
+    if  self.m_complete_cb and type (self.m_complete_cb) == "function" then
+        self.m_complete_cb( )
+    end
+end
+function BubbleInfo:on_complete(cb_func)
+    self.m_complete_cb = cb_func
+end
+
+return BubbleInfo
+
+

@@ -1,0 +1,124 @@
+local View = require("system.view")
+local big_map_quest_item_view = class("big_map_quest_item_view", View)
+
+function big_map_quest_item_view:doInit(param_list)
+    local big_map = self:getFrame("big_map")
+    self.m_quest_mgr = self:getFrame("quest_manager")
+    self.m_frame = self:getFrame()
+    self.m_ui_manager = app:get_ui_manager()
+    --- 记录当前显示的任务
+    self.m_cur_quest_data = nil
+    self.m_cur_quest_frame = nil
+    self.m_cur_param_list = nil
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigMapQuestItem"), function(go)
+        local bg_size = self["item_btn_GUIButton"].gameObject:GetComponent(RectTransform).sizeDelta
+        go:GetComponent(RectTransform).sizeDelta = bg_size
+        go.transform:SetParent(param_list['parent'])
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self.m_frame:set_self_go(go)
+
+        self:refresh_item_info(param_list)
+
+        --- 因为frame创建顺序问题，点击任务追踪栏打开地图显示任务信息功能暂时放在这里，以后重构大地图后再迁移  temp by xinghanzhong
+        if param_list['type'] == enum.ui.Enum_UI_MapItemType.Item_Info_Quest then
+            local quest_data, map_id = big_map:gain_show_quest_param()
+            if quest_data then
+                big_map:refresh_quest_info({ ['quest_data'] = quest_data, ['map_id'] = map_id }, false)
+            end
+        end
+    end)
+
+    self:subscribe(big_map:on_event("refresh_quest_info"), function(quest_param)
+        if param_list['type'] == enum.ui.Enum_UI_MapItemType.Item_Info_Quest then
+            self:refresh_quest_show(quest_param)
+        end
+    end)
+
+    self:subscribe(self.m_frame:on_event("interest_quest"), function()
+        self:quest_interes_or_cancel()
+    end)
+
+    self:subscribe(self.m_frame:on_event("refresh_self"), function(param_list)
+        self:refresh_item_info(param_list)
+    end)
+end
+
+function big_map_quest_item_view:refresh_item_info(param_list)
+    if param_list['type'] == enum.ui.Enum_UI_MapItemType.Item_Choice_Teleport_Point then
+        self['quest_icon_gameObject']:SetActive(false)
+        self['trans_icon_gameObject']:SetActive(true)
+        self["trace_icon_GUIImage"].gameObject:SetActive(false)
+        self["interest_btn_GUIButton"].gameObject:SetActive(false)
+    elseif param_list['type'] == enum.ui.Enum_UI_MapItemType.Item_Info_Quest then
+        self["item_btn_GUIButton"].enabled = false
+    else
+        self['quest_icon_gameObject']:SetActive(true)
+        self['trans_icon_gameObject']:SetActive(false)
+        self["interest_btn_GUIButton"].gameObject:SetActive(true)
+    end
+
+    if param_list['param'] then
+        if param_list['type'] == enum.ui.Enum_UI_MapItemType.Item_Choice_Teleport_Point then
+            local trans_info = dbc.teleport_point[param_list['param'].id]
+            self.m_frame:set_quest_name(trans_info.teleport_point_name)
+        else
+            self:refresh_quest_show(param_list['param'])
+        end
+    end
+end
+
+function big_map_quest_item_view:refresh_quest_show(quest_param)
+    --- 如果点击的是同一个任务，则不执行刷新操作
+    if quest_param == self.m_cur_quest_data then
+        return
+    end
+    self.m_cur_quest_data = quest_param['quest_data']
+    --self.m_cur_quest_frame = quest_frame
+    local quest_id = quest_param['quest_data']:get_quest_id()
+    local quest_info = dbc.quest[quest_id]
+    --- 任务是否被关注
+    local is_interest = quest_param['quest_data']:get_note()
+    self.m_frame:set_quest_name(quest_info.name)
+    --- 若当前任务已关注则显示黄点，否则不显示
+    self["yellow_point_gameObject"]:SetActive(is_interest == 1)
+    local trace_index = quest_param['quest_data']:get_index()
+    if trace_index ~= 0 then
+        local icon_path = app:getAssetPathMgr().get_mini_map_manager_resource(string.format("trace_icon_%d", trace_index))
+        self:change_sprite(self["trace_icon_GUIImage"], icon_path)
+    end
+    self["trace_icon_GUIImage"].gameObject:SetActive(trace_index ~= 0)
+    self.m_cur_param_list = quest_param
+end
+
+function big_map_quest_item_view:quest_interes_or_cancel()
+    local is_interest = self.m_cur_quest_data:get_note()
+    if is_interest == 1 then
+        --- 如果是已关注任务则取消关注
+        self.m_quest_mgr:del_quest_note(self.m_cur_quest_data:get_quest_id())
+    else
+        local noted_quest_list = self.m_quest_mgr:get_noted_quest_list()
+        if #noted_quest_list < 3 then
+            self.m_quest_mgr:add_quest_note(self.m_cur_quest_data:get_quest_id())
+        else
+            self:getFrame("float_hint_manager"):add_float("最多关注3个任务", self.m_ui_manager.UI_Depth.ALERT)
+            return
+        end
+    end
+    self["yellow_point_gameObject"]:SetActive(not (is_interest == 1))
+    --self.m_cur_quest_frame:emit_event("refresh_state", self.m_cur_param_list)
+end
+
+function big_map_quest_item_view:change_sprite(obj, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            obj.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return big_map_quest_item_view

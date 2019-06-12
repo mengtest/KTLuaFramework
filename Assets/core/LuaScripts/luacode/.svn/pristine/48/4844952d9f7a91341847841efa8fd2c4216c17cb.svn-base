@@ -1,0 +1,42 @@
+﻿---
+--- Created by lijunfeng
+--- DateTime: 2017/12/28 9:55
+---
+local Creature = require "frame.kbe.Creature"
+local M=class("MobGiver",Creature)
+
+-- 交互问答部分
+Attribute.decl(M,"tmpl",0)
+Attribute.decl(M, "interact_state", false)
+Attribute.decl(M, "birth_dir", 0)-- 角色出生时的朝向
+Attribute.decl(M,"quiz",0)
+
+function M:initialize(id)
+    M.super.initialize(self,id)
+end
+
+function M:on_init(type)
+    M.super:on_init(type)
+end
+
+function M:on_destroy()
+    M.super:on_destroy()
+end
+
+function M:update(delta)
+    M.super.update(self,delta)
+end
+
+function M:dialog_bgn(tkt)
+    self:emit_event("dialog_bgn", tkt)
+end
+
+function M:cell_call(method_name, ...)
+	app:getKBESDK():entity_cell_call(self.m_id, method_name, ...)
+end
+
+function M:base_call(method_name, ...)
+	app:getKBESDK():entity_base_call(self.m_id, method_name, ...)
+end
+
+return M

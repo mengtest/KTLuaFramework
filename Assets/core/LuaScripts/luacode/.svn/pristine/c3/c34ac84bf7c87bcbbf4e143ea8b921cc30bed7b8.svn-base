@@ -1,0 +1,63 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local SkillBuffSfxView = {}
+
+local function get_pos_scale(unit,mount_point_name)
+    local standard_height,stardard_radius = app:getSkillMgr():get_standard_height_radius()
+    local my_height,my_radius = 0,0
+    local cc = unit:get_cc()
+    if(cc~=nil) then 
+        if(mount_point_name == "bottom") then  my_height = cc.height end
+        my_radius = cc.radius 
+    end
+
+    -- /2是因为人形怪center是在中心
+    local different_height = (my_height - standard_height) / 2
+    local different_radius = my_radius / stardard_radius
+
+    return Vector3(0,different_height,0),Vector3(different_radius,1,different_radius)
+end
+
+function SkillBuffSfxView:doInit()
+    local frame = self:getFrame()
+    local sfx_path = frame:get_sfx_path()
+    local unit = frame:get_unit()
+    local mount_point_name = frame:get_mount_point()
+    self.m_mount_point = unit:get_bone(mount_point_name)
+    local world = frame:getFrame("world")
+    local view_go = self:getGO()
+    local buff_data = frame:get_buff_data()
+
+    
+
+    view_go.transform.localPosition = Vector3.zero
+    
+    self:load(sfx_path, function(go)
+        local pos,scale = get_pos_scale(unit,mount_point_name)
+        go.transform.localPosition = pos
+        go.transform.localEulerAngles = Vector3.zero
+        go.transform.localScale = scale
+
+        local func = self["special_buff_view_" .. tostring(buff_data:get_buff_id())]
+        if (func ~= nil) then
+            func(self,go,view_go,unit,world)
+        else
+            self:normal_buff_view(go,view_go,unit)
+        end
+
+    end)
+
+end
+
+function SkillBuffSfxView:normal_buff_view(sfx,view_go,unit)    
+    view_go.transform.position = self.m_mount_point.position
+end
+
+
+function SkillBuffSfxView:doUpdate()
+    if(self.m_update_func ~= nil) then
+      self.m_update_func()
+    end
+end
+
+return SkillBuffSfxView

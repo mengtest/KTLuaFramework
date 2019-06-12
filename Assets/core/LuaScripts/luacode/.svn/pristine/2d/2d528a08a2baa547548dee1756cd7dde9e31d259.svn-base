@@ -1,0 +1,29 @@
+
+local BuffContainerView = {}
+
+function BuffContainerView : doInit()
+    local frame = self:getFrame()
+
+	self:load(app:getAssetPathMgr().get_ui_view_asset("BuffContainer"), function(go)
+		--local parent_node = self:getParent():getGO().transform:GetChild(0):Find("Head/PlayerBuff")
+		--self:init_with_go(go, parent_node)
+
+        go.transform.localPosition = Vector3.zero
+        self.buff_container = go.transform:Find("BuffContainer")
+        self.buff_container.transform.localPosition = Vector3.zero
+
+        self:subscribe(frame:on_event("child_created"),
+		function(child_frame)
+			self:add_buff_icon(child_frame)
+		end)
+    end)
+end
+function BuffContainerView:add_buff_icon(buff_icon_frame)
+	-- 子buff_icon布局
+	local frame_name = buff_icon_frame:getFrameName()
+	local view = self.m_mgr:getView(frame_name)
+	local view_go = view:getGO()
+	view_go.transform.localPosition = Vector3.zero
+	view_go.transform.parent = self.buff_container.transform
+end
+return BuffContainerView

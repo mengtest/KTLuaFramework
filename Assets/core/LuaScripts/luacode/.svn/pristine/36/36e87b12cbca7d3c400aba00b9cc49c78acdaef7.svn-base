@@ -1,0 +1,141 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+local Enum_Unit = require "common.Enum.Enum_Unit"
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+    
+    local unit = self.m_unit
+    unit:set_main_act(UAFsm.MAIN_ACT.CLIMB)
+
+    -- 切换操作方式
+    self.m_param.playerController:set_player_controll_type(Enum_Battle.Player_Controll_Type.CLIMB)
+    -- 隐藏战斗面操作面板    
+    self.m_param.playerController:set_is_show_battle_panel(false)
+    -- 隐藏武器 -> 武器还没有拆分 这是个临时做法
+    local tra = unit:get_bone(Enum_Unit.BoneName.weapon_hand_r_1)    
+    tra.gameObject:SetActive(false)
+
+    --监听血量 受到伤害需要掉下去
+    unit:subscribe(unit:on_event_hp_set(false), function(new,old)
+        Debug.LogError("new:"..tostring(new).." old:"..tostring(old))
+    end)
+
+    --以下为针对梯子的做法 以后需要扩展
+    local ladder = self.m_param.ladder
+    -- 初始位置
+    local start_pos = ladder:getEnterPos(self.m_param.collider.gameObject:GetInstanceID()).position 
+    -- 顶部
+    self.m_top = ladder.top.position
+    -- 底部
+    self.m_bottom = ladder.bottom.position
+    unit:set_pos(start_pos)
+    unit:emit_event("set_position", start_pos)
+    unit:lookAt(ladder.transform.position)
+
+    self.m_update_func  = self.climb_ladder
+
+    
+end
+
+
+function M:exit()
+    --print("UnitActStateSkillSing:exit")
+    self.m_param.playerController:set_is_show_battle_panel(true)
+
+    -- 切换操作方式
+    self.m_param.playerController:set_player_controll_type(Enum_Battle.Player_Controll_Type.ALL_DIRECTION)
+
+    --武器还没有拆分 这是个临时做法
+    local tra = self.m_unit:get_bone(Enum_Unit.BoneName.weapon_hand_r_1)
+    
+    tra.gameObject:SetActive(true)
+
+    self.m_update_func  = nil
+
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+   
+    if(self.m_update_func~=nil) then
+        self:m_update_func()
+    end
+    --self.m_unit:lookAt(self.m_ladder.transform.position)
+end
+
+
+function M:Move(V3)
+    
+    local cc = self.m_unit:get_cc()
+    
+    if cc == nil then
+        return
+    end
+    
+    cc:Move(V3)
+    
+    self.m_unit:set_pos(cc.transform.position)
+    
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+
+function M:climb_ladder()
+    
+    local delta_time = app.get_delta_time()
+    local unit = self.m_unit
+    -------------------
+    -- 方位计算---
+    local move_speed = unit:get_move_speed()
+    
+    local move_dir = unit:get_move_state()
+    
+    
+    -- 我能怎么办 我也很绝望啊
+    if (move_dir == 1) then
+        if (unit:get_pos().y < self.m_top.y) then
+            self:Move(Vector3(0, move_speed * delta_time, 0))
+        else
+            self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+            local endPos = self.m_param.ladder.top_out.position
+            self.m_unit:set_pos(endPos)
+            self.m_unit:emit_event("set_position", endPos)
+        end
+    elseif (move_dir == 5) then
+        if (unit:get_pos().y > self.m_bottom.y) then
+            self:Move(Vector3(0, -move_speed * delta_time, 0))
+        else
+            self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+            
+            local endPos = self.m_param.ladder.bottom_out.position
+            self.m_unit:set_pos(endPos)
+            self.m_unit:emit_event("set_position", endPos)
+        end
+    elseif (move_dir == 3) then
+        
+    elseif (move_dir == 4) then
+        
+    end
+
+end
+
+return M

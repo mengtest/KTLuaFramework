@@ -1,0 +1,182 @@
+local skynet = require "skynet"
+local math_3d = require "math_3d"
+for k,v in pairs(math_3d) do
+	_G[k] = v
+end
+local Unit = require "unit"
+
+local Bot = class("Bot")
+
+function Bot:initialize(map, id, unit)
+	self.m_map = map
+	self.m_id = id
+	self.m_unit = unit
+	self.m_next = 0
+end
+
+function Bot:update()
+	if self.m_unit:isDead() then
+		return
+	end
+
+	if skynet.time() >= self.m_next then
+		self.m_next =skynet.time() + math.random(5, 10)
+
+		local pos = Vector3(math.random(-5, 5), 0, math.random(-5, 5))
+		self.m_map:playerActionMove(self.m_id, self.m_unit:getPos(), pos)
+	end
+end
+
+local Map = class("Map")
+
+function Map:start()
+	self.m_unit_map = {}
+	self.m_send = {}
+	self.m_bot = {}
+	self.m_dead = {}
+
+	for i = 1, 10 do
+		local pid = 10000 + i
+		self:enter(pid, {
+			type = 1000 + math.random(1,3),
+			name = string.format("player_%d", i),
+			pos = {0, 0, 0}
+		})
+		local unit = self.m_unit_map[pid]
+		self.m_bot[pid] = Bot:new(self, pid, unit)
+	end
+end
+
+function Map:stop()
+end
+
+local function unit_dump(unit, fields)
+	local dump = {}
+	for _, name in ipairs(fields) do
+		dump[name] = unit["get"..name](unit)
+	end
+	return dump
+end
+
+function Map:getUnit(id)
+	return self.m_unit_map[id]
+end
+
+function Map:enter(pid, info)
+	print("Map:enter", pid, info)
+
+	local unit = Unit:new(self, {
+		id = pid,
+		type = info.type,
+		name = info.name,
+		pos = Vector3(table.unpack(info.pos))
+	})
+
+	self.m_unit_map[pid] = unit
+
+	local fields = {
+		"Id", "Type", "Pos", "Dir", 
+		"Name", "HP", "HPMax",
+		"AttackDamage", "AttackTime", "AttackRange", "MoveSpeed",
+		"MoveData", "SkillData",
+	}
+
+	local fields_update = {
+		"Name", "HP", "HPMax",
+		"AttackDamage", "AttackTime", "AttackRange", "MoveSpeed",
+	}
+
+	for _, name in ipairs(fields_update) do
+		unit["on"..name.."Set"](unit):subscribe(function(val)
+			self:sendAll("attset", unit:getId(), name, val)
+		end)
+	end
+
+	unit["onDeadSet"](unit):subscribe(function(val)
+		if val then
+			self.m_dead[unit] = skynet.time()
+		end
+	end)
+
+	local dump = unit_dump(unit, fields)
+	self:sendAll("unit_enter", pid, dump)
+
+	for k,v in pairs(self.m_unit_map) do
+		if k ~= pid then
+			local dump = unit_dump(v, fields)
+			self:sendPlayer(pid, "unit_enter", k, dump)
+		end
+	end
+end
+
+function Map:exit(pid)
+	print("Map:exit", pid)
+	local unit = self.m_unit_map[pid]
+	if unit then
+		self.m_dead[unit] = nil
+		self:sendAll("unit_exit", pid)
+		self.m_unit_map[pid] = nil
+	end
+end
+
+function Map:sendPlayer(pid, ...)
+	table.insert(self.m_send, {pid = pid, ...})
+end
+
+function Map:sendAll(...)
+	table.insert(self.m_send, {...})
+end
+
+function Map:playerActionMove(pid, from, to)
+	local unit = self.m_unit_map[pid]
+	if not unit then return false, "unit_invalid" end
+	
+	local ok, err = unit:cmdMove(Vector3(table.unpack(from)), Vector3(table.unpack(to)))
+	if ok then
+		self:sendAll("move", pid, from, to)
+	end
+
+	return ok, err
+end
+
+function Map:playerActionSkill(pid, skill_id, target_id)
+	local unit = self.m_unit_map[pid]
+	if not unit then return false, "unit_invalid" end
+
+	local ok, err = unit:cmdSkill(skill_id, target_id)
+	if ok then
+		self:sendAll("skill", pid, skill_id, target_id)
+	end
+
+	return ok, err
+end
+
+function Map:update()
+	local now = skynet.time()
+	for k,v in pairs(self.m_dead) do
+		if now - v >= 10 then
+			self.m_dead[k] = nil
+			k:setHP(k:getHPMax())
+		end
+	end
+
+	for k,v in pairs(self.m_bot) do
+		v:update()
+	end
+
+	for k,v in pairs(self.m_unit_map) do
+		v:update()
+	end
+
+	local send = self.m_send
+	self.m_send = {}
+	for i,v in ipairs(send) do
+		if v.pid then
+			service.push_notify:sendPlayer(v.pid, table.unpack(v))
+		else
+			service.push_notify:sendAll(table.unpack(v))
+		end
+	end
+end
+
+return Map:new()

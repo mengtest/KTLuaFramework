@@ -1,0 +1,213 @@
+---
+--- Created by xiaojingli.
+--- DateTime: 2018/1/17 14:26
+---
+local View = require("system.view")
+local trace_quest_bar_view = class("trace_quest_bar_view", View)
+
+trace_quest_bar_view.Const = {}
+trace_quest_bar_view.Const.show_new_quest_time = 5           ---新接取任务显示的时间
+trace_quest_bar_view.Const.time_before_move = 0.1
+trace_quest_bar_view.Const.move_duration = 2
+trace_quest_bar_view.Const.time_after_move = 0.1
+
+function trace_quest_bar_view:doInit()
+    self.m_frame = self:getFrame()
+    self.m_trace_frame_list = {}
+    self.m_dotween_sequence = nil
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Trace_quest_bar"), function(go)
+
+        local path = "ui_renwu_xinxifeidan"
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset(path), go.transform)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local frame_name = child_frame:getFrameName()
+            local index = tonumber(string.sub(frame_name, string.len(frame_name)))
+            self.m_trace_frame_list[index] = child_frame
+        end)
+        self.m_frame:on_loaded()
+    end)
+
+    self:subscribe(self.m_frame:on_event("refresh_trace_quest_list"), function()
+        self:set_trace_quest()
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_quest_condition"), function(quest_id)
+        self:refresh_schdule(quest_id)
+    end)
+    self:subscribe(self.m_frame:on_event("show_new_quest"), function(new_quest_data)
+        --新任务在追踪栏上显示2s
+        if new_quest_data == nil then
+            return
+        end
+        self:play_sfx(new_quest_data)
+    end)
+    self:subscribe(self.m_frame:on_event("show_finish_quest"), function(quest_data)
+        local quest_id = quest_data:get_quest_id()
+        local index = self:index_of_trace_frame_list(quest_id)
+        if index then
+            self:refresh_aim_info(index)
+        end
+        self:refresh_txt_sketch(quest_id)
+        self:show_new_quest(quest_data)
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_quest_dis"), function()
+        for i = 0, 2 do
+            self:refresh_aim_info(i)
+        end
+    end)
+end
+
+--显示2s新接取任务
+function trace_quest_bar_view:show_new_quest(quest_data)
+    local trace_quest_list = self.m_frame:get_trace_quest_list()
+    if trace_quest_list == nil then
+        return
+    end
+
+    --当接取到新任务时，判断隐藏第几个追踪栏
+    local length = utility.table:count(trace_quest_list)
+    if length == 1 then
+        if trace_quest_list[1]:get_quest_id() == quest_data:get_quest_id() then
+            return
+        end
+    elseif length == 2 then
+        for i = 1, length do
+            if trace_quest_list[i]:get_quest_id() == quest_data:get_quest_id() then
+                return
+            end
+        end
+        self.m_frame:set_hide_trace_index(1)
+    end
+
+    if self.m_frame:get_hide_trace_index() ~= 0 then
+        self.m_trace_frame_list[self.m_frame:get_hide_trace_index()]:hide()
+    end
+    self.m_trace_frame_list[0]:set_quest_data(quest_data)
+    slua_timer.addDelayEvent(self.Const.show_new_quest_time, function()
+        self.m_trace_frame_list[0]:set_quest_data(nil)
+        if self.m_frame:get_hide_trace_index() ~= 0 then
+            self.m_trace_frame_list[self.m_frame:get_hide_trace_index()]:show()
+            self.m_frame:set_hide_trace_index(0)
+        end
+    end)
+end
+
+function trace_quest_bar_view:set_trace_quest()
+    local trace_quest_list = self.m_frame:get_trace_quest_list()
+    if trace_quest_list == nil or utility.table:count(trace_quest_list) == 0 then
+        return
+    end
+
+    for i = 1, utility.table:count(trace_quest_list) do
+        if self.m_trace_frame_list[i] then
+            self.m_trace_frame_list[i]:set_quest_data(trace_quest_list[i])
+        end
+    end
+end
+
+--更新详细描述名称
+function trace_quest_bar_view:refresh_txt_sketch(quest_id)
+    local index = self:index_of_trace_frame_list(quest_id)
+    if index then
+        self.m_trace_frame_list[index]:refresh_txt_sketch()
+    end
+end
+
+--更新任务目标的距离和方向
+function trace_quest_bar_view:refresh_aim_info(index)
+    if self.m_trace_frame_list[index] then
+        self.m_trace_frame_list[index]:refresh_aim_info()
+    end
+end
+
+--更新任务进度
+function trace_quest_bar_view:refresh_schdule(quest_id)
+    local index = self:index_of_trace_frame_list(quest_id)
+    if index then
+        self.m_trace_frame_list[index]:refresh_schdule()
+    end
+end
+
+--查找quest_id对应的frame序号， 如果无对应的frame，返回-1
+function trace_quest_bar_view:index_of_trace_frame_list(quest_id)
+    for i = 0, 2 do
+        if self.m_trace_frame_list[i] then
+            local quest_data = self.m_trace_frame_list[i]:get_quest_data()
+            if quest_data then
+                local quest_id_temp = quest_data:get_quest_id()
+                if quest_id_temp == quest_id then
+                    return i
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+--播放特效
+function trace_quest_bar_view:play_sfx(quest_data)
+    if self.m_dotween_sequence then
+        return
+    end
+
+    local end_pos = Vector3(653, 207, 0)
+
+    if self["new_quest_particle_cmp"] then
+        local particle_go = self["new_quest_particle_cmp"].gameObject
+        local particle_tr = particle_go.transform
+
+        self.m_dotween_sequence = DOTween.Sequence()
+        local tweener1 = ShortcutExtensions.DOLocalMove(particle_tr, Vector3.zero, self.Const.time_before_move, false)
+        local tweener2 = ShortcutExtensions.DOLocalMove(particle_tr, end_pos, self.Const.move_duration, false)
+        local tweener3 = ShortcutExtensions.DOLocalMove(particle_tr, end_pos, self.Const.time_after_move, false)
+        tweener1 = DG_DOTweenUtil.OnComplete(tweener1, function()
+            particle_tr.localPosition = Vector3.zero
+            particle_go:SetActive(true)
+        end)
+        tweener2 = DG_DOTweenUtil.OnComplete(tweener2, function()
+            self:show_new_quest(quest_data)
+        end)
+        tweener3 = DG_DOTweenUtil.OnComplete(tweener3, function()
+            self.m_dotween_sequence = nil
+            particle_go:SetActive(false)
+        end)
+        self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener1)
+        self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener2)
+        self.m_dotween_sequence = TweenSettingsExtensions.Append(self.m_dotween_sequence, tweener3)
+    end
+end
+
+--加载特效
+function trace_quest_bar_view:load_sfx(path, parent)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3(450, 450, 450)
+        go:SetActive(false)
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (type == nil) then
+            return
+        end
+        self["new_quest_particle_cmp"] = component
+    end)
+end
+
+function trace_quest_bar_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return trace_quest_bar_view

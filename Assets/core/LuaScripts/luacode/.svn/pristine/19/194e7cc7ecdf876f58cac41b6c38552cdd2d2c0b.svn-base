@@ -1,0 +1,231 @@
+local Frame = require("system.frame")
+local suit_manager = class("suit_manager", Frame)
+local bit = require("bit")
+
+----解锁套装
+Event.decl(suit_manager, "unlocking_suit")
+----收集套装
+Event.decl(suit_manager, "collected")
+
+Event.decl(suit_manager, "dressed")
+
+function suit_manager:doInit()
+    ----已拥有的套装信息
+    self.m_own_suit_list = {}
+    self:base_call("suit_list")
+end
+
+function suit_manager:init()
+    self:local_log("suit_manager  初始化")
+end
+
+function suit_manager:suit_all(outer_appearance, dressed_cabinet)
+    for i, v in pairs(outer_appearance) do
+        --self:local_log("outer_appearance..i " .. tostring(i))
+        --self:local_log("outer_appearance..expires..tmpl " .. tostring(v['tmpl']))
+        --self:local_log("outer_appearance..expires..timestamp " .. tostring(v['timestamp']))
+        for key, value in pairs(v) do
+            self:local_log(tostring(key) .. "   " .. tostring(value))
+        end
+
+        self.m_own_suit_list[i] = v
+    end
+end
+
+------解锁套装
+function suit_manager:suit_unlocked(suit_id, suit_timestamp)
+    self:emit_event("unlocking_suit", suit_id, suit_timestamp)
+end
+
+function suit_manager:suit_collected_upper(suit_id)
+
+end
+
+function suit_manager:suit_collected_lower(suit_id)
+
+end
+
+function suit_manager:suit_collected_weapon(suit_id)
+
+end
+
+function suit_manager:suit_collected_face(suit_id)
+
+end
+
+function suit_manager:suit_collected_shoulder(suit_id)
+
+end
+
+function suit_manager:suit_collected_back(suit_id)
+
+end
+
+function suit_manager:suit_collected_tail(suit_id)
+
+end
+
+function suit_manager:suit_collected_waist(suit_id)
+
+end
+
+function suit_manager:suit_collected_hands(suit_id)
+
+end
+
+function suit_manager:suit_collected_feet(suit_id)
+
+end
+
+function suit_manager:suit_dressed_upper(suit_id)
+
+end
+
+function suit_manager:suit_dressed_lower(suit_id)
+
+end
+
+function suit_manager:suit_dressed_weapon(suit_id)
+
+end
+
+function suit_manager:suit_dressed_face(suit_id)
+
+end
+
+function suit_manager:suit_dressed_shoulder(suit_id)
+
+end
+
+function suit_manager:suit_dressed_back(suit_id)
+
+end
+
+function suit_manager:suit_dressed_tail(suit_id)
+
+end
+
+function suit_manager:suit_dressed_waist(suit_id)
+
+end
+
+function suit_manager:suit_dressed_hands(suit_id)
+
+end
+
+function suit_manager:suit_dressed_feet(suit_id)
+
+end
+
+function suit_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function suit_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function suit_manager:local_log(...)
+    app:logError(string.format(...))
+end
+
+function suit_manager:gain_attr_name(attr_type)
+    if attr_type == enum.shared.PropMod.STAMINA then
+        return '耐力'
+    elseif attr_type == enum.shared.PropMod.DEFENSE then
+        return '护甲'
+    elseif attr_type == enum.shared.PropMod.ATTACK then
+        return '攻速'
+    elseif attr_type == enum.shared.PropMod.DAMAGE then
+        return ' 伤害'
+    elseif attr_type == enum.shared.PropMod.CRITICAL then
+        return '暴击'
+    elseif attr_type == enum.shared.PropMod.RUSH then
+        return '急速'
+    elseif attr_type == enum.shared.PropMod.MASTER then
+        return '精通'
+    elseif attr_type == enum.shared.PropMod.DODGE then
+        return '闪躲'
+    elseif attr_type == enum.shared.PropMod.PARRY then
+        return '招架'
+    elseif attr_type == enum.shared.PropMod.BLOCK then
+        return '格挡'
+    elseif attr_type == enum.shared.PropMod.LIFESTEAL then
+        return '吸血'
+    elseif attr_type == enum.shared.PropMod.SPEED then
+        return '加速'
+    elseif attr_type == enum.shared.PropMod.EVASION then
+        return '闪避'
+    else
+        Debug.LogError("找不到这种类型，请检查表里是否配置正确------->>" .. tostring(attr_type))
+        return "不知名属性"
+    end
+end
+
+------获取套装包含的所有套件
+function suit_manager:check_suit_contains(suit_id)
+    local contains_data = {}
+    local suit_data = dbc.fashion_dress[suit_id]
+    if suit_data['upper'] > 0 then
+        contains_data['upper'] = suit_data['upper']
+    end
+    if suit_data['lower'] > 0 then
+        contains_data['lower'] = suit_data['lower']
+    end
+    if suit_data['weapon'] > 0 then
+        contains_data['weapon'] = suit_data['weapon']
+    end
+    if suit_data['face'] > 0 then
+        contains_data['face'] = suit_data['face']
+    end
+    if suit_data['shoulder'] > 0 then
+        contains_data['shoulder'] = suit_data['shoulder']
+    end
+    if suit_data['back'] > 0 then
+        contains_data['back'] = suit_data['back']
+    end
+    if suit_data['tail'] > 0 then
+        contains_data['tail'] = suit_data['tail']
+    end
+    if suit_data['waist'] > 0 then
+        contains_data['waist'] = suit_data['waist']
+    end
+    if suit_data['hands'] > 0 then
+        contains_data['hands'] = suit_data['hands']
+    end
+    if suit_data['feet'] > 0 then
+        contains_data['feet'] = suit_data['feet']
+    end
+
+    if utility.table:count(contains_data) == 0 then
+        Debug.LogError("该套装不包含任何套件，请配表》》》》》》》》》")
+        return
+    end
+    return contains_data
+end
+
+------检查是否已拥有套装 参数为套件对应的位数（读配置表）  返回值 1->拥有 0->未拥有
+function suit_manager:check_whether_own_suit(suit_index)
+    ---如果已拥有的套件列表为空，则表示该套件一定未拥有
+    if #self.m_own_suit_list == 0 then
+        return 0
+    end
+    ---标识该套件存在于 self.m_own_suit_list 的第几个元素中
+    local index = math.floor(suit_index / 64) + 1
+    ---当对应的元素无值，表示没有该套件
+    if not self.m_own_suit_list[index] then
+        return 0
+    end
+    ---标识是二进制数中的第几位
+    local remainder = suit_index % 64
+    local left_shift = bit.lshift(1, remainder)
+    ---将左移后的数与列表中对应位置的数做与运算，再右移相同的位数，得到的结果为1或0
+    local result = bit.rshift(bit.band(left_shift, self.m_own_suit_list[index]), remainder)
+    return result
+end
+
+return suit_manager

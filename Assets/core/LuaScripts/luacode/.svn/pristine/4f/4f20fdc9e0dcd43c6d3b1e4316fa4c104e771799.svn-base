@@ -1,0 +1,7 @@
+return {
+	"createRole",
+	"enterMap",
+	"exitMap",
+	"move",
+	"skill",
+}

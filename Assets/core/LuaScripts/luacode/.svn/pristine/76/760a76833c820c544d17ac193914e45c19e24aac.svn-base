@@ -1,0 +1,161 @@
+local Frame = require("system.frame")
+local spirit_upgrade = class("spirit_upgrade", Frame)
+
+-- 名称
+Attribute.decl(spirit_upgrade, "name", "")
+-- 等级
+Attribute.decl(spirit_upgrade, "level", "")
+-- 属性
+Attribute.decl(spirit_upgrade, "property", "")
+-- 灵兽提高的耐力
+Attribute.decl(spirit_upgrade, "endurance", "")
+-- 灵兽特性 提高的武器等级
+Attribute.decl(spirit_upgrade, "weapon_lvl", "")
+-- 灵蕴值消耗
+Attribute.decl(spirit_upgrade, "inspiration_cost", 0)
+-- 灵兽提高的耐力str
+Attribute.decl(spirit_upgrade, "endurance_str", "")
+
+Event.decl(spirit_upgrade, "show")
+Event.decl(spirit_upgrade, "hide")
+Event.decl(spirit_upgrade, "refresh_star")
+
+
+
+function spirit_upgrade:doInit(data)
+    self.m_spirit_data = data
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self:set_is_add_rect_trans(true)
+end
+
+function spirit_upgrade:on_loaded()
+
+    if self.m_spirit_data ~= nil then
+        self:refresh_data(self.m_spirit_data)
+    end
+
+    -- 确认更换
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data, args)
+        self:refresh_data(spirit_data)
+        self.m_spirit_data = spirit_data
+    end)
+
+    -- 当点击左侧槽位时
+    self:subscribe(self:getFrame("sprite"):on_event("change_slot"), function(spirit_data)
+        if spirit_data == nil then
+            self.m_spirit_data = nil
+            self:getFrame("spirit_strengthen"):hide()
+        else
+            self.m_spirit_data = spirit_data
+            self:refresh_data(spirit_data)
+        end
+    end)
+
+end
+
+-- 升级按钮
+function spirit_upgrade:on_upgrade()
+    if self:getFrame("sprite"):get_inspiration() < self:get_inspiration_cost() then
+        self:getFrame("float_hint_manager"):add_float("灵蕴值不足")
+    else
+        -- 升级的时候先卸下 卸下了以后在卸下成功的时候进行升级
+        local slot = dbc.sprite[self.m_spirit_data.tmpl].slot
+        self.m_inventory_mgr:sprite_unequipping_request_server(slot, enum.spirit_beast.UnequippingType.UPGRADE)
+    end
+end
+
+-- 刷新信息
+function spirit_upgrade:refresh_data(spirit_data)
+    ---- TODO 有些东西还需要  暂时先有  名字  等级  描述
+    -- 名字
+    self:set_name(dbc.sprite[spirit_data.tmpl].name)
+    -- 等级
+    self:set_level("Lv." .. spirit_data.stat)
+    -- 属性文字
+    if dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.FIRE then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.FIRE)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WATER then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WATER)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WOOD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WOOD)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.GOLD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.GOLD)
+    end
+    -- upgrade_bonuses
+    local bonus1_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[spirit_data.tmpl].upgrade_bonuses[1] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus1_str = str
+                end
+            end
+        end
+    end
+    for index, level in ipairs(dbc.sprite[spirit_data.tmpl].upgrade1_levels) do
+        if spirit_data.stat == level then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade1_params[index]
+            self:set_endurance_str(bonus1_str)
+            self:set_endurance(bonus)
+            break
+        elseif 0 < spirit_data.stat - level and spirit_data.stat - level < 3 then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade1_params[index]
+            self:set_endurance_str(bonus1_str)
+            self:set_endurance(bonus)
+        end
+    end
+
+
+    local bonus2_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[spirit_data.tmpl].upgrade_bonuses[2] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus2_str = str
+                end
+            end
+        end
+    end
+    for index, level in ipairs(dbc.sprite[spirit_data.tmpl].upgrade2_levels) do
+        if spirit_data.stat == level then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade2_params[index]
+            self:set_weapon_lvl(bonus2_str .. "    " .. tostring(bonus))
+            break
+        elseif 0 < spirit_data.stat - level and spirit_data.stat - level < 3 then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade2_params[index]
+            self:set_weapon_lvl(bonus2_str .. "    " .. tostring(bonus))
+        end
+    end
+
+    -- 升级所需消耗的灵蕴值
+    if dbc.spirit[spirit_data.level * 10 + spirit_data.rating].cost == nil then
+        Debug.LogError("表中没有配匹配这个等级和星级灵兽升级所需消耗的灵蕴值!!!")
+    end
+    local cost = dbc.spirit[spirit_data.stat * 10 + spirit_data.rating].cost
+    self:set_inspiration_cost(cost)
+
+    -- 技能
+    -- TODO 现在技能先走一下创建删除试试，今后会改成全都创建出来，用哪个显示哪个/ 或者用设置tmpl的方式
+    if self.m_skill_btn_list ~= nil then
+        for i, v in pairs(self.m_skill_btn_list) do
+            self:destroyChild(v)
+        end
+    end
+    self.m_skill_btn_list = {}
+    for i, v in ipairs(spirit_data.assists) do
+        local skill_data = v
+        self.m_skill_btn_list[i] = self:createChild("spirit_upgrade_skill_btn" .. v.tmpl, "spirit_beast.spirit_skill_btn", skill_data)
+    end
+    self:emit_event("refresh_star", spirit_data)
+
+end
+function spirit_upgrade:show()
+    self:emit_event("show")
+end
+function spirit_upgrade:hide()
+    self:emit_event("hide")
+end
+
+return spirit_upgrade

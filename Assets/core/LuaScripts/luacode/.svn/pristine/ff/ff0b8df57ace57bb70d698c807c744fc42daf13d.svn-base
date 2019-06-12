@@ -1,0 +1,117 @@
+
+local Camera = require "system.camera"
+local Enum_Unit = require "common.Enum.Enum_Unit"
+local Trigger_component = require("subsystem.component.trigger_component")
+
+local BPWorld = {}
+Event.decl(BPWorld, "add_unit")
+Event.decl(BPWorld, "del_unit")
+
+Attribute.decl(BPWorld, "map_id", 0)
+Attribute.decl(BPWorld, "map_loaded", false)
+
+function BPWorld:doInit()
+    self.m_unit_map = {}
+    self.m_object_map = {}
+    self.m_cam = Camera:new()
+    self.m_scene_data_list = {}
+end
+
+function BPWorld:on_map_loaded()
+	--self:getFrame("skill_ui_manager"):init()
+	--初始化技能ui管理器
+    Event_system:dispatch_event(EVENT_SCENE_LOADED, self)
+end
+
+function BPWorld:on_map_unloaded()
+    Event_system:dispatch_event(EVENT_SCENE_UNLOADED, nil)
+end
+
+function BPWorld:add_unit(id, name,type, pos, is_role, is_main_player)
+    assert(self.m_unit_map[id] == nil,id)
+    local m_add_unit = nil
+    local cfg = dbc.creature[type]
+	
+    if (m_add_unit == nil) then
+        m_add_unit =self:createChild(self:get_node_name("unit",id),"bp.bp_unit",
+        {
+            id = id,
+            name = name,
+			type = type,
+			cfg = cfg,
+            pos = pos,
+            is_role = is_role,
+            is_main_player = is_main_player,
+        })
+		
+        if (is_main_player == true) then
+            self.m_main_player_unit = m_add_unit
+        end
+    end
+	
+    self.m_unit_map[id] = m_add_unit
+    self:emit_event("add_unit", id, m_add_unit)
+    return m_add_unit
+end
+
+function BPWorld:del_unit(id)
+    local unit = self.m_unit_map[id]
+    assert(unit ~= nil)
+    self.m_unit_map[id] = nil
+    self:emit_event_del_unit(id, unit)
+    self:destroyChild(unit)
+end
+
+function BPWorld:get_unit(id)
+    return self.m_unit_map[id]
+end
+
+function BPWorld:get_unit_map()
+    local ret = {}
+    for k, v in pairs(self.m_unit_map) do
+        ret[k] = v
+    end
+    return ret
+end
+
+function BPWorld:get_dis_unit(unit, range)
+    local list = {}
+    for _, v in pairs(self.m_unit_map) do
+        if v ~= unit then
+            dist = Vector3.Distance(unit:get_pos(), v:get_pos())
+            if dist <= range then
+                list[#list + 1] = v
+            end
+        end
+    end
+
+    if #list == 0 then
+        return list
+    end
+    return list
+end
+
+function BPWorld:get_camera()
+    return self.m_cam
+end
+
+function BPWorld:get_main_player()
+	return self.m_main_player_unit
+end
+
+function BPWorld:get_node_name(name,id)
+    return string.format(name.."-%d", id)
+end
+
+function BPWorld:add_projectile(skill_id, sfx_path, caster_unit, on_hit)
+    local projectile = self:createChild("projectile"..skill_id..os.time()..math.random(), "projectile", {
+        skillId = skill_id,
+        sfx_path = sfx_path,
+        casterUnit = caster_unit,
+        onHit = on_hit
+    })
+
+    return projectile
+end
+
+return BPWorld

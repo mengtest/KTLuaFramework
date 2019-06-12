@@ -1,0 +1,317 @@
+local View = require("system.view")
+local talent_view = class("talent_view", View)
+
+
+function talent_view:doInit(param)
+    ---- 此天赋id
+    --self.m_talent_id = param.id
+    ---- 此天赋是否是锁定的
+    --self.m_is_locked = param.is_locked
+    ---- 此天赋是否已学习
+    --self.m_is_learned = param.is_learned
+    ---- 此天赋是否已经启用
+    --self.m_is_enabled = param.is_enabled
+    self.m_talent_card_num = param.card_num
+
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    self.m_rotate = false
+    self.m_front_rotate = true
+    self.m_back_rotate = false
+    self.m_speed = 15
+
+
+    self:load_prefab("ui/Talent.prefab", function(loaded_go)
+        local frame = self:getFrame()
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find("bg/drag_panel/talent_container/talent_card").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_card_go = go
+        ---- TODO这里又遇到了问题  为什么
+        self:getGO():AddComponent(RectTransform)
+        go.transform:SetParent(self:getGO().transform)
+        ---- TODO 这里的偏移量什么鬼。。。正常的数值是Vector3(180,302.5,0)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+        local go_trsf = go.transform
+        self.m_talent_card = go_trsf
+        go:SetActive(true)
+        ---- 获取各种组件
+        -- 左上角数字
+        local talent_num_text = go.transform:Find("num"):GetComponent(UI.Text)
+        self.m_talent_num_text = talent_num_text
+        -- icon
+        local talent_icon_image = go.transform:Find("icon_container/icon"):GetComponent(UI.Image)
+        self.m_talent_icon_image = talent_icon_image
+        -- 被动小黄角
+        local talent_passive_corner = go.transform:Find("passive_image"):GetComponent(UI.Image)
+        self.m_talent_passive_corner = talent_passive_corner
+        -- 天赋名称
+        local talent_name_text = go.transform:Find("talent_name"):GetComponent(UI.Text)
+        self.m_talent_name_text = talent_name_text
+        -- 天赋是主动
+        local talent_active_text = go.transform:Find("talent_active"):GetComponent(UI.Text)
+        self.m_talent_active_text = talent_active_text
+        -- 天赋是被动
+        local talent_passive_text = go.transform:Find("talent_passive"):GetComponent(UI.Text)
+        self.m_talent_passive_text = talent_passive_text
+        -- 天赋详细信息
+        local talent_detail_text = go.transform:Find("talent_detail"):GetComponent(UI.Text)
+        self.m_talent_detail_text = talent_detail_text
+        -- 卡背
+        local talent_card_back = go.transform:Find("talent_card_back"):GetComponent(KTButton)
+        self.m_talent_card_back = talent_card_back
+        -- 需要的解锁条件
+        local unlock_condition_image = go.transform:Find("talent_card_back/unlock_condition_image"):GetComponent(UI.Image)
+        self.m_unlock_condition_image = unlock_condition_image
+        -- 需要的解锁条件文字
+        local unlock_condition_text = unlock_condition_image.transform:Find("unlock_condition_text"):GetComponent(UI.Text)
+        self.m_unlock_condition_text = unlock_condition_text
+        -- 满足解锁条件后的状态图片
+        local unlock_image = go.transform:Find("talent_card_back/unlock_image")
+        self.m_unlock_image = unlock_image
+        -- 已启用图
+        local talent_on_use_img = go.transform:Find("talent_on_use")
+        self.m_talent_on_use_img = talent_on_use_img
+        -- 与已启用相反的图
+        local talent_not_use_img = go.transform:Find("talent_not_use")
+        self.m_talent_not_use_img = talent_not_use_img
+        ---------- 还有没有了！！！！！！！！！！
+
+        ------ 为成长期天赋的第三层添加3选1功能
+        local toggle_group = self:getParent():getGO().transform:GetChild(0):Find("bg/drag_panel/talent_container"):GetComponent(UI.ToggleGroup)
+        for i, v in pairs(dbc.talent) do
+            if frame:get_talent_id() == v["skill"] then
+                if self:getFrame():get_group_num() == 06 then
+                    local toggle = self.m_card_go:AddComponent(UI.Toggle)
+                    self.m_toggle = toggle
+                    toggle.group = toggle_group
+                end
+            end
+        end
+        if self.m_toggle ~= nil then
+            self.m_toggle.onValueChanged:AddListener(function(is_on)
+                if is_on then
+                    -- 启用
+                    self.m_talent_on_use_img.gameObject:SetActive(true)
+                    self.m_talent_not_use_img.gameObject:SetActive(false)
+                    -- 通知服务器启用
+                    self.m_skill_ui_manager:req_master_enabling(self:getFrame():get_group_num(), self:getFrame():get_talent_num())
+                else
+                    -- 未启用
+                    self.m_talent_not_use_img.gameObject:SetActive(true)
+                    self.m_talent_on_use_img.gameObject:SetActive(false)
+                end
+            end)
+        end
+
+        ------ 为成长期天赋的第三层添加3选1功能
+
+        -- 需要解锁特效
+        self.m_need_unlock_sfx = nil
+        self:load_sfx("sfx/skill/prefab/ui/ui_fanpai_jihuoqian.prefab", go_trsf, "m_need_unlock_sfx")
+        -- 震颤特效
+        self.m_shake_sfx = nil
+        self:load_sfx("sfx/skill/prefab/ui/ui_fanpai_dianji001.prefab", go_trsf, "m_shake_sfx")
+        -- 已经解锁
+        self.m_unlock_sfx = nil
+        self:load_sfx("sfx/skill/prefab/ui/ui_fanpai_zhengmian.prefab", go_trsf, "m_unlock_sfx")
+
+        if frame:get_is_locked() then
+            -- 如果天赋是锁定的
+            talent_card_back.gameObject:SetActive(true)
+            unlock_condition_image.gameObject:SetActive(true)
+        elseif not frame:get_is_locked() and not frame:get_is_learned() then
+            -- 如果天赋解锁但是没学习
+            talent_card_back.gameObject:SetActive(true)
+            unlock_condition_image.gameObject:SetActive(false)
+            unlock_image.gameObject:SetActive(true)
+            --self.m_need_unlock_sfx.gameObject:SetActive(true)
+            --self.m_need_unlock_sfx:Play()
+        else
+            talent_card_back.gameObject:SetActive(false)
+        end
+
+        -- 卡背的按下响应事件
+        talent_card_back.onPointerDown = function()
+            ShortcutExtensions.DOScale(go.transform, 0.95, 0.05)
+        end
+        talent_card_back.onPointerUp = function()
+            if frame:get_is_locked() then
+                -- 如果不满足解锁条件
+                -- 飘字提示解锁条件
+                ShortcutExtensions.DOScale(go.transform, 1, 0.05)
+                --self:getFrame("ui_main"):show("大哥你等级不够")
+            else
+                -- 如果满足解锁条件
+                -- 旋转并学习
+                ShortcutExtensions.DOScale(go.transform, 1.1, 1)
+                self.m_need_unlock_sfx.gameObject:SetActive(false)
+                self.m_shake_sfx.gameObject:SetActive(true)
+                self.m_shake_sfx:Play()
+                self.m_rotate = true
+                frame:set_is_learned(true)
+                self.m_skill_ui_manager:req_master_learn(frame:get_talent_id())
+
+                self.m_skill_ui_manager:req_master_enabling(frame:get_group_num(), frame:get_talent_num())
+                if self.m_toggle ~= nil then
+                    -- 最后一排这么启用
+                    self.m_toggle.isOn = true
+                else
+                    -- 前两排这么启用
+                    self.m_skill_ui_manager:req_master_enabling(frame:get_group_num(), frame:get_talent_num())
+                end
+            end
+        end
+        -- 监听天赋解锁
+        ---- TODO 移动到frame中
+        self:subscribe(self.m_skill_ui_manager:on_event("unlock_talent"), function(talent_id)
+            --print("我爱爱爱爱爱爱爱爱啊    哦嗷嗷嗷嗷哦啊奥 ", talent_id)
+            if talent_id == frame:get_talent_id() then
+                frame:set_is_locked(false)
+                unlock_condition_image.gameObject:SetActive(false)
+                unlock_image.gameObject:SetActive(true)
+                self.m_need_unlock_sfx.gameObject:SetActive(true)
+                self.m_need_unlock_sfx:Play()
+            end
+        end)
+        -- 监听天赋启用
+        ---- TODO 移动到frame中
+        self:subscribe(self.m_skill_ui_manager:on_event("master_enabled"), function(talent_id)
+            if talent_id == frame:get_talent_id() then
+                frame:set_is_enabled(true)
+            elseif self:getFrame():get_group_num() == self:getFrame():get_group_num(talent_id) then
+                frame:set_is_enabled(false)
+            end
+        end)
+
+        -- 获取天赋的图标
+        self:subscribe(frame:on_event_talent_id_set(true), function(val)
+            if val == -1 then
+                return
+            end
+            local client_cfg = frame:get_client_cfg()
+            -- 绘制图标
+            local icon_path = client_cfg.icon
+            self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                local tex = asset_ref.asset
+                if (tex == nil) then
+                    Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                else
+                    talent_icon_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                end
+            end)
+        end)
+
+        -- 关闭界面隐藏特效
+        self:subscribe(self:getFrame("skill_ui_main"):on_event("hide"), function()
+            self.m_unlock_sfx.gameObject:SetActive(false)
+            --self.m_need_unlock_sfx.gameObject:SetActive(false)
+            --self.m_shake_sfx.gameObject:SetActive(false)
+        end)
+
+        self:set_talent_data()
+        go.transform.localPosition = Vector3(130, -252.5, 0)
+    end)
+end
+
+-- 读表来设置卡牌上的各种数据
+function talent_view:set_talent_data()
+    local frame = self:getFrame()
+    -- 序号
+    self.m_talent_num_text.text = tostring(self.m_talent_card_num)
+    -- 名字
+    local talent_name = dbc.spell_ui[frame:get_talent_id()].name
+    self.m_talent_name_text.text = tostring(talent_name)
+    -- 详细信息
+    local talent_detail = dbc.spell_ui[frame:get_talent_id()].detail_explain_skill
+    self.m_talent_detail_text.text = tostring(talent_detail)
+    -- 解锁条件
+    local unlock_condition_text = dbc.spell_ui[frame:get_talent_id()].unlock_parameters_skill
+    self.m_unlock_condition_text.text = tostring(unlock_condition_text .. "级解锁")
+    --self.m_unlock_condition_text.text = "哎呀我去"
+
+    if dbc.spell_ui[frame:get_talent_id()].passivity_skill == 1 then
+        -- 这是被动
+        -- 被动小黄角
+        self.m_talent_passive_corner.gameObject:SetActive(true)
+        -- 被动文字
+        self.m_talent_passive_text.gameObject:SetActive(true)
+        -- 主动文字
+        self.m_talent_active_text.gameObject:SetActive(false)
+    else
+        -- 这是被动
+        -- 被动小黄角
+        self.m_talent_passive_corner.gameObject:SetActive(false)
+        -- 被动文字
+        self.m_talent_passive_text.gameObject:SetActive(false)
+        -- 主动文字
+        self.m_talent_active_text.gameObject:SetActive(true)
+    end
+
+
+end
+function talent_view:doUpdate()
+    ---- TODO  现在采用最笨的旋转方式 应该可以优化
+    if self.m_talent_card ~= nil and self.m_talent_card.localEulerAngles.y >= 90 then
+        self.m_talent_card.localEulerAngles.y = 90
+        self.m_back_rotate = true
+        self.m_front_rotate = false
+    end
+    if self.m_rotate then
+        --print(self.m_talent_card.localEulerAngles.y)
+        if self.m_front_rotate and self.m_talent_card.localEulerAngles.y < 90 then
+            self.m_talent_card:Rotate(Vector3.up * self.m_speed)
+        end
+    end
+
+    if self.m_back_rotate then
+        self.m_talent_card_back.gameObject:SetActive(false)
+        self.m_talent_card:Rotate(Vector3.up * -self.m_speed)
+        if self.m_talent_card ~= nil and self.m_talent_card.localEulerAngles.y <= 1 then
+            self.m_talent_card.localEulerAngles.y = 0
+            self.m_back_rotate = false
+            self.m_rotate = false
+            slua_timer.addDelayEvent(0.6, function()
+                ShortcutExtensions.DOScale(self.m_card_go.transform, 1, 0.001)
+                self.m_shake_sfx:Play()
+                slua_timer.addDelayEvent(1, function()
+                    self.m_shake_sfx.gameObject:SetActive(false)
+                    self.m_unlock_sfx.gameObject:SetActive(true)
+                    self.m_unlock_sfx:Play()
+                end)
+            end)
+        end
+    end
+
+end
+
+---- rjy 2017.11.30 加载特效
+function talent_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent.parent)
+        go.transform.localPosition = Vector3(-10, -90, 0)
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+return talent_view

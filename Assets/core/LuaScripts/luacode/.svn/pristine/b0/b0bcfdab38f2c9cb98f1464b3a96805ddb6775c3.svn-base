@@ -1,0 +1,110 @@
+local Frame = require("system.frame")
+local backpack_list = class("backpack_list", Frame)
+
+Event.decl(backpack_list, "equip")
+
+function backpack_list:doInit(param)
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+    local equip_list = self.m_inventory_manager:gain_equipment_list()
+    -----所有装备的数据  在这里需要将他们进行分类，并且需要将这些分类按顺序进行显示
+    self.m_sub_bag_list = {}
+    self.m_weapon_list = {}
+    self.m_armor_list = {}
+    self.m_ring_list = {}
+    self.m_selected_item = nil
+    for i, v in pairs(equip_list) do
+        if dbc.item[v["tmpl"]].inventory_type == 1 then
+            self.m_weapon_list[#self.m_weapon_list + 1] = v
+        elseif dbc.item[v["tmpl"]].inventory_type == 2 then
+            self.m_armor_list[#self.m_armor_list + 1] = v
+        elseif dbc.item[v["tmpl"]].inventory_type == 3 then
+            self.m_ring_list[#self.m_ring_list + 1] = v
+        end
+    end
+
+    ---temp
+    self:subscribe(self.m_inventory_manager:on_event("add_equipment"), function(wearable_info)
+        for i, v in pairs(wearable_info) do
+            if dbc.item[v["tmpl"]].inventory_type == 1 then
+                self.m_sub_bag_list[1]:on_equipment_add(v)
+            elseif dbc.item[v["tmpl"]].inventory_type == 2 then
+                self.m_sub_bag_list[2]:on_equipment_add(v)
+            elseif dbc.item[v["tmpl"]].inventory_type == 3 then
+                self.m_sub_bag_list[3]:on_equipment_add(v)
+            end
+        end
+    end)
+
+    --for i, v in pairs(self.m_equipment_list) do
+    --    self:local_log("wearable_info..i>>" .. tostring(i))
+    --    self:local_log("wearable_info..unique>>" .. tostring(v["unique"]))
+    --    self:local_log("wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+    --    self:local_log("wearable_info..tmpl>>" .. tostring(v["lvl"]))
+    --end
+    -----这里根据表中的装备类型进行表的分类，同时做完之后要对数据进行排序，传入到sub_list内
+
+
+end
+
+function backpack_list:on_loaded()
+    --背包   temp
+    local weapon = {}
+    weapon[1] = self.m_weapon_list
+    weapon[2] = "weapon"
+    self.m_sub_bag_list[1] = self:createChild("backpack_sub_list" .. 1, "%subsystem/backpack_equipment/backpack_sub_list", weapon)
+    local armor = {}
+    armor[1] = self.m_armor_list
+    armor[2] = "armor"
+    self.m_sub_bag_list[2] = self:createChild("backpack_sub_list" .. 2, "%subsystem/backpack_equipment/backpack_sub_list", armor)
+    local ring = {}
+    ring[1] = self.m_ring_list
+    ring[2] = "ring"
+    self.m_sub_bag_list[3] = self:createChild("backpack_sub_list" .. 3, "%subsystem/backpack_equipment/backpack_sub_list", ring)
+end
+
+function backpack_list:on_item_selected(list, selected_show_obj)
+    --for i, v in pairs(list) do
+    --    self:local_log("on_item_selected..i>>" .. tostring(i))
+    --    self:local_log("on_item_selected..unique>>" .. tostring(v))
+    --end
+    self.m_selected_item = list
+    self:emit_event("equip", list, selected_show_obj)
+end
+
+---当装备位变化时被调取，  temp
+function backpack_list:on_equip_change(wearable_info)
+    for i, v in pairs(wearable_info) do
+        self:local_log("equip_change..i>>" .. tostring(i))
+        self:local_log("equip_change..unique>>" .. tostring(v))
+    end
+    if wearable_info["tmpl"] ~= 0 then
+        if dbc.item[wearable_info["tmpl"]].inventory_type == 1 then
+            self.m_sub_bag_list[1]:on_equipment_add(v)
+        elseif dbc.item[wearable_info["tmpl"]].inventory_type == 2 then
+            self.m_sub_bag_list[2]:on_equipment_add(v)
+        elseif dbc.item[wearable_info["tmpl"]].inventory_type == 3 then
+            self.m_sub_bag_list[3]:on_equipment_add(v)
+        end
+    end
+    self:backpack_item_remove()
+end
+
+function backpack_list:backpack_item_remove()
+    for i, v in pairs(self.m_selected_item) do
+        self:local_log("backpack_item_remove..i>>" .. tostring(i))
+        self:local_log("backpack_item_remove..unique>>" .. tostring(v))
+    end
+    if dbc.item[self.m_selected_item["tmpl"]].inventory_type == 1 then
+        self.m_sub_bag_list[1]:on_equipment_del(self.m_selected_item)
+    elseif dbc.item[self.m_selected_item["tmpl"]].inventory_type == 2 then
+        self.m_sub_bag_list[2]:on_equipment_del(self.m_selected_item)
+    elseif dbc.item[self.m_selected_item["tmpl"]].inventory_type == 3 then
+        self.m_sub_bag_list[3]:on_equipment_del(self.m_selected_item)
+    end
+end
+
+function backpack_list:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return backpack_list

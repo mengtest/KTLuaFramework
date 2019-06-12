@@ -1,0 +1,318 @@
+local View = require("system.view")
+local skill_ui_main_view = class("skill_ui_main_view", View)
+
+
+function skill_ui_main_view:doInit(param)
+
+
+    self.m_ui_manager = app:get_ui_manager()
+
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+
+    self.m_target_btn = nil
+
+    self.m_btn_list = {}
+
+    self:load("ui/SkillSystemShow.prefab", function(go)
+        -----ke   20.17.12.15   temp
+        local pro = loading_temp_pro
+        --Debug.LogError("SkillSystemShow"..tostring(pro))
+        loading_temp_pro = pro + 0.1
+        --Debug.LogError("SkillSystemShow..."..tostring(loading_temp_pro))
+
+
+        local frame = self:getFrame()
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local return_btn = go.transform:Find("skillshow_bg/return_btn"):GetComponent(UI.Button)
+        local skill_down_bg = go.transform:Find("skillshow_bg/skill_down_bg").transform
+        self.m_scroll_bar = skill_down_bg:Find("scrollbar"):GetComponent(UI.Scrollbar)
+        self.m_drag_area_container = go.transform:Find("skillshow_bg/drag_panel").gameObject:GetComponent("DragSkill")
+        ----------三个按钮下的选中和未选中需要显示的内容
+        --技能配置
+        self.m_skill_setting_root = go.transform:Find("skillshow_bg/drag_panel/drag_area_container/skill_setting_container")
+        --技能列表
+        self.m_skill_list_root = go.transform:Find("skillshow_bg/drag_panel/drag_area_container/skill_show_container/skill_left")
+        --技能信息
+        self.m_skill_show_root = go.transform:Find("skillshow_bg/drag_panel/drag_area_container/skill_show_container/skill_right")
+        --天赋
+        self.m_talent_ui_root = go.transform:Find("skillshow_bg/drag_panel/drag_area_container/skill_talent_container")
+        -----技能
+        self.m_skill_root = skill_down_bg:Find("btn_container/skill").transform
+        self.m_skill_image = self.m_skill_root:Find("skill_image").transform
+        self.m_skill_text_btn = self.m_skill_image:Find("skill_text_btn"):GetComponent(UI.Button)
+        self.m_skill_selected = skill_down_bg:Find("btn_container/skill/selected").transform
+        local skill_target_pos_x = -12
+        self:add_btn_list(self.m_skill_root, self.m_skill_image, self.m_skill_text_btn, self.m_skill_selected, skill_target_pos_x)
+        self.m_btn_selected_bg = self.m_skill_root.transform:Find("selected_bg").transform
+        -----天赋
+        self.m_talent_root = skill_down_bg:Find("btn_container/talent").transform
+        self.m_talent_image = self.m_talent_root:Find("talent_image").transform
+        self.m_talent_text_btn = self.m_talent_image:Find("talent_text_btn"):GetComponent(UI.Button)
+        self.m_talent_selected = skill_down_bg:Find("btn_container/talent/selected").transform
+        local talent_target_pos_x = 210
+        self:add_btn_list(self.m_talent_root, self.m_talent_image, self.m_talent_text_btn, self.m_talent_selected, talent_target_pos_x)
+        -----设置
+        self.m_setting_root = skill_down_bg:Find("btn_container/setting").transform
+        self.m_setting_image = self.m_setting_root:Find("setting_image").transform
+        self.m_setting_text_btn = self.m_setting_image:Find("setting_text_btn"):GetComponent(UI.Button)
+        self.m_setting_selected = skill_down_bg:Find("btn_container/setting/selected").transform
+        local setting_target_pos_x = 335
+        self:add_btn_list(self.m_setting_root, self.m_setting_image, self.m_setting_text_btn, self.m_setting_selected, setting_target_pos_x)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function()
+            self.m_need_move = false
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function()
+            self:end_drag_callback()
+        end)
+
+        self.m_drag_area_container.onClick = DragSkill_OnPointerClickHandler()
+        self.m_drag_area_container.onClick:AddListener(function()
+            local skill_setting_view = self.m_mgr:getView("skill_ui_setting")
+            skill_setting_view:close_skill_setting_list()
+        end)
+
+        self.m_skill_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 0
+            self:click_btn_callback(self.m_skill_text_btn)
+        end)
+
+        self.m_talent_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 0.5
+            self:click_btn_callback(self.m_talent_text_btn)
+        end)
+
+        self.m_setting_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 1
+            self:click_btn_callback(self.m_setting_text_btn)
+        end)
+
+        --技能界面关闭按钮   目前先显示隐藏来进行处理  temp   之后调优的话可以做一些记录   ke
+        return_btn.onClick:AddListener(function()
+            self:getFrame():hide()
+            --if self:getFrame("skill_ui_setting_list") ~= nil then
+            --    self:getFrame("skill_ui_setting"):destroy_skill_list()
+            --    self:getFrame("skill_ui_setting"):set_is_created_skill_list(false)
+            --end
+        end)
+
+        --创建技能的子界面 配置，列表，信息
+        self:subscribe(self:getFrame():on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            --技能配置
+            if string.find(name, "skill_ui_setting") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_skill_setting_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            --技能列表
+            if string.find(name, "skill_ui_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_skill_list_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            --技能信息
+            if string.find(name, "skill_ui_show") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_skill_show_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            --天赋
+            if string.find(name, "talent_ui") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = self.m_talent_ui_root.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        ---- 2017.12.26 临时把切换专精的按钮放到这里
+        local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+        local sdk = app:getKBESDK()
+        local role_id = sdk:get_player_id()
+        local role = kbe_mgr:get_entity(role_id)
+        local specialization_root = go.transform:Find("skillshow_bg/drag_panel/drag_area_container/skill_show_container/skill_up/specialization")
+        local btn1 = nil
+        local btn2 = nil
+        local btn3 = nil
+        if role:get_rclass() == SharedEnum.RoleClass.MAGE then
+            btn1 = specialization_root:Find("3"):GetComponent(UI.Button)
+            btn2 = specialization_root:Find("4"):GetComponent(UI.Button)
+            btn3 = specialization_root:Find("5"):GetComponent(UI.Button)
+            btn1.gameObject:SetActive(true)
+            btn2.gameObject:SetActive(true)
+            btn3.gameObject:SetActive(true)
+
+            btn1.onClick:AddListener(function()
+                role:active_talent_specialization(3)
+            end)
+            btn2.onClick:AddListener(function()
+                role:active_talent_specialization(4)
+            end)
+            btn3.onClick:AddListener(function()
+                role:active_talent_specialization(5)
+            end)
+        elseif role:get_rclass() == SharedEnum.RoleClass.PRIEST then
+            btn1 = specialization_root:Find("6"):GetComponent(UI.Button)
+            btn2 = specialization_root:Find("7"):GetComponent(UI.Button)
+            btn3 = specialization_root:Find("8"):GetComponent(UI.Button)
+            btn1.gameObject:SetActive(true)
+            btn2.gameObject:SetActive(true)
+            btn3.gameObject:SetActive(true)
+            btn1.onClick:AddListener(function()
+                role:active_talent_specialization(6)
+            end)
+            btn2.onClick:AddListener(function()
+                role:active_talent_specialization(7)
+            end)
+            btn3.onClick:AddListener(function()
+                role:active_talent_specialization(8)
+            end)
+        elseif role:get_rclass() == SharedEnum.RoleClass.DEMON_HUNTER then
+            btn1 = specialization_root:Find("12"):GetComponent(UI.Button)
+            btn2 = specialization_root:Find("13"):GetComponent(UI.Button)
+            btn1.gameObject:SetActive(true)
+            btn2.gameObject:SetActive(true)
+            btn1.onClick:AddListener(function()
+                role:active_talent_specialization(12)
+            end)
+            btn2.onClick:AddListener(function()
+                role:active_talent_specialization(13)
+            end)
+        end
+
+
+        -- 创建隐藏skill_ui_main
+        self:subscribe(self.m_frame:on_event("show"), function(page_num)
+            self:show(page_num)
+        end)
+        self:subscribe(self.m_frame:on_event("hide"), function()
+            self:hide()
+        end )
+        ----temp
+        self:change_btn_to_big(self.m_skill_text_btn)
+        frame:on_loaded()
+        -- 暂时去掉预加载 2017.11.22 rjy
+        -- 2017.12.01 预加载 回来吧！
+        self:hide()
+    end )
+end
+
+function skill_ui_main_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+------结束拖拽的回调
+function skill_ui_main_view:end_drag_callback()
+    if self.m_scroll_bar.value <= 0.25 then
+        self.m_scroll_bar_target_value = 0
+        self.m_target_btn = self.m_skill_text_btn
+    elseif self.m_scroll_bar.value <= 0.75 then
+        self.m_scroll_bar_target_value = 0.5
+        self.m_target_btn = self.m_talent_text_btn
+    else
+        self.m_scroll_bar_target_value = 1
+        self.m_target_btn = self.m_setting_text_btn
+    end
+    self:click_btn_callback(self.m_target_btn)
+end
+
+---确定了目标位置的回调
+function skill_ui_main_view:click_btn_callback(press_btn)
+    self:change_btn_to_big(press_btn)
+    self.m_need_move = true
+    self.m_move_speed = 0
+end
+
+-----按钮变大
+function skill_ui_main_view:change_btn_to_big(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn_and_text"] == press_btn then
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(259.4, 95)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            v["btn_no_selected"].transform.gameObject:SetActive(false)
+            self:btn_selected_bg_move(v["target"])
+        else
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(85, 95)
+            v["selected_show"].transform.gameObject:SetActive(false)
+            v["btn_no_selected"].transform.gameObject:SetActive(true)
+        end
+    end
+end
+
+-----向按钮列表中添加内容
+function skill_ui_main_view:add_btn_list(root, btn_no_selected, btn_and_text, selected_show, target)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["root"] = root, ["btn_no_selected"] = btn_no_selected, ["btn_and_text"] = btn_and_text, ["selected_show"] = selected_show, ["target"] = target }
+end
+---- 显示自己
+function skill_ui_main_view:show(page_num)
+    if page_num == 0 then
+        self:getGO():SetActive(true)
+    elseif page_num == 1 then
+        self.m_need_move = true
+        self.m_scroll_bar_target_value = 0
+        self.m_target_btn = self.m_skill_text_btn
+        self:click_btn_callback(self.m_target_btn)
+        self:getGO():SetActive(true)
+    elseif page_num == 2 then
+        self.m_need_move = true
+        self.m_scroll_bar_target_value = 0.5
+        self.m_target_btn = self.m_talent_text_btn
+        self:click_btn_callback(self.m_target_btn)
+        self:getGO():SetActive(true)
+    elseif page_num == 3 then
+        self.m_need_move = true
+        self.m_scroll_bar_target_value = 1
+        self.m_target_btn = self.m_setting_text_btn
+        self:click_btn_callback(self.m_target_btn)
+        self:getGO():SetActive(true)
+    end
+
+end
+---- 隐藏自己
+function skill_ui_main_view:hide()
+    self:getGO():SetActive(false)
+end
+function skill_ui_main_view:local_log(...)
+    --app:logError(string.format(...))
+end
+function skill_ui_main_view:btn_selected_bg_move(target)
+    ShortcutExtensions.DOLocalMoveX(self.m_btn_selected_bg.gameObject.transform, target, 0.6, false)
+end
+
+return skill_ui_main_view

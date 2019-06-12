@@ -1,0 +1,10 @@
+
+--输出/受伤 跳字类型
+Enum_UI_PopupText = {
+	Output = getEnum(),		--输出
+	Hot = getEnum(),		--持续输出
+	Injured = getEnum(),	--伤害
+	Dot = getEnum(),		--持续伤害
+	Status = getEnum()		--状态
+}
+

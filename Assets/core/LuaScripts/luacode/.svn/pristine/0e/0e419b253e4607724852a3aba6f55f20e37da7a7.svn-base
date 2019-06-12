@@ -1,0 +1,17 @@
+---
+--- Created by Pacman
+--- DateTime: 2017/10/30 11:08
+--- GM命令
+---
+
+-- pacman 2017-10-31 预留接口。暂时没必要使用
+-- 从控制台里输入的gm命令走的是c#，不是这里
+
+local GMCommand = {}
+
+function GMCommand.gm_command(...)
+    local kbesdk = app:getKBESDK()
+    kbesdk:player_base_call("gm_command", ...)
+end
+
+return GMCommand

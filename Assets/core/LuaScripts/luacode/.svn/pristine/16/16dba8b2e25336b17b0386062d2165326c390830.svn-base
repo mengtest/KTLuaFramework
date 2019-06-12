@@ -1,0 +1,12 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local require_relative = REQUIRE_BASE(...)
+local UnitSfx = require_relative("unit_sfx")
+
+local UnitAutoDesotroySfx = class("UnitAutoDesotroySfx", UnitSfx)
+
+function UnitAutoDesotroySfx:doInit(param)
+    UnitSfx.doInit(self, param)
+end
+
+return UnitAutoDesotroySfx

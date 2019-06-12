@@ -1,0 +1,67 @@
+local View = require("system.view")
+local Scroll_text_view = class("Scroll_text_view", View)
+
+function Scroll_text_view:doInit()
+    --[[local go = GameObject("Scroll_text")
+    local text = go:AddComponent(UnityEngine.UI.Text)
+    text.alignment = UnityEngine.TextAnchor.MiddleCenter
+    text.text = "gaga"
+    self:init_with_go(go, nil)--]]
+
+    self:load("ui/scroll_text.prefab", function(go)
+
+        self.m_text_parent_tr = go.transform:Find("Text")
+        self.m_text_parent_cmp = self.m_text_parent_tr:GetComponent(UnityEngine.UI.Text)
+
+        self.m_bg_tr = go.transform:Find("Text/bg")
+        self.m_bg_cmp = self.m_bg_tr:GetComponent(UnityEngine.UI.Image)
+        --local len = (string.len(self:getFrame():get_msg()) / 3) * 26
+        --self.m_bg_tr.sizeDelta = Vector2(len, self.m_bg_tr.sizeDelta.y)
+
+        self.m_text_tr = go.transform:Find("Text/text")
+        self.m_text_cmp = self.m_text_tr:GetComponent(UnityEngine.UI.Text)
+
+        self:init_with_go(go, nil)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+    end)
+end
+
+function Scroll_text_view:on_prepared()
+    self:subscribe(self.m_frame:on_event_attr_set("msg", true), function(msg)
+        self.m_text_parent_cmp.text = msg
+        self.m_text_cmp.text = msg
+    end)
+    local frame = self:getFrame()
+    self.m_text_parent_tr:GetComponent(RectTransform).anchoredPosition = Vector2(0, frame.m_offset_y)
+
+    local tweener = nil
+    slua_timer.addDelayEvent(0.8, function()
+        tweener = ShortcutExtensions.DOLocalMoveY(self.m_text_parent_tr, frame.m_end_y, frame.m_duration, false)
+        DOTween.ToAlpha(function()
+            return self.m_text_parent_cmp.color
+        end, function(c)
+            self.m_text_parent_cmp.color = c
+        end, 0, frame.m_duration)
+        DOTween.ToAlpha(function()
+            return self.m_bg_cmp.color
+        end, function(c)
+            self.m_bg_cmp.color = c
+        end, 0, frame.m_duration)
+        DOTween.ToAlpha(function()
+            return self.m_text_cmp.color
+        end, function(c)
+            self.m_text_cmp.color = c
+        end, 0, frame.m_duration)
+    end)
+
+    slua_timer.addDelayEvent(3, function()
+        self:getFrame():destroy_self()
+    end)
+    --DG_DOTweenUtil.OnComplete(tweener, function ()
+    --    self:getFrame():destroy_self()
+    --end)
+end
+
+
+
+return Scroll_text_view

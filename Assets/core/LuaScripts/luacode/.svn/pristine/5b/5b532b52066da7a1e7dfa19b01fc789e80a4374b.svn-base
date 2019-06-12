@@ -1,0 +1,12 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/22 23:21
+---
+
+local take_task_one = {}
+
+function take_task_one:doInit()
+
+end
+
+return take_task_one

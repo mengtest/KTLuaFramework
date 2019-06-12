@@ -1,0 +1,706 @@
+﻿---
+--- Created by lijunfeng
+--- DateTime: 2018/1/18 19:56
+---
+
+local Quest_condition_class_dir = {
+    [enum.shared.QuestCond.TREASURE] = require("subsystem.quest.condition.quest_condition_collect"),
+    [enum.shared.QuestCond.POSITION] = require("subsystem.quest.condition.quest_condition_enter_area"),
+    [enum.shared.QuestCond.CREATURE] = require("subsystem.quest.condition.quest_condition_hunt"),
+    [enum.shared.QuestCond.SKILL] = require("subsystem.quest.condition.quest_condition_skill"),
+    [enum.shared.QuestCond.LEVEL] = require("subsystem.quest.condition.quest_condition_level"),
+    [enum.shared.QuestCond.NPC] = require("subsystem.quest.condition.quest_condition_talk"),
+    [enum.shared.QuestCond.QUIZ] = require("subsystem.quest.condition.quest_condition_quiz"),
+}
+
+local Quest_data = class("Quest_data")
+
+function Quest_data:initialize(quest_id, quest_manager)
+    self.m_quest_id = quest_id    --任务ID
+    self.m_quest_manager = quest_manager
+    local quest_info = dbc.quest[self.m_quest_id]
+    self.m_quest_type = quest_info.type --任务种类
+    self.m_ui_type = quest_info.ui_type --ui_type
+    self.m_begin_tp = quest_info.begin --起始任务接取类型
+    self.m_timeout = quest_info.timeout --超时时间/秒
+    self.m_fall_condition = quest_info.fall_condition --失败条件组合
+    self.m_npc_start_id = quest_info.npc_start_id or 0--by lijunfeng 2018/2/1任务接取交互对话id
+    self.m_quest_complete_id = quest_info.quest_complete_id or 0 --by lijunfeng 2018/2/1任务完成交互对话id
+    self.m_deliver_interact_id = quest_info.giver or 0 --交付行为id
+    self.m_giver = (dbc.interact[self.m_deliver_interact_id] and dbc.interact[self.m_deliver_interact_id].obj_tp == enum.scene.Interact_Obj_Tp.Npc) and dbc.interact[self.m_deliver_interact_id].obj_id or 0 --交付行为npc id
+    self.m_receiver_interact_id = quest_info.begin == enum.shared.QuestCond.NPC and quest_info.begin_params[1] or 0 --与npc接任务交互id
+    self.m_receiver = (quest_info.begin == enum.shared.QuestCond.NPC and dbc.interact[quest_info.begin_params[1]].obj_tp == enum.scene.Interact_Obj_Tp.Npc) and dbc.interact[quest_info.begin_params[1]].obj_id or 0 --npc接取任务类型的npc id
+    self.m_receive_map = quest_info.receive_area and quest_info.receive_area[1] or 0--by lijunfeng 2018/2/1接取任务地图id
+    self.m_receive_area = quest_info.receive_area and quest_info.receive_area[2] or 0--by lijunfeng 2018/2/1接取任务区域单位id
+    self.m_giver_area = quest_info.giver_area --交付区域
+    self.m_is_passed = false --任务是否完成
+    self.m_quest_state = enum.quest.Quest_State.Invalid --任务当前状态
+    self.m_condition_dict = {}    --条件触发器对象表
+    self.m_passed_quest_list = {} --记录已经通过的条件索引
+    self.m_condition_npc_id_dict = {} --记录所有条件参数中的npc id
+    self.m_aim_weights = 0 --任务完成进度，权重
+    self.m_is_traced = true -- 是否处于被追踪状态（是否在任务状态栏位上显示）
+    self.m_note = 0 --关注 1 表示关注0，解除关注
+    self.m_index = 0   --第几个追踪任务，不是追踪任务为0   xiaojingli  2018.1.25
+    self.m_is_fall = false -- 是否失败 2018/2/6
+    self:create_condition(quest_manager)
+
+    --by lijunfeng 2018/2/2
+    --即使失败状态的任务，也应该先注册触发器
+    if self.m_begin_tp == enum.shared.QuestCond.POSITION then
+        local params = quest_info.begin_params
+        self.m_quest_manager :add_area_trigger_info(params[1], params[2], self.m_quest_id)
+    end
+end
+
+function Quest_data:get_index()
+    return self.m_index
+end
+
+function Quest_data:set_index(index)
+    self.m_index = index
+end
+
+function Quest_data:get_quest_id()
+    return self.m_quest_id
+end
+
+--限时任务时关注 by lijunfeng 2018/2/5
+function Quest_data:set_note(note)
+    self.m_note = note
+end
+
+--限时任务关注 by lijunfeng 2018/2/5
+function Quest_data:get_note()
+    return self.m_note
+end
+
+--接取任务时间戳
+function Quest_data:set_timestamp(time_stamp)
+    self.m_timestamp = time_stamp
+end
+
+function Quest_data:get_timestamp()
+    return self.m_timestamp
+end
+
+--超时任务时间戳 by lijunfeng 2018/2/5
+function Quest_data:get_timeout()
+    return self.m_timeout
+end
+
+function Quest_data:get_aim_weights()
+    return self.m_aim_weights
+end
+
+--设置任务状态
+function Quest_data:set_quest_state(state)
+    if state~=self.m_quest_state then --by lijunfeng 2018/3/2
+        self.m_quest_manager:emit_event("quest_state_changed",self.m_quest_id,state)
+    end
+
+    self.m_quest_state = state
+    print("设置任务状态为", state, tostring(self.m_quest_id))
+end
+
+function Quest_data:get_quest_state()
+    return self.m_quest_state
+end
+
+--任务类型
+function Quest_data:get_quest_type()
+    return self.m_quest_type
+end
+
+--起始任务接取类型
+function Quest_data:get_begin_type()
+    return self.m_begin_tp
+end
+
+--接取npc交互id
+function Quest_data:get_npc_start_id()
+    return self.m_npc_start_id
+end
+
+--ui_type
+function Quest_data:get_ui_type()
+    return self.m_ui_type
+end
+
+function Quest_data:get_aim_area()
+    return self.m_giver_area
+end
+
+function Quest_data:get_receiver()
+    return self.m_receiver
+end
+
+function Quest_data:get_receiver_interact_id()
+    return self.m_receiver_interact_id
+end
+
+function Quest_data:get_giver()
+    return self.m_giver
+end
+
+function Quest_data:get_giver_interact_id()
+    return self.m_deliver_interact_id
+end
+--设置是否追踪
+function Quest_data:set_is_traced(flag)
+    self.m_is_traced = flag
+end
+--获取是否被追踪
+function Quest_data:get_is_traced()
+    return self.m_is_traced
+end
+
+--获取当前完成度
+--by lijunfeng 2018/2/6 加入失败判断
+function Quest_data:get_cur_weights()
+    if self.m_is_fall then
+        return 0
+    end
+
+    local weights = 0
+    for index, condition in pairs(self.m_condition_dict) do
+        weights = weights + condition:get_cur_weight()
+    end
+    return weights
+end
+
+--by lijunfeng 2018/2/6 是否失败
+--by lijunfeng 2018/3/5 重置后或重新接取时再清理条件
+function Quest_data:set_is_fall(val)
+    self.m_is_fall = val
+
+    if val then
+        --当设置为true时，需要刷新所有相关npc状态
+        --self:refresh_npcs_state() --by lijunfeng 2018/3/5原本考虑在当前状态下是否先刷新一下状态
+        self.m_passed_quest_list = {}
+        self.m_is_passed = false
+        self.m_aim_weights = 0
+        self:set_quest_state(enum.quest.Quest_State.Received)
+    else
+        --清除条件数据
+        for i = 1, #self.m_passed_quest_list do
+            self.m_condition_dict[self.m_passed_quest_list[i]]:clear()
+        end
+        --当重新接取任务后需要置为false
+        --需要重新刷新任务状态为Receive，并且刷新所有相关npc状态
+        self:set_quest_state(enum.quest.Quest_State.Received)
+    end
+end
+
+--by lijunfeng 2018/2/6 是否失败
+function Quest_data:get_is_fall()
+    return self.m_is_fall
+end
+
+--by lijunfeng 2018/2/6 检查是否失败
+function Quest_data:check_is_fall()
+    local is_fall = false
+    for i = 1, #self.m_fall_condition do
+        if self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Timeout then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Role_Die then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Role_Out_Of_Area then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Role_Leave_Main_Npc then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Role_Leave_All_Live_Npc then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Main_Npc_Die then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.All_Npc_Die then
+        elseif self.m_fall_condition[i] == enum.quest.Quest_Fall_Condition.Question_Fall then
+        end
+    end
+
+    return is_fall
+end
+
+-- by lijunfeng 2018/2/28 初始化
+function Quest_data:reset()
+    for i = 1, #self.m_passed_quest_list do
+        self.m_condition_dict[self.m_passed_quest_list[i]]:clear()
+    end
+    self.m_passed_quest_list = {}
+    self.m_aim_weights = 0
+    self.m_note = 0
+    self.m_index = 0
+    self.m_is_fall = false
+    self.m_timestamp=0
+    self.m_timeout=0
+end
+
+--检查是否超时 by lijunfeng 2018/2/6
+function Quest_data:check_timeout()
+    return (self.m_quest_state == enum.quest.Quest_State.Received or self.m_quest_state == enum.quest.Quest_State.Finished) and
+    self.m_is_fall == false and
+    ((self.m_timeout > 0 and self.m_quest_manager:get_timestamp() > self.m_timestamp) or (self.m_timeout == 0 and self.m_timestamp == 0))
+end
+
+--创建条件触发器对象
+function Quest_data:create_condition(quest_manager)
+    local data = dbc.quest[self.m_quest_id]
+    if not data then
+        return
+    end
+    for index = 1, 8 do
+        local tp_name = "finish" .. tostring(index)
+        local tp = data[tp_name]
+        if tp and tp > 0 then
+            if Quest_condition_class_dir[tp] then
+                local condition = Quest_condition_class_dir[tp]:new(self.m_quest_id, index, quest_manager)
+                assert(condition)
+                self.m_aim_weights = self.m_aim_weights + condition:get_aim_weight()
+                self.m_condition_dict[index] = condition
+
+                if tp == enum.shared.QuestCond.NPC or tp == enum.shared.QuestCond.QUIZ then
+                    --by lijunfneg 2018/2/1
+                    local interact_id = data[tp_name .. "_params"][1]
+                    local npc_id = dbc.interact[interact_id].obj_id
+                    self.m_condition_npc_id_dict[index] = npc_id
+                end
+            else
+                print(string.format("cant found the condition type of %d", tp))
+            end
+        end
+    end
+end
+
+--查找最近的目标
+--by lijunfeng 2018/2/6 加入失败判断
+function Quest_data:get_closest_aim_info()
+    if self.m_is_fall then
+        return -1
+    end
+
+    if self.m_is_passed and self.m_giver_area then
+        local world = self.m_quest_manager:getFrame("world")
+        local area_data = world:get_area_data(self.m_giver_area[1], self.m_giver_area[2])
+        local dis, dir = -1, 0
+        if area_data then
+            local own_pos = world:get_main_player():get_pos()
+            local vec = (area_data.worldPosition - own_pos)
+            dis = vec.magnitude
+            dir = vec.normalized
+        end
+        return dis, dir, "待交付"
+    end
+
+    local infos = {}
+    for _, condition in pairs(self.m_condition_dict) do
+        local dis, dir = condition:get_aim_info()
+        local finish_desc = condition:get_finish_desc()   --任务条件描述 xiaojingli  2018.1.31
+        if dis then
+            table.insert(infos, { dis, dir, finish_desc })
+        end
+    end
+    table.sort(infos, function(a, b)
+        --按距离排序
+        if a[1] < b[1] then
+            return true
+        else
+            return false
+        end
+    end)
+    if infos[1] then
+        return infos[1][1], infos[1][2], infos[1][3]
+    end
+end
+
+--刷新条件参数，计算完成情况
+--by lijunfeng 2018/2/6加入条件判断
+--by lijunfeng 2018/3/5 增加is_init字段
+function Quest_data:set_condition_cur_param(index, cur_param,is_init)
+    if self.m_is_fall then
+        return
+    end
+
+    local condition = self.m_condition_dict[index]
+    if not condition then
+        return
+    end
+
+    condition:set_cur_param(cur_param)
+    local is_passed = condition:is_finished()
+    --by lijunfeng 2018/3/5 加入失败情况
+    local is_fail=condition:is_fail()
+
+    if is_fail then
+        print("条件失败",index)
+        if not is_init then
+            self:set_is_fall(true)
+            self.m_quest_manager:emit_event("quest_fall", self.m_quest_id)
+        else
+            self.m_is_fall = true
+        end
+    end
+
+    if is_passed and not utility.table:is_contain(self.m_passed_quest_list, index) then
+        table.insert(self.m_passed_quest_list, index)
+        local data = dbc.quest[self.m_quest_id]
+        local tp_name = "finish" .. tostring(index)
+        local tp = data[tp_name]
+
+        if self.m_is_traced then
+            Event_system:dispatch_event(EVENT_QUEST_DEL_CONDITION_AREA, self.m_quest_id, index)
+        end
+    end
+
+    local cur_count = #self.m_passed_quest_list
+    local max_count = utility.table:count(self.m_condition_dict)
+    if cur_count >= max_count then
+        self.m_is_passed = true
+        self:set_quest_state(enum.quest.Quest_State.Finished)
+        print("条件全部完成", self.m_quest_id)
+        if self.m_deliver_interact_id <= 0 then
+            self.m_quest_manager:req_complete_quest(self.m_quest_id)
+        else
+            self:refresh_npcs_state()
+            self.m_quest_manager:emit_event("show_finish_quest", self) --by lijunfeng2018/1/23
+            if self.m_is_traced then
+                Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST_AREA, self.m_quest_id)
+            end
+        end
+    end
+end
+
+--刷新所有npc相关状态
+--设置为enum.quest.Quest_Npc_State.None表示删除状态，而删除工作必须在对话结束后完成，所以这里只处理其他状态的创建
+--只有在任务状态变化时才会刷新npc状态
+function Quest_data:refresh_npcs_state()
+    print("刷新所有npc状态", self.m_quest_id)
+    if self.m_quest_state == enum.quest.Quest_State.Invalid then
+        --无状态，清除所有npc状态
+    elseif self.m_quest_state == enum.quest.Quest_State.Unlocked then
+        --已解锁，不能接 策划的未解锁
+        --所有相关的npc都无本任务相关状态，接取npc也无状态
+    elseif self.m_quest_state == enum.quest.Quest_State.Interact then
+        --已解锁，能接取
+        print("刷新待交互npc状态")
+        --所有相关的npc都无本任务相关状态，只有接取npc有黄色叹号 如果有接取npc的话
+        if self.m_begin_tp == enum.shared.QuestCond.NPC then
+            if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+                print("刷新接取npc状态为黄叹号", self.m_quest_id, self.m_receiver, self.m_receiver_interact_id)
+                self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.Yellow_Exclamation, nil)
+            end
+        end
+
+        --所有条件npc的蓝问号清除 by lijunfeng 2018/2/28 用于放弃任务时
+        local data = dbc.quest[self.m_quest_id]
+        for index = 1, 8 do
+            local tp_name = "finish" .. tostring(index)
+            local tp = data[tp_name]
+            local condition = self.m_condition_dict[index]
+            if condition and (tp == enum.shared.QuestCond.NPC or tp == enum.shared.QuestCond.QUIZ) then
+                local interact_id = data[tp_name .. "_params"][1]
+                local npc_id = self.m_condition_npc_id_dict[index]
+                local is_passed = condition:is_finished()
+                if not is_passed then
+                    local npc_state = enum.quest.Quest_Npc_State.None
+                    print("刷新条件npc状态为", self.m_quest_id, npc_id, interact_id, npc_state)
+                    self.m_quest_manager:set_npc_interact_info(npc_id, interact_id, self.m_quest_id, npc_state, tp)
+                end
+            end
+        end
+
+        --如果有交付npc，则交付npc删除黄问号 by lijunfeng 2018/2/28 用于放弃任务时
+        if self.m_giver ~= 0 and self.m_deliver_interact_id ~= 0 then
+            print("刷新交付npc状态为无", self.m_quest_id, self.m_giver, self.m_deliver_interact_id)
+            self.m_quest_manager:set_npc_interact_info(self.m_giver, self.m_deliver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None, nil)
+        end
+    elseif self.m_quest_state == enum.quest.Quest_State.Received then
+        --已接取，未完成状态
+        --如果有接取npc，该npc状态变为无
+        --如果有交付npc，状态为无
+        --条件npc的状态变为 蓝问号 对话完成就消失
+        --给npc添加交互组件数据{interact_id,quest_id,npc_state},同时加交互组件 已interact_id为键，当npc对话结束后需要删除时，根据interact_id删除相关状态和组件
+        --如果npc未出生，则当npc出生时，要获取此数据，当npc是条件npc时，需要判断条件是否完成，未完成时才会获取到数据
+        --if self.m_begin_tp == 1 then
+        --    if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+        --        print("刷新接取npc状态为无",self.m_quest_id,self.m_receiver, self.m_receiver_interact_id)
+        --        self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None)
+        --    end
+        --end
+        --
+        --if self.m_giver~=0 and self.m_deliver_interact_id~=0 then
+        --    print("刷新接取npc状态为无",self.m_quest_id,self.m_giver, self.m_deliver_interact_id)
+        --    self.m_quest_manager:set_npc_interact_info(self.m_giver, self.m_deliver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None)
+        --end
+        print("刷新已接取npc状态")
+        if self.m_is_fall then
+            --接取npc变为红叹号
+            if self.m_begin_tp == enum.shared.QuestCond.NPC then
+                if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+                    print("刷新接取npc状态为红叹号", self.m_quest_id, self.m_receiver, self.m_receiver_interact_id)
+                    self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.Red_Exclamation, nil)
+                end
+            end
+            --所有条件npc的蓝问号清除
+            local data = dbc.quest[self.m_quest_id]
+            for index = 1, 8 do
+                local tp_name = "finish" .. tostring(index)
+                local tp = data[tp_name]
+                local condition = self.m_condition_dict[index]
+                if condition and (tp == enum.shared.QuestCond.NPC or tp == enum.shared.QuestCond.QUIZ) then
+                    --by lijunfeng 2018/2/2
+                    local interact_id = data[tp_name .. "_params"][1]
+                    local npc_id = self.m_condition_npc_id_dict[index]
+                    local is_passed = condition:is_finished()
+                    if not is_passed then
+                        local npc_state = enum.quest.Quest_Npc_State.None
+                        print("刷新条件npc状态为", self.m_quest_id, npc_id, interact_id, npc_state)
+                        self.m_quest_manager:set_npc_interact_info(npc_id, interact_id, self.m_quest_id, npc_state, tp)
+                    end
+                end
+            end
+        else
+            --接取npc变为无,实际对话后就已经变为无了，这里做保险处理
+            if self.m_begin_tp == enum.shared.QuestCond.NPC then
+                if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+                    print("刷新接取npc状态为无", self.m_quest_id, self.m_receiver, self.m_receiver_interact_id)
+                    self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None, nil)
+                end
+            end
+            --所有条件npc的蓝问号
+            local data = dbc.quest[self.m_quest_id]
+            for index = 1, 8 do
+                local tp_name = "finish" .. tostring(index)
+                local tp = data[tp_name]
+                local condition = self.m_condition_dict[index]
+                if condition and (tp == enum.shared.QuestCond.NPC or tp == enum.shared.QuestCond.QUIZ) then
+                    --by lijunfeng 2018/2/2
+                    local interact_id = data[tp_name .. "_params"][1]
+                    local npc_id = self.m_condition_npc_id_dict[index]
+                    local is_passed = condition:is_finished()
+                    local npc_state = is_passed and enum.quest.Quest_Npc_State.None or enum.quest.Quest_Npc_State.Blue_Question
+                    print("刷新条件npc状态为", self.m_quest_id, npc_id, interact_id, npc_state)
+                    self.m_quest_manager:set_npc_interact_info(npc_id, interact_id, self.m_quest_id, npc_state, tp)
+                end
+            end
+        end
+    elseif self.m_quest_state == enum.quest.Quest_State.Finished then
+        --已完成
+        print("刷新已完成npc状态")
+        if self.m_is_fall then
+            --接取npc变为红叹号
+            if self.m_begin_tp == enum.shared.QuestCond.NPC then
+                if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+                    print("刷新接取npc状态为红叹号", self.m_quest_id, self.m_receiver, self.m_receiver_interact_id)
+                    self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.Red_Exclamation, nil)
+                end
+            end
+            --如果有交付npc，则交付npc删除黄问号
+            if self.m_giver ~= 0 and self.m_deliver_interact_id ~= 0 then
+                print("刷新交付npc状态为无", self.m_quest_id, self.m_giver, self.m_deliver_interact_id)
+                self.m_quest_manager:set_npc_interact_info(self.m_giver, self.m_deliver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None, nil)
+            end
+        else
+            --接取npc变为无,实际对话后就已经变为无了，这里做保险处理
+            if self.m_begin_tp == enum.shared.QuestCond.NPC then
+                if self.m_receiver ~= 0 and self.m_receiver_interact_id ~= 0 then
+                    print("刷新接取npc状态为无", self.m_quest_id, self.m_receiver, self.m_receiver_interact_id)
+                    self.m_quest_manager:set_npc_interact_info(self.m_receiver, self.m_receiver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.None, nil)
+                end
+            end
+            --如果有交付npc，则交付npc出现 黄色问号
+            if self.m_giver ~= 0 and self.m_deliver_interact_id ~= 0 then
+                print("刷新交付npc状态为黄问号", self.m_quest_id, self.m_giver, self.m_deliver_interact_id)
+                self.m_quest_manager:set_npc_interact_info(self.m_giver, self.m_deliver_interact_id, self.m_quest_id, enum.quest.Quest_Npc_State.Yellow_Question, nil)
+            end
+        end
+    end
+end
+
+--获取目标，返回0表示不符合显示条件
+--未接取目标是接取区域或接取npc，已接取状态下：距离最近的对话npc或任务距离最近的区域，完成状态下：交付npc，其他类型任务返回nil
+--返回格式为，到最近目标的距离，地图id，区域id，接取npc暂时还没有地图区域id，暂时返回0,0
+--当返的第一个值为-1时表示没有目标
+--by lijunfeng 2018/2/6 增加失败的判断
+--by lijunfeng 2018/2/8 增加返回参数，方向，描述
+--by xiaojingli 2018/2/8 min_dir默认置为nil
+function Quest_data:get_target_info()
+    local min_dis = -1
+    local min_dir = nil
+    local map_id = 0
+    local area_id = 0
+    local desc = ""
+    local finish = 0 -- 任务完成条件类型 by xinghanzhong 2018/02/09
+    local cdn=nil
+
+    if self.m_quest_state == enum.quest.Quest_State.Interact then
+        min_dis, min_dir = self:get_dis_to_area(self.m_receive_map, self.m_receive_area)
+        return min_dis, self.m_receive_map, self.m_receive_area, min_dir, "可接取", enum.quest.Target_Type.Receive_Npc--by xinghanzhong 2018/02/08
+    elseif self.m_quest_state == enum.quest.Quest_State.Received then
+        if self.m_is_fall then
+            min_dis, min_dir = self:get_dis_to_area(self.m_receive_map, self.m_receive_area)
+            return min_dis, self.m_receive_map, self.m_receive_area, min_dir, "可接取", enum.quest.Target_Type.Receive_Npc
+        end
+
+        if utility.table:count(self.m_condition_dict) == 0 then
+            return -1
+        end
+
+        local data = dbc.quest[self.m_quest_id]
+        -- by lijunfeng 2018/3/2 增加条件锁定规则
+        if data.condition_lock then
+            for index, condition in pairs(self.m_condition_dict) do
+                if not condition:is_finished() then
+                    local tp_name = "finish" .. tostring(index) .. "_area"
+                    local dis, dir = self:get_dis_to_area(data[tp_name][1], data[tp_name][2])
+
+                    if min_dis == -1 or dis < min_dis then
+                        min_dis = dis
+                        min_dir = dir
+                        map_id = data[tp_name][1]
+                        area_id = data[tp_name][2]
+                        desc = condition:get_finish_desc()
+                        finish = data["finish" .. tostring(index)]
+                        cdn = condition
+                    end
+                end
+            end
+        else
+            for index, condition in pairs(self.m_condition_dict) do
+                if not condition:is_finished() then
+                    local tp_name = "finish" .. tostring(index) .. "_area"
+                    local dis, dir = self:get_dis_to_area(data[tp_name][1], data[tp_name][2])
+
+                    if dis>0 then
+                        min_dis = dis
+                        min_dir = dir
+                        map_id = data[tp_name][1]
+                        area_id = data[tp_name][2]
+                        desc = condition:get_finish_desc()
+                        finish = data["finish" .. tostring(index)]
+                        cdn = condition
+                        return min_dis, map_id, area_id, min_dir, desc, enum.quest.Target_Type.Condition_Npc,finish,cdn
+                    end
+                end
+            end
+        end
+        return min_dis, map_id, area_id, min_dir, desc, enum.quest.Target_Type.Condition_Npc,finish,cdn
+    elseif self.m_quest_state == enum.quest.Quest_State.Finished then
+        if self.m_is_fall then
+            min_dis, min_dir = self:get_dis_to_area(self.m_receive_map, self.m_receive_area)
+            return min_dis, self.m_receive_map, self.m_receive_area, min_dir, "可接取", enum.quest.Target_Type.Receive_Npc
+        end
+
+        if self.m_giver > 0 then
+            local data = dbc.quest[self.m_quest_id]
+            min_dis, min_dir = self:get_dis_to_area(data["giver_area"][1], data["giver_area"][2])
+            return min_dis, data["giver_area"][1], data["giver_area"][2], min_dir, "可交付", enum.quest.Target_Type.Giver_Npc
+        end
+    end
+
+    return -1
+end
+
+--获取对应状态下的所有目标地图区域信息
+--by xiaojingli 2018/3/3
+function Quest_data:get_target_infos()
+    local infos={}
+    local map_id = 0
+    local area_id = 0
+
+    if self.m_quest_state == enum.quest.Quest_State.Interact then
+        utility.table:insert(infos,{map_id=self.m_receive_map, area_id=self.m_receive_area})
+        return true,infos
+    elseif self.m_quest_state == enum.quest.Quest_State.Received then
+        if self.m_is_fall then
+            utility.table:insert(infos,{map_id=self.m_receive_map, area_id=self.m_receive_area})
+            return true,infos
+        end
+
+        if utility.table:count(self.m_condition_dict) == 0 then
+            return false
+        end
+
+        local data = dbc.quest[self.m_quest_id]
+        for index, condition in pairs(self.m_condition_dict) do
+            if not condition:is_finished() then
+                local tp_name = "finish" .. tostring(index) .. "_area"
+                utility.table:insert(infos,{map_id=data[tp_name][1], area_id=data[tp_name][2]})
+            end
+        end
+        return #infos>0,infos
+    elseif self.m_quest_state == enum.quest.Quest_State.Finished then
+        if self.m_is_fall then
+            utility.table:insert(infos,{map_id=self.m_receive_map, area_id=self.m_receive_area})
+            return true,infos
+        end
+
+        if self.m_giver > 0 then
+            local data = dbc.quest[self.m_quest_id]
+            utility.table:insert(infos,{map_id=data["giver_area"][1], area_id=data["giver_area"][2]})
+            return true,infos
+        end
+    end
+
+    return false
+end
+
+--判断是否还存在任务目标
+--by lijunfeng 2018/2/6 增加失败的判断
+--todo:考虑跨地图
+function Quest_data:has_target()
+    if self.m_quest_state == enum.quest.Quest_State.Interact then
+        return true --by lijunfeng 2018/2/2 增加了接取区域字段，必填，所以一定返回true
+    elseif self.m_quest_state == enum.quest.Quest_State.Received then
+        if self.m_is_fall then
+            return true
+        end
+
+        if utility.table:count(self.m_condition_dict) == 0 then
+            return false
+        end
+
+        for index, condition in pairs(self.m_condition_dict) do
+            if not condition:is_finished() then
+                return true
+            end
+        end
+    elseif self.m_quest_state == enum.quest.Quest_State.Finished then
+        if self.m_is_fall then
+            return true
+        end
+
+        return self.m_giver > 0
+    end
+
+    return false
+end
+
+--获取主角到指定区域的距离和方向，返回-1表示不在当前地图内
+--by xiaojingli 2018/2/8 min_dir默认置为nil
+function Quest_data:get_dis_to_area(map_id, area_id)
+    local dis, dir = -1, nil
+    local world = self.m_quest_manager:getFrame("world")
+    local area_data = world:get_area_data(map_id, area_id) --todo:以后要改为跨地图方式，需要有导航接口
+
+    if area_data then
+        local own_pos = world:get_main_player():get_pos()
+        local vec = (area_data.worldPosition - own_pos)
+        dis = vec.magnitude
+        dir = vec.normalized
+    end
+
+    return dis, dir
+end
+
+--获取主角到指定npc的距离，返回0表示不在当前地图内，npc尚未生成
+function Quest_data:get_dis_to_npc(npc_id)
+    local dis = -1
+    local world = self.m_quest_manager:getFrame("world")
+    local giver = world:get_giver_by_tid(npc_id) --todo:以后要改为跨地图方式，需要有导航接口
+
+    if giver then
+        local own_pos = world:get_main_player():get_pos()
+        local giver_pos = giver:get_pos()
+        local vec = (own_pos - giver_pos)
+        dis = vec.magnitude
+    end
+
+    return dis
+end
+
+
+return Quest_data

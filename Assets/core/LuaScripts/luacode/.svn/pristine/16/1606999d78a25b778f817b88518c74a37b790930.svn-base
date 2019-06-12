@@ -1,0 +1,267 @@
+local UnitAction = class("UnitAction")
+
+local function time_get_now()
+    return Time.time
+end
+
+function UnitAction:initialize(unit)
+    self.m_unit = unit
+    self.m_co_run = nil
+    self.m_cb_enter = nil
+    self.m_cb_exit = nil
+    self.m_cb_precondition = nil
+end
+
+function UnitAction:start()
+    if self.m_cb_enter then
+        self.m_cb_enter()
+    end
+end
+
+function UnitAction:close()
+    if self.m_unit then
+        self.m_unit = nil
+        if self.m_cb_exit then
+            self.m_cb_exit()
+        end
+    end
+end
+
+function UnitAction:update()
+    if self.m_cb_precondition then
+        if not self.m_cb_precondition() then
+            self:close()
+            return false
+        end
+    end
+
+    if self.m_co_run then
+        coroutine.resume(self.m_co_run)
+
+        if coroutine.status(self.m_co_run) ~= "dead" then
+            return true
+        end
+    end
+
+    self:close()
+    return false
+end
+
+function UnitAction:onPrecondition(cb)
+    assert(type(cb) == "function")
+    self.m_cb_precondition = cb
+end
+
+function UnitAction:onEnter(cb)
+    assert(type(cb) == "function")
+    self.m_cb_enter = cb
+end
+
+function UnitAction:onRun(cb)
+    assert(type(cb) == "function")
+    self.m_co_run = coroutine.create(cb)
+end
+
+function UnitAction:onExit(cb)
+    assert(type(cb) == "function")
+    self.m_cb_exit = cb
+end
+
+local function action_move_to(unit, pos)
+    local Unit = require "frame.unit"
+
+    local action = UnitAction:new(unit)
+
+    local start_pos = unit:get_pos()
+    local start_time = time_get_now()
+
+    local vec = Vector3.ProjectOnPlane(pos - start_pos, Vector3.up)
+    local dist = vec.magnitude
+    local duration = math.max(0.01, dist / unit:get_move_speed())
+    local dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+
+    action:onEnter( function()
+        unit:set_controll_type(Unit.CONTROLL_TYPE.ACTION)
+        unit:set_dir(dir)
+        unit:emit_event("anim_param", "run", "bool", true)
+    end )
+
+    action:onExit( function()
+        unit:set_controll_type(Unit.CONTROLL_TYPE.STATE)
+        unit:emit_event("anim_param", "run", "bool", false)
+    end )
+
+    action:onRun( function()
+        while true do
+            if unit:is_dead() then return end
+
+            local elapsed = time_get_now() - start_time
+            unit:set_pos(Vector3.Lerp(start_pos, pos, elapsed / duration))
+
+            if elapsed >= duration then return end
+            coroutine.yield()
+        end
+    end )
+
+    return action
+end
+
+ 
+local function action_attack(unit, target)
+    local action = UnitAction:new(unit)
+    
+    local start = time_get_now()
+    
+    local action_name = "attack"
+   
+    action:onEnter( function()
+
+        unit:emit_event("anim_trigger", action_name)
+  
+        target:emit_event("be_hit_local", unit)
+    end )
+
+    action:onRun( function()
+        while true do
+            unit:lookAt(target:get_pos())
+            if time_get_now() - start >= unit:get_attack_time() then
+                -- target:beattack(unit, unit:getAttackDamage())
+                return
+            end
+            coroutine.yield()
+        end
+    end )
+
+    return action
+end
+
+local function action_attack_target(unit, target)
+    local action = UnitAction:new(unit)
+
+    local approach, attack
+
+    action:onPrecondition( function()
+        return not target:is_dead()
+    end )
+
+    action:onExit( function()
+        if approach then approach:close() end
+        if attack then attack:close() end
+    end )
+
+    action:onRun( function()
+        while true do
+            approach = action_move_to(unit, target:get_pos())
+            approach:start()
+            while approach:update() do
+                coroutine.yield()
+            end
+            approach:close()
+
+            attack = action_attack(unit, target)
+            attack:start()
+            while attack:update() do
+                coroutine.yield()
+            end
+            attack:close()
+            coroutine.yield()
+        end
+    end )
+
+    return action
+end
+
+local function action_dead(unit)
+    local action = UnitAction:new(unit)
+
+    local start = time_get_now()
+
+    action:onEnter( function()
+        unit:emit_event("anim_trigger", "dead")
+    end )
+
+    action:onRun( function()
+        while true do
+            if time_get_now() - start >= 10 then
+                return
+            end
+            coroutine.yield()
+        end
+    end )
+
+    action:onExit( function()
+        unit:setHP(unit:getHPMax())
+        unit:emit_event("anim_trigger", "relive")
+    end )
+
+    return action
+end
+
+local function action_move_with_path(unit, path, start)
+    local action = UnitAction:new(unit)
+
+    local move
+
+    action:onExit( function()
+        if move then move:close() end
+    end )
+
+    action:onRun( function()
+        for i = start, #path do
+            move = action_move_to(unit, path[i])
+            move:start()
+            while move:update() do
+                coroutine.yield()
+            end
+            move:close()
+        end
+    end )
+
+    return action
+end
+
+local function action_rotate_to_dir(unit, target_dir, duration)
+    local action = UnitAction:new(unit)
+    print("action_rotate_to_dir")
+
+    local start_time = time_get_now()
+    local start_dir = unit:get_dir()
+    local start_quaternion = Quaternion.AngleAxis(start_dir, Vector3.up)
+    local end_quaternion = Quaternion.AngleAxis(target_dir, Vector3.up)
+
+    --local start_dir_vtr = Quaternion.AngleAxis(start_dir, Vector3.up) * Vector3.forward
+
+    action:onRun( function()
+        while true do
+
+            if unit:is_dead() then return end
+
+            local elapsed = time_get_now() - start_time
+
+            local quaternion = Quaternion.Lerp(start_quaternion, end_quaternion, elapsed / duration)
+            local euler = quaternion.eulerAngles
+
+            -- pacman 2017-11-15 该用set_dir还是set_target_dir?
+            -- set_target_dir最安全
+            --unit:set_dir(euler.y)
+            unit:set_target_dir(euler.y)
+
+            if elapsed >= duration then return end
+            coroutine.yield()
+        end
+    end )
+
+    return action
+
+end
+
+
+
+return {
+    SetTimeFunc = function(func) time_get_now = func end,
+    MoveTo = action_move_to,
+    AttackTarget = action_attack,
+    Dead = action_dead,
+    MoveWithPath = action_move_with_path,
+    ActionRotateToDir = action_rotate_to_dir,
+}

@@ -1,0 +1,376 @@
+local ObserverHost = require "system.observer_host"
+local ViewComponent = require "system.view_component"
+
+local View = class("View")
+View:include(ObserverHost)
+
+function View:initialize(mgr, frame, is_dont_create_go_automatic, is_add_rect_trans)
+    Attribute.init(self)
+    self.m_log_level = LOG_LEVEL_WARN
+    self.m_mgr = mgr
+    self.m_frame = frame
+    self.m_go = nil
+    self.m_component_list = {}
+    -- self.m_is_dont_create_go_automatic = is_dont_create_go_automatic
+    if not is_dont_create_go_automatic then
+        local go = GameObject()
+        if is_add_rect_trans then
+            go:AddComponent(RectTransform)
+        end
+
+        go.name = frame:getFrameName()
+        local parent = frame:getParent()
+        if parent then
+            local view = mgr:getView(parent:getFrameName())
+            if view then
+                go.transform:SetParent(view:getGO().transform)
+            end
+        end
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localRotation = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3(1, 1, 1)
+        -- self.m_go = go
+        self:set_go(go)
+    end
+
+    self:doInit(frame:getParam())
+end
+
+function View:destroy()
+    self:unsubscribeAll()
+    self:RemoveAllViewComponents()
+    self:doDestroy()
+
+    if self.m_go then
+        Object.Destroy(self.m_go)
+        self.m_go = nil
+    end
+end
+
+function View:setLogLevel(level)
+    self.m_log_level = level
+end
+
+function View:logDebug(...)
+    if self.m_log_level >= LOG_LEVEL_DEBUG then
+        app:logDebug(...)
+    end
+end
+
+function View:logInfo(...)
+    if self.m_log_level >= LOG_LEVEL_INFO then
+        app:logInfo(...)
+    end
+end
+
+function View:logWarn(...)
+    if self.m_log_level >= LOG_LEVEL_WARN then
+        app:logWarn(...)
+    end
+end
+
+function View:logError(...)
+    if self.m_log_level >= LOG_LEVEL_ERROR then
+        app:logError(...)
+    end
+end
+
+function View:getGO()
+    return self.m_go
+end
+
+function View:getViewMgr()
+    return self.m_mgr
+end
+
+function View:getParam()
+    return self:getFrame():getParam()
+end
+
+function View:getFrame(name)
+    return name and self.m_mgr:getFrame(name) or self.m_frame
+end
+
+function View:getView(name)
+    return name and self.m_mgr:getView(name) or self
+end
+
+function View:getParent()
+    return self:getView(self.m_frame:getParent():getFrameName())
+end
+
+function View:doInit()
+end
+function View:doDestroy()
+end
+function View:doUpdate()
+    -- update全部Component
+    for _, component_arr in pairs(self.m_component_list) do
+        for _, comp in ipairs(component_arr) do
+            comp:update()
+        end
+    end
+end
+
+function View:load(path, cb)
+    self:subscribe(self:rxLoad(path), cb)
+end
+
+function View:loadScene(path, cb)
+    self:subscribe(self:rxLoadScene(path), cb)
+end
+
+function View:rxLoad(path)
+    return app:getResMgr():rxLoad(path)
+    :map( function(asset)
+        assert(asset, string.format("cannot load the asset which path is: %s", tostring(path)))
+        
+        local go = Object.Instantiate(asset)
+        if self.m_go then
+            go.transform:SetParent(self.m_go.transform)
+        end
+        self:initOutlet(go, self:getFrame())
+        return go
+    end )
+end
+
+
+function View:load_prefab(path, cb)
+    self:subscribe(app:getResMgr():rxLoad(path)
+    :map( function(asset)
+        assert(asset)
+        return asset
+    end ),
+    cb)
+end
+
+-- 以go进行初始化（将go设值为self.m_go）
+-- go(GameObject)
+-- parent_tr(Transform)
+function View:init_with_go(go, parent_tr)
+    if not go then
+        return
+    end
+    parent_tr = parent_tr or self:getParent():getGO()
+    if not parent_tr then
+        local parent_view = self:getParent()
+        if parent_view then
+            parent_tr = parent_view:getGO()
+        end
+    end
+    local child_tr = nil
+    if parent_tr then
+        child_tr = go.transform:GetComponent(RectTransform)
+        local parent_tr = parent_tr.transform:GetComponent(RectTransform) or parent_tr.transform
+        if child_tr then
+            child_tr.parent = parent_tr
+            child_tr.anchoredPosition3D = Vector3.zero
+        else
+            child_tr = go.transform
+            child_tr.parent = parent_tr
+            child_tr.localPosition = Vector3.zero
+        end
+        child_tr.localScale = Vector3.one
+        self:set_go(go)
+        self:initOutlet(go, self:getFrame())
+    end
+    return go
+end
+
+function View:set_go(go)
+    assert(self.m_go == nil)
+    self.m_go = go
+    local this = self
+    self.m_mgr:on_go_set(this)
+    self:prepared()
+end
+
+-- 重置view绑定的go,通过此方法可以将加载的prefab指定为view. createChild时也将已此为父物体
+-- 有的时候prefab还没有创建完 就有新的子view生成 所以在重置go之后 需要重新设置一次parent
+function View:reset_go(go)
+    assert(self.m_go ~= nil)
+
+    local childrenCount = self.m_go.transform.childCount
+    repeat
+        self.m_go.transform:GetChild(0):SetParent(go.transform)
+        childrenCount = childrenCount - 1
+    until ( childrenCount == 0 )
+
+    self.m_go = go
+    local this = self
+    self.m_mgr:on_go_set(this)
+end
+
+function View:rxLoadScene(path)
+    return app:getResMgr():rxLoadScene(path)
+end
+
+function View:prepared()
+    if self.on_prepared then
+        self:on_prepared()
+    end
+    assert(self.m_frame)
+    if self.m_frame.on_prepared then
+        -- self.m_frame:setView(self)
+        self.m_frame:on_prepared()
+    end
+end
+
+function View:initOutlet(go, model)
+    local ui_asset = go:GetComponent(KTUIAsset)
+    if ui_asset == nil then
+        return
+    end
+
+    for info in foreach(ui_asset.outletInfos) do
+        self:logDebug(info.name, info.componentType, info.obj)
+        local ct = info.componentType
+        local value
+
+        if ct and ct ~= "" then
+            if(ct == "gameObject") then
+                value = info.obj
+            else
+                value = info.obj:GetComponent(ct)
+            end
+            
+            assert(value, string.format("cannot found the type which named \"%s\", \ninfo.obj.name = %s", tostring(ct), tostring(info.obj.name)))
+
+            self:addBinding(ct, model, info.name, value)
+        end
+    end
+end
+
+function View:addBindingText(model, name, control)
+    self:subscribe(model:on_event_attr_set(name, true), function(val)
+        if val == nil then
+            val = ""
+        end
+        control.text = tostring(val)
+    end )
+end
+
+function View:addBindingInputField(model, name, control)
+    local calling = false
+    local function sync_value(cb)
+        if not calling then
+            calling = true
+            cb()
+            calling = false
+        end
+    end
+    self:subscribe(model:on_event_attr_set(name, true), function(val)
+        sync_value( function()
+            control.text = tostring(val)
+        end)
+    end )
+    control.onValueChanged:AddListener( function()
+        sync_value( function()
+            model:set_attr(name, control.text)
+        end)
+    end )
+end
+
+function View:addBindingButton(model, name, control)
+    local cb = model["on_" .. name]
+    assert(type(cb) == "function", "addBindingButton ERROR!!!  "..tostring(model).." -> on_" .. name)
+
+    control.onClick:RemoveAllListeners()
+    control.onClick:AddListener(function()
+        cb(model)
+    end)
+end
+
+function View:addBindingToggle(model, name, control)
+    local cb = model["on_" .. name]
+    assert(type(cb) == "function", "on_" .. name)
+
+    control.onValueChanged:AddListener(function(is_on)
+        cb(model, is_on)
+    end)
+end
+
+-- ct:组件名称 model: frame name:定义的名称 control:组件
+function View:addBinding(ct, model, name, control)
+    --local this_view = self.m_mgr:getView(model:getFrameName())
+    if ct == "gameObject" then
+        self[name .. "_gameObject"] = control
+    elseif ct == "UnityEngine.UI.Text" then
+        self:addBindingText(model, name, control)
+        self[name .. "_GUIText"] = control
+    elseif ct == "UnityEngine.UI.InputField" then
+        self:addBindingInputField(model, name, control)
+        self[name .. "_GUIField"] = control
+    elseif ct == "UnityEngine.UI.Button" then
+        self:addBindingButton(model, name, control)
+        self[name .. "_GUIButton"] = control
+    elseif ct == "UnityEngine.UI.Toggle" then
+        self:addBindingToggle(model, name, control)
+        self[name .. "_GUIToggle"] = control
+    elseif ct == "UnityEngine.UI.Image" then
+        self[name .. "_GUIImage"] = control
+    elseif ct == "UnityEngine.UI.Slider" then
+        self[name .. "_GUISlider"] = control
+    elseif ct == "UnityEngine.UI.Scrollbar" then
+        self[name .. "_GUIScrollbar"] = control
+    end
+end
+
+-- 添加Component
+-- comp_class   Component的Class
+-- @game_object 本Compoonent所关心的gameObject，相当于MonoBehaviour.gameObject
+function View:AddViewComponent(comp_class, game_object)
+    assert(comp_class and comp_class.isInstanceOf and comp_class:isSubclassOf(ViewComponent),
+    "comp_class is nil or not subclass of ViewComponent")
+
+    -- 获取该Component的列表
+    local component_arr = self.m_component_list[comp_class]
+    if component_arr == nil then
+        component_arr = {}
+        self.m_component_list[comp_class] = component_arr
+    end
+
+    -- 是否允许添加重复Component
+    if #component_arr ~= 0 and comp_class.disallow_multiple_component then
+        error(string.format("%s does not allow multiple component", comp_class.name))
+        return nil
+    end
+
+    -- 添加component
+    local comp = comp_class:new(self, game_object)
+    component_arr[#component_arr + 1] = comp
+
+    return comp
+end
+
+-- 移除指定Component
+-- comp   要移除的Component实例
+function View:RemoveViewComponent(comp)
+    if comp == nil then return end
+
+    local component_arr = self.m_component_list[comp.class]
+    if component_arr == nil or #component_arr == 0 then return end
+
+    for _, v in ipaires(component_arr) do
+        if v == comp then
+            table.remove(comp)
+            break
+        end
+    end
+
+    comp:on_destroy()
+end
+
+-- 移除所有Component
+function View:RemoveAllViewComponents()
+    for _, component_arr in pairs(self.m_component_list) do
+        for _, comp in ipairs(component_arr) do
+            comp:on_destroy()
+        end
+    end
+
+    self.m_component_list = nil
+end
+
+
+return View

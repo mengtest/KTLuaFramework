@@ -1,0 +1,82 @@
+local Frame = require("system.frame")
+local backpack_sub_list = class("backpack_sub_list", Frame)
+
+function backpack_sub_list:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_name = param[2]
+    self.m_list = {}
+    self.m_item_list = {}
+    self.m_temp_list = { ["unique"] = 0, ["tmpl"] = 0, ["level"] = 0 }
+    local list = param[1]
+    for i, v in pairs(list) do
+        self.m_list[i] = v
+    end
+    self:sort_list()
+end
+
+function backpack_sub_list:on_loaded()
+    --背包item   temp
+    for i = 1, 20 do
+        local send = { self.m_name, i }
+        if self.m_list[i] ~= nil then
+            send[3] = self.m_list[i]
+        else
+            send[3] = { ["unique"] = 0, ["tmpl"] = 0, ["level"] = 0 }
+        end
+        self.m_item_list[i] = self:createChild("backpack_item_" .. self.m_name .. i, "%subsystem/backpack_equipment/backpack_item", send)
+    end
+end
+
+--排序，目前先按等级，以及部位来排序
+function backpack_sub_list:sort_list()
+    for i = 1, #self.m_list - 1 do
+        for j = 1, #self.m_list - 1 do
+            local h = self.m_list[j]["enhanced_level"] + dbc.item[self.m_list[j]["tmpl"]].level_label
+            local k = self.m_list[j + 1]["enhanced_level"] + dbc.item[self.m_list[j + 1]["tmpl"]].level_label
+            if h < k then
+                --Debug.LogError("当前等级j" .. tostring(h))
+                --Debug.LogError("当前等级j+1" .. tostring(k))
+                local temp = self.m_list[j + 1]
+                self.m_list[j + 1] = self.m_list[j]
+                self.m_list[j] = temp
+            elseif h == k then
+                if dbc.item[self.m_list[j]["tmpl"]].derived_params[2] < dbc.item[self.m_list[j + 1]["tmpl"]].derived_params[2] then
+                    local temp = self.m_list[j + 1]
+                    self.m_list[j + 1] = self.m_list[j]
+                    self.m_list[j] = temp
+                end
+            end
+        end
+    end
+end
+
+-----装备增加时被调用，因为发事件的方式繁琐，所以由父物体中调用
+function backpack_sub_list:on_equipment_add(wearable_info)
+    local temp = wearable_info
+    self.m_list[#self.m_list + 1] = temp
+    self:sort_list()
+    for i = 1, #self.m_list do
+        self.m_item_list[i]:change_item(self.m_list[i])
+    end
+    for i = #self.m_list + 1, #self.m_item_list do
+        self.m_item_list[i]:change_item(self.m_temp_list)
+    end
+end
+
+-----装备减少时调用
+function backpack_sub_list:on_equipment_del(wearable_info)
+    for i, v in pairs(self.m_list) do
+        if v["unique"] == wearable_info["unique"] and v["tmpl"] == wearable_info["tmpl"] then
+            table.remove(self.m_list, i)
+        end
+    end
+    self:sort_list()
+    for i = 1, #self.m_list do
+        self.m_item_list[i]:change_item(self.m_list[i])
+    end
+    for i = #self.m_list + 1, #self.m_item_list do
+        self.m_item_list[i]:change_item(self.m_temp_list)
+    end
+end
+
+return backpack_sub_list

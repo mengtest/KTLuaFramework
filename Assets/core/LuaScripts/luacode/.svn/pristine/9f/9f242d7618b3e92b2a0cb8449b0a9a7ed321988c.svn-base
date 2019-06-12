@@ -1,0 +1,9 @@
+
+local Frame = require("system.frame")
+local skill_ui_main = class("skill_ui_main", Frame)
+
+function skill_ui_main:doInit(param)
+
+end
+
+return skill_ui_main

@@ -1,0 +1,343 @@
+local M = {}
+
+function M:doInit()
+    self.m_world = self:getFrame("world")
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+
+    self:subscribe(kbe_mgr:on_event("role_enter"), function(...)
+        self:on_role_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("role_exit"), function(...)
+        self:on_role_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("interact_obj_enter"), function(...)
+        self:on_interact_obj_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("interact_obj_exit"), function(...)
+        self:on_interact_obj_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Object_enter"), function(...)
+        self:on_Object_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Object_exit"), function(...)
+        self:on_Object_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("giver_enter"), function(...)
+        self:on_giver_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("giver_exit"), function(...)
+        self:on_giver_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Merchant_enter"), function(...)
+        self:on_merchant_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Merchant_exit"), function(...)
+        self:on_merchant_exit(...)
+    end)
+
+    kbe_mgr:reproduce_enter_event()
+end
+
+--[[ unit  start ]] --
+--local ATT_MAP = {
+--    pos = "pos",
+--    dir = "dir",
+--    name = "name",
+--    health = "hp",
+--    health_max = "hp_max",
+--    target_id = "target_id",
+--    dbid = "dbid",
+--}
+-- 创建角色(怪物)的方法
+function M:on_role_enter(role)
+    local roleID = role:get_id()
+    -- 角色/怪物ID
+    local roleType = role:get_role_type()
+    local roleName = role:get_name()
+    local rolePos = role:get_pos()
+    -- 创建unit.frame
+    local sdk = app:getKBESDK()
+    local is_main_player = role:get_id() == sdk:get_player_id()
+
+
+
+    local unit = self.m_world:addUnit(roleID,
+    roleType, roleName, rolePos, role:isInstanceOf(require("frame.kbe.Role")), is_main_player, role)
+
+    self:subscribe(role:on_event("special_move"), function(type, targetV3, skill_id)
+        if(type == SharedEnum.SpellSpecialMoveType.TELEPORT) then
+            unit:emit_event("set_position", targetV3)
+        end
+    end)
+
+    self:subscribe(role:on_event("set_position"), function(pos)
+        unit:emit_event("set_position", pos)
+    end)
+
+    self:subscribe(role:on_event("update_position"), function(pos)
+        unit:emit_event("update_position", pos)
+    end)
+
+    if (role:isInstanceOf(require("frame.kbe.Creature"))) then
+        self:subscribe(role:on_event("play_anim"), function(anima_name, has_camera, is_loop)
+            unit:emit_event("play_anim", anima_name, is_loop, has_camera)
+        end)
+    end
+
+    if is_main_player then
+        -- Quest System
+        local quest_manager = self:getFrame("quest_manager")
+        self:subscribe(role:on_event("quest_all"), function(timestamp, infos, nexts, prevs, panels)
+            quest_manager:rec_quest_all(timestamp, infos, nexts, prevs, panels)
+        end)
+        self:subscribe(role:on_event("quest_jobs"), function(infos, nexts, prevs, panels)
+            quest_manager:rec_quest_jobs(infos, nexts, prevs, panels)
+        end)
+        self:subscribe(role:on_event("quest_remove"), function(id)
+            quest_manager:rec_quest_remove(id)
+        end)
+        self:subscribe(role:on_event("quest_revert"), function(id)
+            quest_manager:rec_give_up_quest(id)
+        end)
+        self:subscribe(role:on_event("quest_update"), function(id, num, cond)
+            quest_manager:rec_update_quest(id, num, cond)
+        end)
+        self:subscribe(role:on_event("quest_token_ticket"), function(token_ticket, entity_id)
+            unit:set_attr("token_ticket", token_ticket)
+        end)
+        -- Team System
+        local team_manager = self:getFrame("team_manager")
+        self:subscribe(role:on_event("team_info"), function(team_info)
+            team_manager:rec_all_team(team_info)
+        end)
+        self:subscribe(role:on_event("invite_team"), function(db_id, inviter_name, team_id)
+            team_manager:rec_invitation(db_id, inviter_name, team_id)
+        end)
+        self:subscribe(role:on_event("resp_result"), function(team_args_info)
+            team_manager:rec_resp_result(team_args_info)
+        end)
+        --dungeon system
+        local dungeon_manager = self:getFrame("dungeon_manager")
+        self:subscribe(role:on_event("resp_unlock_instance"), function(unlock_dungeon_list)
+            dungeon_manager:accept_unlock_dungeon_list(unlock_dungeon_list)
+        end)
+
+        self:subscribe(role:on_event("unlock_new_instance"), function(dungeon_id)
+            dungeon_manager:accept_unlock_new_dungeon(dungeon_id)
+        end)
+
+        self:subscribe(role:on_event("instance_diffculty_select"), function(map_id)
+            dungeon_manager:accept_dungeon_diff_result(map_id)
+        end)
+
+        self:subscribe(role:on_event("resp_inst_progress"), function(progress_arry)
+            dungeon_manager:accept_dungeon_progress(progress_arry)
+        end)
+
+        self:subscribe(role:on_event("sync_inst_data"), function(time, progress_arry)
+            dungeon_manager:accept_dungeon_time_and_progress(time, progress_arry)
+        end)
+
+        -- Skill UI System 2017.11.01    rjy
+        local skill_ui_manager = self:getFrame("skill_ui_manager")
+        self:subscribe(role:on_event("master_all"), function(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+            skill_ui_manager:rec_master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+        end)
+
+        self:subscribe(role:on_event("master_learnt"), function(master_info)
+            skill_ui_manager:rec_master_learnt(master_info)
+        end)
+
+        self:subscribe(role:on_event("master_available"), function(available_id_list)
+            skill_ui_manager:rec_master_available(available_id_list)
+        end)
+
+        self:subscribe(role:on_event("master_level"), function(skill_id)
+            skill_ui_manager:rec_master_level(skill_id)
+        end)
+
+        self:subscribe(role:on_event("master_stat"), function(skill_id)
+            skill_ui_manager:rec_master_stat(skill_id)
+        end)
+
+        self:subscribe(role:on_event("master_page"), function(page_id)
+            skill_ui_manager:rec_master_page(page_id)
+        end)
+
+        self:subscribe(role:on_event("master_slot"), function(skill_id,slot)
+            skill_ui_manager:rec_master_slot(skill_id,slot)
+        end)
+
+
+
+        -- 技能修改
+        self:subscribe(role:on_event("add_spell_mod"), function(skill_id, spell_mod_op, spell_mod_type, value)
+            unit:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+        end)
+    end
+
+    --------------------------对话泡泡--------------------------
+    --给popup_bubble注册调用事件，回调函数是，创建对话框的方法
+    self:subscribe(role:on_event("popup_bubble"), function(dialog_id)
+        unit:set_bubble(dialog_id)
+
+    end)
+    ------------------------------------------------------------
+
+
+    -- 在这里实现切换战斗状态的具体逻辑
+    self:subscribe(role:on_event_attr_set("in_combat"), function(val)
+        unit:change_battle_state(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("move_state", true), function(val)
+        unit:set_move_state(val)
+        -- unit:set_attr_at("anim_param", "run", val ~= 0)
+    end)
+
+    self:subscribe(role:on_event_attr_set("move_speed", true), function(val)
+        unit:set_move_speed(val)
+    end)
+
+    self:subscribe(role:on_event("spell_start"), function(cast_id, spell_id, target_id, target_pos, dir, cast_time)
+        unit:cast_skill(spell_id, target_id, target_pos, dir)
+    end)
+
+    self:subscribe(role:on_event("be_hit"), function(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+        -- unit:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff)
+        unit:on_be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff)
+    end)
+
+    self:subscribe(role:on_event("s2c_perform"), function(state)
+        if (state == SharedEnum.RoleAction.MOTION_JUMP) then
+            --Debug.LogError("同步跳跃")
+            unit:set_to_jump(true)
+        elseif (state == SharedEnum.RoleAction.MOTION_TREASURE_BGN) then
+            --Debug.LogError("同步采集")
+            unit:emit_event("treasure", true)
+        elseif (state == SharedEnum.RoleAction.MOTION_TREASURE_END) then
+            --Debug.LogError("同步采集完成")
+            unit:emit_event("treasure", false)
+        end
+    end)
+
+    -- buff --
+    local buff_list = role:get_buff_list()
+    -- 添加buff
+    self:subscribe(buff_list:on_event("add_buff"), function(added_list)
+        unit:on_add_buff(added_list)
+    end)
+    -- 移除buff
+    self:subscribe(buff_list:on_event("remove_buff"), function(removed_list)
+        unit:on_remove_buff(removed_list)
+    end)
+
+
+end
+
+function M:on_role_exit(role)
+    
+    -- 根据服务器的处理 exit消息过来时候客户端不应该立即删除Frame，而是播放各自的表现，再根据客户端设置的类似于尸体时间的延迟来删除
+    -- 故这里应该做扩展 --clz
+
+    -- to do something
+    -- 例如:增加5秒 尸体时间 
+    --slua_timer.addDelayEvent(5,
+    --function()
+         --删除frame，自动删除GameObject
+        self.m_world:delUnit(role:get_id())
+         -- 播放死亡后(消失)动画
+        model_mgr:load_dead_sfx(dbc.creature[role:get_role_type()].model_id, role:get_pos(), role:get_dir())
+    --end)
+end
+
+--[[ unit  end ]] --
+--[[ obj  start ]] --
+-- 交互物可变属性列表
+local INTERACT_ATT_MAP = {
+    discoverable = "discoverable",
+    pos = "pos",
+    count = "count",
+}
+
+
+-- 创建交互物的方法
+function M:on_interact_obj_enter(obj)
+
+    -- 创建interact_obj.frame
+    local o = self.m_world:addInteractObj(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(INTERACT_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_interact_obj_exit(obj)
+    self.m_world:delInteractObj(obj:get_id())
+end
+
+--[[ obj  end ]] --
+--[[ Object  start ]] --
+-- 创建物件的方法
+-- 交互物可变属性列表
+local Object_ATT_MAP = {
+    state = "state",
+}
+
+function M:on_Object_enter(obj)
+    -- 创建Object.frame
+    local o = self.m_world:addObject(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(Object_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_Object_exit(obj)
+    self.m_world:delObject(obj:get_id())
+end
+
+function M:on_giver_enter(giver_source)
+    local giver_client = self.m_world:add_giver(giver_source)
+    local tmpl = giver_source:get_tmpl()
+    local a = "stop"
+end
+
+function M:on_giver_exit(obj)
+
+end
+
+--[[ Object  end ]] --
+
+--[[商人 start]]--
+local Merchant_ATT_MAP = {
+    pos = "pos",
+    dir = "dir",
+}
+
+function M:on_merchant_enter(obj)
+
+    -- 创建Object.frame
+    local o = self.m_world:addMerchant(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(Merchant_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_merchant_exit(obj)
+    self.m_world:delMerchant(obj:get_id())
+end
+
+--[[商人 end]]--
+return M

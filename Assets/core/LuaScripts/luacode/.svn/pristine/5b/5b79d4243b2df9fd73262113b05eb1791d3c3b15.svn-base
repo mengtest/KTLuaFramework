@@ -1,0 +1,96 @@
+local M = {}
+
+function M.doInit()
+    if (M.m_world == nil) then
+        M.m_world = app:getFrameMgr():getFrame("world")
+    end
+    if(M.playerController == nil) then
+        M.playerController = app:getFrameMgr():getFrame("player_controller")
+    end
+end
+
+-- 检测一些奇怪的buff
+function M.check_special_buff(skill_id, combat, stack_num)
+    local func = M["buff_" .. tostring(skill_id)]
+    if (func ~= nil) then
+        func(combat:get_id(), stack_num)
+    end
+end
+
+-- 恶魔尖刺buff
+function M.buff_912017(entity_id, stack_num)
+    if(stack_num > 0) then
+        slua_timer.addDelayEvent(0.8, function()
+            M.m_unit = M.m_world:getUnit(entity_id)
+            M.m_unit:emit_event("run_function","change_avatar_all_material",
+            "linghunxiaoxiew (Instance)",
+            "Color",
+            "_Color",
+            Color(9,2.0482752,0,1))
+        end)
+       
+    else
+        M.m_unit = M.m_world:getUnit(entity_id)
+        M.m_unit:emit_event("run_function","change_avatar_all_material",
+        "linghunxiaoxiew (Instance)",
+        "Color",
+        "_Color",
+        Color (0,0,0,1))
+    end
+end   
+
+-- 热烈迸发buff
+function M.buff_903013(entity_id, stack_num)
+    if (stack_num == 2) then
+        if (M.m_last_entity_id ~= entity_id) then
+            M.m_unit = M.m_world:getUnit(entity_id)
+        end
+        M.playerController:change_skill_btn_skill_data(903001,903003)
+        M.playerController:change_skill_btn_state(903003,true,true)
+        M.playerController:change_skill_btn_state(903005,true,true)
+    else
+        if (M.m_last_entity_id ~= entity_id) then
+            M.m_unit = M.m_world:getUnit(entity_id)
+        end
+        M.playerController:change_skill_btn_state(903003,true,false)
+        M.playerController:change_skill_btn_state(903005,true,false)
+        M.playerController:change_skill_btn_skill_data(903003,903001)
+    end
+end
+
+-- 检测一些战斗状态 暂时无用
+function M.check_combat_state(unit,state,value)
+    local func = M["combat_state_"..tostring(state)]
+    if (func ~= nil) then
+        func(unit, value)
+    end
+end
+
+-- 眩晕
+function M.combat_state_stunned(unit,value)
+    if(value == 1) then
+        Debug.LogError(tostring(unit:get_id())..":".."眩晕了")
+    else
+
+    end
+end
+
+-- 冻结
+function M.combat_state_frozen(unit,value)
+    if(value == 1) then
+        Debug.LogError(tostring(unit:get_id())..":".."冻结了")
+    else
+
+    end
+end
+
+-- 沉默
+function M.combat_state_silenced(unit,value)
+    if(value == 1) then
+        Debug.LogError(tostring(unit:get_id())..":".."沉默了")
+    else
+
+    end
+end
+
+return M

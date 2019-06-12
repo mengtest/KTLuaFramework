@@ -1,0 +1,59 @@
+local View = require("system.view")
+local big_map_view = class("dungeon_confirm_progress_view", View)
+
+local map_left_bottom = Vector3(-320, 0, -100)
+local map_right_up = Vector3(1020, 0, 1200)
+
+function big_map_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_icon_point = nil
+
+    self:load("ui/BigMap.prefab",function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+
+        self.m_map = go.transform:Find("map")
+        self.m_icon = go.transform:Find("map/player_icon")
+        --实际场景左下角和右上角坐标，暂时写死
+
+        local temp_map_size = map_right_up - map_left_bottom
+        --地图的尺寸
+        local map_size = self.m_map:GetComponent(UnityEngine.RectTransform).rect.size
+        self.m_scale_x =map_size.x / temp_map_size.x
+        self.m_scale_y=map_size.y / temp_map_size.z
+        self.m_icon_point = self.m_icon:GetComponent(UnityEngine.RectTransform)
+        frame:set_scale(self.m_scale_x,self.m_scale_y)
+
+
+        local return_btn = go.transform:Find("map/return_bg/Button").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        return_btn.onClick:AddListener(function()
+            frame:destroySelf()
+        end)
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_pos"), function (pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_dir"), function (dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+function big_map_view:refresh_owner_pos(pos)
+    self.m_icon_point.anchoredPosition3D = self:project_3d_pos_to_map_pos(pos)
+end
+
+function big_map_view:refresh_owner_dir(dir)
+    self.m_icon_point.localEulerAngles = Vector3(0, 0, - dir)
+end
+
+function big_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3(pos.x - map_left_bottom.x * self.m_scale_x,pos.z - map_left_bottom.z * self.m_scale_y,0)
+end
+
+return big_map_view

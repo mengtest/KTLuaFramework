@@ -1,0 +1,29 @@
+local GameWithNetwork = {}
+
+function GameWithNetwork:doInit()
+	self:createChild("world")
+	self:createChild("ui_main")
+	self:createChild("head_overlay")
+	self:createChild("network_world_watcher")
+
+	local world = self:getFrame("world")
+	local player = app:getPlayer()
+	local role = world:addUnit(player:getPid(), 
+		player:getRoleType(), player:getRoleName(), Vector3.zero)
+
+	local crtl = self:createChild("player_controller", nil, role)
+	self:subscribe(crtl:on_event_move(), function(from, to)
+		app:asyncExec(function() player:move(from, to) end)
+	end)
+	self:subscribe(crtl:on_event_skill(), function(skill_id, target_id)
+		app:asyncExec(function() player:skill(skill_id, target_id) end)
+	end)
+
+	self.m_lp_unit = role
+end
+
+function GameWithNetwork:getLocalPlayerUnit()
+	return self.m_lp_unit
+end
+
+return GameWithNetwork

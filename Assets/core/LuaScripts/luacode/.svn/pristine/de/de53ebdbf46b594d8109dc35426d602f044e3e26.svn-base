@@ -1,0 +1,173 @@
+local View = require("system.view")
+local big_map_quest_view = class("big_map_quest_view", View)
+
+function big_map_quest_view:doInit(quest_param)
+    self.m_big_map_view = self:getView("big_map")
+    self.m_quest_manager = self:getFrame("quest_manager")
+
+    self.m_interest_sfx = nil
+    self.m_trace_one_sfx = nil
+    self.m_trace_two_sfx = nil
+    self.m_cur_show_icon = nil
+
+    self.m_show_list = quest_param
+    --- 存在配置上的错误，若获取不到area_data则不显示该任务
+    if not self.m_show_list['area_data'] then
+        return
+    end
+    self:load(app:getAssetPathMgr().get_ui_view_asset("BigMapQuest"), function(go)
+        self.m_frame:set_quest_go(go)
+        --- 获取任务图标的父物体
+        local icon_parent = self.m_big_map_view:gain_quest_icon_parent()
+        local area_data = self.m_show_list['area_data']
+        go.transform:SetParent(icon_parent)
+        go.transform.localPosition = self.m_big_map_view:project_3d_pos_to_map_pos(area_data["worldPosition"])
+        go.transform.localScale = Vector3.one
+
+        self.m_go = go
+        --- 根据任务的不同显示对应的特效、图标
+        self:quest_icon_show_choise(self.m_show_list)
+    end)
+    --- 添加关注
+    self:subscribe(self.m_quest_manager:on_event("add_quest_note"), function(quest_data)
+        if quest_data == self.m_show_list['quest_data'] then
+            self:interest_sfx_show()
+        end
+    end)
+    --- 取消关注
+    self:subscribe(self.m_quest_manager:on_event("del_quest_note"), function(quest_data)
+        if quest_data == self.m_show_list['quest_data'] then
+            self.m_interest_sfx.gameObject:SetActive(false)
+            self.m_interest_sfx:Stop()
+            local sfx_par = self["m_trace_one_sfx"] or self["m_trace_two_sfx"]
+            if sfx_par then
+                sfx_par.gameObject:SetActive(true)
+                sfx_par:Play()
+            else
+                self.m_cur_show_icon:SetActive(true)
+            end
+        end
+    end)
+end
+
+function big_map_quest_view:quest_icon_show_choise(quest_params)
+    local quest_data = quest_params['quest_data']
+    --- 任务当前进度
+    local cur_weights = quest_params['quest_data']:get_cur_weights()
+    --- 获取任务是第几个追踪，若未追踪则为0
+    local traced_index = quest_data:get_index()
+    if traced_index ~= 0 then
+        --if (not self.m_trace_one_sfx) and (not self.m_trace_one_sfx) then
+        local sfx_name = (traced_index == 1) and "ui_ditu_renwu_tishii_lv" or "ui_ditu_renwu_tishii_cheng"
+        local cache = (traced_index == 1) and "m_trace_one_sfx" or "m_trace_two_sfx"
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset(sfx_name), self.m_go.transform, cache)
+        --end
+
+        --- 任务区域太小，地图比例尺问题，为了显示暂时放大20倍 temp
+        local area_radius = quest_params['radius'] * 2-- * 20
+        --- 追踪任务显示区域范围
+        self["quest_area_" .. traced_index .. "_gameObject"]:GetComponent(RectTransform).sizeDelta = Vector2(area_radius, area_radius)
+        self["quest_area_" .. traced_index .. "_gameObject"]:SetActive(true)
+    else
+        --- 如果未被追踪
+        self:untraced_quest_show(quest_params)
+    end
+    --- 关注的任务只显示关注特效，不显示其他特效，否则显示追踪特效或普通任务图标
+    if quest_data:get_note() == 1 then
+        self:interest_sfx_show()
+    end
+    if cur_weights > 0 then
+        self["is_running_gameObject"]:SetActive(true)
+    end
+end
+
+---- 任务为关注状态时特效的显示
+function big_map_quest_view:interest_sfx_show()
+    --- 若已有关注特效，则显示并播放，否则加载特效
+    if self.m_interest_sfx then
+        self.m_interest_sfx.gameObject:SetActive(true)
+        self.m_interest_sfx:Play()
+    else
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_ditu_renwu_tishii_01"), self.m_go.transform, "m_interest_sfx")
+    end
+
+    --- 策划需求：正在追踪的任务在关注时同时显示追踪、关注两个特效，非追踪任务关注时以关注特效替换原任务icon
+    --- 将其他特效、图标隐藏
+    --local sfx_par = self["m_trace_one_sfx"] or self["m_trace_two_sfx"]
+    --if sfx_par then
+    --    sfx_par.gameObject:SetActive(false)
+    --    sfx_par:Stop()
+    --end
+    if self.m_cur_show_icon then
+        self.m_cur_show_icon:SetActive(false)
+    end
+end
+
+---- 非追踪任务在地图上的显示
+function big_map_quest_view:untraced_quest_show(quest_params)
+    --- 获取任务当前状态
+    local quest_state = quest_params['quest_data']:get_quest_state()
+    ----- 获取任务完成条件类型
+    --local finish = quest_params['finish']
+    --local target_type = quest_params['target_type']
+    --if target_type == enum.quest.Target_Type.Receive_Npc then
+    --    self["npc_no_receive_gameObject"]:SetActive(true)
+    --    self.m_cur_show_icon = self["npc_no_receive_gameObject"]
+    --elseif target_type == enum.quest.Target_Type.Giver_Npc then
+    --    self["npc_finish_icon_gameObject"]:SetActive(true)
+    --    self.m_cur_show_icon = self["npc_finish_icon_gameObject"]
+    --else
+    --    if finish == enum.shared.QuestCond.POSITION then
+    --        self["normal_area_icon_gameObject"]:SetActive(true)
+    --        self.m_cur_show_icon = self["normal_area_icon_gameObject"]
+    --    else
+    --        self["npc_received_gameObject"]:SetActive(true)
+    --        self.m_cur_show_icon = self["npc_received_gameObject"]
+    --    end
+    --end
+    --- 获取起始任务接取类型
+    local begin_type = quest_params['quest_data']:get_begin_type()
+    if begin_type == enum.shared.QuestCond.NPC or begin_type == enum.shared.QuestCond.TREASURE or begin_type == enum.shared.QuestCond.QUIZ then
+        if quest_state == enum.quest.Quest_State.Interact then
+            self["npc_no_receive_gameObject"]:SetActive(true)
+            self.m_cur_show_icon = self["npc_no_receive_gameObject"]
+        elseif quest_state == enum.quest.Quest_State.Finished then
+            self["npc_finish_icon_gameObject"]:SetActive(true)
+            self.m_cur_show_icon = self["npc_finish_icon_gameObject"]
+        else
+            self["normal_area_icon_gameObject"]:SetActive(true)
+            self.m_cur_show_icon = self["normal_area_icon_gameObject"]
+        end
+    else
+        self["normal_area_icon_gameObject"]:SetActive(true)
+        self.m_cur_show_icon = self["normal_area_icon_gameObject"]
+    end
+end
+
+------ 加载特效
+function big_map_quest_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager:GetDepthName("big_map"))
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+return big_map_quest_view

@@ -1,0 +1,67 @@
+local View = require("system.view")
+local spirit_handbook_model_show_view = class("spirit_handbook_model_show_view", View)
+
+function spirit_handbook_model_show_view:doInit(id)
+
+    self.m_frame = self:getFrame()
+    ----记录鼠标所在位置的x坐标
+    self.m_mouse_X = 0
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("SpiritHandbook"), function(go)
+        local temp_go = go.transform:Find("drag/drag_area_container/handbook_container/model_root/RawImage").gameObject
+        local show_go = Object.Instantiate(temp_go)
+
+        -- 未解锁的图片
+        local unlock_image = show_go.transform:Find("Image")
+        -- 阴影
+        local shadow = show_go.transform:Find("shadow")
+        shadow.transform:SetParent(self:getGO().transform)
+        shadow.transform.localPosition = Vector3(0, -255, 0)
+        shadow.transform.sizeDelta = Vector2(500, 100)
+        shadow.transform.localScale = Vector3.one
+
+
+        show_go.transform:SetParent(self:getGO().transform)
+        show_go.transform.localPosition = Vector3.zero
+        show_go.transform.localScale = Vector3.one
+        show_go:SetActive(true)
+
+        local spirit_container = show_go:GetComponent("DragSkill")
+        spirit_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        spirit_container.onBeginDrag:AddListener(function(eventdata)
+            self.m_mouse_X = eventdata.position.x
+        end)
+
+        spirit_container.onDrag = DragSkill_OnDragHandler()
+        spirit_container.onDrag:AddListener(function(eventdata)
+            local cur_mouse_x = eventdata.position.x
+            ---设置旋转速度，滑动的越快旋转越快
+            local rot_speed = math.abs(cur_mouse_x - self.m_mouse_X) / 100 / Time.deltaTime
+            self.m_frame:start_rotate(cur_mouse_x < self.m_mouse_X, rot_speed)
+            self.m_mouse_X = cur_mouse_x
+        end)
+
+        spirit_container.onEndDrag = DragSkill_OnEndDragHandler()
+        spirit_container.onEndDrag:AddListener(function(eventdata)
+
+        end)
+
+        self:subscribe(self:getFrame():on_event("show_image"), function()
+            unlock_image.gameObject:SetActive(true)
+        end)
+
+        self:subscribe(self:getFrame():on_event("hide_image"), function()
+            unlock_image.gameObject:SetActive(false)
+        end)
+
+        -- 美术大大要求不让一上来就创建场景
+        --local scene_name = "spirit_handbook_model_show_temp"
+        --local path = string.format("scenes/%s.unity", scene_name)
+        --self:loadScene(path, function()
+        --
+        --end)
+    end)
+end
+
+
+return spirit_handbook_model_show_view

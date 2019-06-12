@@ -1,0 +1,21 @@
+local M = {}
+-- 临时做法，等boss出现信息需求进一步完善之后 重构此功能 - 凌志 2017年9月1日
+function M:doInit()
+    self.m_frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Shop"), function(go)
+        app:get_ui_manager():AdaptResolution(self.m_frame:getFrameName(),go)
+        self.items_info = self.m_frame:getFrame():get_shop_items_info()
+        self.merchant_info = self.m_frame:get_merchant_info()
+        self:load_items()
+    end)
+end
+
+function M:load_items()
+    local index = 0
+    for i,v in pairs(self.items_info) do
+        self.m_frame:createChild("ui_item_"..tostring(v.id),"ui_item",{merchant_info = self.merchant_info,item_info = v,pos = Vector3(-680 + index * 300,300,0)})
+        index = index+1
+    end
+end
+
+return M

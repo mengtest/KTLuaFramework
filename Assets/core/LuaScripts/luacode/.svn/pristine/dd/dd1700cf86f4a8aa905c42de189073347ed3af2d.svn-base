@@ -1,0 +1,12 @@
+local row_0 = {['id']=1,['map_id']=1001,['creature_id']=1002,['pos']={165.0,22.3,134.0},['dir']=0.0}
+local row_1 = {['id']=2,['map_id']=1001,['creature_id']=1003,['pos']={157.0,22.0,132.0},['dir']=0.0}
+local row_2 = {['id']=3,['map_id']=1001,['creature_id']=1004,['pos']={167.0,22.1,122.5},['dir']=0.0}
+local row_3 = {['id']=4,['map_id']=1001,['creature_id']=1005,['pos']={160.0,22.1,120.5},['dir']=0.0}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+	[4] = row_3,
+}
+return datas

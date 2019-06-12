@@ -1,0 +1,130 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/2 14:22
+---
+local ObserverHost = require "system.observer_host"
+local team_mgr = class("team_mgr")
+team_mgr:include(ObserverHost)
+
+Event.decl(team_mgr, "test")
+
+function team_mgr:initialize()
+    Event.init(self)
+end
+
+function team_mgr:local_log(...)
+    --app:logError(string.format(...))
+end
+
+
+---------------------------server begin--------------------------------
+function team_mgr:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function team_mgr:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+----[S2C]
+----队伍数据
+function team_mgr:rec_team_info(leader_id, team_info)
+    self:local_log("team_mgr:rec_team_info leader_id:" .. leader_id)
+end
+----队伍某个成员数据更新
+function team_mgr:rec_member_info(member_info)
+    self:local_log("team_mgr:rec_member_info")
+end
+----邀请加入队伍
+function team_mgr:rec_invite_team(db_id, inviter_name, team_id)
+    self:local_log("team_mgr:rec_invite_team db_id:" .. db_id)
+end
+----请求结果回复
+function team_mgr:rec_resp_result(team_args_info)
+    self:local_log("team_mgr:rec_resp_result")
+end
+----转移队长
+function team_mgr:rec_change_leader(db_id)
+    self:local_log("team_mgr:rec_change_leader db_id:" .. db_id)
+end
+----队员血量更新
+function team_mgr:rec_change_hp_for_team(db_id, hp)
+    self:local_log("team_mgr:rec_change_hp_for_team db_id:" .. db_id .. ", hp:" .. hp)
+end
+----队员血量最大值更新
+function team_mgr:rec_change_max_hp_for_team(db_id, max_hp)
+    self:local_log("team_mgr:rec_change_hp_for_team db_id:" .. db_id .. ", max_hp:" .. max_hp)
+end
+----队员专精更新
+function team_mgr:rec_change_specialization_for_team(db_id, specialization)
+    self:local_log("team_mgr:rec_change_specialization_for_team db_id:" .. db_id .. ", specialization:" .. specialization)
+end
+----队员增加buff
+function team_mgr:rec_member_add_aura_for_team(db_id, aura_info)
+    self:local_log("team_mgr:rec_member_add_aura_for_team db_id:" .. db_id)
+end
+----队员移除buff
+function team_mgr:rec_member_del_aura_for_team(db_id, index)
+    self:local_log("team_mgr:rec_member_del_aura_for_team db_id:" .. db_id .. ", index:" .. index)
+end
+----加入队员
+function team_mgr:rec_join_team_notify(member_info)
+    self:local_log("team_mgr:rec_join_team_notify ")
+end
+----队员离开
+function team_mgr:rec_leave_team_notify(db_id)
+    self:local_log("team_mgr:rec_leave_team_notify db_id:" .. db_id)
+end
+----队员状态（在线/离线）
+function team_mgr:rec_member_state_change(db_id, index)
+    self:local_log("team_mgr:rec_member_state_change db_id:" .. db_id .. ", index:" .. index)
+end
+
+----[C2S]
+----请求队伍数据
+function team_mgr:req_team_info()
+    self:local_log("team_mgr:req_team_info")
+    self:base_call("team_info_for_client")
+end
+
+----请求组队
+function team_mgr:req_invitation(entity_id, db_id)
+    self:local_log("team_mgr:req_invitation")
+    self:base_call("invite_team", entity_id, db_id)
+end
+
+----是否同意组队
+function team_mgr:req_is_accept(flag, team_id, db_id)
+    self:local_log("team_mgr:req_is_accept")
+    if flag then
+        self:base_call("join_team", team_id)
+    else
+        self:base_call("refuse_team", db_id, team_id)
+    end
+end
+
+----请求离队
+function team_mgr:req_leave()
+    self:local_log("team_mgr:req_leave")
+    self:base_call("leave_team")
+end
+
+----请求踢出队员
+function team_mgr:req_del_member(db_id)
+    self:local_log("team_mgr:del_member db_id:" .. db_id)
+    self:base_call("del_member", db_id)
+end
+
+----请求转移队长
+function team_mgr:req_change_leader(db_id)
+    self:local_log("team_mgr:req_change_leader db_id:" .. db_id)
+    self:base_call("change_leader", db_id)
+end
+---------------------------server end--------------------------------
+
+return team_mgr
+

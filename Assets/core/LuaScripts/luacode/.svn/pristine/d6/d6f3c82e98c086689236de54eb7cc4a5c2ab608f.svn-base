@@ -1,0 +1,30 @@
+---
+--- Created by lijunfeng 2017/12/18
+--- DateTime: 2017/12/18 17:59
+---临时解决player_controller事件收不到消息的bug
+---
+local facade={}
+
+function facade:add_listen(name,func)
+    if facade[name]==nil then
+        facade[name]={}
+    end
+
+    facade[name][func]=func
+end
+
+function facade:remove_listen(name,func)
+    if facade[name]~=nil and facade[name][func]~=nil then
+        facade[name][func]=nil
+    end
+end
+
+function facade:dispatch(cls,name,...)
+    if facade[name]~=nil then
+        for k,v in pairs(facade[name]) do
+            v(cls,...)
+        end
+    end
+end
+
+return facade

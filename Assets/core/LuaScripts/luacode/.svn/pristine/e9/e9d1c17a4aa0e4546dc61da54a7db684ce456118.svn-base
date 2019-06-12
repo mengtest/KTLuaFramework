@@ -1,0 +1,66 @@
+-- 角色行为状态 跳跃
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateDie", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+    
+    self.m_update_func = self.normal_update
+    self.m_world = app:getFrameMgr():getFrame("world")
+end
+
+function M:enter()
+    -- print("UnitActStateDie:enter")
+    UnitActStateBase.enter(self)
+    
+    local unit_type = self.m_unit:get_type()
+
+    self.m_update_func = self.normal_update
+
+    self.m_unit:set_main_act(enum.battle.Unit_Main_Act.DEAD)
+end
+
+function M:exit()
+    -- print("UnitActStateDie:exit")
+    UnitActStateBase.exit(self)
+end
+
+function M:update()
+    -- print("UnitActStateDie:update")
+    UnitActStateBase.update(self)
+    
+    self:m_update_func()
+    
+end
+
+function M:normal_update()
+    local cc = self.m_unit:get_cc()
+    if cc == nil then
+        return
+    end
+    local delta_time = app.get_delta_time()
+    
+    local movespeed = Vector3.zero
+    --计算重力加速度
+    self.m_unit:set_gravity_speed(self.m_unit:get_gravity_speed() - Unit.GRAVITY * delta_time)
+    movespeed.y = self.m_unit:get_gravity_speed()
+    
+    local movement = movespeed * delta_time
+    cc:Move(movement)
+    
+    self.m_unit:set_pos(cc.transform.position)
+end
+
+function M:change_move_state(move_state)
+-- do nothing
+end
+
+return M

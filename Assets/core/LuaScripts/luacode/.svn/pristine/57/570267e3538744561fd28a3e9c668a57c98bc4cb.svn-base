@@ -1,0 +1,51 @@
+local func = {}
+
+-- 把角度限制在[-180, 180]
+function func.clamp_angle_180(angle)
+	while angle > 180 do
+		angle = angle - 360
+	end
+	while angle < -180 do
+		angle = angle + 360
+	end
+
+	return angle
+end
+
+-- 把角度限制在[0, 360]
+function func.clamp_angle_360(angle)
+	while angle > 360 do
+		angle = angle - 360
+	end
+	while angle < 0 do
+		angle = angle + 360
+	end
+
+	return angle
+end
+
+-- 限制角度
+function func.clamp_angle(angle, min, max)
+	while angle > max do
+		angle = angle - 360
+	end
+	while angle < min do
+		angle = angle + 360
+	end
+
+	return angle
+end	
+
+
+
+function func.is_inf(val)
+	return val == math.huge or val == -math.huge
+end
+
+function func.is_nan(val)
+	return val ~= val
+end
+
+
+
+return func

@@ -1,0 +1,29 @@
+local Frame = require("system.frame")
+local spirit_property_skill_btn = class("spirit_property_skill_btn", Frame)
+
+Attribute.decl(spirit_property_skill_btn, "tmpl", -1)
+Attribute.decl(spirit_property_skill_btn, "level", "")
+Event.decl(spirit_property_skill_btn, "selected")
+Event.decl(spirit_property_skill_btn, "unselected")
+
+function spirit_property_skill_btn:doInit(skill_data)
+    self:set_is_add_rect_trans(true)
+    local tmpl = skill_data.tmpl
+    local level = skill_data.stat
+    self:set_tmpl(tmpl)
+    self:set_level(level)
+end
+
+function spirit_property_skill_btn:show()
+    self:emit_event("show")
+end
+function spirit_property_skill_btn:hide()
+    self:emit_event("hide")
+end
+
+function spirit_property_skill_btn:on_skill_btn()
+
+end
+
+
+return spirit_property_skill_btn

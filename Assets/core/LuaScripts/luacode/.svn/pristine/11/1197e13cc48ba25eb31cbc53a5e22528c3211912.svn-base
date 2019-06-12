@@ -1,0 +1,21 @@
+local View = require("system.view")
+local backpack_item_view = class("backpack_item_view", View)
+
+function backpack_item_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self:load_prefab("UI/BackpackEquip.prefab", function(loaded_go)
+        local template_go = loaded_go.transform:Find("backpack/scroll_view/viewport/content/obj/Image").gameObject
+        local go = Object.Instantiate(template_go)
+        go.name = param[1]..param[2]
+        self:getGO():AddComponent(RectTransform)
+        go.transform:SetParent(self:getGO().transform)
+        local size = go.transform:GetComponent(RectTransform).sizeDelta
+        self:getGO().transform:GetComponent(RectTransform).sizeDelta = size
+        ------这里有有偏移
+        go.transform.localPosition = Vector3(-52.5, 52.5, 0)
+        go:SetActive(true)
+    end)
+end
+
+return backpack_item_view

@@ -1,0 +1,51 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/2 16:43
+---
+local Frame = require("system.frame")
+local mini_map_icon_template = class("mini_map_icon_template", Frame)
+
+Event.decl(mini_map_icon_template, "show")
+Event.decl(mini_map_icon_template, "hide")
+Event.decl(mini_map_icon_template, "refresh_icon_pos")
+
+function mini_map_icon_template:doInit()
+    self.m_icon_path = nil
+    self.m_area_icon_path = ""
+    self.m_particle = nil
+end
+
+function mini_map_icon_template:show()
+    self:emit_event("show")
+end
+
+function mini_map_icon_template:hide()
+    self:emit_event("hide")
+end
+
+function mini_map_icon_template:set_quest_data(quest_data)
+    if quest_data then
+        if quest_data ~= self.m_quest_data then
+            self.m_quest_data = quest_data
+        end
+        self:show()
+        self:emit_event("refresh_icon_pos")
+    else
+        self.m_quest_data = nil
+        self:hide()
+    end
+end
+
+function mini_map_icon_template:get_quest_data()
+    return self.m_quest_data
+end
+
+function mini_map_icon_template:get_icon_path()
+    return self.m_icon_path
+end
+
+function mini_map_icon_template:get_particle()
+    return self.m_particle
+end
+
+return mini_map_icon_template

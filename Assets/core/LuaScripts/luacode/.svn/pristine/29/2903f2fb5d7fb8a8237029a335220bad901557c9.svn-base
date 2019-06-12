@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local dungeon_stop_time = class("dungeon_stop_time", Frame)
+
+function dungeon_stop_time:doInit(param)
+
+end
+
+return dungeon_stop_time

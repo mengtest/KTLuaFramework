@@ -1,0 +1,298 @@
+local ObserverHost = require "system.observer_host"
+
+local View = class("View")
+View:include(ObserverHost)
+
+function View:initialize(mgr, frame, is_dont_create_go_automatic)
+    Attribute.init(self)
+    self.m_log_level = LOG_LEVEL_WARN
+    self.m_mgr = mgr
+    self.m_frame = frame
+    self.m_go = nil
+    -- self.m_is_dont_create_go_automatic = is_dont_create_go_automatic
+    if not is_dont_create_go_automatic then
+        local go = GameObject()
+        go.name = frame:getFrameName()        
+        local parent = frame:getParent()
+        if parent then
+            local view = mgr:getView(parent:getFrameName())
+            if view then
+                go.transform:SetParent(view:getGO().transform)
+            end
+        end
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localRotation = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3(1, 1, 1)
+        -- self.m_go = go
+        self:set_go(go)
+    end
+    self:doInit(frame:getParam())
+end
+
+function View:destroy()
+    self:unsubscribeAll()
+    self:doDestroy()
+
+    if self.m_go then
+        Object.Destroy(self.m_go)
+        self.m_go = nil
+    end
+
+    if self.m_refs then
+        for _, v in ipairs(self.m_refs) do
+            v:Release()
+        end
+        self.m_refs = nil
+    end
+end
+
+function View:setLogLevel(level)
+    self.m_log_level = level
+end
+
+function View:logDebug(...)
+    if self.m_log_level >= LOG_LEVEL_DEBUG then
+        app:logDebug(...)
+    end
+end
+
+function View:logInfo(...)
+    if self.m_log_level >= LOG_LEVEL_INFO then
+        app:logInfo(...)
+    end
+end
+
+function View:logWarn(...)
+    if self.m_log_level >= LOG_LEVEL_WARN then
+        app:logWarn(...)
+    end
+end
+
+function View:logError(...)
+    if self.m_log_level >= LOG_LEVEL_ERROR then
+        app:logError(...)
+    end
+end
+
+function View:getGO()
+    return self.m_go
+end
+
+function View:getViewMgr()
+    return self.m_mgr
+end
+
+function View:getParam()
+    return self:getFrame():getParam()
+end
+
+function View:getFrame(name)
+    return name and self.m_mgr:getFrame(name) or self.m_frame
+end
+
+function View:getView(name)
+    return name and self.m_mgr:getView(name) or self
+end
+
+function View:getParent()
+    return self:getView(self.m_frame:getParent():getFrameName())
+end
+
+function View:doInit() end
+function View:doDestroy() end
+function View:doUpdate() end
+
+function View:load(path, cb)
+    self:subscribe(self:rxLoad(path), cb)
+end
+
+function View:loadScene(path, cb)
+    self:subscribe(self:rxLoadScene(path), cb)
+end
+
+function View:rxLoad(path)
+    return app:getResMgr():rxLoad(path)
+    :map( function(ref)
+        assert(ref)
+        self.m_refs = self.m_refs or { }
+        table.insert(self.m_refs, ref)
+
+        local go = Object.Instantiate(ref.asset)
+        if self.m_go then
+            go.transform:SetParent(self.m_go.transform)
+        end
+        self:initOutlet(go, self:getFrame())
+        return go
+    end )
+end
+
+
+function View:load_prefab(path, cb)
+    self:subscribe(app:getResMgr():rxLoad(path)
+    :map( function(ref)
+        assert(ref)
+        self.m_refs = self.m_refs or { }
+        table.insert(self.m_refs, ref)
+
+        return ref.asset
+    end ),
+    cb)
+end
+
+-- 以go进行初始化（将go设值为self.m_go）
+-- go(GameObject)
+-- parent_tr(Transform)
+function View:init_with_go(go, parent_tr)
+    -- local go = Object.Instantiate(cur_go)
+    if not go then
+        return
+    end
+    parent_tr = parent_tr or self:getParent():getGO()
+    if not parent_tr then
+        local parent_view = self:getParent()
+        if parent_view then
+            parent_tr = parent_view:getGO()
+        end
+    end
+    -- go.transform:SetParent(self.m_go.transform)
+    local child_tr = nil
+    if parent_tr then
+        child_tr = go.transform:GetComponent(RectTransform) or go.transform
+        local parent_tr = parent_tr.transform:GetComponent(RectTransform) or parent_tr.transform
+        -- go.transform:SetParent(parent_tr.transform)
+        child_tr.parent = parent_tr
+    end
+    -- self.m_go = go
+    self:set_go(go)
+    child_tr.localPosition = Vector3.zero
+    child_tr.localScale = Vector3.one
+    self:initOutlet(go, self:getFrame())
+    return go
+end
+
+function View:set_go(go)
+    assert(self.m_go == nil)
+    self.m_go = go
+    local this = self
+    self.m_mgr:on_go_set(this)
+    self:prepared()
+end
+
+-- 重置view绑定的go,通过此方法可以将加载的prefab指定为view. createChild时也将已此为父物体
+-- 有的时候prefab还没有创建完 就有新的子view生成 所以在重置go之后 需要重新设置一次parent
+function View:reset_go(go)
+    assert(self.m_go ~= nil)  
+
+    local childrenCount = self.m_go.transform.childCount
+    repeat
+        self.m_go.transform:GetChild(0):SetParent(go.transform)
+        childrenCount = childrenCount -1
+    until( childrenCount == 0 )
+
+    self.m_go = go
+    local this = self
+    self.m_mgr:on_go_set(this)
+end
+
+function View:rxLoadScene(path)
+    return app:getResMgr():rxLoadScene(path)
+    :map( function(ref)
+        assert(ref)
+        self.m_refs = self.m_refs or { }
+        table.insert(self.m_refs, ref)
+    end )
+end
+
+function View:prepared()
+    if self.on_prepared then
+        self:on_prepared()
+    end
+    assert(self.m_frame)
+    if self.m_frame.on_prepared then
+        -- self.m_frame:setView(self)
+        self.m_frame:on_prepared()
+    end
+end
+
+function View:initOutlet(go, model)
+    local ui_asset = go:GetComponent(KTUIAsset)
+    if ui_asset == nil then return end
+
+    for info in foreach(ui_asset.outletInfos) do
+        self:logDebug(info.name, info.componentType, info.obj)
+        local ct = info.componentType
+        local value
+        if ct and ct ~= "" then
+            value = info.obj:GetComponent(ct)
+            self:addBinding(ct, model, info.name, value)
+        end
+        assert(value)
+    end
+end
+
+function View:addBindingText(model, name, control)
+    self:subscribe(model:on_event_attr_set(name, true), function(val)
+        if val == nil then
+            val = ""
+        end
+        control.text = tostring(val)
+    end )
+end
+
+function View:addBindingInputField(model, name, control)
+    local calling = false
+    local function sync_value(cb)
+        if not calling then
+            calling = true
+            cb()
+            calling = false
+        end
+    end
+    self:subscribe(model:on_event_attr_set(name, true), function(val)
+        sync_value( function() control.text = tostring(val) end)
+    end )
+    control.onValueChanged:AddListener( function()
+        sync_value( function() model:set_attr(name, control.text) end)
+    end )
+end
+
+function View:addBindingButton(model, name, control)
+    local cb = model["on_" .. name]
+    assert(type(cb) == "function", "on_" .. name)
+
+    control.onClick:AddListener( function()
+        cb(model)
+    end )
+end
+
+function View:addBindingToggle(model, name, control)
+    local cb = model["on_" .. name]
+    assert(type(cb) == "function", "on_" .. name)
+    
+    control.onValueChanged:AddListener(function (is_on)
+        cb(model, is_on)
+    end)
+end
+
+-- ct:组件名称 model: frame name:定义的名称 control:组件
+function View:addBinding(ct, model, name, control)
+    local this_view = self.m_mgr:getView(model:getFrameName())
+    if ct == "UnityEngine.UI.Text" then
+        self:addBindingText(model, name, control)
+        this_view[name .. "_GUIText"] = control
+    elseif ct == "UnityEngine.UI.InputField" then
+        self:addBindingInputField(model, name, control)
+        this_view[name .. "_GUIField"] = control
+    elseif ct == "UnityEngine.UI.Button" then
+        self:addBindingButton(model, name, control)
+        this_view[name .. "_GUIButton"] = control
+    elseif ct == "UnityEngine.UI.Toggle" then
+        self:addBindingToggle(model, name, control)
+        this_view[name .. "_GUIToggle"] = control
+    elseif ct == "UnityEngine.UI.Image" then
+        this_view[name .. "_GUIImage"] = control
+    elseif ct == "UnityEngine.UI.Slider" then
+        this_view[name .. "_GUISlider"] = control
+    end
+end
+return View

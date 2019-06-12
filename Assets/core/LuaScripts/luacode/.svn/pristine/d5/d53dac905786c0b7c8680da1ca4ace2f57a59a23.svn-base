@@ -1,0 +1,155 @@
+local rows = {}
+rows[1] = {['id']=11,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[2] = {['id']=31,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[3] = {['id']=41,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[4] = {['id']=9060031,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[5] = {['id']=21,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[6] = {['id']=9030011,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[7] = {['id']=9030021,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[8] = {['id']=9030031,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[9] = {['id']=9030041,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[10] = {['id']=9030051,['buff_icon']='ui/Icons/buff/903005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[11] = {['id']=9030061,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[12] = {['id']=9030071,['buff_icon']='ui/Icons/buff/903007.png',['buff_icon_special']=1,['buff_sfx']={'sfx/skill/prefab/pc/luocha/ranshao/lc_ranshao_eskillsing_bianshen.prefab'},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[13] = {['id']=9030081,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[14] = {['id']=9030091,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[15] = {['id']=9030101,['buff_icon']='ui/Icons/buff/903010.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/luocha/dr_eskilldebuff.prefab'},['buff_mount_point']={'chest'},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[16] = {['id']=9030111,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[17] = {['id']=9030121,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[18] = {['id']=9030131,['buff_icon']='ui/Icons/buff/903013.png',['buff_icon_special']=1,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='sfx/skill/prefab/ui/lc_relibengfa_shiyan_xiao.prefab',['sound_id']=0}
+rows[19] = {['id']=9030132,['buff_icon']='ui/Icons/buff/903013.png',['buff_icon_special']=1,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='sfx/skill/prefab/ui/lc_relibengfa_shiyan_da.prefab',['sound_id']=100103}
+rows[20] = {['id']=9030141,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[21] = {['id']=9030142,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[22] = {['id']=9030143,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[23] = {['id']=9030144,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[24] = {['id']=9030145,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[25] = {['id']=9030146,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[26] = {['id']=9030147,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[27] = {['id']=9030148,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[28] = {['id']=9030149,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[29] = {['id']=90301410,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[30] = {['id']=9060021,['buff_icon']='ui/Icons/buff/11001.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/jingtong/shenmu/yhdy/yhdy_eskillbuff.prefab'},['buff_mount_point']={'chest'},['buff_display_priority']=1,['ui_sfx_path']='',['sound_id']=0}
+rows[31] = {['id']=9060041,['buff_icon']='ui/Icons/buff/11003.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/jingtong/shenmu/hf/hf_eskillbuff.prefab'},['buff_mount_point']={},['buff_display_priority']=3,['ui_sfx_path']='',['sound_id']=0}
+rows[32] = {['id']=9060051,['buff_icon']='ui/Icons/buff/11004.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=4,['ui_sfx_path']='',['sound_id']=0}
+rows[33] = {['id']=9060061,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[34] = {['id']=9060071,['buff_icon']='ui/Icons/buff/11006.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=6,['ui_sfx_path']='',['sound_id']=0}
+rows[35] = {['id']=9060081,['buff_icon']='ui/Icons/buff/11007.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/jingtong/shenmu/tlzg/tlzg_eskillhit_a.prefab'},['buff_mount_point']={'chest'},['buff_display_priority']=7,['ui_sfx_path']='',['sound_id']=0}
+rows[36] = {['id']=9060091,['buff_icon']='ui/Icons/buff/11008.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=8,['ui_sfx_path']='',['sound_id']=0}
+rows[37] = {['id']=9060101,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/luocha/rs_eskillcast_a.prefab'},['buff_mount_point']={'chest'},['buff_display_priority']=9,['ui_sfx_path']='',['sound_id']=0}
+rows[38] = {['id']=201,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[39] = {['id']=211,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[40] = {['id']=51,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[41] = {['id']=61,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[42] = {['id']=81,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[43] = {['id']=91,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[44] = {['id']=101,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[45] = {['id']=111,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[46] = {['id']=121,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[47] = {['id']=131,['buff_icon']='ui/Icons/buff/11001.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=1,['ui_sfx_path']='',['sound_id']=0}
+rows[48] = {['id']=141,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[49] = {['id']=151,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[50] = {['id']=161,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[51] = {['id']=171,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[52] = {['id']=181,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[53] = {['id']=191,['buff_icon']='ui/Icons/buff/11005.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[54] = {['id']=9120011,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[55] = {['id']=9120021,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/linghou/xianjiguanghuan/xjgh_eskillbuff_a.prefab'},['buff_mount_point']={'chest','chest'},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[56] = {['id']=9120031,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[57] = {['id']=9120041,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[58] = {['id']=9120051,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[59] = {['id']=9120061,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[60] = {['id']=9120071,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/linghou/linghunqiexiao/lhqx_eskilldebuff_a.prefab'},['buff_mount_point']={'chest'},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[61] = {['id']=9120081,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[62] = {['id']=9120091,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[63] = {['id']=9120101,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/linghou/zhemo/zm_eskillbuff.prefab'},['buff_mount_point']={'top'},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[64] = {['id']=9120111,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[65] = {['id']=9120121,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[66] = {['id']=9120131,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[67] = {['id']=9120141,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[68] = {['id']=9120151,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=5,['ui_sfx_path']='',['sound_id']=0}
+rows[69] = {['id']=9120171,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[70] = {['id']=9120181,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/luocha/ranshao/lc_ranshao_eskillsing_bianshen.prefab'},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[71] = {['id']=9120231,['buff_icon']='ui/Icons/buff/11009.png',['buff_icon_special']=0,['buff_sfx']={'sfx/skill/prefab/pc/linghou/zhemo/zm_eskillbuff.prefab'},['buff_mount_point']={'top'},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[72] = {['id']=9120251,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[73] = {['id']=9130051,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[74] = {['id']=2800,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+rows[75] = {['id']=3500,['buff_icon']='',['buff_icon_special']=0,['buff_sfx']={},['buff_mount_point']={},['buff_display_priority']=0,['ui_sfx_path']='',['sound_id']=0}
+
+local datas = {
+	[11] = rows[1],
+	[31] = rows[2],
+	[41] = rows[3],
+	[9060031] = rows[4],
+	[21] = rows[5],
+	[9030011] = rows[6],
+	[9030021] = rows[7],
+	[9030031] = rows[8],
+	[9030041] = rows[9],
+	[9030051] = rows[10],
+	[9030061] = rows[11],
+	[9030071] = rows[12],
+	[9030081] = rows[13],
+	[9030091] = rows[14],
+	[9030101] = rows[15],
+	[9030111] = rows[16],
+	[9030121] = rows[17],
+	[9030131] = rows[18],
+	[9030132] = rows[19],
+	[9030141] = rows[20],
+	[9030142] = rows[21],
+	[9030143] = rows[22],
+	[9030144] = rows[23],
+	[9030145] = rows[24],
+	[9030146] = rows[25],
+	[9030147] = rows[26],
+	[9030148] = rows[27],
+	[9030149] = rows[28],
+	[90301410] = rows[29],
+	[9060021] = rows[30],
+	[9060041] = rows[31],
+	[9060051] = rows[32],
+	[9060061] = rows[33],
+	[9060071] = rows[34],
+	[9060081] = rows[35],
+	[9060091] = rows[36],
+	[9060101] = rows[37],
+	[201] = rows[38],
+	[211] = rows[39],
+	[51] = rows[40],
+	[61] = rows[41],
+	[81] = rows[42],
+	[91] = rows[43],
+	[101] = rows[44],
+	[111] = rows[45],
+	[121] = rows[46],
+	[131] = rows[47],
+	[141] = rows[48],
+	[151] = rows[49],
+	[161] = rows[50],
+	[171] = rows[51],
+	[181] = rows[52],
+	[191] = rows[53],
+	[9120011] = rows[54],
+	[9120021] = rows[55],
+	[9120031] = rows[56],
+	[9120041] = rows[57],
+	[9120051] = rows[58],
+	[9120061] = rows[59],
+	[9120071] = rows[60],
+	[9120081] = rows[61],
+	[9120091] = rows[62],
+	[9120101] = rows[63],
+	[9120111] = rows[64],
+	[9120121] = rows[65],
+	[9120131] = rows[66],
+	[9120141] = rows[67],
+	[9120151] = rows[68],
+	[9120171] = rows[69],
+	[9120181] = rows[70],
+	[9120231] = rows[71],
+	[9120251] = rows[72],
+	[9130051] = rows[73],
+	[2800] = rows[74],
+	[3500] = rows[75],
+}
+return datas

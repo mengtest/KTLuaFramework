@@ -1,0 +1,65 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/11/22 14:47
+---
+local Frame = require("system.frame")
+local equipment_list = class("equipment_list", Frame)
+
+Event.decl(equipment_list, "equip_change")
+Event.decl(equipment_list, "equip_info_list")
+Event.decl(equipment_list, "equip_info")
+
+function equipment_list:doInit()
+
+    self.m_quick_equipment_list = {}
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+
+    --点击背包装备
+    self:subscribe(self:getFrame("backpack_list"):on_event("equip"), function(list, selected_show_obj)
+        self:find_equipment(list, selected_show_obj)
+    end)
+    --佩戴装备
+    self:subscribe(self.m_inventory_manager:on_event("equipped"), function(wearable_info, equip_type)
+        self:equipped(wearable_info, equip_type)
+    end)
+    --卸下装备
+    self:subscribe(self.m_inventory_manager:on_event("unequipped"), function(equip_type)
+        self:unequipped(equip_type)
+    end)
+    --快速装备
+    self:subscribe(self.m_inventory_manager:on_event("quick_equipment"), function(wearable_info, equip_type)
+        self:quick_equipment(wearable_info, equip_type)
+    end)
+end
+
+--TODO
+function equipment_list:equip_change(wearable_info, unequipped_info)
+    self:getFrame("backpack_list"):on_equip_change(wearable_info, unequipped_info)
+    --self:emit_event("equip_change", wearable_info)
+end
+--点击背包装备(to view)
+function equipment_list:find_equipment(list, selected_show_obj)
+    self:emit_event("equip", list, selected_show_obj)
+end
+--佩戴装备(to view)
+function equipment_list:equipped(wearable_info, equip_type)
+    self:emit_event("equipped", wearable_info, equip_type)
+end
+--卸下装备(to view)
+function equipment_list:unequipped(equip_type)
+    self:emit_event("unequipped", equip_type)
+end
+--快速装备
+function equipment_list:quick_equipment(wearable_info, equip_type)
+
+end
+--点击背包装备(from view)
+function equipment_list:equip_info_list(equip_list, selected_show_obj)
+    self:emit_event("equip_info_list", equip_list, selected_show_obj)
+end
+--点击装备(from view)
+function equipment_list:icon_btn_call_back(equip_info)
+    self:emit_event("equip_info", equip_info)
+end
+
+return equipment_list

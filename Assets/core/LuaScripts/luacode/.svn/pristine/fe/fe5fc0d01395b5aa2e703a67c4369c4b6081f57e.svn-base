@@ -1,0 +1,167 @@
+
+--local Delegate = require("common.util.delegate")
+
+local Trigger_component = class("Trigger_component")
+
+function Trigger_component:initialize()
+    -- ↓↓↓以下为主要回调函数（非私有）
+    self.on_trigger_condition = function (other)
+        return true
+    end                                             -- 触发执行判定
+    self.on_trigger_enter = nil                     -- 进入触发区域后执行的回调函数
+    self.on_trigger_exit = nil                      -- 退出触发区域后执行的回调函数
+    -- ↑↑↑
+
+    self.m_delayed_create_time = 0          -- 延迟创建的时间
+    -- <0   :   不限次
+    -- =0   :   不可触发
+    -- >0   :   指定次数
+    self.m_max_trigger_times = 1            -- 最大触发次数（若设定了非整形值则向下取整，即“3.6取3”，“0.2取0”）
+    self.m_go = nil                         -- Collider组建的挂载体
+    self.m_trigger_area_type = Enum_Scene.Trigger_Area.Box          -- 触发区域类型
+    self.m_trigger_area_param = {}                                  -- 区域尺寸参数 字典
+    self.m_offset_pos = Vector3.zero        -- 触发区域与挂载体中心点的相对位置偏差
+    self.m_offset_eul = Vector3.zero        -- 触发区域与挂载体坐标轴的相对角度偏差（弧度制）
+    self.m_action = {}                      -- 触发响应的回调函数列表
+
+    self.m_cmp_list = {}                    -- 组件列表
+    --self.m_cur_trigger_count = 0          -- 当前激活触发数
+    self.m_aim_trigger_count = 1            -- 目标激活触发数
+    self.m_cur_trigger_count_dict = {}      -- 当前激活触发数字典
+
+--    if self.on_init then
+--        self:on_init()
+--    end
+end
+
+function Trigger_component:destroy()
+--    Object.Destroy(self.m_go)
+    for _, cmp in ipairs(self.m_cmp_list) do
+        Object.Destroy(cmp)
+    end
+end
+
+function Trigger_component:set_go(go)
+    self.m_go = go
+end
+
+-- 设置触发区域类型以及与之相关的参数字典
+-- 【注意】不同的区域类型对应不同的字典Key值
+-- Enum_Scene.Trigger_Area.Box          ->  {"x" = float, "y" = float, "z" = float}
+-- Enum_Scene.Trigger_Area.Sphere       ->  {"r" = float}
+-- Enum_Scene.Trigger_Area.Capsule      ->  {"r" = float, "y" = float}
+-- Enum_Scene.Trigger_Area.Cylinder     ->  {"r" = float, "y" = float}
+-- 
+-- area_type(Enum_Scene.Trigger_Area):
+-- area_param(Dictionary):与区域类型对应的字典型数据
+function Trigger_component:set_area_type_and_param(area_type, area_param)
+    assert(self.m_go, "未获取到m_go")
+    self.m_trigger_area_type = area_type
+    self.m_trigger_area_param = area_param
+end
+
+-- 添加触发后的回调函数
+function Trigger_component:add_callback_action(func)
+    assert(type(func) == "function")
+    if Util_table:is_contain(self.m_action, func) then
+        return
+    end
+    table.insert(self.m_action, func)
+end
+
+-- 开启触发器
+function Trigger_component:start()
+    local area_type = self.m_trigger_area_type
+    local area_param = self.m_trigger_area_param
+    if area_type == Enum_Scene.Trigger_Area.Box then
+        area_param.x = area_param.x or 1
+        area_param.y = area_param.y or 1
+        area_param.z = area_param.z or 1
+        local collider_box = self.m_go:AddComponent(UnityEngine.BoxCollider)
+        collider_box.isTrigger = true
+        collider_box.size = Vector3(area_param.x, area_param.y, area_param.z)
+        table.insert(self.m_cmp_list, collider_box)
+    elseif area_type == Enum_Scene.Trigger_Area.Sphere then
+        area_param.r = area_param.r or 0.5
+        local collider_sphere = self.m_go:AddComponent(UnityEngine.SphereCollider)
+        collider_sphere.isTrigger = true
+        collider_sphere.radius = area_param.r
+        table.insert(self.m_cmp_list, collider_sphere)
+    elseif area_type == Enum_Scene.Trigger_Area.Capsule then
+        area_param.r = area_param.r or 0.5
+        area_param.y = area_param.y or 1
+        local collider_capsule = self.m_go:AddComponent(UnityEngine.CapsuleCollider)
+        collider_capsule.isTrigger = true
+        collider_capsule.radius = area_param.r
+        collider_capsule.height = area_param.y
+        table.insert(self.m_cmp_list, collider_capsule)
+    elseif area_type == Enum_Scene.Trigger_Area.Cylinder then
+        area_param.r = area_param.r or 0.5
+        area_param.y = area_param.y or 1
+        local collider_box = self.m_go:AddComponent(UnityEngine.BoxCollider)
+        local collider_capsule = self.m_go:AddComponent(UnityEngine.CapsuleCollider)
+        collider_box.isTrigger = true
+        collider_box.size = Vector3(area_param.r, area_param.y, area_param.r)
+        collider_capsule.isTrigger = true
+        collider_capsule.radius = area_param.r
+        collider_capsule.height = area_param.r * 2 + area_param.y
+        table.insert(self.m_cmp_list, collider_box)
+        table.insert(self.m_cmp_list, collider_capsule)
+        self.m_aim_triggering_count = 2
+    end
+    local trigger_ctrller = self.m_go:AddComponent(Trigger_Ctrller)
+    table.insert(self.m_cmp_list, trigger_ctrller)
+    local this = self
+    trigger_ctrller.call_back_enter = function (other)
+        this:trigger_enter(other)
+    end
+    trigger_ctrller.call_back_exit = function (other)
+        this:trigger_exit(other)
+    end
+end
+
+function Trigger_component:trigger_enter(other)
+    self.m_cur_trigger_count_dict[other] = self.m_cur_trigger_count_dict[other] and (self.m_cur_trigger_count_dict[other] + 1) or 1
+    if self.m_aim_trigger_count ~= 1 then
+        if self.m_cur_trigger_count_dict[other] ~= self.m_aim_triggering_count then
+            return
+        end
+    end
+    if self.on_trigger_enter and self.on_trigger_condition(other) then
+        self.on_trigger_enter()
+    end
+--    if self.on_trigger_enter.count > 0 and self.on_trigger_condition(other) then
+--        self.on_trigger_enter:call()
+--    end
+end
+
+function Trigger_component:trigger_exit(other)
+    assert(self.m_cur_trigger_count_dict[other], "计数错误，exit的collider未enter")
+    if self.m_cur_trigger_count_dict[other] == self.m_aim_trigger_count then
+        if self.on_trigger_exit and self.on_trigger_condition(other) then
+            self.on_trigger_exit()
+        end
+--        if self.on_trigger_exit.count > 0 and self.on_trigger_condition(other) then
+--            self.on_trigger_exit()
+--        end
+    end
+    self.m_cur_trigger_count_dict[other] = self.m_cur_trigger_count_dict[other] - 1
+end
+
+function Trigger_component:set_delayed_create_time(time)
+    self.m_delayed_create_time = time
+end
+
+function Trigger_component:set_max_trigger_times(times)
+    self.m_max_trigger_times = times
+end
+
+function Trigger_component:set_offset_pos(offset_pos)
+    self.m_offset_pos = offset_pos
+end
+
+function Trigger_component:set_offset_eul(offset_eul)
+    self.m_offset_eul = offset_eul
+end
+
+return Trigger_component

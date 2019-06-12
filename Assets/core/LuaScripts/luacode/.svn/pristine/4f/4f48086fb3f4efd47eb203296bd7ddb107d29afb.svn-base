@@ -1,0 +1,78 @@
+local interact_obj_view = {}
+
+function interact_obj_view:doInit()
+    self.effect = nil
+    self.interact_obj_frame = self:getFrame()
+    
+    
+    self.interact_obj_frame:on_event_discoverable_set(true):subscribe(
+        function(val)
+            if (val == SharedEnum.TreasureStatus.DISCOVERABLE_ALWAYS) then
+                self:getGO():SetActive(true)
+            elseif (val == SharedEnum.TreasureStatus.DISCOVERABLE_DEPEND) then
+                local task_trigger = self.interact_obj_frame:get_task_trigger()
+                if (task_trigger == nil or task_trigger == false) then
+                    self:getGO():SetActive(false)
+                elseif (task_trigger == true) then
+                    self:getGO():SetActive(true)
+                end
+            end
+        end
+    )
+    self:loadPrefab()
+end
+
+function interact_obj_view:loadPrefab()
+    local data = self.interact_obj_frame:get_data();
+    if (data == nil) then
+        return
+    end
+    
+    local model_id = data.interact_obj_display_id
+    local path = model_mgr.GetPrefabPathById(model_id)
+    
+    
+    self:load(
+        path,
+        function(go)
+            -- 物件下面需要挂载一个通用特效  但是根据物件不同有位置偏移  此处暂时约定通过第一个子物体来标记位置
+            self.effectParent = go.transform:GetChild(0).gameObject
+            
+            assert(self.effectParent.name == "effect")
+            
+            self.interact_obj_frame:initGameObj(go)
+            self.m_animator = go:GetComponent("Animator")
+            
+            self.interact_obj_frame:on_event_count_set(true):subscribe(
+                function(val)
+                    --Debug.LogError("on_event_count-->"..val)
+                    if (val < 0) then
+                        self.effectParent:SetActive(false)                    
+                    elseif (val == 0) then
+                        self.effectParent:SetActive(false)
+                        -- 打开宝箱
+                        if(self.m_animator ~= nil) then
+                            self.m_animator:SetBool("success", true)
+                        end
+                    else
+                        self.effectParent:SetActive(true)
+                        if (self.effect == nil) then
+                            self:loadCommonEffect()
+                        end
+                    end
+                end
+        )
+        end
+)
+end
+
+
+function interact_obj_view:loadCommonEffect()
+    self:load("sfx/skill/prefab/scene/common.prefab", function(eft_go)
+        eft_go.transform.parent = self.effectParent.transform
+        eft_go.transform.localPosition = Vector3.zero
+        eft_go.transform.localEulerAngles = Vector3.zero
+    end)
+end
+
+return interact_obj_view

@@ -1,0 +1,140 @@
+local M = {}
+
+local Enum_ObjectSpecial = require "common.Enum.Enum_ObjectSpecial"
+
+function M:doInit()
+    
+    local view_go = self:getGO()
+    self.m_frame = self:getFrame()
+    self.data = self.m_frame:get_data();
+    self.ktbone = nil
+    self.sfx_list = {}
+    view_go.transform.localPosition = self.m_frame:get_pos()
+    view_go.transform.localEulerAngles = Vector3(0, self.m_frame:get_dir(), 0)
+    view_go.transform.localScale = self.m_frame:get_scale()
+
+    self:loadPrefab()
+end
+
+
+function M:loadPrefab()
+    if (self.data == nil) then
+        return
+    end
+
+    local path = model_mgr.GetPrefabPathById(self.data.model_id)
+
+    self:load(
+    path,
+    function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localEulerAngles = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local animator = go:GetComponentInChildren(Animator)
+        local animator_override_ctrler = nil
+        local animationObject = nil
+        if animator then
+            animator_override_ctrler = AnimatorOverrideController(animator.runtimeAnimatorController)
+            animator.runtimeAnimatorController = animator_override_ctrler
+            animationObject = animator.gameObject
+        end
+
+        self:subscribe(self.m_frame:on_event_state_set(true), function(new_state)
+            if (new_state == nil) then
+                new_state = self.data.id
+            end
+
+
+            -- 默认当new_state小于100时 策划填的是状态值，否则为id
+            if (new_state < 100) then
+                new_state = self.data.model_id * 10 + new_state
+            end
+            self.data = self.m_frame:set_data(new_state)
+            local anim = model_mgr.GetAnimationPathById(self.data.model_id, self.data.anim)
+            local collider = go:GetComponent(Collider)
+            local use_collider = self.data.collider
+
+
+            --设置Object动画播放
+            if animator and (anim ~= nil and #anim > 0) then
+                self:subscribe(app:getResMgr():rxLoad(anim), function(asset_ref)
+                    animator_override_ctrler:setItem("anim", asset_ref.asset)
+                    animator:SetTrigger("play_anim")
+                end)
+            end
+            --如果存在特殊特效则产生效果
+            local special = self.data.special
+            if (special == Enum_ObjectSpecial.Type.DropOut) then
+                local DropOutComponent = animationObject:GetComponent("Plane_break_Trigger")
+                --人物掉落
+                if DropOutComponent then
+                    DropOutComponent:DropOut()
+                    self.m_frame:MainPlayerDropOut()
+                end
+            end
+
+            -- pacman 2017-12-25 播放音效
+            local sound_id = self.data.sound_id
+            if sound_id ~= 0 then
+                Sound_manager:create(sound_id, self:getGO(), self.data.sound_delay)
+            end
+
+            --设置Obejct特效播放
+            local sfx = self.data.sfx
+            local sfx_mount = self.data.sfx_mount
+            self.ktbone = go:GetComponent(KTBoneManager)
+            if type(sfx) == "table" then
+                if #sfx == 0 then
+                    return
+                end
+            else
+                if sfx == nil or sfx == "" or sfx == "n" then
+                    return
+                else
+                    local t = {}
+                    table.insert(t, sfx)
+                    sfx = t
+                end
+            end
+
+            if type(sfx_mount) ~= "table" then
+                local t = {}
+                table.insert(t, sfx_mount)
+                sfx_mount = t
+            end
+
+            for i, v in ipairs(self.sfx_list) do
+                GameObject.Destroy(v)
+            end
+            self.sfx_list = {}
+
+            for i, v in ipairs(sfx) do
+                local sfx_path = v
+                local mount_point = sfx_mount[i]
+                if mount_point == nil then
+                    -- todo 使用正确的缺省挂载点
+                    mount_point = "bottom"
+                end
+
+
+                self:load(sfx_path, function(go)
+                    if (self.ktbone ~= nil) then
+                        go.transform.parent = self.ktbone:GetBoneByName(mount_point)
+                    end
+                    go.transform.localPosition = Vector3.zero
+                    go.transform.localEulerAngles = Vector3.zero
+                    go.transform.localScale = Vector3.one
+                    table.insert(self.sfx_list,go)
+                end)
+
+            end
+
+        end)
+    end)
+end
+
+
+
+
+return M

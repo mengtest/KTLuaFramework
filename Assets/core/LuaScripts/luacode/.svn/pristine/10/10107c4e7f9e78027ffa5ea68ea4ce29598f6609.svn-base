@@ -1,0 +1,116 @@
+
+local View = require("system.view")
+local CreateRoleView = class("CreateRoleView", View)
+
+CreateRoleView.Profession_Color = {
+    [enum.shared.RoleClass.WARRIOR] = Color.green, -- 战士
+    [enum.shared.RoleClass.MAGE] = Color.green, -- 法师
+    [enum.shared.RoleClass.PRIEST] = Color.green, -- 德鲁伊
+    [enum.shared.RoleClass.HUNTER] = Color.green, -- 猎人
+    [enum.shared.RoleClass.DEMON_HUNTER] = Color.green, -- 牧师
+    [enum.shared.RoleClass.ROGUE] = Color.green, -- 盗贼
+    [enum.shared.RoleClass.PALADIN] = Color.green, -- 恶魔猎手
+}
+
+CreateRoleView.Profession_Toggle_Name = {
+    [enum.shared.RoleClass.WARRIOR] = nil,
+    [enum.shared.RoleClass.MAGE] = "warriorShield",
+    [enum.shared.RoleClass.PALADIN] = nil,
+    [enum.shared.RoleClass.HUNTER] = nil,
+    [enum.shared.RoleClass.PRIEST] = "warriorSword",
+    [enum.shared.RoleClass.ROGUE] = nil,
+    [enum.shared.RoleClass.DEMON_HUNTER] = "archer",
+}
+
+function CreateRoleView:doInit()
+    local this = self
+    
+    self:load(app:getAssetPathMgr().get_ui_view_asset("CreateRole"), function(go)
+        this:getFrame():on_ui_loaded(go)
+        local ui_manager = app:get_ui_manager()
+        ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+    end)
+    
+    self:subscribe(self:getFrame():on_event("ProfessionDown"), function (tog)
+        self:on_profession_down(tog)
+    end)
+    self:subscribe(self:getFrame():on_event("ProfessionUp"), function (tog)
+        self:on_profession_up(tog)
+    end)
+    
+    self:loadScene(app:getAssetPathMgr().get_create_role_view_scene('scene'), function ()
+        this:getFrame():on_scene_loaded()
+    end)
+
+    self:subscribe(self:getFrame():on_event("handleWeapon"), function (go, data)
+        self:handleWeapon(go, data)
+    end)
+end
+
+function CreateRoleView:doDestroy()
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByPath('Assets/' .. app:getAssetPathMgr().get_create_role_view_scene('scene'))
+    if s and s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function CreateRoleView:on_profession_down(tog)
+    if not tog then
+        return
+    end
+    local tr = tog.transform
+    local sequence = DOTween.Sequence()
+    local tweener_1 = ShortcutExtensions.DOScale(tr, 1.2, 0.1)
+    local tweener_2 = ShortcutExtensions.DOScale(tr, 1, 0.1)
+    TweenSettingsExtensions.Append(sequence, tweener_1)
+    TweenSettingsExtensions.Append(sequence, tweener_2)
+    
+    tr:Find("bg_normal").gameObject:SetActive(false)
+    tr:Find("bg_selected").gameObject:SetActive(true)
+end
+
+function CreateRoleView:on_profession_up(tog)
+    if not tog then
+        return
+    end
+    local tr = tog.transform
+    
+    tr:Find("bg_normal").gameObject:SetActive(true)
+    tr:Find("bg_selected").gameObject:SetActive(false)
+end
+
+function CreateRoleView:handleWeapon(go, data)
+    local weapon_path, weapon_point,weapon_sfx, weapon_blade = app:get_model_mgr().GetRoleWeapon(data.specialization)
+
+    if (weapon_path ~= nil and type(weapon_path) == "table"
+    and weapon_point ~= nil and type(weapon_point) == "table" and #weapon_path == #weapon_point) then
+        for i = 1, #weapon_path do
+            self:load(weapon_path[i], function(asset)
+                local weapon = asset
+                local boneManager = go:GetComponent(KTBoneManager)
+                if(boneManager ~= nil) then
+                    weapon.transform:SetParent(go:GetComponent(KTBoneManager):GetBoneByName(weapon_point[i]))
+                else
+                    return
+                end
+
+                weapon.transform.localPosition = Vector3.zero
+                weapon.transform.localEulerAngles = Vector3.zero
+                weapon.transform.localScale = Vector3.one
+
+                if(weapon_sfx[i] ~= nil) then
+                    self:load(weapon_sfx[i], function(sfx) 
+                        sfx.transform:SetParent(weapon.transform)
+                        sfx.transform.localPosition = Vector3.zero
+                        sfx.transform.localEulerAngles = Vector3.zero
+                        sfx.transform.localScale = Vector3.one
+                    end)
+                end
+            end)
+        end
+    end
+end
+
+
+return CreateRoleView

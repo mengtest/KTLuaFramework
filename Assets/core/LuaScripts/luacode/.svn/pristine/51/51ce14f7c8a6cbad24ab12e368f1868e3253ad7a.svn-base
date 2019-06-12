@@ -1,0 +1,7 @@
+local rows = {}
+rows[1] = {['id']=100,['rule_one']={1,2,3,4,5,6,7,8},['rule_two']=60}
+
+local datas = {
+	[100] = rows[1],
+}
+return datas

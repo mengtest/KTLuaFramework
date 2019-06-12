@@ -1,0 +1,12 @@
+local row_0 = {['id']=1,['money']=111,['exp']=111,['rand_times']=1,['pick_times']=0,['total_quality']=20,['item_id']={1001,1002},['item_num']={1,1},['quality']={5,15}}
+local row_1 = {['id']=2,['money']=2222,['exp']=2222,['rand_times']=1,['pick_times']=1,['total_quality']=10,['item_id']={1001,1002,1003,1004},['item_num']={1,1,1,1},['quality']={1,2,3,4}}
+local row_2 = {['id']=3,['money']=33333,['exp']=33333,['rand_times']=1,['pick_times']=1,['total_quality']=105,['item_id']={1001,1002,1003,1004,1005,1006,1007,1008},['item_num']={1,1,1,1,1,1,1,1},['quality']={5,10,15,20,25,30}}
+local row_3 = {['id']=4,['money']=44444,['exp']=44444,['rand_times']=1,['pick_times']=0,['total_quality']=24,['item_id']={1001,1002,1003,1004,1005,1006},['item_num']={1,1,1,1,1,1},['quality']={3,4,5,5,4,3}}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+	[4] = row_3,
+}
+return datas

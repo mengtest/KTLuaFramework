@@ -1,0 +1,58 @@
+local EnumUI = {}
+
+--输出/受伤 跳字类型
+EnumUI.Enum_UI_PopupText = {
+    Output = 1, --输出
+    Hot = 2, --持续输出
+    Injured = 3, --伤害
+    Dot = 4, --持续伤害
+    Status = 5        --状态
+}
+
+--按钮类型
+EnumUI.Enum_UI_SkillBtnType = {
+    main_skill = 1,
+    normal_skill = 2,
+    special_skill = 3
+}
+
+-- 技能类型
+EnumUI.Enum_UI_SkillType = {
+    SPECIAL_SKILL = -1, -- 大招
+    ACTIVE_SKILL = 0, -- 主动技能
+    PASSIVE_SKILL = 1, -- 被动技能
+}
+
+-- 复活类型
+EnumUI.Enum_UI_Rebounding = {
+    SITU_RESURRECTION = 0, -- 原地能复活
+    SITU_RESURRECTION_MASK = 1, -- 原地不能复活有遮罩
+    BIND_RESURRECTION = 2, -- 复活点能复活
+    BIND_RESURRECTION_MASK = 3, -- 复活点不能复活有遮罩
+}
+EnumUI.Hit_ColorEnum = {
+    text    = 1,
+    green   = 2,
+    red     = 3,
+    purple  = 4,
+    white   = 5,
+    yellow  = 6,
+}
+
+-- 地图上显示信息item的类型   by xinghanzhong 2018/2/28
+EnumUI.Enum_UI_MapItemType = {
+    Item_Info_Quest = 0, -- 任务信息面板中的item
+    Item_Choice_Quest = 1, -- 多目标列表中的任务
+    Item_Choice_Teleport_Point = 2, -- 多目标列表中的传送点
+}
+
+-- 血条颜色
+EnumUI.HP_COLOR = {
+	RED = 0, -- 红
+	GREEN = 1, --绿
+	YELLOW = 2, -- 黄
+	ORANGE = 3, -- 橙
+	BLUE = 4 -- 蓝
+}
+
+return EnumUI

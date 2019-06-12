@@ -1,0 +1,375 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/11/22 14:48
+---
+local View = require("system.view")
+local equipment_list_view = class("equipment_list_view", View)
+
+function equipment_list_view:doInit(param)
+
+    --装备列表，存储装备的table，key:装备名称全拼  val:table={name_go, icon_go, level_go}
+    self.m_equipment_list = {}
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+    self:load("ui/Equipment.prefab", function(go)
+
+        go.transform.localPosition = Vector3(-25, -454, 0)
+        go.transform.localScale = Vector3.one
+
+        local slots = go.transform:Find("slots").transform
+        local slots_count = slots.childCount
+
+        for i = 0, slots_count - 1 do
+            local equip = slots:GetChild(i)
+            local equipment_type = self:get_equip_type(equip.gameObject.name)
+            local equipment_name_go = equip.transform:Find("name").gameObject
+            local equipment_icon_go = equip.transform:Find("icon").gameObject
+            local equipment_level_go = equipment_icon_go.transform:Find("level"):Find("Text").gameObject
+            local selected = equip.transform:Find("selected").gameObject
+            local light = equip.transform:Find("light").gameObject
+            local quality = equip.transform:Find("quality").gameObject
+
+            local equipment = {}
+            equipment["unique"] = 0
+            equipment["tmpl"] = 0
+            equipment["type"] = -1
+            equipment["name_go"] = equipment_name_go
+            equipment["icon_go"] = equipment_icon_go
+            equipment["level_go"] = equipment_level_go
+            equipment["selected"] = selected
+            equipment["light"] = light
+            equipment["quality"] = quality
+            equipment["particle"] = nil
+            equipment["bound"] = 0
+            equipment["wearable_info"] = nil
+
+            self.m_equipment_list[equipment_type] = equipment
+
+            --加载特效
+            local particle_path = self:get_particle_path(equipment_type)
+            self:load_sfx(particle_path, equip, equipment_type)
+        end
+
+        --装等
+        self.m_average_level = go.transform:Find("zhuangdeng").transform:Find("average_level"):GetComponent("Text")
+
+        for name, v in pairs(self.m_inventory_manager.m_equipping_dic) do
+            if self:get_equip_type(name) ~= -1 then
+                if v["tmpl"] ~= 0 then
+                    self:adorn_equipment(v, self:get_equip_type(name))
+                end
+            end
+        end
+
+    end)
+
+    self:subscribe(self:getFrame():on_event("equip"), function(list, selected_show_obj)
+        self:find_equipment(list, selected_show_obj)
+    end)
+
+    --佩戴装备
+    self:subscribe(self:getFrame():on_event("equipped"), function(wearable_info, equip_type)
+        self:equipped(wearable_info, equip_type)
+    end)
+    --卸下装备
+    self:subscribe(self:getFrame():on_event("unequipped"), function(equip_type)
+        self:unequipped(equip_type)
+    end)
+
+end
+
+function equipment_list_view:equipped(wearable_info, equip_type)
+    local wearable_info, unequipped_info = self:adorn_equipment(wearable_info, equip_type)
+    self:getFrame():equip_change(wearable_info, unequipped_info)
+end
+function equipment_list_view:unequipped(equip_type)
+    local wearable_info, unequipped_info = self:demount_equipment(equip_type)
+    self:getFrame():equip_change(wearable_info, unequipped_info)
+end
+
+--佩戴装备
+function equipment_list_view:adorn_equipment(wearable_info, equip_type)
+    local wearable_info_return = {}
+    wearable_info_return["unique"] = 0
+    wearable_info_return["tmpl"] = 0
+    wearable_info_return["level"] = 0
+    wearable_info_return["bound"] = 0
+
+    local t = dbc.item
+    table.remove(t,1)
+    if self.m_equipment_list[equip_type]["tmpl"] ~= 0 then
+        --如果位置上有装备，则卸掉
+        _, wearable_info_return = self:demount_equipment(equip_type)
+    end
+
+    self.m_equipment_list[equip_type]["unique"] = wearable_info["unique"]
+    self.m_equipment_list[equip_type]["tmpl"] = wearable_info["tmpl"]
+    self.m_equipment_list[equip_type]["type"] = dbc.item[wearable_info["tmpl"]].derived_params[2]
+    self.m_equipment_list[equip_type]["name_go"]:SetActive(false)
+    self.m_equipment_list[equip_type]["icon_go"]:SetActive(true)
+    self.m_equipment_list[equip_type]["quality"]:SetActive(true)
+    self.m_equipment_list[equip_type]["level_go"]:GetComponent("Text").text = dbc.item[wearable_info["tmpl"]].level_label
+    self.m_equipment_list[equip_type]["bound"] = wearable_info["bound"]
+    local t = {}
+    for i, v in pairs(wearable_info) do
+        t[i]=v
+    end
+    self.m_equipment_list[equip_type]["wearable_info"] = t
+
+    --加载装备icon
+    local equipment_icon_path = dbc.item[wearable_info["tmpl"]].equip_path
+    self:subscribe(app:getResMgr():rxLoad(equipment_icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        self.m_equipment_list[equip_type]["icon_go"]:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+
+    --加载品质icon
+    local quality = self:getFrame("inventory_manager"):gain_equipment_quality(wearable_info["tmpl"], dbc.item[wearable_info["tmpl"]].level_label + wearable_info["enhanced_level"])
+    local quality_icon_path = self:get_quality_path(equip_type, quality)
+    self:subscribe(app:getResMgr():rxLoad(quality_icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        self.m_equipment_list[equip_type]["quality"]:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+
+    local icon_btn = self.m_equipment_list[equip_type]["icon_go"]:GetComponent("Button")
+    icon_btn.onClick:AddListener(function()
+        local select = self.m_equipment_list[equip_type]["selected"]
+        local light = self.m_equipment_list[equip_type]["light"]
+        select:SetActive(true)
+        light:SetActive(true)
+        ShortcutExtensions.DOScale(select.transform, 1.3, 0.1)
+        ShortcutExtensions.DOScale(select.transform, 1, 0.5)
+
+        local list = {}
+        list["equip1"] = wearable_info
+        self:icon_btn_call_back(list, equip_type, select, light)
+    end)
+
+    --播放特效
+    if self.m_equipment_list[equip_type]["particle"] then
+        self.m_equipment_list[equip_type]["particle"].gameObject:SetActive(true)
+        self.m_equipment_list[equip_type]["particle"]:Play()
+        slua_timer.addDelayEvent(2, function()
+            self.m_equipment_list[equip_type]["particle"].gameObject:SetActive(false)
+        end)
+    end
+
+    self:get_equip_level_average()
+
+    return wearable_info, wearable_info_return
+end
+--卸下装备
+function equipment_list_view:demount_equipment(equip_type)
+
+    local wearable_info_return = self.m_equipment_list[equip_type]["wearable_info"]
+
+    self.m_equipment_list[equip_type]["unique"] = 0
+    self.m_equipment_list[equip_type]["tmpl"] = 0
+    self.m_equipment_list[equip_type]["type"] = -1
+    self.m_equipment_list[equip_type]["name_go"]:SetActive(true)
+    self.m_equipment_list[equip_type]["icon_go"]:SetActive(false)
+    self.m_equipment_list[equip_type]["quality"]:SetActive(false)
+    self.m_equipment_list[equip_type]["level_go"]:GetComponent("Text").text = ""
+    self.m_equipment_list[equip_type]["bound"] = 0
+    self.m_equipment_list[equip_type]["icon_go"]:GetComponent("Image").sprite = nil
+    self.m_equipment_list[equip_type]["wearable_info"] = nil
+    local icon_btn = self.m_equipment_list[equip_type]["icon_go"]:GetComponent("Button")
+    icon_btn.onClick:RemoveAllListeners()
+
+    self:get_equip_level_average()
+
+    local wearable_info = {}
+    wearable_info["unique"] = 0
+    wearable_info["tmpl"] = 0
+    wearable_info["level"] = 0
+    wearable_info["bound"] = 0
+
+    return wearable_info, wearable_info_return
+end
+
+function equipment_list_view:icon_btn_call_back(equip_info, equip_type, selected_show_obj, light)
+    self:getFrame():icon_btn_call_back(equip_info, equip_type, selected_show_obj, light)
+end
+
+--获取角色平均装等数值
+function equipment_list_view:get_equip_level_average()
+    local count = 0     --装备计数
+    local level_sum = 0
+    for name, equip in pairs(self.m_equipment_list) do
+        count = count + 1
+        if self.m_equipment_list[name]["tmpl"] ~= 0 then
+            level_sum = level_sum + tonumber(self.m_equipment_list[name]["level_go"]:GetComponent("Text").text)
+        end
+    end
+
+    if count == 0 then
+        self.m_average_level.text = 0
+        return
+    end
+
+    self.m_average_level.text = Util_math:GetPreciseDecimal(level_sum / count,1)
+end
+
+
+
+function equipment_list_view:find_equipment(list, selected_show_obj)
+
+    local equip_list = {}
+
+    equip_list["bag"] = list
+
+    local equip_type = dbc.item[list["tmpl"]].derived_params[2]
+
+    local count = 1
+
+    if equip_type == SharedEnum.WearableTarget.FINGER then
+        if self.m_equipment_list[SharedEnum.WearableTarget.FINGER1]["tmpl"] ~= 0 then
+            local equip = self.m_equipment_list[SharedEnum.WearableTarget.FINGER1]["wearable_info"]
+            equip_list["equip" .. count] = equip
+            count = count + 1
+        end
+        if self.m_equipment_list[SharedEnum.WearableTarget.FINGER2]["tmpl"] ~= 0 then
+            local equip = self.m_equipment_list[SharedEnum.WearableTarget.FINGER2]["wearable_info"]
+            equip_list["equip" .. count] = equip
+            count = count + 1
+        end
+        self:getFrame():equip_info_list(equip_list, selected_show_obj)
+        return
+    end
+
+    if equip_type == SharedEnum.WearableTarget.ACCESSORY then
+        if self.m_equipment_list[SharedEnum.WearableTarget.ACCESSORY1]["tmpl"] ~= 0 then
+            local equip = self.m_equipment_list[SharedEnum.WearableTarget.ACCESSORY1]["wearable_info"]
+            equip_list["equip" .. count] = equip
+            count = count + 1
+        end
+        if self.m_equipment_list[SharedEnum.WearableTarget.ACCESSORY2]["tmpl"] ~= 0 then
+            local equip = self.m_equipment_list[SharedEnum.WearableTarget.ACCESSORY2]["wearable_info"]
+            equip_list["equip" .. count] = equip
+            count = count + 1
+        end
+        self:getFrame():equip_info_list(equip_list, selected_show_obj)
+        return
+    end
+
+    for i, v in pairs(self.m_equipment_list) do
+        if equip_type ~= SharedEnum.WearableTarget.FINGER and equip_type ~= SharedEnum.WearableTarget.ACCESSORY then
+            if v["type"] == equip_type then
+                local equip = self.m_equipment_list[equip_type]["wearable_info"]
+
+                equip_list["equip" .. count] = equip
+
+                count = count + 1
+            end
+        end
+    end
+
+    self:getFrame():equip_info_list(equip_list, selected_show_obj)
+end
+
+--根据装备槽名称获取装备槽类型
+function equipment_list_view:get_equip_type(name)
+    if name == "accessory1" then
+        return SharedEnum.WearableTarget.ACCESSORY1
+    elseif name == "chest" then
+        return SharedEnum.WearableTarget.CHEST
+    elseif name == "offhand_weapon" then
+        --暂时无副手武器
+        --return SharedEnum.WearableTarget.OFFHAND_WEAPON
+        return -1
+    elseif name == "finger1" then
+        return SharedEnum.WearableTarget.FINGER1
+    elseif name == "legs" then
+        return SharedEnum.WearableTarget.LEGS
+    elseif name == "mainhand_weapon" then
+        return SharedEnum.WearableTarget.MAINHAND_WEAPON
+    elseif name == "finger2" then
+        return SharedEnum.WearableTarget.FINGER2
+    elseif name == "waist" then
+        return SharedEnum.WearableTarget.WAIST
+    elseif name == "accessory2" then
+        return SharedEnum.WearableTarget.ACCESSORY2
+    elseif name == "feet" then
+        return SharedEnum.WearableTarget.FEET
+    elseif name == "hands" then
+        return SharedEnum.WearableTarget.HANDS
+    elseif name == "back" then
+        return SharedEnum.WearableTarget.BACK
+    elseif name == "neck" then
+        return SharedEnum.WearableTarget.NECK
+    elseif name == "wrist" then
+        return SharedEnum.WearableTarget.WRIST
+    elseif name == "head" then
+        return SharedEnum.WearableTarget.HEAD
+    elseif name == "shoulder" then
+        return SharedEnum.WearableTarget.SHOULDER
+    end
+    return -1
+end
+
+--根据装备位置和品质获取装备品质icon路径和特效路径
+function equipment_list_view:get_quality_path(target, quality)
+    local quality_path = nil
+    if target==SharedEnum.WearableTarget.CHEST or target==SharedEnum.WearableTarget.BACK or target==SharedEnum.WearableTarget.MAINHAND_WEAPON or target==SharedEnum.WearableTarget.LEGS then
+        --胸甲、披风、腿甲、主手
+        quality_path = dbc.equip_quality_client[quality].equip_big_icon
+    elseif target==SharedEnum.WearableTarget.NECK or target==SharedEnum.WearableTarget.FINGER1 or target==SharedEnum.WearableTarget.FINGER2 then
+        --项链、戒指1、戒指2
+        quality_path = dbc.equip_quality_client[quality].equip_small_icon
+    elseif target==SharedEnum.WearableTarget.WAIST then
+        --腰带
+        quality_path = dbc.equip_quality_client[quality].equip_waist_icon
+    else
+        --其余
+        quality_path = dbc.equip_quality_client[quality].backpack_icon
+    end
+    return quality_path
+end
+
+--根据装备位置获取特效路径
+function equipment_list_view:get_particle_path(target)
+    local particle_path = nil
+    if target==SharedEnum.WearableTarget.CHEST or target==SharedEnum.WearableTarget.BACK or target==SharedEnum.WearableTarget.MAINHAND_WEAPON or target==SharedEnum.WearableTarget.LEGS then
+        --胸甲、披风、腿甲、主手
+        particle_path = "sfx/skill/prefab/ui/ui_zhuangbeikuang_shu.prefab"
+    elseif target==SharedEnum.WearableTarget.NECK or target==SharedEnum.WearableTarget.FINGER1 or target==SharedEnum.WearableTarget.FINGER2 then
+        --项链、戒指1、戒指2
+        particle_path = "sfx/skill/prefab/ui/ui_zhuangbeikuang_xiao.prefab"
+    elseif target==SharedEnum.WearableTarget.WAIST then
+        --腰带
+        particle_path = "sfx/skill/prefab/ui/ui_zhuangbeikuang_heng.prefab"
+    else
+        --其余
+        particle_path = "sfx/skill/prefab/ui/ui_zhuangbeikuang_01.prefab"
+    end
+    return particle_path
+end
+
+--加载特效
+function equipment_list_view:load_sfx(path, parent, equip_type)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (equip_type == nil) then
+            return
+        end
+        self.m_equipment_list[equip_type]["particle"] = component
+    end)
+end
+
+return equipment_list_view

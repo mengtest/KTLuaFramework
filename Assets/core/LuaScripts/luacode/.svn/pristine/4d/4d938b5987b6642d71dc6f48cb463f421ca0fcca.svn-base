@@ -1,0 +1,18 @@
+local Frame = require("system.frame")
+local big_map_quest = class("big_map_quest", Frame)
+
+Attribute.decl(big_map_quest, "quest_go", nil)
+--Event.decl(big_map_quest, "show_quest_info")
+Event.decl(big_map_quest, "refresh_state")
+
+function big_map_quest:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_big_map = self:getFrame("big_map")
+    self.m_quest_data = param
+end
+
+function big_map_quest:on_quest_btn()
+    self.m_big_map:emit_event("quest_click", self.m_quest_data, self)
+end
+
+return big_map_quest

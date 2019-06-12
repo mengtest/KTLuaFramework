@@ -1,0 +1,246 @@
+﻿---
+--- Created by lijunfeng
+--- DateTime: 2017/12/28 10:26
+--- 用于具备creature属性的npc
+local Unit = require "frame.unit"
+local M=class("mob_giver",Unit)
+
+local InterctFsm = nil
+Attribute.decl(M, "birth_dir", 0)-- 角色出生时的朝向
+Attribute.decl(M, "tid", 0)
+Attribute.decl(M, "tmpl", 0)                                        -- creature 表id
+Attribute.decl(M, "quiz", 0) --用于关卡编辑器触发设置，判断白天黑天才能答题
+Attribute.decl(M, "interact_state", false)                            --是否处于交互状态
+Attribute.decl(M, "is_in_world", false) --by lijunfeng 2018/1/22     标记frame是否加入world列表
+Attribute.decl(M, "top_state", enum.quest.Quest_Npc_State.None)        -- 交互状态,头上提示状态
+Attribute.decl(M, "show_talk_anim", nil) --by lijunfeng 2018/1/4 播放对话动作
+
+
+local ATT_MAP = {
+    birth_dir = "birth_dir",
+    quiz="quiz",
+    interact_state = "interact_state",
+}
+
+function M:doInit(param)
+    print("构造giver",param.tid)
+    M.super.doInit(self,param)
+
+    self:set_tmpl(param.tid) --creature表 id 暂时保留tmpl为了兼容giver相关代码，实际应该只用tid
+    self:set_tid(param.tid)
+    self.m_is_close_enough = true -- 是否达到触发距离
+    self.m_is_valid = true -- 是否处于可交互状态（若已经在其它交互状态中，则为不可交互状态）
+    self.m_giver = param.role
+    self.m_cur_quest_id = 0 --当前问答id
+    self.m_cur_interact_id = 0 --保存临时交互id
+    self.m_token_ticket = 0 --问答票据
+    local sdk = app:getKBESDK()
+
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(param.role:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+
+    self:set_name(self.m_cfg[self.m_giver:get_tid()])
+    self:set_pos(self.m_giver:get_pos())
+    self:set_birth_dir(self.m_giver:get_dir())
+
+    InterctFsm = require "frame.interact_state.interact_state_machine"
+    self.m_interact_fsm = InterctFsm(self)
+    --注册问答事件
+    self:subscribe(self.m_giver:on_event("dialog_bgn"), function(token_ticket)
+        self.m_token_ticket = token_ticket
+    end)
+end
+
+function M:on_prepared()
+
+end
+
+function M:get_cfg()
+    return self.m_cfg
+end
+
+function M:get_name()
+    return self.m_cfg.name
+end
+
+function M:get_model_id()
+    return self.m_cfg.model_id
+end
+
+function M:get_anim_ctrller()
+    local rst = nil
+    self:emit_event("get_anim_ctrller", function(anim_ctrller)
+        rst = anim_ctrller
+    end)
+    return rst
+end
+
+-- lijunfeng 2017/12/15
+function M:get_cur_interact_id()
+    return self.m_cur_interact_id
+end
+
+--add by lijunfeng 2018/1/5 休闲交互id
+function M:get_arder_interact_id()
+    return self.m_cfg.interact_id
+end
+
+-- by lijunfeng 2018/1/20 清除交互状态
+function M:remove_state()
+    print("清除交互组件")
+    self.m_cur_quest_id = 0
+    self.m_cur_interact_id = 0
+    self.m_tp=nil
+    self:set_attr("top_state", enum.quest.Quest_Npc_State.None)
+end
+
+-- by lijunfeng 2018/1/20 设置交互状态
+function M:set_state(state_info)
+    self.m_cur_quest_id = state_info.quest_id
+    self.m_cur_interact_id = state_info.interact_id
+    self:set_attr("top_state", state_info.state)
+    self.m_tp=state_info.tp -- by lijunfeng 2018/2/2 对话or问答
+    print("设置交互状态为",self.m_cur_quest_id,self.m_cur_interact_id,state_info.state,state_info.tp)
+    Event_system:dispatch_event(EVENT_GIVER_STATUS, self:get_tmpl(),  self.m_cur_quest_id , self:get_pos(), self:get_top_state())
+end
+
+--add by lijunfeng 2018/1/4 休闲按钮按下回调
+function M:on_arder_selected()
+    print("触发休闲交互显示",self.m_cfg.interact_id)
+    self.m_giver:cell_call("mumble_new")
+    self.m_move_stop_call_back=function()
+        local interact_id=self.m_cfg.interact_id
+        local talk_id=dbc.interact[interact_id].action_param
+        print("休闲停止移动回调")
+        self:set_interact_state(true)
+        self:getFrame("quiz_manager"):camera_forward(self)
+        self:getFrame("quiz_manager"):start_talk(self, talk_id, true,0)
+        self:getFrame("quiz_manager"):set_on_complete(function()
+            self:set_interact_state(false)
+            -- 触发某个事件
+            self.m_giver:cell_call("mumble_end")
+            self:getFrame("player_controller"):hide_interact_btn()
+            print("休闲对话完毕")
+        end)
+    end
+end
+
+function M:on_move_stop()
+    self.m_move_stop_call_back()
+end
+
+--by lijunfeng 2018/1/20 多状态下的交互
+function M:on_selected()
+    local cur_quest_state = self:get_top_state()
+    print("触发交互显示",cur_quest_state)
+    if cur_quest_state==enum.quest.Quest_Npc_State.None then
+    elseif cur_quest_state == enum.quest.Quest_Npc_State.Yellow_Exclamation then --可接任务
+        local talk_id=dbc.interact[self.m_cur_interact_id] and dbc.interact[self.m_cur_interact_id].action_param or 0
+        print("与当前NPC[%d]相关联的任务[%s]目前处于 ‘待交互’", self:get_tmpl(), self.m_cur_quest_id,talk_id)
+        self:set_interact_state(true)
+        self:getFrame("quiz_manager"):camera_forward(self)
+        self.m_giver:cell_call("dialog_new")
+        self:getFrame("quiz_manager"):start_talk(self, talk_id,false,self.m_cur_quest_id)
+        self:getFrame("quiz_manager"):set_on_complete(function()
+            local token_ticket = self:getFrame("world"):get_main_player():get_attr("token_ticket")
+            self.m_giver:cell_call("dialog_end", token_ticket or -1)
+            self:set_interact_state(false)
+            --刷新头顶显示状态 by lijunfeng 2018/1/20
+            print("重新计算npc交互状态1")
+            self:getFrame("player_controller"):hide_interact_btn()
+            self:getFrame("quest_manager"):set_npc_interact_info(self:get_tmpl(), self.m_cur_interact_id, self.m_cur_quest_id, enum.quest.Quest_Npc_State.None)
+        end)
+    elseif cur_quest_state == enum.quest.Quest_Npc_State.Red_Exclamation then --失败状态可接任务 add by lijunfeng 2018/2/6
+        --判断是否在接取区域内，其实不用判断，能显示交互按钮，就一定是经过了区域过滤了
+        local talk_id=dbc.interact[self.m_cur_interact_id] and dbc.interact[self.m_cur_interact_id].action_param or 0
+        print("与当前NPC[%d]相关联的任务[%s]目前处于 ‘失败状态’", self:get_tmpl(), self.m_cur_quest_id,talk_id)
+        self:set_interact_state(true)
+        self:getFrame("quiz_manager"):camera_forward(self)
+        self.m_giver:cell_call("dialog_new")
+        self:getFrame("quiz_manager"):start_talk(self, talk_id,false,self.m_cur_quest_id)
+        self:getFrame("quiz_manager"):set_on_complete(function()
+            local token_ticket = self:getFrame("world"):get_main_player():get_attr("token_ticket")
+            self.m_giver:cell_call("dialog_end", token_ticket or -1)
+            self:getFrame("quest_manager"):rec_quest_again(self.m_cur_quest_id) --发重置任务消息，返回rec_quest_status消息
+            self:set_interact_state(false)
+            --刷新头顶显示状态 by lijunfeng 2018/1/20
+            print("重新计算npc交互状态3")
+            self:getFrame("player_controller"):hide_interact_btn()
+            self:getFrame("quest_manager"):set_npc_interact_info(self:get_tmpl(), self.m_cur_interact_id, self.m_cur_quest_id, enum.quest.Quest_Npc_State.None)
+        end)
+    elseif cur_quest_state == enum.quest.Quest_Npc_State.Blue_Question then --条件npc可对话
+        if self.m_tp==enum.shared.QuestCond.NPC then
+            local talk_id=dbc.interact[self.m_cur_interact_id] and dbc.interact[self.m_cur_interact_id].action_param or 0
+            print("与当前NPC[%d]相关联的任务[%s]目前处于 ‘待对话’", self:get_tmpl(), self.m_cur_quest_id,talk_id)
+            self:set_interact_state(true)
+            self:getFrame("quiz_manager"):camera_forward(self)
+            self.m_giver:cell_call("dialog_new")
+            self:getFrame("quiz_manager"):start_talk(self, talk_id,false,self.m_cur_quest_id)
+            self:getFrame("quiz_manager"):set_on_complete(function()
+                local token_ticket = self:getFrame("world"):get_main_player():get_attr("token_ticket")
+                self.m_giver:cell_call("dialog_end", token_ticket or -1)
+                self:set_interact_state(false)
+                --刷新头顶显示状态 by lijunfeng 2018/1/20
+                print("重新计算npc交互状态2")
+                self:getFrame("player_controller"):hide_interact_btn()
+                self:getFrame("quest_manager"):set_npc_interact_info(self:get_tmpl(), self.m_cur_interact_id, self.m_cur_quest_id, enum.quest.Quest_Npc_State.None)
+            end)
+        elseif self.m_tp==enum.shared.QuestCond.QUIZ then
+            local quiz_id=dbc.interact[self.m_cur_interact_id] and dbc.interact[self.m_cur_interact_id].action_param or 0
+            print("与当前NPC[%d]相关联的任务[%s]目前处于 ‘待问答’", self:get_tmpl(), self.m_cur_quest_id,quiz_id)
+            self:set_interact_state(true)
+            self:getFrame("quiz_manager"):camera_forward(self)
+            self:getFrame("quiz_manager"):start_quiz(self,quiz_id,self.m_cur_quest_id)
+            self:getFrame("quiz_manager"):set_on_complete(function()
+                self:set_interact_state(false)
+                --刷新头顶显示状态 by lijunfeng 2018/1/20
+                print("重新计算npc交互状态2")
+                self:getFrame("player_controller"):hide_interact_btn()
+                self:getFrame("quest_manager"):set_npc_interact_info(self:get_tmpl(), self.m_cur_interact_id, self.m_cur_quest_id, enum.quest.Quest_Npc_State.None)
+            end)
+        else
+            print("你确定配置了问答或对话？")
+        end
+    elseif cur_quest_state == enum.quest.Quest_Npc_State.Yellow_Question then --可交任务
+        local talk_id=dbc.interact[self.m_cur_interact_id] and dbc.interact[self.m_cur_interact_id].action_param or 0
+        print("与当前NPC[%d]相关联的任务[%s]目前处于 ‘待交付’", self:get_tmpl(), self.m_cur_quest_id,talk_id)
+        self:set_interact_state(true)
+        self:getFrame("quiz_manager"):camera_forward(self)
+        self.m_giver:cell_call("quest_done_new")
+        self:getFrame("quiz_manager"):start_talk(self, talk_id,false,self.m_cur_quest_id)
+        self:getFrame("quiz_manager"):set_on_complete(function()
+            local token_ticket = self:getFrame("world"):get_main_player():get_attr("token_ticket")
+            self.m_giver:cell_call("quest_done_end", self.m_cur_quest_id, token_ticket or -1)
+            self:set_interact_state(false)
+            --刷新头顶显示状态 by lijunfeng 2018/1/20
+            print("重新计算npc交互状态3")
+            self:getFrame("player_controller"):hide_interact_btn()
+            self:getFrame("quest_manager"):set_npc_interact_info(self:get_tmpl(), self.m_cur_interact_id, self.m_cur_quest_id, enum.quest.Quest_Npc_State.None)
+        end)
+    end
+end
+
+-- 在这里直接调用创建对话框
+function M:set_bubble(dialog_id)
+    print("创建泡泡",dialog_id,self:get_id())
+    self:getFrame("head_overlay"):creat_bubble_item(dialog_id, self:get_id())
+end
+
+function M:base_call(method_name, ...)
+    if not self.m_giver then
+        return
+    end
+    self.m_giver:base_call(method_name, ...)
+end
+
+function M:cell_call(method_name, ...)
+    if not self.m_giver then
+        return
+    end
+    self.m_giver:cell_call(method_name, ...)
+end
+
+return M

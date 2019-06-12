@@ -1,0 +1,188 @@
+local View = require("system.view")
+local spirit_model_show_view = class("spirit_model_show_view", View)
+
+function spirit_model_show_view:doInit(slot_frame)
+    -- 特效路径表
+    self.m_sfx_path_list = {}
+
+    self.m_sfx_path_list[18] = app:getAssetPathMgr().get_sfx_asset("ui_lingshou_feng")
+    self.m_sfx_path_list[21] = app:getAssetPathMgr().get_sfx_asset("ui_lingshou_huo")
+    self.m_sfx_path_list[19] = app:getAssetPathMgr().get_sfx_asset("ui_lingshou_tu")
+    self.m_sfx_path_list[20] = app:getAssetPathMgr().get_sfx_asset("ui_lingshou_shui")
+
+
+    self.m_frame = self:getFrame()
+    ----记录鼠标所在位置的x坐标
+    self.m_mouse_X = 0
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("SpiritBeastMain"), function(go)
+        local temp_go = go.transform:Find("bg/drag_panel/drag_area_container/spirit_container/spirit_model_show").gameObject
+        local show_go = Object.Instantiate(temp_go)
+        self:getGO():AddComponent(RectTransform)
+        -- 阴影
+        local shadow = show_go.transform:Find("Image")
+        shadow.transform:SetParent(self:getGO().transform)
+        shadow.transform.localPosition = Vector3(326, -638, 0)
+        shadow.transform.sizeDelta = Vector2(652, 193)
+        shadow.transform.localScale = Vector3.one
+
+
+        show_go.transform:SetParent(self:getGO().transform)
+        show_go.transform.localPosition = Vector3.zero
+        show_go.transform.localScale = Vector3.one
+        show_go:SetActive(true)
+
+        -- 装备特效
+        self.m_equip_sfx = nil
+        self:load_functional_sfx(app:getAssetPathMgr().get_sfx_asset("ui_lingshou_zhuangbei"), show_go.transform, "m_equip_sfx")
+        -- 升级特效
+        self.m_level_up_sfx = nil
+        self:load_functional_sfx(app:getAssetPathMgr().get_sfx_asset("ui_lingshou_shengji"), show_go.transform, "m_level_up_sfx")
+        -- 升星特效
+        self.m_rating_sfx = nil
+        self:load_functional_sfx(app:getAssetPathMgr().get_sfx_asset("ui_lingshou_shengxing"), show_go.transform, "m_rating_sfx")
+
+        -- 播放特效 升级什么的
+        self:subscribe(self.m_frame:on_event("play_sfx"), function(arg)
+            if arg == enum.spirit_beast.UnequippingType.NORMAL then
+                self.m_equip_sfx.gameObject.transform.parent.parent.gameObject:SetActive(true)
+                self.m_equip_sfx:Play()
+                slua_timer.addDelayEvent(1, function()
+                    self.m_equip_sfx.gameObject.transform.parent.parent.gameObject:SetActive(false)
+                    self.m_equip_sfx:Stop()
+                end)
+            elseif arg == enum.spirit_beast.UnequippingType.UPGRADE then
+                self.m_level_up_sfx.gameObject.transform.parent.parent.gameObject:SetActive(true)
+                self.m_level_up_sfx:Play()
+                slua_timer.addDelayEvent(1, function()
+                    self.m_level_up_sfx.gameObject.transform.parent.parent.gameObject:SetActive(false)
+                    self.m_level_up_sfx:Stop()
+                end)
+            elseif arg == enum.spirit_beast.UnequippingType.MERGE then
+                self.m_rating_sfx.gameObject.transform.parent.parent.gameObject:SetActive(true)
+                self.m_rating_sfx:Play()
+                slua_timer.addDelayEvent(1, function()
+                    self.m_rating_sfx.gameObject.transform.parent.parent.gameObject:SetActive(false)
+                    self.m_rating_sfx:Stop()
+                end)
+            end
+        end)
+
+        local spirit_container = show_go:GetComponent("DragSkill")
+        spirit_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        spirit_container.onBeginDrag:AddListener(function(eventdata)
+            self.m_mouse_X = eventdata.position.x
+        end)
+
+        spirit_container.onDrag = DragSkill_OnDragHandler()
+        spirit_container.onDrag:AddListener(function(eventdata)
+            local cur_mouse_x = eventdata.position.x
+            ---设置旋转速度，滑动的越快旋转越快
+            local rot_speed = math.abs(cur_mouse_x - self.m_mouse_X) / 100 / Time.deltaTime
+            self.m_frame:start_rotate(cur_mouse_x < self.m_mouse_X, rot_speed)
+            self.m_mouse_X = cur_mouse_x
+        end)
+
+        spirit_container.onEndDrag = DragSkill_OnEndDragHandler()
+        spirit_container.onEndDrag:AddListener(function(eventdata)
+
+        end)
+
+        self:load_sfx(slot_frame)
+        --if slot_frame:get_spirit_data() ~= nil then
+        --    self.m_frame:load_model(dbc.sprite[slot_frame:get_spirit_data().tmpl].model_id)
+        --end
+
+        -- 当点击了没有装配灵兽的槽位，要显示对应的特效
+        self:subscribe(self.m_frame:on_event("show_sfx"), function(slot)
+            if self.m_sfx_go_list then
+                for i, v in pairs(self.m_sfx_go_list) do
+                    if i == slot then
+                        v:SetActive(true)
+                    else
+                        v:SetActive(false)
+                    end
+                end
+            end
+        end)
+        -- 当点击了装配灵兽的槽位,隐藏所有特效
+        self:subscribe(self.m_frame:on_event("hide_sfx"), function()
+            if self.m_sfx_go_list then
+                for i, v in pairs(self.m_sfx_go_list) do
+                    v:SetActive(false)
+                end
+            end
+        end)
+
+        -- 美术大大要求不让一上来就创建场景
+        --local scene_name = "spirit_model_show_temp"
+        --local path = string.format("scenes/%s.unity", scene_name)
+        --self:loadScene(path, function()
+        --
+        --end)
+    end)
+end
+
+-- 加载风火雷电什么什么的特效
+function spirit_model_show_view:load_sfx(slot_frame)
+    self.m_sfx_go_list = {}
+    for i, v in pairs(self.m_sfx_path_list) do
+        --GetComponent<MeshRenderer>().sortingOrder
+        self:load(v, function(go)
+            go.transform:SetParent(self:getGO().transform)
+            go.transform.localPosition = Vector3(304, -345)
+            go.transform.localScale = Vector3.one
+            go:SetActive(false)
+            local ui_manager = app:get_ui_manager()
+            local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+            local ps = go:GetComponentsInChildren(ParticleSystem)
+            if (ps ~= nil) then
+                for info in foreach(ps) do
+                    info.gameObject.layer = LayerMask.NameToLayer("UI")
+                    info:GetComponent(Renderer).sortingOrder = depth + 1
+                end
+            end
+            local mr = go:GetComponentsInChildren(MeshRenderer)
+            if (mr ~= nil) then
+                for info in foreach(mr) do
+                    info.sortingOrder = depth + 1
+                end
+            end
+            self.m_sfx_go_list[i] = go
+            if slot_frame:get_spirit_data() == nil then
+                if i == slot_frame:get_slot_id() then
+                    go:SetActive(true)
+                end
+            end
+        end)
+    end
+end
+
+-- 加载升级/升星/装备的特效
+function spirit_model_show_view:load_functional_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go.transform:GetChild(0):GetChild(0):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.anchoredPosition3D = Vector3(0, -245, 0)
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+return spirit_model_show_view

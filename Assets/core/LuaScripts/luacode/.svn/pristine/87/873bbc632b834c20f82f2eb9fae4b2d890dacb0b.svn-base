@@ -1,0 +1,21 @@
+﻿import 'UnityEngine'
+import 'HedgehogTeam.EasyTouch'
+import 'DG.Tweening'
+require "common.comm_init"
+
+-- foreach C# ienumerable --以所有与战斗编辑器相关的类都以bp_开头
+function foreach(csharp_ienumerable)
+    return Slua.iter(csharp_ienumerable)
+end
+
+dbc = TableLoader.loadAll()
+
+local Application = require "system.bp_application"
+app = Application:new()
+app:start()
+
+
+
+update = function()
+	app:update()
+end

@@ -1,0 +1,17 @@
+local Frame = require("system.frame")
+local matching_back_inst = class("matching_back_inst", Frame)
+
+function matching_back_inst:doInit(param)
+    self.m_matching_manager = self:getFrame("matching_manager")
+end
+
+function matching_back_inst:on_sure_btn()
+    self.m_matching_manager:req_come_back_matching_inst()
+    self:destroySelf()
+end
+
+function matching_back_inst:on_cancle_btn()
+    self:destroySelf()
+end
+
+return matching_back_inst

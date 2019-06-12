@@ -1,0 +1,28 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/8 11:28
+---
+local Frame = require("system.frame")
+local team_invate_item = class("team_invate_item", Frame)
+
+Event.decl(team_invate_item, "is_show_selected")
+Event.decl(team_invate_item, "set_toggle_is_on")
+
+function team_invate_item:doInit(params)
+    self:set_is_add_rect_trans(true)
+
+    self:set_data(params.data)
+    self.m_team_mgr_bar = self:getFrame("team_mgr_bar")
+end
+
+function team_invate_item:set_data(data)
+    self.m_data = data
+    self:emit_event("set_toggle_is_on", true)
+end
+
+function team_invate_item:on_toggle(is_on)
+    self:emit_event("is_show_selected", is_on)
+    self.m_team_mgr_bar:set_current_selected(self.m_data)
+end
+
+return team_invate_item

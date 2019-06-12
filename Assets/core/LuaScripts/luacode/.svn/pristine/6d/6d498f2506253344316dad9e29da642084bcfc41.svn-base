@@ -1,0 +1,37 @@
+local Frame = require("system.frame")
+local quest_ui_main = class("quest_ui_main", Frame)
+
+Event.decl(quest_ui_main, "quest_down")
+Event.decl(quest_ui_main, "daily_down")
+Event.decl(quest_ui_main, "achi_down")
+
+function quest_ui_main:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function quest_ui_main:on_loaded()
+    self:createChild("quest_ui_list", "quest.quest_ui.quest_ui_list")
+    self:createChild("quest_ui_show", "quest.quest_ui.quest_ui_show")
+end
+
+-- return_btn 按钮回调
+function quest_ui_main:on_return_btn()
+    self.m_ui_manager:HideView("quest_ui_main")
+end
+
+-- quest_btn 按钮回调
+function quest_ui_main:on_quest_btn()
+    self:emit_event("quest_down")
+end
+
+-- daily_btn 按钮回调
+function quest_ui_main:on_daily_btn()
+    self:emit_event("daily_down")
+end
+
+-- achi_btn 按钮回调
+function quest_ui_main:on_achi_btn()
+    self:emit_event("achi_down")
+end
+
+return quest_ui_main

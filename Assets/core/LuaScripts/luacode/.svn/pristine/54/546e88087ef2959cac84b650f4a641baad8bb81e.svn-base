@@ -1,0 +1,9 @@
+local GameWithoutNetworkView = {}
+
+function GameWithoutNetworkView:doInit()
+	local world_view = self:getView("world")
+	local unit = self:getFrame():getLocalPlayerUnit()
+	world_view:trackUnit(unit)
+end
+
+return GameWithoutNetworkView

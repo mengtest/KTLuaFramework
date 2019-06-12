@@ -1,0 +1,14 @@
+﻿local BattlePreviewView = {}
+
+function BattlePreviewView:doInit()
+	local world_view = self:getView("bp.bp_world")
+	local unit = self:getFrame():getLocalPlayerUnit()
+	print("玩家",unit,world_view)
+	world_view:track_unit(unit)
+end
+
+function BattlePreviewView:doUpdate()
+	
+end
+
+return BattlePreviewView

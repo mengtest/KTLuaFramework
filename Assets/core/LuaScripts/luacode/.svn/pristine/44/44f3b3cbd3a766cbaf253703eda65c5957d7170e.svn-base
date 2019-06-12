@@ -1,0 +1,206 @@
+local Frame = require("system.frame")
+local skill_ui_manager = class("skill_ui_manager", Frame)
+
+Event.decl(skill_ui_manager, "master_info_add")
+Event.decl(skill_ui_manager, "master_enabled") -- 2017.11.25 rjy 天赋已启用  客户端需要自己进行三选一行为的维护  服务器自己进行了这个操作  但是这个阶段没有把这个协议发过来
+Event.decl(skill_ui_manager, "skill_curr_level_up")
+Event.decl(skill_ui_manager, "skill_max_level_up")
+Event.decl(skill_ui_manager, "change_slot")
+Event.decl(skill_ui_manager, "unlock_talent")  -- 2017.11.25 rjy 天赋已解锁
+
+function skill_ui_manager:doInit()
+    self.m_master_info = {}
+    ----目前不维护这个表，收到与其相关的消息直接作出处理，之后如果有拓展可以再来维护这个表
+    ----2017.11.25 rjy 为了天赋启用这张表   暂时只有 rec_master_all 的时候维护了这张表  我觉得够了   如果不够到时候再来修改吧
+    self.m_unlocked_skill_id_list = {}
+    self.m_locked_skill_id_list = {}
+end
+
+function skill_ui_manager:init()
+    self:local_log("skill_ui_manager  初始化")
+    self:req_master_list()
+end
+
+-- *------------------[S]Sever interface-----------------——*
+-- [S2C]
+-- 收到所有技能  可用位置标志位  页面编号   已学习技能资讯列表  已解锁技能ID列表  未解锁技能ID列表
+function skill_ui_manager:rec_master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+    -- master_info 中的 enable 字段表示此(天赋)技能是否被选择
+    for i, v in ipairs(master_info) do
+        self.m_master_info[i] = v
+        self:local_log("已学习的技能id  %s  %s  %s  %s  %s  ", v["tmpl"], v["enabled"], v["level"], v["stat"], v["slot"])
+        self:local_log("已学习的技能id 前两位 %s  ", string.sub(v["tmpl"], 1, 2))
+    end
+    -----请求解锁时发0，学习已经解锁技能    如果是升级的话就发id
+    --2017.11.25 rjy  屏蔽一收到技能就学习这一操作
+    --self:req_master_learn(0)
+    for i, v in ipairs(unlocked_skill_id_list) do
+        self.m_unlocked_skill_id_list[i] = v
+        if not dbc.spell_ui[v].is_talent then
+            self:req_master_learn(v)
+        --else
+        --    self:emit_event("unlock_talent", v)
+        end
+        self:local_log("已解锁但是还未学习的技能id  %s", v)
+    end
+
+
+    for i, v in ipairs(locked_skill_id_list) do
+        self.m_locked_skill_id_list[i] = v
+        self:local_log("未解锁的技能id  %s", v)
+    end
+
+    self:local_log("已经学习的表的长度%s", #self.m_master_info)
+end
+
+-- 取得天赋技能 同 master_enabling 配合使用
+function skill_ui_manager:rec_master_enabled(talent_id)
+    self:emit_event("master_enabled", talent_id)
+end
+
+-- 取得新增已学习技能(参数为列表)   这里需要做的是填加到已经学习技能列表中
+function skill_ui_manager:rec_master_learnt(master_info)
+    for i, v in ipairs(master_info) do
+        self.m_master_info[#self.m_master_info + 1] = v
+        self:local_log("运行中新学习的技能id  %s", v["tmpl"])
+    end
+    self:local_log("已经学习的表的长度%s", #self.m_master_info)
+    self:emit_event("master_info_add", master_info)
+end
+
+-- 取得新增已解锁技能(参数为id列表)  学习已经解锁技能  并且要将这些技能从未解锁列表中删除
+function skill_ui_manager:rec_master_available(available_id_list)
+    self:local_log("新增已解锁的技能id列表的长度  %s", #available_id_list)
+    for i, v in ipairs(available_id_list) do
+        -- 原来是一解锁马上学习所有已解锁的技能   现在改为如果解锁的是天赋技能则需要手动学习
+        --self:req_master_learn(0)
+        self:local_log("新增已解锁是不是天赋啊啊啊啊啊啊啊啊啊啊啊 啊啊啊啊啊啊  %s", dbc.spell_ui[v].is_talent)
+        if not dbc.spell_ui[v].is_talent then
+            self:req_master_learn(v)
+        else
+            self:emit_event("unlock_talent", v)
+        end
+
+        self:local_log("新增已解锁的技能id  %s", v)
+        for key, val in ipairs(self.m_locked_skill_id_list) do
+            if v == val then
+                table.remove(self.m_locked_skill_id_list, key)
+                self:local_log("删除未解锁的技能id  %s", v)
+            end
+        end
+    end
+end
+
+-- 更新技能等级（当前人物角色下可升到的最大等级）
+function skill_ui_manager:rec_master_level(skill_id)
+    for i, v in ipairs(self.m_master_info) do
+        if v["tmpl"] == skill_id then
+            v["level"] = v["level"] + 1
+            break
+        end
+    end
+    self:emit_event("skill_max_level_up", skill_id)
+end
+
+-- 更新技能状态(当前等级)
+function skill_ui_manager:rec_master_stat(skill_id)
+    for i, v in ipairs(self.m_master_info) do
+        if v["tmpl"] == skill_id then
+            v["stat"] = v["stat"] + 1
+            break
+        end
+    end
+    self:emit_event("skill_curr_level_up", skill_id)
+end
+
+-- 更新技能页面
+function skill_ui_manager:rec_master_page(page_id)
+    --print("rec_master_page页面id", page_id)
+end
+-- 更新技能位置
+function skill_ui_manager:rec_master_slot(skill_id, slot)
+    print("rec_master_slot技能id", skill_id)
+    print("rec_master_slot位置编号", slot)
+    for i, v in ipairs(self.m_master_info) do
+        if v["tmpl"] == skill_id then
+            v.slot[1] = slot
+            break
+        end
+    end
+    self:emit_event("change_slot", skill_id, slot)
+end
+--------------------------------------------------------------
+-- [C2S]
+-- 请求技能列表
+function skill_ui_manager:req_master_list()
+    self:cell_call("master_list")
+end
+
+-- 请求学习技能
+function skill_ui_manager:req_master_learn(skill_id)
+    self:cell_call("master_learn", skill_id)
+end
+
+-- 请求切换天赋技能(给服务器发送的是我所切换的天赋是 第几组 第几个)
+function skill_ui_manager:req_master_enabling(group_num, slot_num)
+    self:cell_call("master_enabling", group_num, slot_num)
+end
+
+-- 切换技能页面
+function skill_ui_manager:req_master_switch(page_id)
+    self:cell_call("master_switch", page_id)
+end
+
+-- 交换技能位置
+function skill_ui_manager:req_master_swap(source_skill_id, source_skill_slot, target_skill_id, target_skill_slot)
+    --print("我给服务器发消息了啊。。。", source_skill_id, source_skill_slot, target_skill_id, target_skill_slot)
+    self:cell_call("master_swap", source_skill_id, source_skill_slot, target_skill_id, target_skill_slot)
+end
+
+-- *------------------[E]Sever interface-----------------——*
+
+-----返回已学习的技能列表
+function skill_ui_manager:get_master_info_list()
+    local ret = {}
+    for k, v in pairs(self.m_master_info) do
+        ret[k] = v
+    end
+    return ret
+end
+
+-----返回未解锁的技能列表
+function skill_ui_manager:get_locked_skill_id_list()
+    local ret = {}
+    for k, v in pairs(self.m_locked_skill_id_list) do
+        ret[k] = v
+    end
+    return ret
+end
+
+-----返回已解锁但是未学习的技能列表[2017.11.25 rjy 这张表中暂时应该只有天赋技能  之后可能会有装备技能等]
+function skill_ui_manager:get_unlocked_skill_id_list()
+    local ret = {}
+    for k, v in pairs(self.m_unlocked_skill_id_list) do
+        ret[k] = v
+    end
+    return ret
+end
+
+function skill_ui_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function skill_ui_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function skill_ui_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+
+return skill_ui_manager

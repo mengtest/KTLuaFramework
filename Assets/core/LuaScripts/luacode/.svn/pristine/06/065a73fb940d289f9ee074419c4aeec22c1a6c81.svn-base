@@ -1,0 +1,54 @@
+local M = {}
+
+
+Attribute.decl(M, "boss_des", "")
+--Attribute.decl(M, "boss_mirror", "")
+
+Event.decl(M, "start")
+Event.decl(M, "show")
+Event.decl(M, "hide")
+
+function M:doInit()
+
+end
+
+
+function M:Start(parma)
+    self:set_boss_des("<color=#ffe9d8>" .. parma.des .. "</color>")
+    --self:set_boss_mirror(parma.boss)
+    self:emit_event("start")
+end
+
+
+function M:doAction()
+    self:emit_event("show")
+end
+
+function M:endAction()
+    self:set_boss_des("")
+    self:emit_event("hide")
+end
+
+function M:on_skip_boss_show()
+    
+    -- local boss_mirror = self:get_boss_mirror()
+    
+    -- if (boss_mirror ~= nil) then
+    --     boss_mirror:GetComponent(Animator).enabled = false
+        
+    --     local ui_manager = app:get_ui_manager()
+        
+    --     ui_manager:ShowLowUIRootByName(ui_manager.UI_Depth.HIGH)
+        
+    --     self:endAction()
+        
+    --     Object.Destroy(boss_mirror)
+        
+    --     self:set_boss_mirror(nil)
+    
+    -- end
+end
+
+
+
+return M

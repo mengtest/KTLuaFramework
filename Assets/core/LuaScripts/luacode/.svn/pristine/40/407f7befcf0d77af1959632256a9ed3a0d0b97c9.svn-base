@@ -1,0 +1,315 @@
+local HeadOverlayItemView = {}
+
+function HeadOverlayItemView:doInit(param)
+    local frame = self:getFrame()
+    self.m_cam = self:getView("world"):getCamera()
+    self.m_item_go = nil
+    self.m_color = Color.white
+    self.m_scale = 1
+    self.m_base_scale = 1
+    self.m_is_boss = false
+    self.m_is_faded = false
+
+
+    local this = self
+    self:load(app:getAssetPathMgr().get_ui_view_asset("HeadOverlay"), function(go)
+        local parent_node = self:getParent():getGO().transform
+        self.m_item_go = go
+        go.name = frame:getFrameName()
+        -- outlet
+        self.m_head_boss_icon = self["head_boss_icon_gameObject"]
+        self.m_text_name_text = self["name_GUIText"]
+        self.m_hp_boss_bg_obj = self["hp_boss_bg_gameObject"]
+        self.m_hp_bg_obj = self["hp_bg_gameObject"]
+        self.m_hp_boss_fore_image = self["hp_boss_fore_GUIImage"]
+        self.m_hp_fore_image = self["hp_fore_GUIImage"]
+        self.m_scale_tra = self["scale_gameObject"].transform
+        self.m_click_scale_tra = self["click_scale_gameObject"].transform
+        self.m_hp_boss_clicked_obj = self["hp_boss_clicked_gameObject"]
+        self.m_hp_clicked_obj = self["hp_clicked_gameObject"]
+        self.m_name_bg_obj = self["name_bg_gameObject"]
+
+
+        -- 注册点击事件
+        self.m_drag_area_container = self["btn_click_target_gameObject"]:GetComponent("DragSkill")
+        self.m_drag_area_container.onClick = DragSkill_OnPointerClickHandler()
+        self.m_drag_area_container.onClick:AddListener(function()
+            frame:target_click()
+        end)
+        -- 默认隐藏
+        self.m_hp_boss_clicked_obj:SetActive(false)
+        self.m_hp_clicked_obj:SetActive(false)
+        -- 是否是boss 用来区分显示那个血条
+        self:subscribe(frame:on_event_is_boss_set(true), function(val)
+            self.m_is_boss = val
+            if val then
+                self.m_hp_boss_clicked_obj:SetActive(true)
+                self.m_head_boss_icon.gameObject:SetActive(true)
+            else
+                self.m_hp_clicked_obj:SetActive(true)
+            end
+        end)
+        self:subscribe(frame:on_event_pos_set(true):combineLatest(self.m_cam:on_event_position_set(true)), function(world_pos)
+            self:refresh_to_screen_pos(world_pos)
+        end)
+
+
+        self:subscribe(frame:on_event_is_show_name_health(true), function (is_show_name,is_show_health,is_show_boss_icon,show_scale)
+            if self.m_is_boss then
+                if self.m_hp_boss_bg_obj.gameObject.activeSelf~= is_show_health then
+                    self.m_hp_boss_bg_obj.gameObject:SetActive(is_show_health)
+                end
+            else
+                if self.m_hp_bg_obj.gameObject.activeSelf~= is_show_health then
+                    self.m_hp_bg_obj.gameObject:SetActive(is_show_health)
+                end
+            end
+            if self.m_name_bg_obj.gameObject.activeSelf~= is_show_name then
+                self.m_name_bg_obj.gameObject:SetActive(is_show_name)
+            end
+            if self.m_head_boss_icon.gameObject.activeSelf~= is_show_boss_icon then
+                self.m_head_boss_icon.gameObject:SetActive(is_show_boss_icon)
+            end
+            self.m_scale_tra.localScale = show_scale
+            -- 判断主玩家是否有目标
+            self.m_main_player = self:getFrame("world"):get_main_player()
+            if self.m_main_player:get_target_id()~= 0 then
+                if(self.m_main_player:get_target_id() ~= frame:get_unit():get_id()) then
+                    self.m_is_faded = false
+                    self:fade()
+                end
+            end
+        end)
+        self:subscribe(frame:on_event_enum_color_set(true), function(val)
+            self:refresh_color(val)
+        end)
+        self:subscribe(frame:on_event_name_set(true), function(val)
+            self.m_text_name_text.text = val
+        end)
+
+        self:subscribe(frame:on_event_hp_set(true), function(val)
+            self:draw_hp()
+        end)
+
+        self:subscribe(frame:on_event_hp_max_set(true), function(val)
+            self:draw_hp()
+        end)
+
+        -- 是否是选中目标
+        self:subscribe(frame:on_event_is_cur_target_set(true), function(val)
+            if val then
+                -- 选中
+                self.m_click_scale_tra.localScale = Vector3(1.1, 1.1, 1.1)
+                self.m_click_scale_tra.localPosition = Vector3(0,2,0)
+                if self.m_is_boss then
+                    self.m_hp_boss_clicked_obj:SetActive(true)
+                else
+                    self.m_hp_clicked_obj:SetActive(true)
+                end
+            else
+                --取消选中
+                self.m_click_scale_tra.localScale = Vector3(1,1,1)
+                self.m_click_scale_tra.localPosition = Vector3.zero
+                if self.m_is_boss then
+                    self.m_hp_boss_clicked_obj:SetActive(false)
+                else
+                    self.m_hp_clicked_obj:SetActive(false)
+                end
+            end
+        end)
+
+
+        self:subscribe(frame:on_event_attr_set("scale", true), function (scale)
+            self:set_scale(scale)
+        end)
+        self:subscribe(frame:on_event_attr_set("base_scale", true), function (scale)
+            self:set_base_scale(scale)
+        end)
+        self:subscribe(frame:on_event("refresh"), function ()
+            self:refresh()
+        end)
+        self:subscribe(frame:on_event("show"), function ()
+            self:show()
+        end)
+        self:subscribe(frame:on_event("hide"), function ()
+            self:hide()
+        end)
+        self:subscribe(frame:on_event("fade"), function ()
+            self:fade()
+        end)
+        self:subscribe(frame:on_event("dye"), function ()
+            self:dye()
+        end)
+        self:refresh()
+        self:init_with_go(go, parent_node)
+    end)
+end
+
+function HeadOverlayItemView:show()
+    self.m_click_scale_tra.gameObject:SetActive(true)
+end
+
+function HeadOverlayItemView:hide()
+    self.m_click_scale_tra.gameObject:SetActive(false)
+end
+
+function HeadOverlayItemView:fade()
+    if self.m_is_faded  then
+        return
+    end
+    local graphic_arr = self:getGO():GetComponentsInChildren(UnityEngine.UI.Graphic)
+    for i = 1, graphic_arr.Length do
+        graphic_arr[i]:CrossFadeAlpha(0.6, 0.001, true)
+    end
+    self.m_is_faded_flag = true
+    self.m_is_faded = true
+end
+
+function HeadOverlayItemView:dye()
+    if not self.m_is_faded then
+        return
+    end
+    local graphic_arr = self:getGO():GetComponentsInChildren(UnityEngine.UI.Graphic)
+    for i = 1, graphic_arr.Length do
+        graphic_arr[i]:CrossFadeAlpha(1, 0.001, true)
+    end
+    self.m_is_faded_flag = false
+    self.m_is_faded = false
+end
+
+function HeadOverlayItemView:get_path(val)
+    local icon_path = ""
+    local color = ""
+    if val == enum.ui.HP_COLOR.RED then
+        color = "red"
+    elseif val == enum.ui.HP_COLOR.GREEN then
+        color = "green"
+    elseif val == enum.ui.HP_COLOR.YELLOW then
+        color = "yellow"
+    elseif val == enum.ui.HP_COLOR.ORANGE then
+        color = "orange"
+    elseif val == enum.ui.HP_COLOR.BLUE then
+        color = "blue"
+    end
+    icon_path = 'xuetiao_'..color
+    if self.m_is_boss then
+        icon_path = app:getAssetPathMgr().get_head_overlay_item_view(icon_path)
+    else
+        icon_path = app:getAssetPathMgr().get_head_overlay_item_view(icon_path)
+    end
+    return icon_path
+end
+function HeadOverlayItemView:refresh_color(val)
+    local icon_path = self:get_path(val)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            if not self.m_is_boss then
+                self.m_hp_fore_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            else
+                self.m_hp_boss_fore_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            end
+
+        end
+    end)
+end
+
+function HeadOverlayItemView:on_prepared()
+
+end
+
+function HeadOverlayItemView:set_scale(scale)
+    self.m_scale = scale
+end
+
+function HeadOverlayItemView:set_base_scale(scale)
+    self.m_base_scale = scale
+end
+
+function HeadOverlayItemView:refresh()
+    if not self.m_item_go then
+        return
+    end
+
+    local img = self.m_item_go.transform:Find("HeadOverlay/Item/HPBar/Fill Area/Fill"):GetComponent(UI.Image)
+    img.color = self.m_color
+
+    local item_tr = self.m_item_go.transform:Find("HeadOverlay/Item")
+    item_tr.localScale = Vector3.one * self.m_scale * self.m_base_scale
+
+    self:refresh_to_screen_pos(self:getFrame():get_pos())
+end
+
+function HeadOverlayItemView:refresh_to_screen_pos(world_pos)
+    local item_tr = self.m_item_go.transform:Find("HeadOverlay/Item")
+    local spos, is_front = self.m_cam:worldToUIScreenPoint(world_pos)
+    if is_front then
+        if not item_tr.gameObject.activeSelf then
+            item_tr.gameObject:SetActive(true)
+            -- 判断主玩家是否有目标
+            self.m_main_player = self:getFrame("world"):get_main_player()
+            if self.m_main_player:get_target_id()~= 0 then
+                if(self.m_main_player:get_target_id() ~= self:getFrame():get_unit():get_id()) then
+                    self.m_is_faded = false
+                    self:fade()
+                end
+            end
+        end
+        item_tr.position = Vector3(spos.x, spos.y, spos.z)
+    else
+        item_tr.gameObject:SetActive(false)
+    end
+end
+
+
+function HeadOverlayItemView:enable_cost_bar(index)
+    local slider = self["cost_slider_"..index]
+    slider.gameObject:SetActive(true)
+
+    self:subscribe(self:getFrame():on_event_attr_set("spell_cost_"..index, true), function(val)
+        self:draw_spell_cost(index)
+    end)
+
+    self:subscribe(self:getFrame():on_event_attr_set("spell_cost_max_"..index, true), function(val)
+        self:draw_spell_cost(index)
+    end)
+
+end
+
+
+function HeadOverlayItemView:draw_spell_cost(index)
+    local frame = self:getFrame()
+    local cost = frame["get_spell_cost_"..index](frame)
+    local cost = frame:get_spell_cost_1(frame)
+    local cost_max = frame["get_spell_cost_max_"..index](frame)
+
+    local cost_percent = 0
+    if cost_max ~= nil and cost_max ~= 0 then
+        cost_percent = cost / cost_max
+    end
+
+    local slider = self["cost_slider_"..index]
+    local percent_txt = self["cost_percent_"..index]
+    local cost_txt = self["cost_text_"..index]
+
+    slider.value = cost_percent
+    percent_txt.text = string.format("%d%%", cost_percent * 100)
+    cost_txt.text = string.format("%d/%d", cost, cost_max)
+end
+
+function HeadOverlayItemView:draw_hp()
+    local frame = self:getFrame()
+    local hp = frame:get_hp()
+    local hp_max = frame:get_hp_max()
+
+    local hp_percent = 0
+    if hp_max ~= nil and hp_max ~= 0 then
+        hp_percent = hp / hp_max
+    end
+    self.m_hp_fore_image.fillAmount = hp_percent
+    self.m_hp_boss_fore_image.fillAmount = hp_percent
+end
+
+return HeadOverlayItemView

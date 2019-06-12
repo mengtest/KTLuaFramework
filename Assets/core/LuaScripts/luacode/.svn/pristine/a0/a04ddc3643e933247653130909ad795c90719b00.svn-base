@@ -1,0 +1,164 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/3 19:50
+---
+local Frame = require("system.frame")
+local team_mgr_bar = class("team_mgr_bar", Frame)
+
+Attribute.decl(team_mgr_bar, "is_leader", false)
+Attribute.decl(team_mgr_bar, "toggle_group", nil)
+Attribute.decl(team_mgr_bar, "toggle_selected", nil)
+
+function team_mgr_bar:doInit()
+    self.m_player_dbid = self:getFrame("world"):get_main_player():get_dbid()
+    self.m_team_mgr = app:get_team_mgr()
+    self.m_team_frame_list = {}
+
+    self:subscribe(self.m_team_mgr:on_event("rec_invite_team"), function(db_id, inviter_name, team_id)
+        self:rec_invite_team(db_id, inviter_name, team_id)
+    end)
+    self:subscribe(self.m_team_mgr:on_event("add_member"), function(member)
+        self:add_member(member)
+    end)
+    self:subscribe(self.m_team_mgr:on_event("del_member"), function(dbid)
+        if dbid == self.m_player_dbid then
+            self:remove_all_member()
+        else
+            self:remove_member(dbid)
+        end
+    end)
+    self:subscribe(self.m_team_mgr:on_event("change_leader"), function(dbid)
+        self:set_is_leader(self.m_player_dbid == dbid)
+    end)
+    self:subscribe(self.m_team_mgr:on_event("resp_result"), function(team_args_info)
+        self:resp_result(team_args_info)
+    end)
+end
+
+function team_mgr_bar:add_member(member)
+    assert(self.m_team_frame_list[member.dbid] == nil, "team_mgr_bar:add_member the member is already existed, member dbid: " .. member.dbid)
+    self.m_team_frame_list[member.dbid] = self:createChild("team_member_item_" .. member.dbid, "team.team_bar.team_member_item", { ["member_info"] = member })
+end
+
+function team_mgr_bar:remove_member(dbid)
+    assert(self.m_team_frame_list[dbid], "team_mgr_bar:remove_member the member not is existed, member dbid: " .. dbid)
+    self.m_team_frame_list[dbid]:destroySelf()
+    self.m_team_frame_list[dbid] = nil
+end
+
+function team_mgr_bar:remove_all_member()
+    local list = {}
+    for i, v in pairs(self.m_team_frame_list) do
+        table.insert(list, i)
+    end
+
+    for i, v in pairs(list) do
+        self.m_team_frame_list[v]:destroySelf()
+        self.m_team_frame_list[v] = nil
+    end
+end
+
+--收到邀请
+function team_mgr_bar:rec_invite_team(db_id, inviter_name, team_id)
+    local ui_manager = app:get_ui_manager()
+    local confirm_win = ui_manager:CreateUI("confirm_win_in_team_mgr_bar", "confirm_win", nil, ui_manager.UI_Depth.NORMAL)
+    local msg = string.format("%s邀请你加入他的小队。", inviter_name)
+    confirm_win:set_msg(msg)
+
+    confirm_win.on_ensure = function()
+        self.m_team_mgr:req_is_accept(true, team_id, db_id)
+    end
+    confirm_win.on_cancel = function()
+        self.m_team_mgr:req_is_accept(false, team_id, db_id)
+    end
+end
+
+--飘字
+function team_mgr_bar:show_scroll_text(name, msg)
+    name = name or "nil"
+    local str = ""
+    if name == "" then
+        str = string.format("%s", tostring(msg))
+    else
+        str = string.format("【%s】%s", tostring(name), tostring(msg))
+    end
+    self:getFrame("float_hint_manager"):add_float(str)
+end
+
+function team_mgr_bar:resp_result(team_args_info)
+    local answer_code = team_args_info.code
+    local name = team_args_info.name
+    local db_id = team_args_info.dbid
+
+    if answer_code == enum.shared.TeamCode.TEAM_FULL then
+        self:show_scroll_text("", "队伍人数已满")
+    elseif answer_code == enum.shared.TeamCode.IN_THE_TEAM then
+        self:show_scroll_text("", "对方已有队伍")
+    elseif answer_code == enum.shared.TeamCode.JOIN_TEAM then
+        self:show_scroll_text(name, "加入队伍")
+    elseif answer_code == enum.shared.TeamCode.LEAVE_TEAM then
+        self:show_scroll_text(name, "离开队伍")
+    elseif answer_code == enum.shared.TeamCode.REFUSE_TEAM then
+        self:show_scroll_text(name, "拒绝加入队伍")
+    elseif answer_code == enum.shared.TeamCode.LOGIN then
+        self:show_scroll_text(name, "上线了")
+    elseif answer_code == enum.shared.TeamCode.LOGOUT then
+        self:show_scroll_text(name, "下线了")
+    elseif answer_code == enum.shared.TeamCode.DEL_MEMBER then
+        self:show_scroll_text(name, "被踢出队伍")
+    elseif answer_code == enum.shared.TeamCode.DEL_MEMBER_FOR_ROLE then
+        if self.m_player_dbid == db_id then
+            self:show_scroll_text("", "你被踢出队伍")
+        end
+    end
+
+    --副本
+    if answer_code == enum.shared.TeamCode.CANNOT_JOIN_TEAM_IN_INSTANCE then
+        self:show_scroll_text("", "当前副本不允许加入队伍")
+    elseif answer_code == enum.shared.TeamCode.CREATURE_LOOT then
+        self:show_scroll_text("", "怪物掉落拾取")
+    elseif answer_code == enum.shared.TeamCode.NO_EXISTS_INST then
+        self:show_scroll_text("", "不存在目标副本")
+    elseif answer_code == enum.shared.TeamCode.MUST_BE_SINGLE then
+        self:show_scroll_text("", "单人副本")
+    elseif answer_code == enum.shared.TeamCode.MUST_BE_IN_TEAM then
+        self:show_scroll_text("", "队伍副本")
+    elseif answer_code == enum.shared.TeamCode.NO_UNLOCK_INST then
+        self:show_scroll_text("", "未解锁副本")
+    elseif answer_code == enum.shared.TeamCode.NO_SELECT_DIFF then
+        self:show_scroll_text("", "只要队长才能选择难度")
+    elseif answer_code == enum.shared.TeamCode.NO_IN_AREA then
+        self:show_scroll_text("", "未在指定区域")
+    elseif answer_code == enum.shared.TeamCode.NO_IN_MAP then
+        self:show_scroll_text("", "未在指定地图")
+    elseif answer_code == enum.shared.TeamCode.CHANGE_SPECIALIZATION then
+        self:show_scroll_text("", "请切换到指定专精")
+    elseif answer_code == enum.shared.TeamCode.TEAM_COUNT_LESS then
+        self:show_scroll_text("", "队伍人数不足")
+    elseif answer_code == enum.shared.TeamCode.NO_HAVE_TARGET_INST then
+        self:show_scroll_text("", "队伍没有共同副本目标")
+    end
+
+    --匹配
+    if answer_code == enum.shared.TeamCode.IN_MATCHING_QUEUE then
+        --已经在匹配队列了
+        self:show_scroll_text("", "已经在匹配队列了")
+    elseif answer_code == enum.shared.TeamCode.MEMBER_ALL_ONLINE then
+        --所在队伍必须全部在线
+        self:show_scroll_text("", "所在队伍必须全部在线")
+    elseif answer_code == enum.shared.TeamCode.TEAM_IN_MATCHING_QUEUE then
+        --所在队伍已经在匹配队列了
+        self:show_scroll_text("", "所在队伍已经在匹配队列了")
+    elseif answer_code == enum.shared.TeamCode.FIGHTING_IN_INST then
+        --当前队伍有正在进行的副本
+        self:show_scroll_text("", "当前队伍有正在进行的副本")
+    elseif answer_code == enum.shared.TeamCode.MEMBER_IN_MATCHING_INST then
+        --有队员正在匹配副本
+        self:show_scroll_text("", "有队员正在匹配副本")
+    elseif answer_code == enum.shared.TeamCode.NO_LOSE_DUTY then
+        --当前匹配副本尚在，职责全部存在
+        self:show_scroll_text("", "请通关此匹配副本")
+    end
+end
+
+return team_mgr_bar

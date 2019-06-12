@@ -1,0 +1,228 @@
+local BuffContainer = {}
+--Attribute.decl(BuffContainer, "unit", nil)
+
+function BuffContainer:doInit(param)
+    --self:set_is_dont_create_go_automatic(true)
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+
+    --self:subscribe(self:on_event_unit_set(true), function(new_unit)
+    --    if self.m_unit ~= nil and self.m_unit ~= new_unit then
+    --        -- 尝试注销对旧数据的观察
+    --        self:unsubscribe(self.m_conn_add_buff)
+    --        self:unsubscribe(self.m_conn_remove_buff)
+    --
+    --
+    --
+    --        -- 删除/释放当前已经存在的buf图标
+    --        --for i, v in pairs(self.m_buff_icon_frame_list) do
+    --        --    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", v)
+    --        --    v:destroySelf()
+    --        --end
+    --    end
+    --
+    --    -- 检查/观察/记录新数据
+    --    if new_unit == nil then
+    --        -- 空数据处理(这种暴力删除的方式暂时用不到这个)
+    --
+    --    else
+    --        self.m_entity_obj = kbe_mgr:get_entity(new_unit:get_id())
+    --        self.m_buff_list = self.m_entity_obj:get_buff_list()
+    --        self.m_buff_icon_frame_list = {}
+    --        -- buff list事件
+    --        self.m_conn_add_buff = self:subscribe(self.m_buff_list:on_event("add_buff"), function(add_buff_list)
+    --            self:on_event_add_buff(add_buff_list)
+    --        end)
+    --
+    --        self.m_conn_remove_buff = self:subscribe(self.m_buff_list:on_event("remove_buff"), function(remove_buff_list)
+    --            self:on_event_remove_buff(remove_buff_list)
+    --        end)
+    --
+    --        self.m_unit = new_unit
+    --    end
+    --end)
+
+    local unit = param.unit
+    --self:set_unit(unit)
+
+    self.m_entity_obj = kbe_mgr:get_entity(unit:get_id())
+    self.m_buff_list = self.m_entity_obj:get_buff_list()
+    self.m_buff_icon_frame_list = {}
+    -- buff list事件
+    self.m_conn_add_buff = self:subscribe(self.m_buff_list:on_event("add_buff"), function(add_buff_list)
+        self:on_event_add_buff(add_buff_list)
+    end)
+
+    self.m_conn_remove_buff = self:subscribe(self.m_buff_list:on_event("remove_buff"), function(remove_buff_list)
+        self:on_event_remove_buff(remove_buff_list)
+    end)
+end
+
+function BuffContainer:on_event_add_buff(add_buff_list)
+
+    print("------- buff_container_on_event_add_buff", add_buff_list)
+
+    -- 新建buff_icon对象
+    for k, v in pairs(add_buff_list) do
+        print("------- buff_container_on_event_add_buff", v)
+
+        -- pacman 2017-09-01 由于view prefab加载完毕时间差的问题，暂时屏蔽11009的buf图标创建
+        -- pacman 2017-09-28 改了有关代码，取消11009的屏蔽看看
+        --if v:get_spell_id() ~= 11008 then
+            --print("------- buff_container_on_event_add_buff", v:get_spell_id())
+            local buff_icon_frame = self:createChild(string.format("%d_%d", v:get_slot(), v:get_spell_id()), "buff_hud_icon", v)
+            self.m_buff_icon_frame_list[v:get_slot()] = buff_icon_frame
+            print("???????????buff_container_on_event_add_buff", v:get_slot())
+            --local buff_icon_frame = self:createChild("12313123", "buff_hud_icon", v)
+        --end
+    end
+
+    -- 获取buff列表(拷贝)
+    local buff_table = self.m_buff_list:get_table()
+
+
+    -- 按照显示规则分组/筛选/排序
+    local is_role = self.m_entity_obj:isInstanceOf(require("frame.kbe.Role"))
+    if is_role then
+        -- 对于玩家角色
+        -- 细分成buf与debuff两组
+        local buff_table = {}
+        local debuff_table = {}
+
+        for k, v in pairs(buff_table) do
+            local skill_id = v:get_id()
+            local skill_cfg = dbc.spell[skill_id]
+
+            if skill_cfg.is_positive then
+                -- 正向技能
+                table.insert(buff_table, v)
+            else
+                -- 负面技能
+                table.insert(debuff_table, v)
+            end
+        end
+
+
+        if self.m_entity_obj:get_is_main_player() then
+            -- 如果是要显示主角的buff/debuff --
+            -- 排序
+            table.sort(buff_table, BuffContainer.sort_main_player)
+            table.sort(debuff_table, BuffContainer.sort_main_player)
+        else
+            -- 如果是要显示其他玩家的buff/debuff --
+            -- todo 过滤
+            -- 排序
+            table.sort(buff_table, BuffContainer.sort_main_player)
+            table.sort(debuff_table, BuffContainer.sort_main_player)
+        end
+
+        -- for k, v in pairs(buff_table) do
+        --     print("---------------", v:get_id())
+        -- end
+    else
+        -- 对于非玩家角色
+        --table.sort(buff_table, BuffContainer.sort_main_player)
+    end
+end
+
+function BuffContainer:on_event_remove_buff(remove_buff_list)
+    print("---------- remove_buff_list", #remove_buff_list)
+
+    for _, v in pairs(remove_buff_list) do
+        local slot = v:get_slot()
+        local buff_icon_frame = self.m_buff_icon_frame_list[slot]
+        self.m_buff_icon_frame_list[slot] = nil
+        self:destroyChild(buff_icon_frame)
+    end
+end
+
+-- 主玩家buff/debuff排序
+function BuffContainer.sort_main_player(a, b)
+    local sdk = app:getKBESDK()
+    local main_player_id = sdk:get_player_id()
+
+    local client_cfg_a = dbc.spell_buff_client[a:get_id()*10+1]
+    local client_cfg_b = dbc.spell_buff_client[b:get_id()*10+1]
+
+    local display_priority_a = client_cfg_a.buff_display_priority
+    local display_priority_b = client_cfg_b.buff_display_priority
+
+    -- 显示优先级->自己释放->获得顺序
+    if display_priority_a > display_priority_b then
+        return true
+    elseif display_priority_a < display_priority_b then
+        return false
+    else
+        -- 优先级相同 --
+        -- 比较释放者
+        local is_from_mplayer_a = a:get_caster_id() == main_player_id
+        local is_from_mplayer_b = b:get_caster_id() == main_player_id
+
+        if is_from_mplayer_a and (not is_from_mplayer_b) then
+            return true
+        elseif (not is_from_mplayer_a) and is_from_mplayer_b then
+            return false
+        else
+            -- 都是或者都不是自己释放的
+            -- 比较获得顺序
+            local start_time_a = a:get_start_time()
+            local start_time_b = b:get_start_time()
+            if start_time_a < start_time_b then
+                return true
+            else
+                return false
+            end
+        end
+    end
+end
+
+
+-- 目标buff/debuff排序
+function BuffContainer.sort_target(a, b)
+    local sdk = app:getKBESDK()
+    local main_player_id = sdk:get_player_id()
+    local unit = self:getFrame("unit")
+    local target_id = unit:get_target_id()
+
+    local client_cfg_a = dbc.spell_client[a:get_id()]
+    local client_cfg_b = dbc.spell_client[b:get_id()]
+
+    local display_priority_a = client_cfg_a.buff_display_priority
+    local display_priority_b = client_cfg_b.buff_display_priority
+
+    -- 显示优先级->自己释放->获得顺序
+    if display_priority_a > display_priority_b then
+        return true
+    elseif display_priority_a < display_priority_b then
+        return false
+    else
+        -- 优先级相同 --
+        -- 比较释放者
+        local is_from_mplayer_a = a:get_caster_id() == main_player_id
+        local is_from_mplayer_b = b:get_caster_id() == main_player_id
+        local is_from_mtarget_a = a:get_caster_id() == target_id
+        local is_from_mtarget_b = b:get_caster_id() == target_id
+
+        if is_from_mplayer_a and (not is_from_mplayer_b) then
+            return true
+        elseif (not is_from_mplayer_a) and is_from_mplayer_b then
+            return false
+        elseif is_from_mtarget_a and (not is_from_mtarget_b) and (not is_from_mplayer_b) then
+            return true
+        elseif (not is_from_mtarget_a) and (not is_from_mplayer_a) and is_from_mtarget_b then
+            return false
+        else
+            -- 都是或者都不是自己释放or目标释放的
+            -- 比较获得顺序
+            local start_time_a = a:get_start_time()
+            local start_time_b = b:get_start_time()
+            if start_time_a < start_time_b then
+                return true
+            else
+                return false
+            end
+        end
+    end
+end
+
+return BuffContainer

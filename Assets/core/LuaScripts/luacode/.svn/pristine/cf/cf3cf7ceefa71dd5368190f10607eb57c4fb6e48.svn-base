@@ -1,0 +1,63 @@
+-- 角色行为状态(机)基类
+-- 既可以用作stateMachine，也可以用作state
+
+local M = class("UnitActStateBase")
+
+function M:initialize(fsm, unit)
+    self.m_state_list = { }
+    self.m_cur_state = nil
+    self.m_param =  nil
+    self.m_fsm = fsm
+	assert(unit ~= nil)
+	self.m_unit = unit
+end
+
+
+-- stateMachine接口
+function M:change_state(value,param)
+    --print("-------UAFsm change_state:" .. tostring(value))
+
+    local state = value
+    if type(value) == 'number' then
+        state = self.m_state_list[value]
+    end
+
+    assert(state ~= nil)
+
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:exit()
+    end
+
+    state.m_param = param
+    state:enter()
+    self.m_cur_state = state
+end
+
+
+-- state接口
+
+function M:update()
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:update()
+    end
+end
+
+
+function M:enter()
+    -- print("UnitActStateBase:enter")
+
+
+end
+
+function M:exit()
+    -- print("UnitActStateBase:exit")
+
+end
+
+
+-----------------
+-- 通用状态检查
+
+
+
+return M

@@ -1,0 +1,15 @@
+local View = require("system.view")
+local dungeon_leave_sure_view = class("dungeon_leave_sure_view", View)
+
+
+function dungeon_leave_sure_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Dungeon_leave_sure"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local text = go.transform:Find("bg/Text"):GetComponent(UI.Text)
+        text.text = param
+    end)
+end
+
+return dungeon_leave_sure_view

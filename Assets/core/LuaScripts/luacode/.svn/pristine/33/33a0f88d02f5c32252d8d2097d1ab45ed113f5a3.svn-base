@@ -1,0 +1,145 @@
+local Frame = require("system.frame")
+local designated_matching = class("designated_matching", Frame)
+
+Event.decl(designated_matching, "show_normal")
+Event.decl(designated_matching, "show_hero")
+Event.decl(designated_matching, "show_diff")
+Event.decl(designated_matching, "attack_down")
+Event.decl(designated_matching, "cure_down")
+Event.decl(designated_matching, "defense_down")
+Event.decl(designated_matching, "matching")
+Event.decl(designated_matching, "selected_dungeon")
+
+function designated_matching:doInit(param)
+    self.m_item_list = {}
+    self.m_data_list = {}
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_cur_sel = nil
+    self.m_id = nil
+    self.m_child_created = false
+    self.m_is_match = 0
+    self.m_type = nil
+    self:subscribe(self.m_matching_manager:on_event("rec_matching_data"), function(challenge_num, is_maching, dungeon_id, time, duty, diff)
+        if is_maching and dungeon_id ~= 0 then
+            self.m_is_match = is_maching
+        end
+        if is_maching == 0 then
+            self.m_is_match = is_maching
+        end
+    end)
+end
+
+function designated_matching:on_loaded(num)
+    local max_num = self.m_dungeon_manager:gain_unlock_dungeon_length()
+    if max_num == 0 then
+        return
+    end
+    for i = 1, max_num do
+        self.m_item_list[i] = self:createChild(self.m_name .. "_item_" .. i, "team/team_quick_matching/matching_list_item", self)
+    end
+end
+
+function designated_matching:on_normal_btn()
+    self.m_data_list = self.m_dungeon_manager:gain_type_dungeon(enum.shared.InstanceDiffcultyType.NORMAL)
+    self:refresh_sub_item(self.m_data_list)
+    self:emit_event("show_normal", self.m_data_list)
+end
+
+function designated_matching:on_hero_btn()
+    self.m_data_list = self.m_dungeon_manager:gain_type_dungeon(enum.shared.InstanceDiffcultyType.HEROIC)
+    self:refresh_sub_item(self.m_data_list)
+    self:emit_event("show_hero", self.m_data_list)
+end
+
+function designated_matching:on_diff_btn()
+    self.m_data_list = self.m_dungeon_manager:gain_type_dungeon(enum.shared.InstanceDiffcultyType.EPIC)
+    self:refresh_sub_item(self.m_data_list)
+    self:emit_event("show_diff", self.m_data_list)
+end
+
+function designated_matching:on_attack_btn()
+    self:emit_event("attack_down")
+end
+
+function designated_matching:on_cure_btn()
+    self:emit_event("cure_down")
+end
+
+function designated_matching:on_defense_btn()
+    self:emit_event("defense_down")
+end
+
+function designated_matching:on_matching_btn()
+    self:emit_event("matching")
+end
+
+-------刷新子物体的data
+function designated_matching:refresh_sub_item(list)
+    for i = 1, #list do
+        self.m_item_list[i]:refresh(list[i])
+        if i == 1 and self.m_is_match == 0 then
+            self.m_item_list[i]:on_item_btn()
+            self.m_cur_sel = self.m_item_list[i]
+        end
+        if self.m_is_match == 1 then
+            for i, v in ipairs(self.m_data_list) do
+                if v == self.m_id then
+                    self.m_item_list[i]:on_item_btn()
+                    break
+                end
+            end
+        end
+    end
+    local index = #list + 1
+    for i = index, #self.m_item_list do
+        self.m_item_list[i]:refresh(nil)
+    end
+end
+
+-- 如果有匹配，则打开是选中匹配的副本
+function designated_matching:select_default_item(id, diff)
+    self.m_id = id
+    self.m_type = diff
+end
+
+function designated_matching:on_sel_item()
+    self.m_child_created = true
+    if self.m_type == enum.shared.InstanceDiffcultyType.NORMAL then
+        self:on_normal_btn()
+    elseif self.m_type == enum.shared.InstanceDiffcultyType.HEROIC then
+        self:on_hero_btn()
+    elseif self.m_type == enum.shared.InstanceDiffcultyType.EPIC then
+        self:on_diff_btn()
+    end
+    for i, v in ipairs(self.m_data_list) do
+        if v == self.m_id then
+            self.m_item_list[i]:on_item_btn()
+            break
+        end
+    end
+end
+
+-----刷新背景显示
+function designated_matching:refresh_bg(item)
+    if self.m_cur_sel == nil then
+        self.m_cur_sel = item
+    end
+    if item == self.m_cur_sel then
+        return
+    else
+        self.m_cur_sel:refresh_bg()
+        self.m_cur_sel = item
+    end
+end
+
+-----子类中选中匹配的副本
+function designated_matching:selected_matching_dungeon(dungeon_id)
+    self:emit_event("selected_dungeon", dungeon_id)
+end
+
+function designated_matching:gain_is_matching()
+    return self.m_is_match
+end
+
+return designated_matching

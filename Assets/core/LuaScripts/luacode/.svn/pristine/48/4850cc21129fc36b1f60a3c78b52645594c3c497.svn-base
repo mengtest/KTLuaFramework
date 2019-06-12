@@ -1,0 +1,15 @@
+local Frame = require("system.frame")
+local equipment_tips = class("equipment_tips", Frame)
+
+--刷新view显示的内容
+Event.decl(equipment_tips, "refresh_view")
+
+function equipment_tips:doInit()
+
+end
+
+function equipment_tips:refresh_view(params)
+    self:emit_event("refresh_view", params)
+end
+
+return equipment_tips

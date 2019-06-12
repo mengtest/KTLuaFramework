@@ -1,0 +1,55 @@
+local sect_main = {}
+
+
+-- 显示
+Event.decl(sect_main, "show")
+-- 隐藏
+Event.decl(sect_main, "hide")
+-- 下方按钮
+Event.decl(sect_main, "on_sect_pandect_btn")
+Event.decl(sect_main, "on_sect_detail_btn")
+
+
+function sect_main:doInit()
+
+end
+
+function sect_main:on_loaded()
+    -- 装备及灵兽的信息对比界面
+    app:get_ui_manager():CreateUI("sect_info_compare", "sect.sect_info_compare", nil, app:get_ui_manager().UI_Depth.HIGH)
+    -- 天赋界面
+    app:get_ui_manager():CreateUI("sect_talent", "sect.sect_talent", nil, app:get_ui_manager().UI_Depth.HIGH)
+    -- 详情左侧的三个大按钮
+    self:createChild("sect_elements", "sect.sect_elements")
+    -- 详情右侧的流派介绍
+    self:createChild("sect_info", "sect.sect_info")
+
+
+end
+
+-- 返回按钮
+function sect_main:on_return_btn()
+    self:hide()
+end
+
+-- 下方总览按钮
+function sect_main:on_sect_pandect_btn()
+    self:emit_event("on_sect_pandect_btn")
+end
+
+-- 下方详情按钮
+function sect_main:on_sect_detail_btn()
+    self:emit_event("on_sect_detail_btn")
+end
+
+-- 显示
+function sect_main:show()
+    self:emit_event("show")
+end
+
+-- 隐藏
+function sect_main:hide()
+    self:emit_event("hide")
+end
+
+return sect_main

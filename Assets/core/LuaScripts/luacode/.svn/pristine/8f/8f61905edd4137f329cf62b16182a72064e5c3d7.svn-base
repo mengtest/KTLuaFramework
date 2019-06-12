@@ -1,0 +1,65 @@
+local rows = {}
+rows[1] = {['equip_lv']=10,['min_lv']=10,['max_lv']=10,['step']=5}
+rows[2] = {['equip_lv']=20,['min_lv']=15,['max_lv']=20,['step']=5}
+rows[3] = {['equip_lv']=30,['min_lv']=20,['max_lv']=30,['step']=5}
+rows[4] = {['equip_lv']=40,['min_lv']=25,['max_lv']=40,['step']=5}
+rows[5] = {['equip_lv']=50,['min_lv']=30,['max_lv']=50,['step']=5}
+rows[6] = {['equip_lv']=60,['min_lv']=35,['max_lv']=60,['step']=5}
+rows[7] = {['equip_lv']=70,['min_lv']=40,['max_lv']=70,['step']=5}
+rows[8] = {['equip_lv']=80,['min_lv']=45,['max_lv']=80,['step']=5}
+rows[9] = {['equip_lv']=90,['min_lv']=50,['max_lv']=90,['step']=5}
+rows[10] = {['equip_lv']=100,['min_lv']=55,['max_lv']=100,['step']=5}
+rows[11] = {['equip_lv']=110,['min_lv']=60,['max_lv']=110,['step']=5}
+rows[12] = {['equip_lv']=120,['min_lv']=65,['max_lv']=120,['step']=5}
+rows[13] = {['equip_lv']=130,['min_lv']=70,['max_lv']=130,['step']=5}
+rows[14] = {['equip_lv']=140,['min_lv']=75,['max_lv']=140,['step']=5}
+rows[15] = {['equip_lv']=150,['min_lv']=80,['max_lv']=150,['step']=5}
+rows[16] = {['equip_lv']=160,['min_lv']=85,['max_lv']=160,['step']=5}
+rows[17] = {['equip_lv']=170,['min_lv']=90,['max_lv']=170,['step']=5}
+rows[18] = {['equip_lv']=180,['min_lv']=95,['max_lv']=180,['step']=5}
+rows[19] = {['equip_lv']=190,['min_lv']=100,['max_lv']=190,['step']=5}
+rows[20] = {['equip_lv']=200,['min_lv']=105,['max_lv']=200,['step']=5}
+rows[21] = {['equip_lv']=210,['min_lv']=110,['max_lv']=210,['step']=5}
+rows[22] = {['equip_lv']=220,['min_lv']=115,['max_lv']=220,['step']=5}
+rows[23] = {['equip_lv']=230,['min_lv']=120,['max_lv']=230,['step']=5}
+rows[24] = {['equip_lv']=240,['min_lv']=125,['max_lv']=240,['step']=5}
+rows[25] = {['equip_lv']=250,['min_lv']=130,['max_lv']=250,['step']=5}
+rows[26] = {['equip_lv']=260,['min_lv']=135,['max_lv']=260,['step']=5}
+rows[27] = {['equip_lv']=270,['min_lv']=140,['max_lv']=270,['step']=5}
+rows[28] = {['equip_lv']=280,['min_lv']=145,['max_lv']=280,['step']=5}
+rows[29] = {['equip_lv']=290,['min_lv']=150,['max_lv']=290,['step']=5}
+rows[30] = {['equip_lv']=300,['min_lv']=155,['max_lv']=300,['step']=5}
+
+local datas = {
+	[10] = rows[1],
+	[20] = rows[2],
+	[30] = rows[3],
+	[40] = rows[4],
+	[50] = rows[5],
+	[60] = rows[6],
+	[70] = rows[7],
+	[80] = rows[8],
+	[90] = rows[9],
+	[100] = rows[10],
+	[110] = rows[11],
+	[120] = rows[12],
+	[130] = rows[13],
+	[140] = rows[14],
+	[150] = rows[15],
+	[160] = rows[16],
+	[170] = rows[17],
+	[180] = rows[18],
+	[190] = rows[19],
+	[200] = rows[20],
+	[210] = rows[21],
+	[220] = rows[22],
+	[230] = rows[23],
+	[240] = rows[24],
+	[250] = rows[25],
+	[260] = rows[26],
+	[270] = rows[27],
+	[280] = rows[28],
+	[290] = rows[29],
+	[300] = rows[30],
+}
+return datas

@@ -1,0 +1,101 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/5 11:36
+---
+local Frame = require("system.frame")
+local team_member_item = class("team_member_item", Frame)
+
+Attribute.decl(team_member_item, "name", "")
+Attribute.decl(team_member_item, "state", "")
+
+Event.decl(team_member_item, "update_specialization")
+Event.decl(team_member_item, "update_hp")
+Event.decl(team_member_item, "update_max_hp")
+Event.decl(team_member_item, "change_leader")
+Event.decl(team_member_item, "login")
+Event.decl(team_member_item, "logout")
+Event.decl(team_member_item, "on_team_btn")
+Event.decl(team_member_item, "close_toggle")
+Event.decl(team_member_item, "update_member")
+
+function team_member_item:doInit(params)
+    self:set_is_add_rect_trans(true)
+
+    self.m_member_info = nil
+    self:set_member_info(params.member_info)
+
+    self.m_team_mgr = app:get_team_mgr()
+    self.m_team_mgr_bar = self:getFrame("team_mgr_bar")
+    self.m_player_dbid = self:getFrame("world"):get_main_player():get_dbid()
+
+    self:subscribe(self.m_team_mgr:on_event("update_specialization"), function(dbid)
+        if dbid == self.m_member_info.dbid then
+            self:emit_event("update_specialization", self.m_member_info.specialization)
+        end
+    end)
+    self:subscribe(self.m_team_mgr:on_event("update_hp"), function(dbid)
+        if dbid == self.m_member_info.dbid then
+            self:emit_event("update_hp", self.m_member_info.hp, self.m_member_info.max_hp)
+        end
+    end)
+    self:subscribe(self.m_team_mgr:on_event("update_max_hp"), function(dbid)
+        if dbid == self.m_member_info.dbid then
+            self:emit_event("update_max_hp", self.m_member_info.hp, self.m_member_info.max_hp)
+        end
+    end)
+    self:subscribe(self.m_team_mgr:on_event("change_leader"), function()
+        self:emit_event("change_leader", self.m_member_info.is_leader)
+    end)
+    self:subscribe(self.m_team_mgr:on_event("state_change"), function(dbid, state)
+        if dbid == self.m_member_info.dbid then
+            if state == 0 then
+                self:emit_event("logout", self.m_member_info.hp, self.m_member_info.max_hp)
+            elseif state == 1 then
+                self:emit_event("login", self.m_member_info.hp, self.m_member_info.max_hp)
+            end
+        end
+    end)
+    self:subscribe(self.m_team_mgr:on_event("update_member"), function(dbid)
+        if dbid == self.m_member_info.dbid then
+            self:emit_event("update_member")
+        end
+    end)
+end
+
+function team_member_item:set_member_info(member)
+    assert(member, "team_member_item:set_member_info member is nil")
+    self.m_member_info = member
+    self:set_name(self.m_member_info.name)
+end
+
+function team_member_item:get_member_info()
+    return self.m_member_info
+end
+
+function team_member_item:on_change_leader()
+    self:emit_event("close_toggle")
+    if self.m_team_mgr_bar:get_is_leader() then
+        self.m_team_mgr:req_change_leader(self.m_member_info.dbid)
+    end
+end
+
+function team_member_item:on_quit_team()
+    self:emit_event("close_toggle")
+    if self.m_member_info.dbid == self.m_player_dbid then
+        self.m_team_mgr:req_leave()
+    else
+        if self.m_team_mgr_bar:get_is_leader() then
+            self.m_team_mgr:req_del_member(self.m_member_info.dbid)
+        end
+    end
+end
+
+function team_member_item:on_team_btn(is_on)
+    self:emit_event("on_team_btn", is_on)
+end
+
+function team_member_item:local_log(...)
+    app:logError(string.format(...))
+end
+
+return team_member_item

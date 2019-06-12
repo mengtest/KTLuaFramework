@@ -1,0 +1,204 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+
+    local unit = self.m_unit
+    local type = self.m_param.type
+    local spell_client_cfg = self.m_param.cfg
+
+    unit:set_main_act(enum.battle.Unit_Main_Act.Auto_Move)
+
+    self.m_update_func = nil
+
+    -- 暂时先只考虑跳跃 而且是抛物线跳跃 之后按照需求扩展
+    if (type == enum.battle.Move_Type_4_Client.JUMP) then
+        local anim_group = {"base_jump_a","base_jump_d","base_jump_c"}
+        if(spell_client_cfg ~= nil and #spell_client_cfg.move_anim > 0 ) then
+            anim_group = spell_client_cfg.move_anim
+        end
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_A, anim_group[1])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_B, anim_group[2])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_C, anim_group[3])
+        unit:emit_event("anim_param", "auto_move_type", "int", enum.battle.Move_Type_4_Client.JUMP)
+
+        self.m_curve_point_index = 1
+        local point_count = 1 / Time.deltaTime
+        self.m_curve_point = {}
+        local startPos = unit:get_pos()
+        local endPos = self.m_param.target_pos
+
+        self.m_center = (startPos + endPos) * 0.5
+        self.m_center.y = math.max(startPos.y, endPos.y) + 3
+
+        table.insert(self.m_curve_point, startPos)
+        for i = 1, point_count, 1 do
+            local pos1 = Vector3.Lerp(startPos, self.m_center, i / point_count)
+            local pos2 = Vector3.Lerp(self.m_center, endPos, i / point_count)
+            local find = Vector3.Lerp(pos1, pos2, i / point_count)
+            table.insert(self.m_curve_point, find)
+        end
+        table.insert(self.m_curve_point, endPos)
+
+        self.m_update_func = self["jump_update"]
+
+    elseif (type == enum.battle.Move_Type_4_Client.MOVEFAST) then
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_A, spell_client_cfg.move_anim[1])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_B, spell_client_cfg.move_anim[2])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_C, spell_client_cfg.move_anim[3])
+        
+        unit:emit_event("anim_param", "auto_move_type", "int", enum.battle.Move_Type_4_Client.MOVEFAST)
+        self.m_startPos = unit:get_pos()
+        self.m_endPos = self.m_param.target_pos
+        local dist = Vector3.Distance(self.m_startPos, self.m_endPos)
+        self.m_start_time = Time.time
+        self.m_end_time = Time.time + dist / spell_client_cfg.move_speed
+
+        self.m_update_func = self["move_fast_update"]
+
+    elseif (type == enum.battle.Move_Type_4_Client.JUMP_HIT) then
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_A, spell_client_cfg.move_anim[1])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_B, spell_client_cfg.move_anim[2])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_C, spell_client_cfg.instant_anim)
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_D, spell_client_cfg.move_anim[3])
+        unit:emit_event("anim_param", "auto_move_type", "int", enum.battle.Move_Type_4_Client.JUMP_HIT)
+
+        self.m_curve_point_index = 1        
+        self.m_curve_point = {}
+        local startPos = unit:get_pos()
+        local endPos = self.m_param.target_pos
+        local dist = Vector3.Distance(startPos,endPos)
+
+        local point_count = dist / spell_client_cfg.move_speed / Time.deltaTime
+
+        local user_data = KTBezier.getLinePoint(startPos, endPos, point_count, dbc.projectile_type[7].custom)
+    
+        for info in foreach(user_data) do
+            table.insert(self.m_curve_point, info)
+        end
+
+        self.m_update_func = self["jump_hit_update"]
+
+    elseif (type == enum.battle.Move_Type_4_Client.DEVIL_TRANS) then
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_A, spell_client_cfg.move_anim[1])
+        unit:emit_event("override_animator_clip", enum.unit.PCAnimStateName.AUTO_MOVE_B, spell_client_cfg.move_anim[2])
+        unit:emit_event("anim_param", "auto_move_type", "int", enum.battle.Move_Type_4_Client.DEVIL_TRANS)
+
+        self.m_curve_point_index = 1        
+        self.m_curve_point = {}
+        local startPos = unit:get_pos()
+        local endPos = self.m_param.target_pos
+        local dist = Vector3.Distance(startPos,endPos)
+
+        local point_count = dist / spell_client_cfg.move_speed / Time.deltaTime
+
+        local user_data = KTBezier.getLinePoint(startPos, endPos, point_count, dbc.projectile_type[7].custom)
+    
+        for info in foreach(user_data) do
+            table.insert(self.m_curve_point, info)
+        end
+
+        self.m_update_func = self["jump_hit_update"]
+    end
+end
+
+function M:exit()
+    
+    -- print("自动移动结束")
+    UnitActStateBase.exit(self)
+end
+
+function M:update()
+    UnitActStateBase.update(self)
+
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+end
+
+
+function M:jump_update()
+    if (self.m_curve_point_index < #self.m_curve_point) then
+        local next_pos = self.m_curve_point[self.m_curve_point_index + 1]
+        --print("跳跃点坐标",next_pos)
+        self.m_unit:set_pos(next_pos)
+        self.m_unit:emit_event("set_position", next_pos)
+        self.m_curve_point_index = self.m_curve_point_index + 1;
+    else
+        -- 判断是否脚下有跳跃触发器
+       -- print("执行正常跳跃结束")
+        self.m_update_func = nil
+
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+
+        if  self.m_unit:get_jump_after_on_ground()~=nil then
+            slua_timer.addDelayEvent(
+            0.7,
+            function()
+                --print("执行延迟跳跃")
+                self.m_fsm:change_state(enum.battle.Unit_Main_Act.Auto_Move, self.m_unit:get_jump_after_on_ground())
+                self.m_unit:set_jump_after_on_ground(nil)
+            end)
+        end
+    end
+end
+
+function M:jump_hit_update()
+    if (self.m_curve_point_index < #self.m_curve_point) then
+        local next_pos = self.m_curve_point[self.m_curve_point_index + 1]
+        --print("跳跃点坐标",next_pos)
+        self.m_unit:set_pos(next_pos)
+        self.m_unit:emit_event("set_position", next_pos)
+        self.m_curve_point_index = self.m_curve_point_index + 1;
+    else
+        self.m_update_func = nil
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+        self.m_curve_point = nil
+        self.m_curve_point_index = nil
+    end
+end
+
+function M:move_fast_update()
+    if (Time.time < self.m_end_time) then
+
+        local next_pos = Vector3.Lerp(self.m_startPos, self.m_endPos,
+        (Time.time - self.m_start_time) / (self.m_end_time - self.m_start_time))
+
+        self.m_unit:set_pos(next_pos)
+
+        self.m_unit:emit_event("set_position", next_pos)
+
+    else
+        self.m_update_func = nil
+
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+  
+        self.m_startPos = nil
+
+        self.m_endPos = nil
+
+        self.m_start_time = nil
+
+        self.m_end_time = nil
+    end
+end
+
+
+function M:change_move_state()
+    -- do nothing
+end
+
+return M

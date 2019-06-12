@@ -1,0 +1,65 @@
+local M = {}
+
+
+function M.addSingleEvent(view)
+    local m_animation_event = view:getGO():AddComponent(KTRoleTriggerEvent)
+    
+    m_animation_event._onTriggerEnterEvent = KTRoleTriggerEvent_OnTriggerEnterEvent()
+    m_animation_event._onTriggerExitEvent = KTRoleTriggerEvent_OnTriggerExitEvent()
+
+    m_animation_event._onTriggerEnterEvent:AddListener(function(collider)
+        M["on_trigger_" .. collider.gameObject.tag.."_enter"](view, collider)
+    end)
+
+    m_animation_event._onTriggerExitEvent:AddListener(function(collider)
+        M["on_trigger_" .. collider.gameObject.tag.."_exit"](view, collider)
+    end)
+
+end
+
+function M.on_trigger_ladder_enter(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    local ladder_trigger = collider.gameObject.transform
+    local ladder = ladder_trigger.parent.gameObject:GetComponent(SceneObjs_ladder)
+    
+    if(ladder == nil) then return end
+
+    local unit = view:getFrame()
+    local uafsm = unit:get_uafsm()
+
+    if(unit:get_main_act() ==  Enum_Battle.Unit_Main_Act.CLIMB) then
+        local ladder_pos = ladder:getExitPos(collider:GetInstanceID()).position
+        unit:set_pos(ladder_pos)
+        unit:emit_event("set_position", ladder_pos)
+        uafsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+        playerController:show_interact_btn("攀爬", 
+        function()
+            -- 直接关闭ui 执行攀爬完成
+            playerController:show_interact_btn(nil) 
+            -- 我们找到了上梯子的位置
+            uafsm:change_state(Enum_Battle.Unit_Main_Act.CLIMB,{collider = collider,ladder = ladder})
+           
+        end,
+        nil,view:getFrame())   
+    else
+        playerController:show_interact_btn("攀爬", 
+        function()
+            -- 直接关闭ui 执行攀爬完成
+            playerController:show_interact_btn(nil) 
+            -- 我们找到了上梯子的位置
+            uafsm:change_state(Enum_Battle.Unit_Main_Act.CLIMB,{collider = collider,ladder = ladder})
+           
+        end,
+        nil,view:getFrame())       
+    end
+end
+
+
+function M.on_trigger_ladder_exit(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+     -- 直接关闭ui 啥都不执行
+     playerController:show_interact_btn(nil) 
+end
+
+
+return M

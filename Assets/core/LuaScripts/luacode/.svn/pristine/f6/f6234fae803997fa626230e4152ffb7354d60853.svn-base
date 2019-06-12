@@ -1,0 +1,14 @@
+local Frame = require("system.frame")
+local fashionable_dress_main = class("fashionable_dress_main", Frame)
+
+function fashionable_dress_main:doInit()
+
+end
+
+function fashionable_dress_main:on_loaded()
+    self:createChild("fashionable_dress_attr_show","%subsystem/backpack_equipment/ware_house/fashionable_dress_attr_show")
+    self:createChild("fashion_select_show","%subsystem/backpack_equipment/ware_house/fashion_select")
+    self:createChild("fashion_select_model","%subsystem/backpack_equipment/ware_house/fashion_select_model")
+end
+
+return fashionable_dress_main

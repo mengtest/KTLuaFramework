@@ -1,0 +1,51 @@
+--人物模型选择 模型路径+名称 动作通过目录来找
+local RoleCfg=
+{
+	["modelPath"]=''
+}
+
+local SkillCfg=
+{
+--[[	spell_client表--]]
+	["id"]=0,
+	["name"]='',
+	["icon"]='',
+	["cdIcon"]='',--CD图标
+	["targetMode"]=0,--目标模式
+	["showTeamHeader"]=0,--显示小队头像
+	["singActionA"]='',--吟唱动作a
+	["singActionB"]='',--吟唱动作b
+	["singVfx"]='',--吟唱特效
+	["singVfxMountPoint"]='',--吟唱特效挂点
+	["castAction"]='',--施法动作
+	["castVfx"]='',--施法过程特效,施法子弹特效
+	["castVfxMountPoint"]='',--施法过程特效挂点
+	["castEndVfx"]='',--施法出手特效
+	["castEndVfxMountPoint"]='',--施法出手特效挂点
+	["processVfxEventSwitch"]=0,--过程特效事件开关
+	["processVfx"]='',--/过程特效
+	["processVfxMountPoint"]='',--过程特效挂点
+	["processEndVfxMountPoint"]='',--过程结束特效挂点
+	["processLockVfx"]='',--过程锁定特效
+	["processLockVfxMountPoint"]='',--过程锁定特效挂点
+	["bulletMotonType"]=0,--子弹运动类型
+	["channelVfx"]='',--引导特效
+	["gethitAction"]='',--受击动作
+	["gethitVfx"]='',--受击特效
+	["gethitVfxMountPoint"]='',--受击特效挂点
+
+--[[	spell表--]]
+	["isPassive"]=0,--是否被动
+	["singSwitch"]=0,--吟唱开关，0瞬发，1有引导
+	["channelType"]=0,--释放时间类型
+	["ballisticSpeed"]=0,--弹道速度
+}
+
+local Monsters=
+{
+	["id"]={["modelPath"]='',["hitAnimPath"]=''},
+	["id"]={["modelPath"]='',["hitAnimPath"]=''},
+	["id"]={["modelPath"]='',["hitAnimPath"]=''},
+}
+
+return {role=RoleCfg,skill=skillCfg,monsters=Monsters}

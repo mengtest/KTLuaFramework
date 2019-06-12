@@ -1,0 +1,283 @@
+local M = {}
+
+--受击类型
+M.Enum_Damage = {
+	Dodge = 0,
+	Parry = 1,
+	Crit = 2,
+	Normal = 3
+}
+
+-- 动画事件类型
+M.Anim_Evt_Type = {
+	STRIKE = "strike",		-- 打击点
+	CAST = "cast",			-- 施展点
+	POSE = "pose",          -- 开始/结束pose动画
+	SHOOT = "shoot",        -- 过程特效出手  
+	WEAPON = "weapon",      -- 武器动画	
+	HIDE = "hide",          -- 隐藏
+	SHAKE = "shake",        -- 屏幕震动
+    STEP = "step",          -- 脚步触地
+    TRANS = "trans"         -- 变身
+}
+
+-- 技能释放动画事件类型
+M.SKILL_Evt_Type = {
+	STRIKE = "strike",		-- 打击点
+	CAST = "cast",			-- 施展点
+    SHOOT = "shoot",        -- 过程特效出手
+}
+
+-- 技能释放动画状态机名称
+M.SKILL_Evt_State_Type = {
+    [1] = "instant_skill",
+	[2] = "instant_skill_1",		-- 技能1
+	[3] = "instant_skill_2",	    -- 技能2
+	[4] = "atk",                    -- 普通攻击
+}
+
+-- pacman 2018-01-13
+M.Step_Type = {
+    NORMAL = 1,         -- 普通：行走，慢跑
+}
+
+M.Step_Foot_Type = {
+    LEFT = 1,       -- 左脚
+    RIGHT = 2,      -- 右脚
+    BOTH = 3,       -- 双脚
+}
+
+
+-- 角色动作类型
+-- pacman 2017-09-26 日后把UnitActFsm中的常量都转移到这里
+M.Unit_Main_Act = {
+    MOVE = 0,
+    JUMP = 1,
+    DEAD = 2,
+	INTERACT = 4,
+	CLIMB = 5, -- 攀爬
+	Auto_Move = 6, -- 自动移动
+
+
+    SKILL_SING = 10, -- 吟唱
+    SKILL_CHANNEL = 11,-- 引导
+    EXHIBITION = 12, -- 界面展示
+    SKILL_JUMP = 13,-- 地狱火撞击
+    STUNNED = 14, -- 类眩晕
+
+    -- 特殊
+    PLAY_CG = 21,
+}
+
+
+-- pacman 2018-01-05 动画状态机trigger
+M.Animator_Trigger = {}
+M.Main_Act_To_Trigger_list = {}
+-- 2018-01-05 基于当前animator controller的设计，进入持续性(动画)子状态机时是使用的trigger来做触发条件
+-- 为了方便，给所有的M.Unit_Main_Act都自动生成一个对应的trigger，其值为M.Unit_Main_Act的属性字串的全小写，并记录关联关系
+for k, v in pairs(M.Unit_Main_Act) do
+    local trigger_name = string.lower(k)
+    M.Animator_Trigger[k] = trigger_name
+    M.Main_Act_To_Trigger_list[v] = trigger_name
+end
+
+
+-- 技能 --
+
+-- 技能动作类别 表字段名
+M.Skill_Anim_Type = {
+    SING_A = "sing_anim_a",
+    SING_B = "sing_anim_b",
+    INSTANT_ANIM = "instant_anim",
+    HIT_ANIM = "hit_anim",
+    CHANNEL_ANIM_GROUP = "channel_anim",
+    MOVE_ANIM_GROUP = "move_anim",
+}
+
+-- 技能特效类别 表字段名
+M.Skill_Sfx_Type = {
+    SING = "sing_sfx",				-- 吟唱特效
+    INSTANT = "instant_sfx",		-- 施法出手特效
+    CAST = "cast_sfx",				-- 过程特效
+    HIT = "hit_sfx",				-- 受击特效
+    AIM = "cast_sfx_aim",			-- 锁定特效
+    INSTANT_PROCESS = "instant_pro_sfx", -- 施法过程特效
+    SPACE_HIT = "space_hit_sfx", 	-- 空间命中特效
+    CHARGE = "charge_sfx", -- 充能特效
+    CHANNEL = "channel_sfx", -- 引导特效
+    MAIN_HIT = "main_hit_sfx", -- 主目标命中特效
+}
+
+-- 技能 -- add by lijunfeng 2017.11.24 战斗编辑器专用字段
+-- 技能特效类别 表字段名
+M.Skill_Sfx_Type_Bp = {
+    SING = "singVfx",				-- 吟唱特效
+    INSTANT = "castEndVfx",			-- 施法出手特效
+    CAST = "processVfx",				-- 过程特效
+    HIT = "gethitVfx",				-- 受击特效
+    BUFF = "buff_sfx",				-- buff特效
+    AIM = "processLockVfx",			-- 锁定特效
+    INSTANT_PROCESS = "castVfx"  -- 施法过程特效
+}
+
+-- 技能特效挂点 表字段名
+M.Skill_Mount_Point_Type = {
+    SING = "sing_mount_point",				-- 吟唱特效挂点
+    INSTANT = "instant_mount_point",		-- 施法出手特效挂点
+    CAST_START = "cast_start_mount_point",		-- 过程特效起始挂点
+    CAST_END = "cast_end_mount_point",			-- 过程特效结束挂点
+    HIT = "hit_mount_point",				-- 受击特效挂点
+    BUFF = "buff_mount_point",				-- buff特效挂点
+    AIM = "cast_sfx_aim_mount",			-- 锁定特效挂点
+    INSTANT_PROCESS = "instant_pro_mount_point", -- 施法过程特效挂点
+    CHARGE = "charge_mount_point",	-- 充能特效挂点
+    CHANNEL = "channel_mount_point", -- 引导特效
+    MAIN_HIT = "main_hit_mount", -- 主目标命中特效挂点
+}
+
+-- 技能特效挂点 表字段名 -- add by lijunfeng 2017.11.24 战斗编辑器专用字段
+M.Skill_Mount_Point_Type_Bp = {
+    SING = "singVfxMountPoint",				-- 吟唱特效挂点
+    INSTANT = "castEndVfxMountPoint",		-- 施法出手特效挂点
+    CAST_START = "processVfxMountPoint",		-- 过程特效起始挂点
+    CAST_END = "processEndVfxMountPoint",	-- 过程特效结束挂点
+    HIT = "gethitVfxMountPoint",			-- 受击特效挂点
+    BUFF = "buff_mount_point",				-- buff特效挂点
+    AIM = "processLockVfxMountPoint",		-- 锁定特效挂点
+    INSTANT_PROCESS = "processVfxMountPoint" -- 施法过程特效挂点
+}
+
+-- 目标模式
+M.Skill_Target_Mode = {
+    NO = 0,					-- 无需目标
+    ENTITY = 1,				-- 需要目标对象
+    AREA = 2,				-- 选取区域
+    DIRECTION = 3,			-- 旋转方向
+    RECT = 4,               -- 矩形方向
+    ARROW = 5,              -- 箭头方向
+    THREELINE = 6,          -- 三线方向
+}
+
+
+-- 是否要显示小队成员
+M.Skill_Show_Team_Member = {
+    NO = 0,				-- 显示
+    SHOW = 1,			-- 不显示
+}
+
+
+-- 弹道类型
+M.Projectile_Type = {
+    WAGGLE = 1, -- 晃动
+    PARABOLA = 2, -- 抛物线
+    SPIRAL = 3, -- 螺旋
+    FLASH = 4,  -- 闪电链
+    GROUND = 5, -- 贴地
+    CUSTOM = 6, -- 自定义
+}
+
+-- 弹道朝向
+M.Projectile_Direction = {
+    TRACK = 1, -- 轨迹
+    Target = 2, -- 目标
+}
+
+-- 吟唱结束原因
+M.Sing_Finish = {
+    BREAK = 1,         -- 被打断
+    CANCEL = 2,		-- 主动取消(如位移)
+    FINISH = 3,     -- 正常结束
+}
+
+
+-- 玩家操作类型
+M.Player_Controll_Type = {
+    WOW_8D = 1,             -- WOW风格8sssss向
+    ALL_DIRECTION = 2,      -- 万向移动
+    ALL_DIRECTION_SP = 3,     -- 特殊万向移动(不操作角色朝向)
+    ALL_DIRECTION_X = 4,    -- X万向移动(参见斗战神操作设计)
+    CLIMB = 5,				-- 攀爬
+}
+
+-- 客户端位移类型（即使服务器是闪现 客户端也应该定义自己的表现）
+M.Move_Type_4_Client = {
+    TELEPORT = 1,
+    MOVEFAST = 2,
+    JUMP = 3,
+    JUMP_HIT = 4,
+    HELL_FIRE_STRIKE = 9, -- pacman 2017-12-28 地狱火撞击
+    DEVIL_TRANS = 10, -- 浩劫 恶魔变身
+}
+
+-- 客户端吟唱技能预警区域类型 by:wdd
+M. SKILL_SING_PRO_TYPE= {
+    NO = 0,           -- 无
+    ROUND = 1,        -- 圆形范围
+    RECT = 2,         -- 矩形范围
+    SPECIAL_RECT = 3,         -- 特殊矩形范围
+    SECTOR = 4,     -- 扇形范围
+}
+-- 客户端吟唱技能预警位置 by:wdd
+M. SKILL_SING_PRO_POS= {
+    CUR_CENTER = 1,        -- 目标中心
+    CUR_CENTER_POS = 2,         -- 目标中心位置
+    RELEASER_CENTER = 3,         -- 施法者中心
+}
+
+-- 客户端吟唱技能预警朝向 by:wdd
+M. SKILL_SING_PRO_ROT= {
+    DISPERSE = 1,        -- 分散   以中心点为圆心，始终朝向外面。
+    PARALLEL = 2,         -- 平行   以中心点为圆心，固定方向。
+}
+
+
+
+-- 静态方法 --
+-- 根据类型获取Role法力消耗值属性名称
+function M.get_spell_cost_att_name(cost_type)
+    M.cost_att_name_list = M.cost_att_name_list or {
+        [enum.shared.SpellCostType.NONE] = nil,
+        [enum.shared.SpellCostType.MANA] = { "mana", "mana_max" },
+        [enum.shared.SpellCostType.PAIN] = { "pain", "pain_max" },
+        [enum.shared.SpellCostType.FURY] = { "fury", "fury_max" },
+    }
+
+    local ret = M.cost_att_name_list[cost_type]
+    if ret ~= nil then
+        return unpack(ret)
+    end
+    return nil
+end
+
+M.SpellEffectType = {
+    NONE = 0,
+    SP_DAMAGE = 1,
+    AP_DAMAGE = 2,
+    WD_DAMAGE = 3,
+    WDN_DAMAGE = 4,
+    HEAL = 5,
+    APPLY_AURA = 6,
+    PERSISTENT_AREA_AURA = 7,
+    GENERATE_ENERGY_BALL = 8,
+    ADSORB_ENERGY_BALL = 9,
+    PULL_OVER = 10,
+    JUMP_DEST = 11,
+    TELEPORT = 12,
+    INSTANT_KILL = 13,
+    ENERGIZE = 14,
+    AREA_TRIGGER = 15,
+    INTERRUPT_CAST = 16,
+    ADSORB_ENERGY_BALL_AND_SCALE_DAMAGE = 17,
+    TRIGGER_SPELL = 18,
+    MOD_SPELL_COOLDOWN = 19,
+    RESET_SPELL_COOLDOWN = 20,
+    FIXED_DAMAGE = 21,
+    ENERGIZE_RANDOM = 22,
+    COST_POWER_AND_SCALE_DAMAGE = 23,
+    ASSAULT = 24,
+}
+
+
+
+return M
+

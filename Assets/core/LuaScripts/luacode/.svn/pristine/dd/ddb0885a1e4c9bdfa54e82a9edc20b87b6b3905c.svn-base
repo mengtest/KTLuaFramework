@@ -1,0 +1,60 @@
+local ObserverHost = require "system.observer_host"
+
+local BattleMgr = class("BattleMgr")
+BattleMgr:include(ObserverHost)
+
+function BattleMgr:initialize()
+	Event.init(self)
+end
+
+function BattleMgr:destroy()
+	self:unsubscribeAll()
+end
+
+function BattleMgr:update()
+
+end
+
+-- 指定unit是否是敌对
+---@param target	Unit
+function BattleMgr:is_enemy(target)
+    -- pacman 2017-09-13 目前所有玩家都是友军，所有怪物都是敌对
+    if target:get_is_role() then
+        return false
+    else
+        -- 获取怪物的阵营
+        local creatrue_cfg = target:getCfg()
+        local faction = creatrue_cfg.faction
+        -- pacman 2017-9-18 临时硬编码
+        -- 3 花果山阵营
+        if faction == 3 then
+            return false
+        else
+            return true
+        end
+    end
+end
+
+
+-- 判断目标是否位于技能范围
+function BattleMgr:is_target_in_range(caster_unit, target_unit, skill_id)
+    local caster_radius = caster_unit:get_bounding_radius()
+    local target_radius = target_unit:get_bounding_radius()
+    local skill_cfg = dbc.spell[skill_id]
+    local dist = skill_cfg.cast_dist
+    -- 考虑到施法者/目标体形范围因素
+    return (Vector3.Distance(caster_unit:get_pos(), target_unit:get_pos()) - caster_radius - target_radius) < dist
+end
+
+
+-- 为指定单位挑选一个目标
+-- pacman 2018-02-01 挖好坑等待从player_controller中重构出来
+function BattleMgr:select_target()
+
+
+end
+
+
+
+
+return BattleMgr

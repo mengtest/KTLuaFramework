@@ -1,0 +1,25 @@
+local Frame = require("system.frame")
+local backpack_equipment_main = class("backpack_equipment_main", Frame)
+
+function backpack_equipment_main:doInit(param)
+    self.m_tips_param = {}
+end
+
+function backpack_equipment_main:on_loaded()
+    --背包
+    self:createChild("backpack_list", "%subsystem/backpack_equipment/backpack_list")
+
+    --装备
+    self:createChild("equipment_list", "%subsystem/backpack_equipment/equipment_list")
+
+    --tips
+    self:createChild("equipment_tips_parent", "%subsystem/backpack_equipment/equipment_tips_parent", self.m_tips_param)
+
+end
+
+function backpack_equipment_main:get_param(top_height, bottem_height)
+    self.m_tips_param['top_height'] = top_height
+    self.m_tips_param['bottem_height'] = bottem_height
+end
+
+return backpack_equipment_main

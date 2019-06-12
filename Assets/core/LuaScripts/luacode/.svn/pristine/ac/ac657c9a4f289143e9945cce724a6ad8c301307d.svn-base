@@ -1,0 +1,36 @@
+local Frame = require("system.frame")
+local big_map_quest_item = class("big_map_quest_item", Frame)
+
+Attribute.decl(big_map_quest_item, "quest_name", "")
+Attribute.decl(big_map_quest_item, "self_go", nil)
+Attribute.decl(big_map_quest_item, "show_param", nil)
+
+Event.decl(big_map_quest_item, "refresh_self")
+Event.decl(big_map_quest_item, "interest_quest")
+
+function big_map_quest_item:doInit(param_list)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_big_map = self:getFrame("big_map")
+    self:set_show_param(param_list)
+end
+
+---- 关注按钮点击事件
+function big_map_quest_item:on_interest_btn()
+    self:emit_event("interest_quest")
+end
+
+function big_map_quest_item:on_item_btn()
+    local show_param = self:get_show_param()
+    if show_param['type'] == enum.ui.Enum_UI_MapItemType.Item_Choice_Teleport_Point then
+        self.m_big_map:emit_event("refresh_trans_info", show_param['param'], true)
+    else
+        self.m_big_map:emit_event("refresh_quest_info", show_param['param'], true)
+    end
+end
+
+function big_map_quest_item:refresh_self(param_list)
+    self:set_show_param(param_list)
+    self:emit_event("refresh_self", param_list)
+end
+
+return big_map_quest_item

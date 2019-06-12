@@ -1,0 +1,34 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local require_relative = REQUIRE_BASE(...)
+local UnitSfx = require_relative("unit_sfx")
+
+local SkillBuffSfx = class("SkillBuffSfx", UnitSfx)
+
+function SkillBuffSfx:doInit(param)
+    UnitSfx.doInit(self, param)
+
+    self.m_buff_data = param.buff_data
+
+    -- 删除buff事件
+    self:subscribe(self.m_unit:on_event("remove_buff"), function(removed_list)
+        for i, v in ipairs(removed_list) do
+            if (self.m_buff_data:get_spell_id() == v:get_spell_id()) and
+                (self.m_buff_data:get_slot() == v:get_slot()) then
+                self:on_buff_removed()
+            end
+        end
+    end)
+
+    -- 其他会导致buff消除的事件
+end
+
+function SkillBuffSfx:on_buff_removed()
+    self:destroySelf()
+end
+
+function SkillBuffSfx:get_buff_data()
+    return self.m_buff_data
+end
+
+return SkillBuffSfx

@@ -1,0 +1,122 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.bp.bp_unit"
+end
+
+function M:enter()
+    --print("UnitActStateSkillSing:enter")
+    UnitActStateBase.enter(self)
+
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.SKILL_SING)
+    self.m_unit:emit_event("anim_trigger", "sing")
+    -- 计算状态剩余时间，日后会改从服务器获取
+    -- cast_time 改为从skill_data获取
+	local battle_cfg=require "data.bp_battle_cfg" --导入预览数据
+    self.m_skill_data = battle_cfg.skill--self.m_unit:get_skill(self.m_unit:get_skill_id())
+    local duration = self.m_skill_data.castTime
+	
+	print("duration",duration ~= nil)
+    self.m_skill_cfg = battle_cfg.skill
+   -- assert(duration ~= nil, string.format("fail to get sing time of %d", self.m_unit:get_skill_id()))
+
+    local server_time = app:get_server_time()--by lijunfeng
+    self.m_end_time = server_time + duration
+    self.m_unit:set_skill_sing_start_time(server_time)
+    self.m_unit:set_skill_sing_end_time(self.m_end_time)
+end
+
+
+function M:exit()
+     --print("UnitActStateSkillSing:exit")
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+
+    --print("UnitActStateSkill:update")
+    UnitActStateBase.update(self)
+
+    local cc = self.m_unit:get_cc()
+    if cc == nil then
+        return
+    end
+
+    local delta_time = Time.deltaTime--by lijunfeng
+
+    -- 新增需求吟唱时可以移动，而且会立即打断
+    -- pacman 2017-11-15 临时屏蔽
+    --local move_state = self.m_unit:get_move_state()
+    --
+    --if(move_state ~= Unit.MOVE_STATE.IDLE) then
+    --    self:finish_sing(Enum_Battle.Sing_Finish.CANCEL)
+    --    return
+    --end
+
+
+    -- 同步朝向
+    self.m_unit:update_dir()
+
+    -- 移动处理 ---
+    local move_state = self.m_unit:get_move_state()
+    if move_state ~= Unit.MOVE_STATE.IDLE then
+
+        -- pacman 2017-11-17 吟唱中移动检查
+        local can_move = self.m_skill_cfg.can_cast_while_moving
+        if can_move then
+            -- pacman 2017-11-09 原先这里是根据move_state计算出move_dir，实际移动速度
+            -- 现在move_dir/实际移动速度等已经在这之前计算好了，以便支持不同的操作方式
+            local move_speed_xz = self.m_unit:get_actural_move_speed()
+            local move_dir = self.m_unit:get_move_dir()
+
+            -- 重力速度
+            -- 不用关心是否着地，都设置gravity_speed，以便在起伏的地形上移动
+            -- 因为本状态下，角色处于着地状态，所以gravity_speed设为 -Unit.GRAVITY，即每次都是重新开始下落
+            -- self.m_unit:set_gravity_speed(-Unit.GRAVITY * delta_time)    --这个变化幅度值太小了
+            self.m_unit:set_gravity_speed(-Unit.GRAVITY)
+
+            -- 位移
+            local movespeed = Quaternion.AngleAxis(move_dir, Vector3.up) * Vector3.forward * move_speed_xz
+            movespeed.y = self.m_unit:get_gravity_speed()
+            local movement = movespeed * delta_time
+            cc:Move(movement)
+            self.m_unit:set_pos(cc.transform.position)
+        else
+            -- 打断吟唱
+            self:finish_sing(Enum_Battle.Sing_Finish.CANCEL)
+        end
+
+    end
+
+    local server_time = app:get_server_time()--by lijunfeng
+
+    --------------------
+    -- 结束施法
+    if self.m_end_time <= server_time then
+        self:finish_sing(Enum_Battle.Sing_Finish.FINISH)
+        return
+    end
+
+end
+
+function M:finish_sing(val)
+    self.m_fsm:change_state(UAFsm.MAIN_ACT.MOVE)
+    self.m_unit:on_skill_sing_state_exit(self.m_unit:get_skill_id(),val)
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+return M

@@ -1,0 +1,19 @@
+local Frame = require("system.frame")
+local dungeon_leave_sure = class("dungeon_leave_sure", Frame)
+
+function dungeon_leave_sure:doInit(param)
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+function dungeon_leave_sure:on_sure_btn()
+    self.m_dungeon_manager:req_leave_dungeon()
+    self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+end
+
+function dungeon_leave_sure:on_cancle_btn()
+    self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+    self:destroySelf()
+end
+
+return dungeon_leave_sure

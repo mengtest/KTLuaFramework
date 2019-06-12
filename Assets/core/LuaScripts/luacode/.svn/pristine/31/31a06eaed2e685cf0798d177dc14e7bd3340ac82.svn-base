@@ -1,0 +1,19 @@
+---
+--- Created by wdd.
+--- DateTime: 2018/2/1 0001 9:51
+---
+local Frame = require("system.frame")
+local SkillSoundWarning = class("skill_round_warning", Frame)
+
+
+--Event.decl(SkillSoundWarning, "skill_round_start")
+
+function SkillSoundWarning:doInit(param)
+
+end
+
+--function SkillSoundWarning:skill_start(radius,angle,time)
+--     self:emit_event("skill_round_start",radius,angle,time)
+--end
+
+return SkillSoundWarning

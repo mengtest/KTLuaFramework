@@ -1,0 +1,134 @@
+local View = require("system.view")
+local big_map_view = class("dungeon_confirm_progress_view", View)
+
+function big_map_view:doInit(param)
+    self.m_map_left_bottom = param["map_left_bottom"]
+    self.m_map_right_up = param["map_right_up"]
+    local is_in_dungeon = param["inst_id"]
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_icon_point = nil
+
+    --self.m_quest_condition_aim_area_dict = {}
+
+    self:load("ui/BigMap.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+
+        self.m_map = go.transform:Find("map")
+        self.m_icon = go.transform:Find("map/player_icon")
+        --实际场景左下角和右上角坐标，暂时写死
+
+        local temp_map_size = self.m_map_right_up - self.m_map_left_bottom
+        --地图的尺寸
+        local map_size = self.m_map:GetComponent(UnityEngine.RectTransform).rect.size
+        self.m_scale_x = map_size.x / temp_map_size.x
+        self.m_scale_y = map_size.y / temp_map_size.z
+        self.m_icon_point = self.m_icon:GetComponent(UnityEngine.RectTransform)
+        frame:set_scale(self.m_scale_x, self.m_scale_y)
+
+        self:subscribe(frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local param = child_frame:getParam()
+
+            local boss_id = tonumber(string.match(name, "%d"))
+            if string.find(name, "boss_icon") then
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("map/boss_list")
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(param["pos"])
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "quest_icon") then
+                local view = self.m_mgr:getView(name)
+
+                local area_data = self.m_world:get_area_data(param["map_id"], param["area_id"])
+                --print(param["map_id"],param["area_id"])
+                --print(area_data)
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("map/quest_list")
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(area_data["worldPosition"])
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        local return_btn = go.transform:Find("map/return_bg/Button").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        return_btn.onClick:AddListener(function()
+            frame:destroySelf()
+        end)
+
+        if is_in_dungeon == 0 then
+            ----不在副本中，不显示boss信息
+            frame:on_loaded(0)
+        else
+            ----在副本中，显示对应的信息
+            self.m_dungeon_manager:cell_call("get_inst_progress")
+            frame:on_loaded(1)
+        end
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_pos"), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_dir"), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+    self:subscribe(self:getFrame():on_event("show_quest_condition_aim_area"), function(quest_id, index)
+        self:show_quest_condition_aim_area(quest_id, index)
+    end)
+end
+
+function big_map_view:refresh_owner_pos(pos)
+    self.m_icon_point.anchoredPosition3D = self:project_3d_pos_to_map_pos(pos)
+end
+
+function big_map_view:refresh_owner_dir(dir)
+    self.m_icon_point.localEulerAngles = Vector3(0, 0, -dir)
+end
+
+function big_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3((pos.x - self.m_map_left_bottom.x) * self.m_scale_x, (pos.z - self.m_map_left_bottom.z) * self.m_scale_y, 0)
+end
+
+--function big_map_view:show_quest_condition_aim_area(quest_id, index)
+--    local quest_layer = self.m_quest_condition_aim_area_dict[quest_id]
+--    if not quest_layer then
+--        quest_layer = {}
+--        self.m_quest_condition_aim_area_dict[quest_id] = quest_layer
+--    end
+--    local area_rt = quest_layer[index]
+--    if area_rt then
+--        return
+--    end
+--
+--    local area_info = self.m_quest_manager:get_quest_list()[quest_id]:get_condition_aim_area(index)
+--    local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+--    if not area_data then
+--        return
+--    end
+--    quest_layer[index] = "locked"
+--    self:load("ui/map/aim_area.prefab", function (go)
+--        go.name = "quest_condition_aim_area_" .. area_info[2]
+--        area_rt = go:GetComponent(UnityEngine.RectTransform)
+--        area_rt.parent = self.m_layer_quest_rt
+--        area_rt.localScale = Vector3.one
+--        area_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+--        area_rt.sizeDelta = Vector2(2 * area_data.radius * self.m_scale_x, 2 * area_data.radius * self.m_scale_y)
+--
+--        quest_layer[index] = area_rt
+--        Util_log:logError(Util_log.Mask.SJG_Map, string.format("quest_id = %d, index = %d, radius = %d\n area_data = \n%s", quest_id, index, 2 * area_data.radius, Util_string:get_string_by_tbl(area_data)))
+--    end)
+--end
+
+return big_map_view

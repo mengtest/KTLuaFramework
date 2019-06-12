@@ -1,0 +1,53 @@
+local Frame = require("system.frame")
+local map_manager = class("map_manager", Frame)
+
+Event.decl(map_manager, "rec_unlock_trans_point")
+
+function map_manager:doInit(param)
+    self.m_unlock_trans_point_list = {}
+    self:req_unlock_tele_point()
+end
+
+function map_manager:init()
+    self:local_log("map_manager  初始化")
+end
+
+-----服务器返回解锁的传送点
+function map_manager:resp_unlock_tele_point(unlock_tele_point)
+    self.m_unlock_trans_point_list = unlock_tele_point
+    self:emit_event("rec_unlock_trans_point", unlock_tele_point)
+end
+
+---- 获取所有已解锁传送点列表 by xinghanzhong 2018/02/09
+function map_manager:gain_unlock_tele_point()
+    return self.m_unlock_trans_point_list
+end
+
+----向服务器请求已经解锁的传送点
+function map_manager:req_unlock_tele_point()
+    --Debug.LogError("req_unlock_tele_point")
+    self:base_call("req_unlock_tele_point")
+end
+
+-----向服务器请求传送
+function map_manager:req_transform(id)
+    self:base_call("req_tele_to_point", id)
+end
+
+function map_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+function map_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function map_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+return map_manager

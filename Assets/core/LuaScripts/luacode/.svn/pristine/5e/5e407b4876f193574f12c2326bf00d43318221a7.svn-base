@@ -1,0 +1,48 @@
+---
+--- Created by lijunfeng
+--- DateTime: 2018/2/27 14:14
+---
+
+local M = { }
+
+Attribute.decl(M,"offset", Vector3.zero) --相对头顶的偏移
+Attribute.decl(M,"scale", Vector3(0.40, 0.6, 1))
+Attribute.decl(M,"interact_state", enum.quest.Quest_Npc_State.None)
+
+function M:doInit(param)
+    local tid = param.tid -- tid
+    self:set_interact_state(param.interact_state)
+    --因为hint是在主角上的，所以应先获取主角的位置main_unit
+    local world = self:getFrame("world")
+    local unit = world:get_giver_by_tid(tid)
+    local top_bone,has_bone=unit:get_bone("top")
+    local cc = unit:get_cc()
+    print("获取npc cc骨骼", cc==nil,tid,has_bone)
+    -- by lijunfeng 2017/12/28 需要等到npc cc 资源加载完毕再显示
+    if cc==nil then
+        self:subscribe(unit:on_event_attr_set("cc_loaded", false), function(value)
+
+            if value then
+                cc = unit:get_cc()
+                print("延迟显示hint cc",tid, has_bone,has_bone and top_bone.localPosition.y or cc.height)
+                --hint在主角位置上的偏移量
+                local pos = has_bone and Vector3.up * (top_bone.localPosition.y+0.05) or Vector3.up * (cc.height+0.05)
+                self:set_offset(pos)
+            end
+        end)
+        return
+    end
+
+    print("显示hint cc",tid, has_bone and top_bone.localPosition.y or cc.height,has_bone)
+    --hint在主角位置上的偏移量
+    local pos = has_bone and Vector3.up * (top_bone.localPosition.y+0.05) or Vector3.up * (cc.height+0.05)
+    self:set_offset(pos)
+end
+
+function M:doDestroy()
+    self.world=nil
+    self.unit=nil
+    self.cc=nil
+end
+
+return M

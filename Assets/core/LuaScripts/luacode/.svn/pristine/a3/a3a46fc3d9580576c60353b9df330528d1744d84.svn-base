@@ -1,0 +1,197 @@
+local M = {}
+
+function M:init_self_variable()
+    self.m_sfx_list = {}
+end
+
+function M:doInit()
+    self:init_self_variable()
+    
+    self:load(app:getAssetPathMgr().get_ui_view_asset("PlayerHPBar"), function(go)
+        self:handle_prefab(go)
+    end)
+end
+
+
+function M:handle_prefab(ui_prefab)
+    
+    app:get_ui_manager():AdaptResolution("player_hp_bar", ui_prefab)
+    
+    self:handle_hp()
+    
+    self:handle_mana()
+    
+    self:handle_pain()
+    
+    self:handle_fury()
+    
+    self:handle_specialization()
+    
+    self:handle_battle()
+
+end
+
+-- 加载特效
+function M:load_sfx(specialization)
+    if (specialization == enum.shared.TalentSpecialization.MAGE_FIRE) then
+        local sfx_path = "ui_lc_xc_buff_effect"
+        if (self.m_sfx_list[sfx_path] ~= nil) then return end
+
+        self:load(app:getAssetPathMgr().get_sfx_asset(sfx_path), function(sfx_1)
+            local container_transform = self["s_" .. specialization .. "_container_gameObject"].transform
+
+            for i = 0, container_transform.childCount - 1 do
+                local _sfx 
+                if (i == 0) then
+                    _sfx  =  sfx_1
+                else
+                    _sfx = GameObject.Instantiate(sfx_1)
+                end
+
+                _sfx.transform:SetParent(container_transform:GetChild(i))
+                _sfx.transform.localPosition = Vector3.zero
+                _sfx.transform.localEulerAngles = Vector3.zero
+                _sfx.transform.localScale = Vector3.one
+            end
+            
+            self.m_sfx_list[sfx_path] = 1 -- 暂时只标记为1 表示已经加载过
+
+        end)
+    elseif(specialization == enum.shared.TalentSpecialization.DEMON_HUNTER_VENGEANCE) then
+        local sfx_path = "ui_lh_xc_buff_effect"
+        if (self.m_sfx_list[sfx_path] ~= nil) then return end
+
+        self:load(app:getAssetPathMgr().get_sfx_asset(sfx_path), function(sfx_1)
+            local container_transform = self["s_" .. specialization .. "_container_gameObject"].transform
+
+            for i = 0, container_transform.childCount - 1 do
+                local _sfx 
+                if (i == 0) then
+                    _sfx  =  sfx_1
+                else
+                    _sfx = GameObject.Instantiate(sfx_1)
+                end
+
+                _sfx.transform:SetParent(container_transform:GetChild(i))
+                _sfx.transform.localPosition = Vector3.zero
+                _sfx.transform.localEulerAngles = Vector3.zero
+                _sfx.transform.localScale = Vector3.one
+            end
+            
+            self.m_sfx_list[sfx_path] = 1 -- 暂时只标记为1 表示已经加载过
+
+        end)
+    end
+end
+
+-- 专精
+function M:handle_specialization()
+    
+    local frame = self:getFrame()
+    
+    self:subscribe(frame:on_event_spell_cost_type_set(true), function(val)
+            -- 先隐藏 因为会根据专精依次打开
+            self["mana_root_gameObject"]:SetActive(false)
+            self["pain_root_gameObject"]:SetActive(false)
+            self["fury_root_gameObject"]:SetActive(false)
+            
+            if (val ~= nil and type(val) == "table") then
+                for k, v in pairs(val) do
+                    if (v == enum.shared.SpellCostType.MANA) then
+                        self["mana_root_gameObject"]:SetActive(true)
+                    elseif (v == enum.shared.SpellCostType.PAIN) then
+                        self["pain_root_gameObject"]:SetActive(true)
+                    elseif (v == enum.shared.SpellCostType.FURY) then
+                        self["fury_root_gameObject"]:SetActive(true)
+                    end
+                end
+            end
+    end)
+    
+    
+    self:subscribe(frame:on_event_player_specialization_set(true), function(val)
+            
+            self["s_3_gameObject"]:SetActive(false)
+            self["s_12_gameObject"]:SetActive(false)
+            
+            if (self["s_" .. val .. "_gameObject"] ~= nil) then
+                self["s_" .. val .. "_gameObject"]:SetActive(true)
+            end
+            
+            self:load_sfx(val)
+    end)
+
+end
+
+
+-- hp
+function M:handle_hp()
+    local frame = self:getFrame()
+    
+    local hp_bar_fore_image = self["hp_fore_GUIImage"]
+    
+    self:subscribe(frame:on_event_hp_percent_set(true), function(val)
+        hp_bar_fore_image.fillAmount = val
+    end)
+
+end
+
+
+-- mana
+function M:handle_mana()
+    local frame = self:getFrame()
+    
+    local mana_bar_fore_image = self["mana_fore_GUIImage"]
+    
+    self:subscribe(frame:on_event_mana_percent_set(true), function(val)
+        mana_bar_fore_image.fillAmount = val
+    end)
+end
+
+
+-- pain
+function M:handle_pain()
+    local frame = self:getFrame()
+    
+    local pain_bar_fore_image = self["pain_fore_GUIImage"]
+    
+    self:subscribe(frame:on_event_pain_percent_set(true), function(val)
+        pain_bar_fore_image.fillAmount = val
+    end)
+
+end
+
+
+-- fury
+function M:handle_fury()
+    local frame = self:getFrame()
+    
+    local fury_bar_fore_image = self["fury_fore_GUIImage"]
+    
+    self:subscribe(frame:on_event_fury_percent_set(true), function(val)
+        fury_bar_fore_image.fillAmount = val
+    end)
+end
+
+
+-- 战斗处理
+function M:handle_battle()
+    
+    local frame = self:getFrame()
+    
+    self:subscribe(frame:on_event_special_spell(), function(specialization, val)
+        local container = self["s_" .. specialization .. "_container_gameObject"]
+        if (container ~= nil) then
+            local tra = container.transform
+            for i = 0, tra.childCount - 1 do
+                if (i < val) then
+                    tra:GetChild(i).gameObject:SetActive(true)
+                else
+                    tra:GetChild(i).gameObject:SetActive(false)
+                end
+            end
+        end
+    end)
+end
+
+return M

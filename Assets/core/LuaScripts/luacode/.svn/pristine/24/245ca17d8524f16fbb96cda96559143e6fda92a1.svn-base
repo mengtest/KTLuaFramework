@@ -1,0 +1,30 @@
+
+local Frame = require("system.frame")
+local Confirm_win = class("Confirm_win", Frame)
+
+Attribute.decl(Confirm_win, "msg", "")
+
+function Confirm_win:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+
+    self.on_ensure = nil
+    self.on_cancel = nil
+
+
+end
+
+function Confirm_win:do_ensure()
+    if self.on_ensure then
+        self:on_ensure()
+    end
+    self:destroyFrame(self:getFrameName())
+end
+
+function Confirm_win:do_cancel()
+    if self.on_cancel then
+        self:on_cancel()
+    end
+    self:destroyFrame(self:getFrameName())
+end
+
+return Confirm_win

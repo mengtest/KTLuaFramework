@@ -1,0 +1,627 @@
+-----------------------------
+---	把所有的路径函数加入到 M
+---	WARNING: 这里定义的函数必须是纯函数, 不要依赖任何外部系统的状态, 如果有依赖就把依赖的状态变成参数传入. 
+---	WARNING: 大小写敏感.
+--- WARNING: 这里的函数需要和 "def_packages.lua" 保持同步
+---
+local U = require 'common.util.underscore'
+local M = {}
+
+--! NOTE: 有从表里面抽出来的地图名称, 也有写死的地图名称.
+function M.get_weather_config( scene_name )
+	return 'weathers/WeatherSystem/'..scene_name..'_skysphere_settings.asset'
+end
+
+--! NOTE: 有从表里面抽出来的地图名称, 也有写死的地图名称.
+function M.get_weather_file( scene_name )
+	return string.format('weathers/%s.asset', scene_name)
+end
+
+--! NOTE: 有从表里面抽出来的地图名称, 也有写死的地图名称.
+function M.get_ktpp_config( scene_name )
+	return 'scene_prefabs/sky/KTPPSettings_'..scene_name..'.asset'
+end
+
+
+-- pacman 2018-02-07 音效
+--! DONE
+function M.get_sound_asset(id)
+	local m = dbc.sound[id]
+    return string.format("actors/audio/%s/%s", m.group, m.name)
+end
+
+
+-- pacman 2018-02-06 获取ui view资源
+--! DONE
+function M.get_ui_view_asset(ui_view_name)
+	return 'ui/'..ui_view_name .. ".prefab"
+end
+
+-- pacman 2018-02-08 获取技能图标资源
+function M.get_skill_icon_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.icon
+end
+
+-- pacman 2018-02-09 获取技能cd图标资源
+function M.get_skill_cd_icon_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.cd_icon
+end
+
+-- pacman 2018-02-09 技能进度条-专精定制背景
+function M.get_skill_specialization_bg_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.specialization_bg_path
+end
+
+-- pacman 2018-02-09 技能进度条-专精定制填充
+function M.get_skill_specialization_fill_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.specialization_fill_path
+end
+
+-- pacman 2018-02-09 技能进度条-专精定制高亮
+function M.get_skill_specialization_bright_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.specialization_bright_path
+end
+
+-- pacman 2018-02-09 技能进度条-专精定制打断
+function M.get_skill_specialization_interrupt_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.specialization_interrupt_path
+end
+
+function M.get_skill_indicateareas_effect_path_asset(skill_id)
+	local m = dbc.spell_client[skill_id]
+	return m.indicateareas_effect_path
+end
+
+
+-- pacman 2018-02-09 地图场景资源
+function M.get_map_asset(map_id)
+    local cfg = assert(dbc.map[map_id], map_id)
+    local map_name = cfg.res_client
+    local is_stream_map = cfg.load_map_type == 1
+    
+    if is_stream_map then
+    	return string.format("scenes/%s_game.unity", map_name .. "/" .. map_name)
+    end
+    
+    return string.format("scenes/%s.unity", map_name)
+end
+
+function M.get_map_streamer_scenes( map_id )
+	local cfg = assert(dbc.map[map_id], map_id)
+    local is_stream_map = cfg.load_map_type == 1
+	
+	if is_stream_map then
+		local map_name = cfg.res_client
+		local sub_scene_dir = string.format('Assets/scenes/%s/res', map_name)
+		return U.map(U.to_array(KTPackageLuaHelper.Glob(sub_scene_dir, "*.unity")), function( value )
+			return string.format('scenes/%s/res/%s.unity', map_name, value)
+		end)
+	end    
+end
+
+function M.get_map_streamer_resources( map_id )
+	local cfg = assert(dbc.map[map_id], map_id)
+    local is_stream_map = cfg.load_map_type == 1
+	
+	if is_stream_map then
+		local map_name = cfg.res_client
+		local sub_scene_dir = string.format('Assets/scenes/%s/res', map_name)
+		local sub_scene_prefab_dir = string.format('Assets/scenes/%s/prefad', map_name)
+		local result = {}
+		U.each(KTPackageLuaHelper.Glob(sub_scene_dir, "*.prefab"), function( asset )
+			result[#result + 1] = string.format('scenes/%s/res/%s.prefab', map_name, asset)
+		end)
+
+		U.each(KTPackageLuaHelper.Glob(sub_scene_prefab_dir, "*.prefab"), function( asset )
+			result[#result + 1] = string.format('scenes/%s/prefad/%s.prefab', map_name, asset)
+		end)
+
+		U.each(KTPackageLuaHelper.Glob(sub_scene_prefab_dir, "*.asset"), function( asset )
+			result[#result + 1] = string.format('scenes/%s/prefad/%s.asset', map_name, asset)
+		end)
+
+		return result
+	end
+end
+
+
+function M.get_model_prefab_name( model_id )
+	return string.format('actors/prefab/%s.prefab', assert(dbc.model_path[model_id]).prefab_name)
+end
+
+-- ↓↓↓ 技能相关 ↓↓↓ 
+
+-- pacman 2018-02-27 获取s2c_anim表资源
+function M.get_s2c_anim(path, s2c_anim)
+    return string.format("models/Role/%s/animation/%s.anim", path, s2c_anim)
+end
+
+-- pacman 2018-02-27 获取s2c_anim的上半身版本
+function M.get_s2c_anim_upperbody(path, s2c_anim)
+    local model_mgr = require "common.model_mgr"
+    local anim = M.get_s2c_anim(path, s2c_anim)
+    return model_mgr.GetUpperbodyAnimClip(anim)
+end
+
+function M.get_sing_anim_a(path, sing_anim_a)
+	return string.format("models/Role/%s/animation/%s.anim", path, sing_anim_a)
+end
+
+function M.get_sing_anim_a_upperbody(path, sing_anim_a)
+    local model_mgr = require "common.model_mgr"
+    local anim = M.get_sing_anim_a(path, sing_anim_a)
+    return model_mgr.GetUpperbodyAnimClip(anim)
+end
+
+function M.get_sing_anim_b(path, sing_anim_b)
+    return string.format("models/Role/%s/animation/%s.anim", path, sing_anim_b)
+end
+
+function M.get_sing_anim_b_upperbody(path, sing_anim_b)
+    local model_mgr = require "common.model_mgr"
+    local anim = M.get_sing_anim_b(path, sing_anim_b)
+    return model_mgr.GetUpperbodyAnimClip(anim)
+end
+
+function M.get_instant_anim(path, instant_anim)
+    return string.format("models/Role/%s/animation/%s.anim", path, instant_anim)
+end
+
+function M.get_instant_anim_upperbody(path, instant_anim)
+    local model_mgr = require "common.model_mgr"
+    local anim = M.get_instant_anim(path, instant_anim)
+    return model_mgr.GetUpperbodyAnimClip(anim)
+end
+
+function M.get_channel_anim(path, channel_anim)
+
+    local t = {}
+
+    for _i,_v in ipairs(channel_anim) do
+        table.insert(t , string.format("models/Role/%s/animation/%s.anim", path, _v))
+    end
+
+    return t
+end
+
+function M.get_channel_anim_upperbody(path, channel_anim)
+    local model_mgr = require "common.model_mgr"
+    local anim_list = M.get_channel_anim(path, channel_anim)
+    local t = {}
+    for _, v in ipairs(anim_list) do
+        t[#t + 1] = model_mgr.GetUpperbodyAnimClip(v)
+    end
+    return t
+end
+
+function M.get_move_anim(path, move_anim)
+
+    local t = {}
+
+    for _i,_v in ipairs(move_anim) do
+        table.insert(t , string.format("models/Role/%s/animation/%s.anim", path, _v))
+    end
+    return t
+
+end
+
+function M.get_move_anim_upperbody(path, move_anim)
+    local model_mgr = require "common.model_mgr"
+    local anim_list = M.get_move_anim(path, move_anim)
+    local t = {}
+    for _, v in ipairs(anim_list) do
+        t[#t + 1] = model_mgr.GetUpperbodyAnimClip(v)
+    end
+    return t
+end
+
+
+function M.get_skill_base_sfx(spell_id) 		-- 技能特效资源数据
+    local m = dbc.spell_client[spell_id]
+    local enum_battle = require("enum.enum_battle")
+
+    local result = {}
+
+    for i,v in pairs(enum_battle.Skill_Sfx_Type) do
+        local t1 = m[v]
+        for _i,_v in ipairs(t1) do
+            table.insert(result,_v)
+        end
+    end
+
+    return result
+end
+
+function M.get_instant_sfx( spell_id )
+	return assert(dbc.spell_client[spell_id], spell_id).instant_sfx
+end
+
+function M.get_buff_base_sfx(buff_id) 		-- buff资源数据
+    local m = dbc.spell_buff_client[buff_id]
+
+    local result = {}
+
+    for i,v in ipairs(m.buff_sfx) do
+        table.insert(result,v)
+    end
+
+    return result
+end
+
+function M.get_buff_icon( buff_id )
+	return assert(dbc.spell_buff_client[buff_id], buff_id).buff_icon
+end
+
+-- ↑↑↑ 技能相关 ↑↑↑ 
+
+
+-- ↓↓↓ 采集 ↓↓↓
+
+function M.get_treasure_base(treasure_id)
+    local result = {}
+    local m = dbc.treasure[treasure_id]
+
+    local model_mgr = require "common.model_mgr"
+
+    local normal_anim = model_mgr.GetAnimationPathById(m.interact_obj_display_id,m.normal_anim)
+    local success_anim = model_mgr.GetAnimationPathById(m.interact_obj_display_id,m.success_anim)
+    table.insert(result,normal_anim)
+    table.insert(result,success_anim)
+
+    local success_sfx = m.success_sfx
+
+    for i,v in ipairs(success_sfx) do
+        table.insert(result,v)
+    end
+
+
+    return result
+end
+
+-- ↑↑↑ 采集 ↑↑↑
+
+-- ↓↓↓ 物件 ↓↓↓
+
+function M.get_object_base(object_id)
+    local result = {}
+
+    local m = dbc.abiotic[object_id]
+
+    local model_mgr = require "common.model_mgr"
+
+    local anim  = model_mgr.GetAnimationPathById(m.model_id,m.anim)
+
+    table.insert(result,anim)
+
+    local sfx = m.sfx
+
+    for i,v in ipairs(sfx) do
+        table.insert(result,v)
+    end
+
+
+    return result
+end
+
+-- ↑↑↑ 物件 ↑↑↑
+
+function M.get_role_animator(specialization_id)
+    local data = dbc.specialization[specialization]
+
+    if(data ~= nil) then
+        return data.animator
+    else
+        return nil
+    end
+end
+
+function M.get_role_weapon(specialization_id)
+    local data = dbc.weapon[specialization]
+
+    if(data ~= nil) then
+        return data.weapon
+    else
+        return nil
+    end
+end
+
+function M.get_role_weapon_sfx(specialization_id)
+    local data = dbc.weapon[specialization]
+
+    if(data ~= nil) then
+        return data.sfx
+    else
+        return nil
+    end
+end
+
+function M.get_role_weapon_blade(specialization_id)
+    local data = dbc.weapon[specialization]
+
+    if(data ~= nil) then
+        return data.blade
+    else
+        return nil
+    end
+end
+
+
+local function def_table_full_package_getter(table_name, format, ...)
+	local columes = {...}
+	U.each(columes, function( colume )
+		local fn_name = string.format('get_%s_%s', table_name, colume)
+		M[fn_name] = function(id)
+			local value = assert(dbc[table_name][id])[colume]
+			print('Run')
+			if format then
+		    	return string.format(format, value)
+			else
+				print('====', value)
+				return value
+			end
+		end
+	end)
+end
+
+def_table_full_package_getter('vocation', 'ui/Icons/%s', 
+	'btn_icon_normal', 'btn_icon_pressed', 'img_presentation')
+
+def_table_full_package_getter('equip_quality_client', nil,
+	'backpack_icon', 
+	'equip_big_icon', 
+	'equip_small_icon', 
+	'equip_middle_icon', 
+	'spirit_quality_icon')
+
+def_table_full_package_getter('map', nil,
+	'map_pic_path')
+
+
+def_table_full_package_getter('item', nil,
+	'equip_path',
+	'bag_icon')
+
+def_table_full_package_getter('fashion_dress', nil,
+	'card_icon_path')
+
+def_table_full_package_getter('sprite', nil,
+	'icon',
+	'handbook_icon')
+
+def_table_full_package_getter('specialization', nil,
+	'weapon')
+
+-------------------------------------------------
+-- 模块里使用的零散的需要写死的资源.
+--
+local function decl_fixed_getter( fn_name, res_tbl )
+    local tbl_name = string.format('%s_params', fn_name)
+    assert(M[tbl_name] == nil, tbl_name)
+
+    M[tbl_name] = res_tbl
+    M[fn_name] = function(name)
+        return res_tbl[name]
+    end
+end
+
+decl_fixed_getter('get_skill_projector', {
+    indicateareas_effect_cancel = "sfx/skill/prefab/pc/luocha/lyfb/lyfb_002.prefab",
+    pro_rect_area = "sfx/skill_projector/prefab/pro_rect_area.prefab",
+    pro_round_area = "sfx/skill_projector/prefab/pro_round_area.prefab",
+    pro_specoalrect_area = "sfx/skill_projector/prefab/pro_specoalrect_area.prefab",
+    skill_distance_far_area = "sfx/skill_projector/prefab/skill_distance_far_area.prefab",
+    range = "sfx/skill_projector/prefab/range.prefab",
+    round_area = "sfx/skill_projector/prefab/round_area.prefab",
+    enemy_round_area = "sfx/skill_projector/prefab/enemy_round_area.prefab",
+    npc_guard_range = "sfx/skill_projector/prefab/npc_guard_range.prefab",
+    sector_area = "sfx/skill_projector/prefab/sector_area.prefab",
+    enemy_sector_area = "sfx/skill_projector/prefab/enemy_sector_area.prefab",
+    enemy_rect_area = "sfx/skill_projector/prefab/enemy_rect_area.prefab",
+    enemy_arrow_area = "sfx/skill_projector/prefab/enemy_arrow_area.prefab",
+    enemy_rectangle_area_1 = "sfx/skill_projector/prefab/enemy_rectangle_area_1.prefab",
+    enemy_rectangle_area_item = "sfx/skill_projector/prefab/enemy_rectangle_area_item.prefab",
+    pro_sector_area = "sfx/skill_projector/prefab/pro_sector_area.prefab",
+})
+
+decl_fixed_getter('get_ui_main_view_scene', {
+    scene1 = "scenes/spirit_model_show_temp.unity",
+    scene2 = "scenes/spirit_handbook_model_show_temp.unity",
+})
+
+decl_fixed_getter('get_ui_main_view_resource', {
+    normal = "ui/Icons/dungeon/putong_clicked.png",
+    hero = "ui/Icons/dungeon/yingxiong_clicked.png",
+    epic = "ui/Icons/dungeon/shishi_clicked.png",
+    mist = "ui/Icons/dungeon/mijing_clicked.png",
+})
+
+decl_fixed_getter('get_team_bar_view_resource', {
+    hp_high = "ui/Icons/UITeam/tab_team/xuetiao_green.png",
+    hp_middle = "ui/Icons/UITeam/tab_team/xuetiao_yellow.png",
+    hp_low = "ui/Icons/UITeam/tab_team/xuetiao_red.png",
+})
+
+decl_fixed_getter('get_team_skilltarget_control_view_resource', {
+    xuetiao = 'ui/Icons/UIMain/addHP/xuetiao.png',
+    xuetiao_hui = 'ui/Icons/UIMain/addHP/xuetiao_hui.png',
+    xuetiao_huang = 'ui/Icons/UIMain/addHP/xuetiao_huang.png',
+    dixueliang = "ui/Icons/UIMain/addHP/dixueliang.png",
+
+    tank = "ui/Icons/UIMain/addHP/tanke.png",
+    damage = "ui/Icons/UIMain/addHP/zhjiye_2.png",
+    healer = "ui/Icons/UIMain/addHP/jiaxue.png",
+    tank_disable = "ui/Icons/UIMain/addHP/tanke_hui.png",
+    damage_disable = "ui/Icons/UIMain/addHP/zhjiye_2_hui.png",
+    healer_disable = "ui/Icons/UIMain/addHP/jiaxue_hui.png",
+    disable_bg = "ui/Icons/UIMain/addHP/die_dikuang.png",
+    priest = "ui/Icons/UIMain/addHP/jingtong.png",
+    priest_bg = "ui/Icons/UIMain/addHP/jingtong_di.png",
+    priest_disable = "ui/Icons/UIMain/addHP/jingtong_hui.png",
+    demon_hunter = "ui/Icons/UIMain/addHP/linghou.png",
+    demon_hunter_bg = "ui/Icons/UIMain/addHP/linghou_di.png",
+    demon_hunter_disable = "ui/Icons/UIMain/addHP/linghou_hui.png",
+    mage = "ui/Icons/UIMain/addHP/luocha.png",
+    mage_bg = "ui/Icons/UIMain/addHP/luocha_di.png",
+    mage_disable = "ui/Icons/UIMain/addHP/luocha_hui.png",
+})
+
+decl_fixed_getter('get_mini_map_manager_resource', {
+    trace_icon_1 = "ui/Icons/UIMap/MiniMap/zhuizong_1.png",
+    trace_icon_2 = "ui/Icons/UIMap/MiniMap/zhuizong_2.png",
+    interest_icon = "ui/Icons/UIMap/MiniMap/guanzhu.png",
+	tanhao_huang_icon = "ui/Icons/UIMap/MiniMap/tanhao_huang.png",
+	tanhao_hong_icon = "ui/Icons/UIMap/MiniMap/tanhao_hong.png",
+	wenhao_huang_icon = "ui/Icons/UIMap/MiniMap/wenhao_huang.png",
+	wenhao_lan_icon = "ui/Icons/UIMap/MiniMap/wenhao_lan.png",
+	zhandou_icon = "ui/Icons/UIMap/MiniMap/zhandou.png",
+	area_1_icon = "ui/Icons/UIMap/MiniMap/area_1.png",
+	area_2_icon = "ui/Icons/UIMap/MiniMap/area_2.png",
+})
+
+decl_fixed_getter('get_skill_ui_setting_view_resource', {
+    default_icon = "ui/Icons/new/skill_bantoudi.png"
+})
+
+decl_fixed_getter('get_spirit_handbook_card_view_resource', {
+    default_icon = "ui/Icons/UISpirit/weikaiqu.png"
+})
+
+decl_fixed_getter('get_spirit_merge_btn_view_resource', {
+    icon_plus = "ui/Icons/UISpirit/jia.png"
+})
+
+decl_fixed_getter('get_backpack_item_view_resource', {
+    default = "ui/Icons/common/item_daoju.png",
+    sect_default = "ui/Icons/UIEquipment/item_zhuangbei.png"
+})
+
+decl_fixed_getter('get_player_controller_view_resource', {
+    top_3 = "ui/Icons/MonsterChoose/top_3.png",
+    top_4 = "ui/Icons/MonsterChoose/top_4.png",
+    skill_btn_list_custom = "ui/config/SkillBtnListCustom.asset",
+
+})
+
+decl_fixed_getter('get_sfx_asset', {
+    ui_juese_shengji =	"sfx/skill/prefab/ui/ui_gongxishengji.prefab",
+    ui_renwu_shibai = "sfx/skill/prefab/ui/ui_renwu_shibai.prefab",
+    ui_renwu_wancheng =	"sfx/skill/prefab/ui/ui_renwu_wancheng.prefab",
+    ui_zudui_chazhao_01 =	"sfx/skill/prefab/ui/ui_zudui_chazhao_01.prefab",
+    ui_ditu_kuosan =	"sfx/skill/prefab/ui/ui_ditu_kuosan.prefab",
+    ui_ditu_renwu_tishii_01 =	"sfx/skill/prefab/ui/ui_ditu_renwu_tishii_01.prefab",
+    ui_ditu_renwu_tishii_lv =	"sfx/skill/prefab/ui/ui_ditu_renwu_tishii_lv.prefab",
+    ui_ditu_renwu_tishii_cheng =	"sfx/skill/prefab/ui/ui_ditu_renwu_tishii_cheng.prefab",
+    ui_tianfu_dai_ji_huo =	"sfx/skill/prefab/ui/ui_ji_neng_sheng_ji/UI_sheng_ji_ti_shi.prefab",
+    ui_tianfu_qiyong =	"sfx/skill/prefab/ui/ui_qiyong_01.prefab",
+    ui_lingshou_fenjie =	"sfx/skill/prefab/ui/ui_pet_fenjie_tx.prefab",
+    ui_lingshou_xingxing =	"sfx/skill/prefab/ui/ui_pet_xingxing_tx.prefab",
+    ui_lingshou_feng =	"sfx/skill/prefab/ui/4shuxing/UI_feng.prefab",
+    ui_lingshou_huo =	"sfx/skill/prefab/ui/4shuxing/UI_huo.prefab",
+    ui_lingshou_tu =	"sfx/skill/prefab/ui/4shuxing/UI_tu.prefab",
+    ui_lingshou_shui =	"sfx/skill/prefab/ui/4shuxing/UI_shui.prefab",
+    ui_lingshou_zhuangbei =	"sfx/skill/prefab/ui/ui_pet_cc_tx.prefab",
+    ui_lingshou_shengji =	"sfx/skill/prefab/ui/ui_pet_sj_tx.prefab",
+    ui_lingshou_shengxing =	"sfx/skill/prefab/ui/ui_pet_sx_tx.prefab",
+    ui_jineng_jiesuo =	"sfx/skill/prefab/ui/ui_ji_neng_sheng_ji/UI_jie_shuo_ji_neng.prefab",
+    ui_jineng_xuexi =	"sfx/skill/prefab/ui/ui_wujian_dengjitisheng.prefab",
+    ui_jineng_lengquewancheng =	"sfx/skill/prefab/ui/ui_lengquewancheng01.prefab",
+    ui_jineng_dianji_fankui =	"sfx/skill/prefab/ui/ui_dianjifankui.prefab",
+    ui_jineng_dazhao_chongneng =	"sfx/skill/prefab/ui/ui_dazhao_chongneng.prefab",
+    ui_jineng_chongneng =	"sfx/skill/prefab/ui/ui_chongneng_huodian.prefab",
+    ui_jineng_jihuo =	"sfx/skill/prefab/ui/ui_jihuo_shiyan1.prefab",
+    ui_zhuangbeikuang_shu =	"sfx/skill/prefab/ui/ui_zhuangbeikuang_shu.prefab",
+    ui_zhuangbeikuang_xiao =	"sfx/skill/prefab/ui/ui_zhuangbeikuang_xiao.prefab",
+    ui_zhuangbeikuang_heng =	"sfx/skill/prefab/ui/ui_zhuangbeikuang_heng.prefab",
+    ui_zhuangbeikuang_01 =	"sfx/skill/prefab/ui/ui_zhuangbeikuang_01.prefab",
+    ui_renwu_gengxin =	"sfx/skill/prefab/ui/ui_renwu_gengxin.prefab",
+    ui_renwu_xinxifeidan =	"sfx/skill/prefab/ui/ui_renwu_xinxifeidan.prefab",
+    ui_zudui_biankuang_01 =	"sfx/skill/prefab/ui/ui_zudui_biankuang_01.prefab",
+    ui_zuidui_canxue_01 =	"sfx/skill/prefab/ui/ui_zuidui_canxue_01.prefab",
+    sheng_ji =	"sfx/skill/prefab/pc/sheng_ji.prefab",
+    ui_lc_xc_buff_effect =	"sfx/skill/prefab/ui/UI_lc_xc_buff_effect/UI_lc_xc_buff_effect (1).prefab",
+    ui_lh_xc_buff_effect =	"sfx/skill/prefab/ui/UI_lh_xc_buff_effect/UI_lh_xc_buff_effect.prefab",
+    lingshou_wuqi_shiyan =	"sfx/skill/prefab/weapon/wuqi_shiyan.prefab",
+    juese_dimian_tx =	"sfx/character/juese_dimian_tx.prefab",
+    ui_js_yuxuan_touding_red =	"sfx/skill/prefab/ui/ui_js_yuxuan_touding_red.prefab",
+    jingtou_lianyi =	"sfx/skill/prefab/ui/jingtou_lianyi.prefab",
+    jubanger_01 =	"sfx/skill/prefab/weapon/jubanger_01.prefab",
+    mc_red =	"sfx/monster_choose/prefab/mc_red.prefab",
+    ui_js_touding_red =	"sfx/skill/prefab/ui/ui_js_touding_red.prefab",
+    ui_js_touding_green =	"sfx/skill/prefab/ui/ui_js_touding_green.prefab",
+})
+--by lijunfeng 2018/3/1
+decl_fixed_getter('top_hint_resource', {
+    top_hint_image= "sfx/skill/prefab/ui/Hint.prefab",
+    yellow_exclamation = "ui/Icons/UITask/tanhao.png",
+    red_exclamation = "ui/Icons/UITask/shibai.png",
+    blue_question = "ui/Icons/UITask/renwu_2.png",
+    yellow_question = "ui/Icons/UITask/renwu_3.png"
+})
+
+decl_fixed_getter('get_weather_resource', {
+    default_config = 'weathers/WeatherSystem/entry_skysphere_settings.asset',
+    precipitation_settings = 'weathers/WeatherSystem/precipitation_settings.asset',
+    simple_wind_settings = 'weathers/WeatherSystem/simplewind_settings.asset',
+    wetland_settings = 'weathers/WeatherSystem/wetland_settings.asset',
+})
+
+decl_fixed_getter('get_sidebar_view_resource', {
+    tank = "ui/Icons/UITeam/tab_team/tanke.png",
+    damage = "ui/Icons/UITeam/tab_team/shuchu.png",
+    healer = "ui/Icons/UITeam/tab_team/zhiliao.png",
+})
+
+decl_fixed_getter('get_unit_view_resource', {
+    gold = "sfx/skill/res/material/lbl/wuqi.mat",
+    wood = "sfx/skill/res/material/lbl/wuqi2.mat",
+    water = "sfx/skill/res/material/lbl/wuqi3.mat",
+    fire = "sfx/skill/res/material/lbl/wuqiche 2.mat",
+})
+
+decl_fixed_getter("get_create_role_view_resource", {
+    weather = "weathers/juesezhanshi.asset"
+})
+
+decl_fixed_getter("get_create_role_view_scene", {
+    scene = "scenes/juesezhanshi.unity",
+})
+
+decl_fixed_getter("get_world_resource", {
+	camera_controller = "models/Role/scene/hgs_dsf_camera/animation/Camera_Animator.controller",
+})
+decl_fixed_getter("get_head_overlay_item_view", {
+    xuetiao_red = 'ui/Icons/UIMain/HP/xiaoxue_red.png',
+    xuetiao_green = 'ui/Icons/UIMain/HP/xiaoxue_green.png',
+    xuetiao_yellow = 'ui/Icons/UIMain/HP/xiaoxue_yellow.png',
+    xuetiao_orange = 'ui/Icons/UIMain/HP/xiaoxue_gold.png',
+    xuetiao_blue = 'ui/Icons/UIMain/HP/xiaoxue_blue.png',
+    boos_xuetiao_red = 'ui/Icons/UIMain/HP/Boss_red.png',
+    boos_xuetiao_green = 'ui/Icons/UIMain/HP/Boss_green.png',
+    boos_xuetiao_yellow = 'ui/Icons/UIMain/HP/Boss_yellow.png',
+    boos_xuetiao_orange = 'ui/Icons/UIMain/HP/Boss_gold.png',
+    boos_xuetiao_blue = 'ui/Icons/UIMain/HP/Boss_blue.png',
+})
+
+decl_fixed_getter("get_skill_cd_bar", {
+    "ui/Icons/skill/skillshow/cd_bar_1.png",
+    "ui/Icons/skill/skillshow/cd_bar_2.png",
+    "ui/Icons/skill/skillshow/cd_bar_3.png",
+    "ui/Icons/skill/skillshow/cd_bar_4.png",
+    "ui/Icons/skill/skillshow/cd_bar_5.png",
+})
+
+decl_fixed_getter("get_skill_cd_bar_fill", {
+    "ui/Icons/skill/skillshow/cd_bar_1_fill.png",
+    "ui/Icons/skill/skillshow/cd_bar_2_fill.png",
+    "ui/Icons/skill/skillshow/cd_bar_3_fill.png",
+    "ui/Icons/skill/skillshow/cd_bar_4_fill.png",
+    "ui/Icons/skill/skillshow/cd_bar_5_fill.png",
+})
+
+return M

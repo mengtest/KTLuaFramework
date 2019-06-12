@@ -1,0 +1,130 @@
+local View = require("system.view")
+local backpack_item_view = class("backpack_item_view", View)
+
+function backpack_item_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+    local table = param[3]
+    self.m_list = {}
+    self:load_prefab("UI/BackpackEquip.prefab", function(loaded_go)
+        local template_go = loaded_go.transform:Find("backpack/scroll_view/viewport/content/obj/Image").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_level_bg = go.transform:Find("Image"):GetComponent(UI.Image)
+        self.m_level_text = go.transform:Find("Image/Text"):GetComponent(UI.Text)
+        self.m_selected = go.transform:Find("selected").gameObject
+        self.m_selected:SetActive(false)
+        go.name = param[1] .. param[2]
+        self.m_btn = go.transform:Find("item").transform:GetComponent(UI.Button)
+        self.m_image = go.transform:Find("item").transform:GetComponent(UI.Image)
+        self.m_bound = go.transform:Find("bound").transform
+        self.m_bound.gameObject:SetActive(false)
+        self.m_unuse = go.transform:Find("unuse").transform
+        self.m_unuse.gameObject:SetActive(false)
+        self.m_bright_image = go.transform:Find("light").gameObject
+        self.m_bright_image:SetActive(false)
+        self.m_quality_image = go.transform:Find("bg").transform:GetComponent(UI.Image)
+        self:getGO():AddComponent(RectTransform)
+        go.transform:SetParent(self:getGO().transform)
+        local size = go.transform:GetComponent(RectTransform).sizeDelta
+        self:getGO().transform:GetComponent(RectTransform).sizeDelta = size
+        ------这里有有偏移
+        go.transform.localPosition = Vector3(-52.5, 52.5, 0)
+        go:SetActive(true)
+        self:change_data(table)
+        self.m_btn.onClick:AddListener(function()
+            --Debug.LogError("当前物品的ID"..tostring(self.m_list["tmpl"]))
+            if self.m_list["tmpl"] == 0 then
+                return
+            end
+            self.m_selected:SetActive(true)
+            self.m_bright_image:SetActive(true)
+            ShortcutExtensions.DOScale(self.m_selected.transform, 1.3, 0.1)
+            ShortcutExtensions.DOScale(self.m_selected.transform, 1, 0.5)
+            --print("等级",self.m_list["level"])
+            --print("部位",dbc.item[self.m_list["tmpl"]].derived_params[3])
+            local obj_list = {}
+            obj_list["bright"] = self.m_bright_image
+            obj_list["selected"] = self.m_selected
+            if self.m_list["bound"] == 1 then
+                obj_list["bound"] = self.m_bound.gameObject
+            end
+            self:getFrame("backpack_list"):on_item_selected(self.m_list, obj_list)
+        end)
+
+        self:subscribe(self.m_frame:on_event("item_change"), function(wearable_info)
+            self:change_data(wearable_info)
+        end)
+    end)
+end
+
+-----更改图片
+function backpack_item_view:change_sprite(obj, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            obj.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+function backpack_item_view:refresh()
+    -----是否绑定
+    if self.m_list["bound"] == 1 then
+        self.m_bound.gameObject:SetActive(true)
+    else
+        self.m_bound.gameObject:SetActive(false)
+    end
+    ----0：白色  1：绿色  2：蓝色  3：紫色  4：金色
+    if self.m_list["tmpl"] == 0 then
+        local temp_path = "ui/Icons/common/item_daoju.png"
+        self:change_sprite(self.m_image, temp_path)
+        self:change_sprite(self.m_quality_image, temp_path)
+    end
+    if self.m_list["tmpl"] ~= 0 then
+        --Debug.LogError("refresh  level" .. tostring(dbc.item[self.m_list["tmpl"]].level_label))
+        --Debug.LogError("refresh  enhanced_level" .. tostring(self.m_list["enhanced_level"]))
+
+        local level = dbc.item[self.m_list["tmpl"]].level_label + self.m_list["enhanced_level"]
+        local id = self.m_list["tmpl"]
+        --Debug.LogError("refresh  level" .. tostring(level))
+        --Debug.LogError("refresh  id" .. tostring(id))
+        ---是否可穿戴
+        local result = self.m_inventory_manager:gain_equip_or_unequip(id, level)
+        --Debug.LogError("refresh  result" .. tostring(result))
+        if result == 1 then
+            self.m_unuse.gameObject:SetActive(false)
+        else
+            self.m_unuse.gameObject:SetActive(true)
+        end
+        local path = dbc.item[self.m_list["tmpl"]].bag_icon
+        self:change_sprite(self.m_image, path)
+        local quality = self.m_inventory_manager:gain_equipment_quality(id, level)
+        --Debug.LogError("refresh  quality" .. tostring(quality))
+        if quality ~= nil and quality ~= 999 then
+            local bg_path = dbc.equip_quality_client[quality].backpack_icon
+            self:change_sprite(self.m_quality_image, bg_path)
+        end
+    end
+end
+
+function backpack_item_view:change_data(list)
+    for i, v in pairs(list) do
+        self.m_list[i] = v
+    end
+    --Debug.LogError("change_data  bound"..tostring(list["bound"]))
+    if self.m_list["level"] == 0 then
+        self.m_level_bg.transform.gameObject:SetActive(false)
+        self.m_level_text.transform.gameObject:SetActive(false)
+    else
+        local label = dbc.item[self.m_list["tmpl"]].level_label + self.m_list["enhanced_level"]
+        self.m_level_text.text = tostring(label)
+        self.m_level_text.transform.gameObject:SetActive(true)
+        self.m_level_bg.transform.gameObject:SetActive(true)
+    end
+    self:refresh()
+end
+
+return backpack_item_view

@@ -1,0 +1,13 @@
+local View = require("system.view")
+local fashion_select_model_view = class("fashion_select_model_view", View)
+function fashion_select_model_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+ self:load("UI/Fashion_select_model.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+end)
+
+
+end
+return fashion_select_model_view

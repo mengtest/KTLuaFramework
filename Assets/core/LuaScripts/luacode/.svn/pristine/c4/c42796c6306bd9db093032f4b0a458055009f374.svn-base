@@ -1,0 +1,1081 @@
+---
+--- Created by lijunfeng 任务管理器
+--- DateTime: 2018/1/18 19:56
+---
+local Quest_data = require("subsystem.quest.quest_data")
+local Frame = require("system.frame")
+local Quest_manager = class("Quest_manager", Frame)
+
+Attribute.decl(Quest_manager,"timestamp",0) -- by lijunfeng 2018/2/5 服务器quest_all时间戳
+
+Event.decl(Quest_manager,"show_finish_quest")  --完成任务,有完成状态的任务，刷新侧边栏
+Event.decl(Quest_manager,"update_ui_main") --任务列表变化时刷新主ui
+Event.decl(Quest_manager,"rec_quest_all")  --任务列表更新事件
+Event.decl(Quest_manager,"show_new_quest")  --接取新任务，刷新侧边栏
+Event.decl(Quest_manager,"del_quest")  --删除任务
+Event.decl(Quest_manager,"update_quest_condition")  --更新任务条件，刷新侧边栏
+Event.decl(Quest_manager,"quest_fall")  --任务失败
+Event.decl(Quest_manager,"quest_state_changed")  --状态改变by lijunfeng 2018/3/2
+Event.decl(Quest_manager,"add_quest_note")  --标注任务 --by lijunfeng 2018/2/8
+Event.decl(Quest_manager,"del_quest_note")  --解除标注 --by lijunfeng 2018/2/8
+Event.decl(Quest_manager,"add_interact_quest")  --添加待交互任务--by lijunfeng 2018/2/28
+Event.decl(Quest_manager,"drop_quest")  --放弃任务--by xiaojingli 2018/2/28
+
+function Quest_manager:doInit()
+    self.m_cur_map_id = -1
+    self.m_unlocked_quest_list = {} --已解锁的任务数据列表，不可接取
+    self.m_quest_data_list = {} --待交互或已接取的任务数据列表
+    self.m_prevs_dict = {} --接收服务器quest_all quest_job返回的前置任务id列表
+    self.m_delays_dict = {} --接收服务器quest_all quest_job返回的后置任务id列表
+    self.m_area_trigger_info_dict={} --任务接取区域触发器字典 by lijunfeng 2018/2/2
+    self.m_area_condition_info_dict = {} --任务区域触发器和条件触发器字典
+    self.m_prey_dict = {} --任务相关怪筛选有关
+    self.m_npc_dict={} --保存所有任务相关的{npc id,{interact_id,quest_id,npc_state}}，包括接，交，条件npc，方便刷新npc显示状态
+    self.m_npc_dependently_talk_list={} --用于条件npc对话
+    self.m_quest_mark_dic={} --用于维护关注 --by lijunfeng 2018/3/5
+    Event_system:add_event_listener(EVENT_SCENE_LOADED, event_binder(self, self.on_scene_loaded))
+    Event_system:add_event_listener(EVENT_SCENE_UNLOADED, event_binder(self, self.on_scene_unloaded))
+end
+
+function Quest_manager:init()
+    self:req_quest_list()
+end
+
+function Quest_manager:update()
+    if self:get_timestamp()==0 then
+        return
+    else
+        self:set_timestamp(self:get_timestamp()+Time.deltaTime)
+        --print("任务时间戳",self:get_timestamp())
+    end
+
+    for k,v in pairs(self.m_quest_data_list) do
+        --print("1111",v:get_quest_id(),v:get_quest_state(),v:get_is_fall(),v:get_timeout(),v:get_timestamp())
+        if v:check_timeout() then
+            print("超时",v:get_quest_id())
+            v:set_is_fall(true)
+            self:emit_event("quest_fall",v:get_quest_id())
+        end
+    end
+
+    --以下用于测试
+    --local list=self:get_quest_list_for_sider_bar2()
+    --local player_pos= self:getFrame("world"):get_main_player():get_pos()
+    --local quest_area_id=self:getFrame("world"):get_area_id_in_map(player_pos.x,player_pos.z)
+end
+
+--创建条件触发器
+function Quest_manager:on_scene_loaded(world)
+    self.m_cur_map_id = world:get_map_id()
+    print("进入了新地图",self.m_cur_map_id)
+
+    for map_id, info in pairs(self.m_area_trigger_info_dict) do
+        self:refresh_area_trigger_infos(map_id, info)
+    end
+
+    for map_id, info in pairs(self.m_area_condition_info_dict) do
+        self:refresh_area_condition_trigger_infos(map_id, info)
+    end
+end
+
+--删除条件触发器
+function Quest_manager:on_scene_unloaded()
+
+end
+
+--添加已解锁任务数据
+function Quest_manager:add_unlocked_quest(quest_id)
+    if utility.table:is_contain(self.m_unlocked_quest_list, quest_id) then
+        return
+    end
+
+    table.insert(self.m_unlocked_quest_list, quest_id)
+end
+
+--删除已解锁任务数据
+function Quest_manager:del_unlocked_quest(quest_id)
+    utility.table:remove_by_val(self.m_unlocked_quest_list, quest_id)
+end
+
+-- 获取已解锁的任务列表
+function Quest_manager:get_unlocked_quest_list()
+    return self.m_unlocked_quest_list
+end
+
+--添加接取任务对象
+--by lijunfeng 2018/2/5 增加note参数
+function Quest_manager:add_quest_data(quest_id,note,timestamp)
+    local is_existed = true
+    if not self.m_quest_data_list[quest_id] then
+        local quest_data = Quest_data:new(quest_id, self)
+        quest_data:set_note(note)
+        quest_data:set_timestamp(timestamp)
+        if quest_data:check_timeout() then--检查是否超时 by lijunfeng 2018/2/6
+            quest_data:set_is_fall(true)
+        end
+        self.m_quest_data_list[quest_id]=quest_data
+        is_existed=false
+    end
+    self.m_quest_data_list[quest_id]:set_quest_state(enum.quest.Quest_State.Received)
+    return self.m_quest_data_list[quest_id], is_existed
+end
+
+-- 删除已接取的任务(Quest_data)
+--by lijunfeng 2018/3/5增加删除note信息
+function Quest_manager:del_quest_data(quest_id)
+    local quest_data = self.m_quest_data_list[quest_id]
+    if quest_data then
+        local ui_type=self:UI_Type_to_ui_type(quest_data:get_ui_type())
+        self.m_quest_data_list[quest_id] = nil
+        self.m_quest_mark_dic[quest_id]=nil
+        Event_system:dispatch_event(EVENT_QUEST_DEL_QUEST, quest_id)
+        self:emit_event("update_ui_main",ui_type) --刷新任务主ui
+        self:emit_event("del_quest",quest_id)
+    end
+end
+
+--获取所有任务列表
+function Quest_manager:get_all_quest_data()
+    return self.m_quest_data_list
+end
+
+-- 获取已接取的任务(Quest_data)列表
+function Quest_manager:get_quest_list()
+    if utility.table:count(self.m_quest_data_list)==0 then
+        return self.m_quest_data_list
+    end
+
+    local infos = {}
+    for k,v in pairs(self.m_quest_data_list) do
+        if v:get_quest_state()==enum.quest.Quest_State.Received or v:get_quest_state()==enum.quest.Quest_State.Finished then
+            infos[k]=v
+        end
+    end
+
+    return infos
+end
+
+--提供侧边栏任务显示列表，返回排序后的全部任务
+--暂时不处理跨地图排序
+--by lijunfeng 2018/3/5 跨地图的任务都不显示
+function Quest_manager:get_quest_list_for_sider_bar2()
+    print("获取追踪栏")
+    if utility.table:count(self.m_quest_data_list)==0 then
+        return self.m_quest_data_list
+    end
+
+    local data=dbc.map[self.m_cur_map_id]
+
+    if data.type==0 then --大地图
+        return self:sort_quest_list_for_sider_bar(self.m_quest_data_list)
+    elseif data.type==1 then --副本
+        local instances_data=dbc.instances[dbc.instances_map[data.inst_map_id].inst_id]
+        local infos_rewards,infos_normal={},{} --副本奖励，副本普通
+
+        for k, v in pairs(self.m_quest_data_list) do
+            if instances_data and instances_data.share_quest and utility.table:is_contain(instances_data.share_quest, v:get_quest_id()) then --副本奖励任务
+                infos_rewards[k]=v
+            else
+                local has_info,target_infos=v:get_target_infos() --普通副本任务
+                if has_info then
+                    for k1,v1 in pairs(target_infos) do
+                        if v1.map_id==self.m_cur_map_id then
+                            infos_normal[k1]=v1
+                        end
+                    end
+                end
+            end
+        end
+
+        local infos1=self:sort_quest_list_for_sider_bar(infos_rewards)
+        local infos2=self:sort_quest_list_for_sider_bar(infos_normal)
+        local total_infos={}
+
+        if #infos1 > 0 then
+            utility.table:insert_range(total_infos, infos1)
+        end
+
+        if #infos2 > 0 then
+            utility.table:insert_range(total_infos, infos2)
+        end
+
+        return total_infos
+    end
+end
+
+--by lijunfeng 2018/3/3 排序侧边栏任务列表
+--by lijunfeng 2018/3/5 凡是不在本地图的任务都不显示，区分不在本地图和不在本区域
+function Quest_manager:sort_quest_list_for_sider_bar(quest_data_list)
+    local infos1={} --未失败的，并且已接取的，并且（限时或护送任务）
+    local infos2={} --其余的
+
+    for k,v in pairs(quest_data_list) do
+        if (v:get_quest_state()==enum.quest.Quest_State.Received and not v:get_is_fall()) and (v:get_timeout()>0 or v:get_quest_type()==enum.quest.Quest_Type.Escort)then
+            table.insert(infos1,v)
+        else
+            table.insert(infos2,v)
+        end
+    end
+
+    table.sort(infos1, function(a, b)
+        return a:get_target_info() < b:get_target_info()  --必须保证距离都>0
+    end)
+
+    local infos3={} --有目标，并且与主角在同一个地图区域内
+    local infos4={} --有目标，并且与主角不在同一个区域内
+    --local infos5={} --无目标，或者与主角不在地图区域内
+    local world = self:getFrame("world")
+    local player_pos= world:get_main_player():get_pos()
+
+    for i=1,#infos2 do
+        local min_dis,map_id,area_id=infos2[i]:get_target_info()
+        if min_dis>0 then --保证有目标(一定在当前地图内），未考虑跨地图
+            local player_area_id = world:get_area_id_in_map(player_pos.x,player_pos.z)
+            local area_pos=world:get_area_data(map_id,area_id).worldPosition
+            local quest_area_id=world:get_area_id_in_map(area_pos.x,area_pos.z)
+
+            if player_area_id==quest_area_id then  --2018/3/5 在同一个区域内
+                table.insert(infos3, infos2[i])
+            else
+                table.insert(infos4, infos2[i])
+            end
+        else
+            --table.insert(infos5, infos2[i])
+        end
+    end
+
+    --基本排序规则
+    local sort_func = function(infos)
+        table.sort(infos, function(a, b)
+            if a:get_quest_state() > b:get_quest_state() then
+                return true
+            elseif a:get_quest_state() == b:get_quest_state() then
+                if a:get_target_info() < b:get_target_info() then
+                    return true
+                elseif a:get_target_info() == b:get_target_info() then
+                    if a:get_ui_type() < b:get_ui_type() then
+                        return true
+                    end
+                end
+            end
+            return false
+        end)
+    end
+
+    --筛选未失败，已失败，待交互列表
+    local get_list_as_state=function(infos)
+        local infos_not_fail,infos_fail,infos_interact,infos_out={},{},{},{}
+        for i = 1, #infos do
+            if infos[i]:get_quest_state() == enum.quest.Quest_State.Interact then
+                table.insert(infos_interact, infos[i])
+            elseif infos[i]:get_is_fall() then
+                table.insert(infos_fail, infos[i])
+            else
+                table.insert(infos_not_fail, infos[i])
+            end
+        end
+
+        if #infos_not_fail > 0 then
+            sort_func(infos_not_fail)
+            utility.table:insert_range(infos_out, infos_not_fail)
+        end
+        if #infos_fail > 0 then
+            sort_func(infos_fail)
+            utility.table:insert_range(infos_out, infos_fail)
+        end
+        if #infos_interact > 0 then
+            sort_func(infos_interact)
+            utility.table:insert_range(infos_out, infos_interact)
+        end
+        return infos_out
+    end
+
+    local out_infos3=get_list_as_state(infos3)
+    local out_infos4=get_list_as_state(infos4)
+    --local out_infos5=get_list_as_state(infos5)
+    local total_infos={}
+
+    if #infos1 > 0 then
+        utility.table:insert_range(total_infos, infos1)
+    end
+    if #out_infos3 > 0 then
+        utility.table:insert_range(total_infos, out_infos3)
+    end
+    if #out_infos4 > 0 then
+        utility.table:insert_range(total_infos, out_infos4)
+    end
+    --if #out_infos5 > 0 then
+    --    utility.table:insert_range(total_infos, out_infos5)
+    --end
+
+    return total_infos
+end
+
+--提供侧边栏任务显示列表，返回排序后的全部任务
+--需要排序，当前地图，当前地图区域，任务目标距离（跨地图），任务状态，任务类型
+--未接取目标是接取区域或接取npc，已接取状态下：距离最近的对话npc或任务距离最近的区域，完成状态下：交付npc
+--暂时不处理跨地图排序
+--by lijunfeng 2018/1/23
+function Quest_manager:get_quest_list_for_sider_bar()
+    if utility.table:count(self.m_quest_data_list)==0 then
+        return self.m_quest_data_list
+    end
+
+    local infos={}
+
+    for k,v in pairs(self.m_quest_data_list) do
+        if v:get_target_info()>0 then
+            table.insert(infos,v)
+        end
+    end
+
+    table.sort(infos, function(a, b)
+        if a:get_target_info() < b:get_target_info() then
+            return true
+        elseif a:get_target_info() == b:get_target_info() then
+            if a:get_quest_state() > b:get_quest_state() then
+                return true
+            elseif a:get_quest_state() == b:get_quest_state() then
+                if a:get_ui_type() < b:get_ui_type() then
+                    return true
+                elseif a:get_ui_type() == b:get_ui_type() then
+                    if a:get_quest_id() < b:get_quest_id() then
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end)
+
+    return infos
+end
+
+--添加待交互任务
+--by lijunfeng 2018/3/5 增加note标记
+function Quest_manager:add_interact_quest_data(quest_id)
+    local is_existed = true
+    if not self.m_quest_data_list[quest_id] then
+        local quest_data = Quest_data:new(quest_id, self)
+        self.m_quest_data_list[quest_id]=quest_data
+        is_existed=false
+    end
+
+    local is_note=self.m_quest_mark_dic[quest_id] and 1 or 0
+    self.m_quest_data_list[quest_id]:set_note(is_note)
+    self.m_quest_data_list[quest_id]:set_quest_state(enum.quest.Quest_State.Interact)
+    return self.m_quest_data_list[quest_id], is_existed
+end
+
+--删除待交互任务
+--by lijunfeng 2018/3/5 增加note标记删除
+function Quest_manager:del_interact_quest(quest_id)
+    local quest_data = self.m_quest_data_list[quest_id]
+    if quest_data then
+        print("删除任务",quest_id)
+        self.m_quest_data_list[quest_id] = nil
+        self.m_quest_mark_dic[quest_id]=nil
+    end
+end
+
+--获取待交互任务列表
+function Quest_manager:get_interact_quest_list()
+    if utility.table:count(self.m_quest_data_list)==0 then
+        return self.m_quest_data_list
+    end
+
+    local infos = {}
+    for k,v in pairs(self.m_quest_data_list) do
+        if v:get_quest_state()==enum.quest.Quest_State.Interact then
+            infos[k]=v
+        end
+    end
+
+    return infos
+end
+
+--添加前置任务id
+function Quest_manager:add_prevs(prevs)
+    for i = 1, #prevs do
+        self.m_prevs_dict[prevs[i]] = prevs[i]
+    end
+end
+
+--删除前置任务id
+function Quest_manager:del_prev(prev_id)
+    self.m_prevs_dict[prev_id] = nil
+end
+
+--添加推迟任务id
+function Quest_manager:add_delays(delays)
+
+end
+
+--删除推迟任务id
+function Quest_manager:del_delay(delay_id)
+
+end
+
+--过滤后置任务列表中的任务是否变为待交互
+function Quest_manager:filter_unlocked_quest(nexts)
+    print("过滤后置任务")
+    for i = 1, #nexts do
+        local cur_next = nexts[i]
+        print("拥有后置任务",cur_next)
+        local quest_data = dbc.quest[cur_next]
+        local len=#quest_data["prevs"]
+
+        local flag = true
+        for index = 1, len do
+            local prev_id = quest_data["prevs"][index]
+            print("前置任务",prev_id)
+            if prev_id and prev_id > 0 and self.m_prevs_dict[prev_id] then
+                flag = false
+                print("转化任务为待交互失败")
+                break
+            end
+        end
+        print("转化任务为待交互",cur_next)
+        if flag then
+            --if quest_data.begin == 1 then --begin 起始接取任务条件类型
+            --    local quest_data, is_existed = self:add_interact_quest_data(cur_next)
+            --    print("添加待交互任务对象",quest_data==nil)
+            --    if quest_data then --转化情况不需要判断新添加
+            --        self:emit_event("update_ui_main",self:UI_Type_to_ui_type(quest_data:get_ui_type())) --刷新任务主ui
+            --        quest_data:refresh_npcs_state()
+            --    end
+            --elseif quest_data.begin == 2 then
+            --    local params = dbc.quest[cur_next].begin_params
+            --    self:add_area_trigger_info(params[1], params[2], cur_next)
+            --end
+            --by lijunfeng 2018/2/2 根据策划要求，所有已解锁，可接取的任务都是待交互的
+            local quest_data, is_existed = self:add_interact_quest_data(cur_next)
+            print("添加待交互任务对象", quest_data == nil)
+            if quest_data then
+                --转化情况不需要判断新添加
+                self:emit_event("update_ui_main", self:UI_Type_to_ui_type(quest_data:get_ui_type())) --刷新任务主ui
+                self:emit_event("add_interact_quest",quest_data) --刷新小地图ui
+                quest_data:refresh_npcs_state()
+            end
+        end
+    end
+end
+
+-- 在 Quest_condition_hunt中调用，但quest表并无tp_param_name字段
+function Quest_manager:add_prey(creature_id)
+    local is_existed = self.m_prey_dict[creature_id]
+    if not is_existed then
+        self.m_prey_dict[creature_id] = true
+    end
+end
+-- 在 Quest_condition_hunt中调用，但quest表并无tp_param_name字段
+function Quest_manager:del_prey(creature_id)
+    self.m_prey_dict[creature_id] = nil
+end
+
+function Quest_manager:get_prey_list()
+    local prey_list = {}
+    for creature_id, _ in pairs(self.m_prey_dict) do
+        table.insert(prey_list, creature_id)
+    end
+    return prey_list
+end
+
+--加入标注
+--by lijunfeng 2018/3/5
+function Quest_manager:add_quest_note(quest_id)
+    if self.m_quest_data_list[quest_id] then
+        self.m_quest_data_list[quest_id]:set_note(1)
+        self.m_quest_mark_dic[quest_id]=true
+        self:rec_quest_mark(quest_id)
+        self:emit_event("add_quest_note",self.m_quest_data_list[quest_id])
+    end
+end
+
+--删除标注
+--by lijunfeng 2018/3/5
+function Quest_manager:del_quest_note(quest_id)
+    if self.m_quest_data_list[quest_id] then
+        self.m_quest_data_list[quest_id]:set_note(0)
+        self.m_quest_mark_dic[quest_id]=nil
+        self:rec_quest_unmark(quest_id)
+        self:emit_event("del_quest_note",self.m_quest_data_list[quest_id])
+    end
+end
+
+--by lijunfeng 2018/2/8
+function Quest_manager:get_noted_quest_list()
+    local infos={}
+
+    for k,v in pairs(self.m_quest_data_list) do
+        if v:get_note()>0 then
+            table.insert(infos,v)
+        end
+    end
+
+    return infos
+end
+
+--当后置任务列表里的任务转化为待交互时，如果是区域任务，需要添加与任务相关的触发器，如果是npc相关的交互任务，则刷新npc状态
+--by lijunfeng 2018/2/2
+--todo:考虑地图改变时或者任务删除时需要删除不属于该地图的任务的触发器
+function Quest_manager:add_area_trigger_info(map_id, trigger_id, quest_id)
+    print("准备添加区域触发器",self.m_cur_map_id,map_id)
+    local map_info = self.m_area_trigger_info_dict
+    if not map_info[map_id] then
+        map_info[map_id] = {}
+    end
+
+    if not map_info[map_id][trigger_id] then
+        map_info[map_id][trigger_id] = {}
+    end
+
+    local trigger_info=map_info[map_id][trigger_id]
+    if not trigger_info[quest_id] then
+        trigger_info[quest_id] = true --用于注册失败时的站位
+        if self.m_cur_map_id == -1 or self.m_cur_map_id ~= map_id then
+            return
+        end
+
+        local is_succeed, func_enter = self:register_area_trigger_func(map_id, trigger_id, quest_id)
+        if is_succeed then
+            print("添加接取区域触发器", map_id, trigger_id, quest_id)
+            trigger_info[quest_id] = func_enter
+            self:add_unlocked_quest(quest_id) --应该去掉？
+        else
+            print("注册区域失败", tostring(map_id), tostring(quest_id))
+        end
+    end
+end
+
+--注册关卡区域回调函数
+function Quest_manager:register_area_trigger_func(map_id, trigger_id, quest_id)
+    local this = self
+    local func_enter = function ()
+        this:req_trigger_quest(quest_id) --发送触发消息给服务器
+    end
+
+    --创建触发器，保存回调函数到触发器
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+--删除区域触发器信息6
+--by lijunfeng 2018/2/2 完全没用到，todo:考虑是否去掉，地图改变时或者任务删除时需要删除不属于该地图的任务的触发器
+--todo:应该是任务完成删除后需要对应删除触发器
+function Quest_manager:del_area_trigger_info(quest_id)
+    local params = dbc.quest[quest_id].begin_params
+    local map_id, trigger_id = params[1], params[2]
+    local map_info = self.m_area_trigger_info_dict[map_id]
+    if not map_info then
+        return
+    end
+
+    local  trigger_info = map_info[trigger_id]
+    if not trigger_info then
+        return
+    end
+
+    if trigger_info[quest_id] then
+        trigger_info[quest_id] = nil
+        self:del_unlocked_quest(quest_id) --应该去掉？
+    end
+end
+
+--by lijunfeng 2018/2/2
+--场景切换后，需要刷新为注册成功的触发器信息
+--暂时不考虑清除情况
+function Quest_manager:refresh_area_trigger_infos(map_id,info)
+    print("重新注册接取区域触发器",utility.table:count(info))
+    for trigger_key,trigger_info in pairs(info or{}) do
+        print("触发器",trigger_key)
+        for quest_key,quest_info in pairs(trigger_info) do
+            print("任务键",quest_key)
+            if type(quest_info) ~= "function" then
+                local is_succeed, func_enter = self:register_area_trigger_func(map_id, trigger_key, quest_key)
+                if is_succeed then
+                    print("再次添加接取区域触发器", map_id, trigger_key, quest_key)
+                    trigger_info[quest_key] = func_enter
+                else
+                    print("再次注册接取区域失败", tostring(map_id), tostring(quest_key))
+                end
+            end
+        end
+    end
+end
+
+--添加区域条件信息 Quest_condition_enter_area
+--by lijunfneg 2018/1/29 修复冀高代码bug
+function Quest_manager:add_area_condition_info(map_id, trigger_id, quest_id, index)
+    local map_info = self.m_area_condition_info_dict
+    if not map_info[map_id] then
+        map_info[map_id] = {}
+    end
+
+    if not map_info[map_id][trigger_id] then
+        map_info[map_id][trigger_id] = {}
+    end
+
+    local trigger_info=map_info[map_id][trigger_id]
+
+    if not trigger_info["cond_info"] then
+        trigger_info["cond_info"]={}
+    end
+
+    if not trigger_info["cond_info"][quest_id] then
+        trigger_info["cond_info"][quest_id] = {}
+    end
+
+    local info = trigger_info["cond_info"][quest_id]
+    if not info[index] then
+        info[index] = true --用来注册失败时的站位值
+        if self.m_cur_map_id == -1 or self.m_cur_map_id ~= map_id then
+            return
+        end
+
+        local is_succeed, func_enter = self:register_area_condition_trigger_func(map_id, trigger_id, quest_id, index)
+        if is_succeed then
+            print("添加区域触发器", map_id, trigger_id, quest_id, index)
+            info[index] = func_enter
+        else
+            print("注册区域失败", tostring(self.m_cur_map_id), tostring(quest_id), tostring(index))
+        end
+    end
+end
+
+--by lijunfneg 2018/1/30 修复冀高代码bug
+function Quest_manager:del_area_condition_info(map_id, trigger_id, quest_id, index)
+    local map_info = self.m_area_condition_info_dict[map_id]
+    if not map_info then
+        return
+    end
+
+    local trigger_info = map_info[trigger_id]
+    if not trigger_info then
+        return
+    end
+
+    local cdn_info = trigger_info["cond_info"]
+    if not cdn_info then
+        return
+    end
+
+    local quest_info = cdn_info[quest_id]
+    if not quest_info then
+        return
+    end
+
+    local func_enter = quest_info[index]
+    local flag=false
+    if func_enter then
+        self:getFrame("world"):unregister_area_trigger_enter_func(map_id, trigger_id, func_enter)
+        quest_info[index]=nil
+        flag=true
+        print("删除触发器1",map_id,trigger_id,quest_id,index)
+    end
+
+    if flag then
+        if utility.table:count(quest_info)==0 then
+            cdn_info[quest_id]=nil
+            if utility.table:count(cdn_info)==0 then
+                trigger_info["cond_info"]=nil
+                map_info[trigger_id]=nil
+                if utility.table:count(map_info)==0 then
+                    self.m_area_condition_info_dict[map_id]=nil
+                end
+            end
+        end
+    end
+end
+
+--注册区域条件回调函数 Quest_condition_enter_area
+function Quest_manager:register_area_condition_trigger_func(map_id, trigger_id, quest_id, index)
+    local this = self
+    local func_enter = function ()
+        this:req_update_condition(quest_id, index, nil) --发送更新条件消息给服务器
+    end
+    return self:getFrame("world"):register_area_trigger_enter_func(map_id, trigger_id, func_enter), func_enter
+end
+
+--by lijunfeng 2018/2/2
+--场景切换后，需要刷新为注册成功的触发器信息
+--暂时不考虑清除情况
+function Quest_manager:refresh_area_condition_trigger_infos(map_id, info)
+    for trigger_key,trigger_info in pairs(info or{}) do
+        for quest_key,quest_info in pairs(trigger_info["cond_info"]) do
+            for index,cdn_info in pairs(quest_info) do
+                if type(cdn_info) ~= "function" then
+                    local is_succeed, func_enter =  self:register_area_condition_trigger_func(map_id, trigger_key, quest_key, index)
+                    if is_succeed then
+                        print("再次添加区域触发器",map_id,trigger_key,quest_key,index)
+                        quest_info[index] = func_enter
+                    else
+                        print("再次注册区域失败",tostring(map_id),tostring(quest_key),tostring(index))
+                    end
+                end
+            end
+        end
+    end
+end
+
+--创建交互物对象 Quest_condition_collect里使用
+function Quest_manager:create_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(true)
+    end
+end
+
+--销毁交互物对象 Quest_condition_collect里使用
+function Quest_manager:destroy_interact(interact_id)
+    local world = self:getFrame("world")
+    local interact_obj = world:getInteractObj(interact_id)
+    if interact_obj then
+        interact_obj:task_trigger(false)
+    end
+end
+
+function Quest_manager:add_condition_interact_id(quest_id, interact_id)
+    local npc_layer = self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id] or {}
+    self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id] = npc_layer
+    local quest_layer = npc_layer[quest_id] or {}
+    npc_layer[quest_id] = quest_layer
+    if not utility.table:is_contain(quest_layer, interact_id) then
+        table.insert(quest_layer, interact_id)
+    end
+end
+
+--
+function Quest_manager:del_condition_interact_id(quest_id, interact_id)
+    local npc_layer = self.m_npc_dependently_talk_list[dbc.interact[interact_id].obj_id]
+    if not npc_layer then
+        return
+    end
+    local quest_layer = npc_layer[quest_id]
+    if not quest_layer then
+        return
+    end
+    utility.table:remove_by_val(quest_layer, interact_id)
+    if utility.table:count(quest_layer) == 0 then
+        npc_layer[quest_id] = nil
+    end
+end
+
+--self.m_npc_dict={} --保存所有任务相关的{npc id,{interact_id,{quest_id,npc_state}}}，包括接，交，条件npc，方便刷新npc显示状态
+--by lijunfeng2018/2/2 增加tp参数，表示条件npc交互是对话还是问答
+function Quest_manager:set_npc_interact_info(npc_id,interact_id,quest_id,npc_state,tp)
+    local npc_info=self.m_npc_dict[npc_id]
+    local flag=false
+
+    if npc_state==enum.quest.Quest_Npc_State.None then
+        if npc_info~=nil then
+            local interact_info=npc_info[interact_id]
+            if interact_info~=nil then
+                print("删除状态成功",npc_id,interact_id)
+                self.m_npc_dict[npc_id][interact_id]=nil
+                flag=true
+            end
+
+            if utility.table:count(npc_info)==0 then
+                print("删除状态成功2",npc_id,interact_id)
+                self.m_npc_dict[npc_id]=nil
+            end
+        end
+
+        if flag then
+            print("刷新npc组件")
+            self:refresh_npc_state(npc_id)
+        end
+    else
+        local ui_type=dbc.quest[quest_id].ui_type
+
+        if npc_info == nil then
+            self.m_npc_dict[npc_id] ={}
+        end
+
+        local interact_info=self.m_npc_dict[npc_id][interact_id]
+        if interact_info==nil then
+            self.m_npc_dict[npc_id][interact_id]={quest_id=quest_id,interact_id=interact_id,ui_type=ui_type,state=npc_state,tp=tp}
+            flag=true
+        else
+            if interact_info.state~=npc_state then
+                self.m_npc_dict[npc_id][interact_id].state=npc_state
+                self.m_npc_dict[npc_id][interact_id].tp=tp
+                flag=true
+            end
+        end
+
+        if flag then
+            print("刷新npc组件2")
+            self:refresh_npc_state(npc_id)
+        end
+    end
+end
+
+--刷新npc多任务状态
+function Quest_manager:refresh_npc_state(npc_id)
+    local npc = self:getFrame("world"):get_giver_by_tid(npc_id)
+    if npc == nil then
+        print("npc还未进入世界")
+        return
+    end
+
+    npc:remove_state()--删掉旧状态
+    local npc_info=self.m_npc_dict[npc_id]
+    if npc_info==nil then return end
+
+    --对于同一个npc来说，同一时刻，只能包含每个任务的一种交互状态，并且只能显示其中一个任务的交互状态
+    --并且不论是黄色问号，还是蓝色问号，都应该优先于黄色叹号，当相同时，也没必要排序
+    local infos = {}
+    print("带排序状态",utility.table:count(npc_info))
+    for k,v in pairs(npc_info) do
+        print("插入排序任务",k)
+        table.insert(infos,v)
+    end
+    table.sort(infos,function(a,b)
+        if a.state > b.state then
+            return true
+        elseif a.state == b.state then
+            if a.ui_type < b.ui_type then
+                return true
+            end
+        end
+
+        return false
+    end)
+    print("刷新npc组件3",#infos)
+    if infos[1] then
+        npc:set_state(infos[1])
+    end
+end
+
+--判断npc是否与任务相关
+function Quest_manager:is_about_giver(giver_id)
+    return self.m_npc_dict[giver_id]~=nil
+end
+
+--类型转换
+function Quest_manager:UI_Type_to_ui_type(UI_Type)
+    if UI_Type == enum.quest.UI_Type.Map then
+        return enum.quest.Quest_ui_type.Map
+    elseif UI_Type == enum.quest.UI_Type.Dungeon then
+        return enum.quest.Quest_ui_type.Dungeon
+    elseif UI_Type == enum.quest.UI_Type.Cycle_Once or UI_Type == enum.quest.UI_Type.Cycle then
+        return enum.quest.Quest_ui_type.Normal
+    elseif UI_Type == enum.quest.UI_Type.Activity or UI_Type == enum.quest.UI_Type.Guid then
+        return enum.quest.Quest_ui_type.Activity
+    end
+end
+
+--根据enum.quest.Quest_ui_type 返回排序好的任务列表
+-- by lijunfeng 2018/1/23
+--暂不处理失败状态
+function Quest_manager:get_quests_by_ui_type(ui_type)
+    if utility.table:count(self.m_quest_data_list)==0 then
+        return self.m_quest_data_list
+    end
+
+    local infos = {}
+    for k,v in pairs(self.m_quest_data_list) do
+        if ui_type==self:UI_Type_to_ui_type(v:get_ui_type())then
+            table.insert(infos,v)
+        end
+    end
+
+    if utility.table:count(infos)==0 then return infos end
+
+    if ui_type == enum.quest.Quest_ui_type.Map or ui_type == enum.quest.Quest_ui_type.Dungeon then
+        table.sort(infos, function(a, b)
+            if a:get_quest_state() > b:get_quest_state() then
+                return true
+            elseif a:get_quest_state() == b:get_quest_state() then
+                if a:get_quest_type() < b:get_quest_type() then
+                    return true
+                elseif a:get_quest_type() == b:get_quest_type() then
+                    if a:get_quest_id() < b:get_quest_id() then
+                        return true
+                    end
+                end
+            end
+
+            return false
+        end)
+    elseif ui_type == enum.quest.Quest_ui_type.Normal or ui_type == enum.quest.Quest_ui_type.Activity then
+        table.sort(infos, function(a, b)
+            if a:get_quest_state() > b:get_quest_state() then
+                return true
+            elseif a:get_quest_state() == b:get_quest_state() then
+                if a:get_ui_type() > b:get_ui_type() then --环任务在上，指引任务在上
+                    return true
+                elseif a:get_ui_type() == b:get_ui_type() then
+                    if a:get_quest_id() < b:get_quest_id() then
+                        return true
+                    end
+                end
+            end
+
+            return false
+        end)
+    end
+
+    return infos
+end
+--------------------s2c-------------------------------------------------------------------------------
+-- 收到所有任务
+--by lijunfeng 2018/3/5 更改mark相关功能
+function Quest_manager:rec_quest_all(timestamp, infos, nexts, prevs, delays,marks)
+    self:set_timestamp(timestamp)
+
+    for i=1,#marks do
+        self.m_quest_mark_dic[marks[i]]=true
+    end
+
+    self:add_prevs(prevs)
+    self:add_delays(delays)
+    self:filter_unlocked_quest(nexts)
+    print("收到所有任务",#infos,timestamp,marks==nil)
+
+    for i = 1, #infos do
+        local info = infos[i]
+        local quest_data, is_existed = self:add_quest_data(info.tmpl,self.m_quest_mark_dic[info.tmpl] and 1 or 0, info.timestamp) --by lijunfeng 2018/2/5 增加note参数
+
+        if quest_data and not is_existed then
+            for index, v in pairs(info.finishes) do
+                quest_data:set_condition_cur_param(index, v)
+            end
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+            Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, info.tmpl)
+            quest_data:refresh_npcs_state()
+        end
+    end
+
+    self:emit_event("rec_quest_all")
+end
+
+-- 收到后续任务
+--by lijunfeng 2018/3/5 更改mark相关功能
+function Quest_manager:rec_quest_jobs(infos, nexts, prevs, delays)
+    print("收到后续任务",#infos)
+    self:add_prevs(prevs)
+    self:filter_unlocked_quest(nexts)
+
+    for i = 1, #infos do
+        local info = infos[i]
+        self:del_interact_quest(info.tmpl) --如果是由后续待交互任务转化为已接取任务，则需要删除待交互任务数据
+        local quest_data, is_existed = self:add_quest_data(info.tmpl,self.m_quest_mark_dic[info.tmpl] and 1 or 0, info.timestamp) --by lijunfeng 2018/2/5 增加note参数
+        if quest_data and not is_existed then
+            Event_system:dispatch_event(EVENT_QUEST_ADD_QUEST, info.tmpl, quest_data)
+            Event_system:dispatch_event(EVENT_QUEST_ADD_NEW_QUEST, info.tmpl)
+            self:emit_event("update_ui_main",self:UI_Type_to_ui_type(quest_data:get_ui_type())) --刷新任务主ui
+            self:emit_event("show_new_quest",quest_data) --刷新侧边栏
+            quest_data:refresh_npcs_state()
+
+            if quest_data:get_npc_start_id()>0 then--临时写在这里，todo：等设计完再做
+                --  local talk_id=tonumber(dbc.interact[quest_data:get_npc_start_id()].action_param)
+                --  self:getFrame("quiz_manager"):start_talk(self, talk_id, false,info.tmpl)
+            end
+        end
+    end
+end
+
+-- 更新任务通过条件的状态
+function Quest_manager:rec_update_quest(id, index, cond)
+    print("刷新任务条件2")
+    local quest_data = self.m_quest_data_list[id]
+    if quest_data then
+        quest_data:set_condition_cur_param(index, cond)
+        Event_system:dispatch_event(EVENT_QUEST_UPDATE_QUEST, id)
+        self:emit_event("update_quest_condition",id)
+    end
+end
+
+-- 移除指定任务
+function Quest_manager:rec_quest_remove(id)
+    self:del_prev(id)
+    self:del_quest_data(id)
+    print("任务完成",id)
+end
+
+-- 放弃指定任务
+function Quest_manager:rec_give_up_quest(id)
+    local quest_data=self.m_quest_data_list[id]
+    if not quest_data then return end
+
+    quest_data:set_quest_state(enum.quest.Quest_State.Interact)
+    quest_data:refresh_npcs_state()
+    quest_data:reset()
+    self:emit_event("drop_quest", quest_data)
+    print("放弃任务",id)
+end
+
+--重置任务时间戳by lijunfeng 2018/2/6
+function Quest_manager:rec_quest_status(quest_id,timestamp)
+    local quest_data=self.m_quest_data_list[quest_id]
+
+    if quest_data then
+        print("任务被重置",timestamp)
+        quest_data:set_timestamp(timestamp)
+        quest_data:set_is_fall(false)
+        self:emit_event("show_new_quest",quest_data) --刷新侧边栏
+    end
+end
+
+function Quest_manager:get_all_quest_list_data()
+    return self.m_quest_data_list
+end
+--------------------c2s-------------------------------------------------------------------------------
+
+-- 请求完成任务
+function Quest_manager:req_complete_quest(id)
+    self:base_call("quest_done", id)
+end
+
+-- 初始化请求所有任务列表
+function Quest_manager:req_quest_list()
+    self:base_call("quest_list")
+end
+
+-- 触发任务
+function Quest_manager:req_trigger_quest(id)
+    self:cell_call("quest_cond_position", id, 0)
+end
+
+-- 触发任务状态更新
+function Quest_manager:req_update_condition(quest_id, index)
+    self:cell_call("quest_cond_position", quest_id, index)
+end
+
+-- 放弃指定任务
+function Quest_manager:req_give_up_quest(quest_id)
+    self:base_call("quest_drop", quest_id)
+end
+
+--by lijunfeng 2018/2/8 关注任务
+function Quest_manager:rec_quest_mark(quest_id)
+    self:base_call("quest_mark", quest_id)
+end
+
+--by lijunfeng 2018/3/5 取消关注任务
+function Quest_manager:rec_quest_unmark(quest_id)
+    self:base_call("quest_unmark", quest_id)
+end
+
+--by lijunfeng 2018/2/6 重置任务
+function Quest_manager:rec_quest_again(quest_id)
+    self:base_call("quest_again", quest_id)
+end
+
+--------------------kbe接口-------------------------------------------------------------------------------
+function Quest_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function Quest_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+return Quest_manager

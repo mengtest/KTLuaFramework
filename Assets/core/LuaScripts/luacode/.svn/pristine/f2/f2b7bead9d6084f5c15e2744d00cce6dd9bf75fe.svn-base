@@ -1,0 +1,79 @@
+local BPWorldView = { }
+
+local anim_event_util =  require "common.util.event_anima"
+
+function BPWorldView:doInit()
+    self.m_cam = self:getFrame():get_camera() 
+    self:subscribe(self:getFrame():on_event_attr_set("map_id", false), function(val)
+        self:load_map(val)
+    end )
+end
+
+function BPWorldView:load_map(map_id)
+    print("BPWorldView:loadMap", map_id)
+    self:load_map_scene(map_id)
+end
+
+function BPWorldView:unload_scene(name)
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByName(name)
+    if s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function BPWorldView:unload_map_scene()
+    if self.m_map_scene then
+        self:unload_scene(self.m_map_scene)
+        self.m_map_scene = nil
+    end
+end
+
+function BPWorldView:load_map_scene(name)
+    local world = self:getFrame()
+ 
+    world:set_map_loaded(false)
+    self:unload_map_scene()
+    self.m_map_scene = name
+
+    if name then
+        local path = string.format("scenes/%s.unity", name)
+    
+        self:loadScene(path, function()   
+            world:set_map_loaded(true)
+
+            if self.m_map_scene ~= name then
+                self:unload_scene(name)
+            end
+        end )
+    end
+end
+
+function BPWorldView:doDestroy()
+    self:unload_map_scene()
+end
+
+function BPWorldView:doUpdate()
+    self.m_cam:update()
+end
+
+function BPWorldView:find_path(from, to)
+    local path = AI.NavMeshPath()
+    if AI.NavMesh.CalculatePath(from, to, -1, path) then
+        local ret = { }
+        for wp in foreach(path.corners) do
+            table.insert(ret, wp)
+        end
+        return ret
+    end
+end
+
+function BPWorldView:track_unit(unit)
+    self.m_cam:trackUnit(unit)
+end
+
+function BPWorldView:get_camera()
+    return self.m_cam
+end
+
+return BPWorldView

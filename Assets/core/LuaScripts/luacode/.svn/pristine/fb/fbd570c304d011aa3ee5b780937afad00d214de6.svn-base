@@ -1,0 +1,12 @@
+---
+--- Created by wdd.
+--- DateTime: 2018/2/1 0001 17:27
+---
+local Frame = require("system.frame")
+local SkillRectWaring = class("skill_rect_waring",Frame)
+
+function SkillRectWaring:doInit(param)
+
+end
+
+return SkillRectWaring

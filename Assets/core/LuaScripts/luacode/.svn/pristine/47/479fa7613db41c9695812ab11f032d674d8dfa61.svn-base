@@ -1,0 +1,65 @@
+local M = {}
+
+function M:doInit()
+
+    self.frame = self:getFrame()
+    
+    self:getGO().layer = LayerMask.NameToLayer("UI")
+    
+    self:getGO().transform.localPosition = Vector3.zero
+    self:getGO().transform.localEulerAngles = Vector3.zero
+    self:getGO().transform.localScale = Vector3.one
+    
+    local ui_manager = app:get_ui_manager()
+    
+    -- 创建Canvas
+    if (self.frame:get_create_canvas() == true
+        or self.frame:get_create_canvas_scaler() == true
+        or self.frame:get_create_canvas_raycaster() == true) then
+        self.Canvas = self:getGO():AddComponent(Canvas)
+        if (self.frame:getFrameName() == ui_manager.UI_Depth.HUD) then
+            self.Canvas.renderMode = RenderMode.WorldSpace
+            self.Canvas.worldCamera = UnityEngine.Camera.main
+        else
+            self.Canvas.renderMode = RenderMode.ScreenSpaceCamera
+            self.Canvas.worldCamera = ui_manager:get_ui_camera()
+        end
+        
+       
+        self.Canvas.sortingOrder = ui_manager:GetDepth(self.frame:getFrameName())
+    end
+    
+    -- 创建CanvasScaler
+    if (self.frame:get_create_canvas_scaler() == true) then
+        self.CanvasScaler = self:getGO():AddComponent(UI.CanvasScaler)
+        self.CanvasScaler.uiScaleMode = UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        self.CanvasScaler.referenceResolution = Vector2(1600, 900)
+    end
+    
+    -- 创建GraphicRaycaster
+    if (self.frame:get_create_canvas_raycaster() == true) then
+        self.GraphicRaycaster = self:getGO():AddComponent(UI.GraphicRaycaster)
+    end
+    
+    self:subscribe(self.frame:on_event_show_set(), function(value)
+        self:getGO():SetActive(value)
+    end)
+
+end
+
+
+function M:AdaptResolution(go)
+    if (self.frame:getFrameName() == app:get_ui_manager().UI_Depth.HUD) then
+        return
+    end
+
+    local size = self:getGO():GetComponent(RectTransform).sizeDelta
+    local rectTransform = go:GetComponent(RectTransform)
+    rectTransform.sizeDelta = size
+    rectTransform.localPosition = Vector3.zero
+    rectTransform.localRotation = Quaternion.identity
+    rectTransform.localScale = Vector3.one
+end
+
+
+return M

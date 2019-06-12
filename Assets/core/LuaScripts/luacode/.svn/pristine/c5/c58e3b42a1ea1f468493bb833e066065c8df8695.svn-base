@@ -1,0 +1,76 @@
+﻿
+local Quest_condition_class_dir = {
+	[SharedEnum.QuestCond.FINISH_TREASURE] = require("subsystem.quest.condition.quest_condition_collect"),
+	[SharedEnum.QuestCond.FINISH_POSITION] = require("subsystem.quest.condition.quest_condition_enter_area"),
+	[SharedEnum.QuestCond.FINISH_CREATURE] = require("subsystem.quest.condition.quest_condition_hunt"),
+    [SharedEnum.QuestCond.FINISH_SKILL] = require("subsystem.quest.condition.quest_condition_skill")
+	--[SharedEnum.QuestCond.] = require("subsystem.quest.condition.quest_condition_talk"),
+}
+
+
+local Quest_data = class("Quest_data")
+
+function Quest_data:initialize(quest_id, quest_manager)
+	self.m_quest_id = quest_id	--任务ID
+	--self.m_precondition_
+	self.m_condition_dict = {}	--通过条件列表
+    self.m_passed_quest_list = {}
+    self.m_quest_manager = quest_manager
+    self.m_giver = -1
+    
+	self:init_condition(quest_manager)
+end
+
+function Quest_data:init_condition(quest_manager)
+	local data = dbc.quest[self.m_quest_id]
+	if not data then
+		--Debug.LogError(string.format("Quest_data:init_condition() error, 未找到指定的m_quest_id(%s)", tostring(self.m_quest_id)))
+		return
+	end
+	for index = 1, 8 do
+		local tp_name = "finish" .. tostring(index)
+		local tp = data[tp_name]
+		if tp and tp > 0 then
+            if Quest_condition_class_dir[tp] then
+			    local condition = Quest_condition_class_dir[tp]:new(self.m_quest_id, index, quest_manager)
+			    assert(condition)
+			    self.m_condition_dict[index] = condition
+            else
+                print(string.format("cant found the condition type of %d", tp))
+            end
+		end
+	end
+end
+
+function Quest_data:get_condition_dict()
+	return self.m_condition_dict
+end
+
+function Quest_data:set_condition_cur_param(index, cur_param)
+	local condition = self.m_condition_dict[index]
+	assert(condition)
+	condition:set_cur_param(cur_param)
+    local is_pass = condition:judge()
+    --app:logError("is_pass = " .. tostring(is_pass))
+    if is_pass and not Util_table:is_contain(self.m_passed_quest_list, index) then
+        table.insert(self.m_passed_quest_list, index)
+    end
+    local cur_count = #self.m_passed_quest_list
+    local max_count = Util_table:count(self.m_condition_dict)
+    if cur_count >= max_count then
+        self.m_giver = dbc.quest[self.m_quest_id].giver
+        --local self.m_giver = dbc.quest[self.m_quest_id].giver
+        if giver <= 0 then
+            self.m_quest_manager:req_complete_quest(self.m_quest_id)
+        else
+            self.m_quest_manager:add_finished_quest(giver_id, self.m_quest_id)
+            --Event_system:dispatch_event(EVENT_QUEST_FINISH_QUEST, self)
+        end
+    end
+end
+
+function Quest_data:get_giver()
+    return self.m_giver
+end
+
+return Quest_data

@@ -1,0 +1,20 @@
+
+local Frame = require("system.frame")
+local Scroll_text = class("Scroll_text", Frame)
+
+Attribute.decl(Scroll_text, "msg", "gagagagagagagagaga")
+
+function Scroll_text:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    
+    
+    
+end
+
+function Scroll_text:destroy_self()
+    self:destroyFrame(self:getFrameName())
+end
+
+
+
+return Scroll_text

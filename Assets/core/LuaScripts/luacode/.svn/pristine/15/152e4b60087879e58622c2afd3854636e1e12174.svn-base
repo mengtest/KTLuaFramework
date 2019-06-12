@@ -1,0 +1,150 @@
+local rows = {}
+rows[1] = {['id']=1,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[2] = {['id']=2,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[3] = {['id']=3,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[4] = {['id']=21,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[5] = {['id']=22,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[6] = {['id']=23,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[7] = {['id']=24,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[8] = {['id']=25,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[9] = {['id']=26,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[10] = {['id']=27,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[11] = {['id']=28,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[12] = {['id']=29,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[13] = {['id']=30,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[14] = {['id']=31,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[15] = {['id']=32,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[16] = {['id']=33,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[17] = {['id']=34,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[18] = {['id']=35,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[19] = {['id']=36,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[20] = {['id']=37,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[21] = {['id']=38,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[22] = {['id']=39,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[23] = {['id']=40,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[24] = {['id']=41,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[25] = {['id']=42,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[26] = {['id']=43,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[27] = {['id']=44,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[28] = {['id']=45,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[29] = {['id']=46,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[30] = {['id']=47,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[31] = {['id']=48,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[32] = {['id']=49,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[33] = {['id']=50,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[34] = {['id']=1001,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[35] = {['id']=1002,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[36] = {['id']=2001,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[37] = {['id']=1001,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[38] = {['id']=1002,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[39] = {['id']=2001,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[40] = {['id']=1003,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[41] = {['id']=1004,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[42] = {['id']=1005,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[43] = {['id']=1006,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[44] = {['id']=1007,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[45] = {['id']=1008,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[46] = {['id']=1009,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[47] = {['id']=1010,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[48] = {['id']=1011,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[49] = {['id']=1012,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[50] = {['id']=1013,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[51] = {['id']=1014,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[52] = {['id']=1015,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[53] = {['id']=1016,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[54] = {['id']=1017,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[55] = {['id']=1018,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[56] = {['id']=1019,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[57] = {['id']=1020,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[58] = {['id']=1021,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[59] = {['id']=1022,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[60] = {['id']=1023,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[61] = {['id']=1024,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[62] = {['id']=1025,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[63] = {['id']=1026,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[64] = {['id']=1027,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[65] = {['id']=1028,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[66] = {['id']=1029,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[67] = {['id']=1030,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[68] = {['id']=1031,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[69] = {['id']=1032,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[70] = {['id']=1033,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[71] = {['id']=1034,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[72] = {['id']=1035,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[73] = {['id']=1036,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+rows[74] = {['id']=1037,['radius']=3.0,['angle']=0.0,['angle_other']=0.0,['angle_look_only']=0.0,['angle_other_look_only']=0.0,['bubble_id']=0,['anim']='',['rotate_type']=0,['interact_btn']=1,['is_rotate_after_interact']=false}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[21] = rows[4],
+	[22] = rows[5],
+	[23] = rows[6],
+	[24] = rows[7],
+	[25] = rows[8],
+	[26] = rows[9],
+	[27] = rows[10],
+	[28] = rows[11],
+	[29] = rows[12],
+	[30] = rows[13],
+	[31] = rows[14],
+	[32] = rows[15],
+	[33] = rows[16],
+	[34] = rows[17],
+	[35] = rows[18],
+	[36] = rows[19],
+	[37] = rows[20],
+	[38] = rows[21],
+	[39] = rows[22],
+	[40] = rows[23],
+	[41] = rows[24],
+	[42] = rows[25],
+	[43] = rows[26],
+	[44] = rows[27],
+	[45] = rows[28],
+	[46] = rows[29],
+	[47] = rows[30],
+	[48] = rows[31],
+	[49] = rows[32],
+	[50] = rows[33],
+	[1001] = rows[37],
+	[1002] = rows[38],
+	[2001] = rows[39],
+	[1003] = rows[40],
+	[1004] = rows[41],
+	[1005] = rows[42],
+	[1006] = rows[43],
+	[1007] = rows[44],
+	[1008] = rows[45],
+	[1009] = rows[46],
+	[1010] = rows[47],
+	[1011] = rows[48],
+	[1012] = rows[49],
+	[1013] = rows[50],
+	[1014] = rows[51],
+	[1015] = rows[52],
+	[1016] = rows[53],
+	[1017] = rows[54],
+	[1018] = rows[55],
+	[1019] = rows[56],
+	[1020] = rows[57],
+	[1021] = rows[58],
+	[1022] = rows[59],
+	[1023] = rows[60],
+	[1024] = rows[61],
+	[1025] = rows[62],
+	[1026] = rows[63],
+	[1027] = rows[64],
+	[1028] = rows[65],
+	[1029] = rows[66],
+	[1030] = rows[67],
+	[1031] = rows[68],
+	[1032] = rows[69],
+	[1033] = rows[70],
+	[1034] = rows[71],
+	[1035] = rows[72],
+	[1036] = rows[73],
+	[1037] = rows[74],
+}
+return datas

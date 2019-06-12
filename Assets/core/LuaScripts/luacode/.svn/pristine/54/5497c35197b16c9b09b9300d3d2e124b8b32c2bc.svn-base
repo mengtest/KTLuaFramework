@@ -1,0 +1,274 @@
+local M = {}
+
+
+Attribute.decl(M, "hp_text", "")
+Attribute.decl(M, "hp_percent", "")
+
+Attribute.decl(M, "mana_text", "")
+Attribute.decl(M, "mana_percent", "")
+
+Attribute.decl(M, "pain_text", "")
+Attribute.decl(M, "pain_percent", "")
+
+Attribute.decl(M, "fury_text", "")
+Attribute.decl(M, "fury_percent", "")
+
+Attribute.decl(M, "player_specialization", "")
+
+Attribute.decl(M, "spell_cost_type", {})
+
+Event.decl(M, "special_spell")
+
+
+function M:init_self_variable()
+    -- hp
+    self.m_player_hp = 0
+    self.m_player_hp_max = 0
+    
+    -- 法力
+    self.m_player_mana = 0
+    self.m_player_mana_max = 0
+    
+    -- 痛苦
+    self.m_player_pain = 0
+    self.m_player_pain_max = 0
+    
+    -- 怒气
+    self.m_player_fury = 0
+    self.m_player_fury_max = 0
+    
+    -- 特殊技能事件列表
+    self.m_special_list = {}
+    
+    local world = self:getFrame("world")
+    -- 玩家unit
+    self.m_player = world:get_main_player()
+
+end
+
+
+function M:doInit()
+    
+    self:init_self_variable()
+    
+    self:handle_hp()
+    
+    self:handle_mana()
+    
+    self:handle_pain()
+    
+    self:handle_fury()
+    
+    self:handle_specialization()
+    
+    self:check_special_spell()
+
+end
+
+-- 专精
+function M:handle_specialization()
+    local player = self.m_player
+    
+    self:subscribe(player:on_event_specialization_set(true), function(val)
+            
+            self:set_player_specialization(val)
+            
+            local specialization_table = nil
+            
+            for k, v in pairs(dbc.specialization) do
+                if (v.id == val) then
+                    specialization_table = v
+                end
+            end
+            
+            if (specialization_table == nil) then return end
+            
+            self:set_spell_cost_type(specialization_table.spell_cost_type)
+            
+            self:check_special_spell()
+    end)
+end
+
+-- hp
+function M:handle_hp()
+    
+    local player = self.m_player
+    
+    self:subscribe(player:on_event_hp_set(true), function(val)
+        self.m_player_hp = val
+        local percent = self.m_player_hp / self.m_player_hp_max
+        self:set_hp_percent(percent)
+        
+        
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_hp_text(text .. "%")
+        self:set_hp_text(self.m_player_hp)
+    end)
+    
+    self:subscribe(player:on_event_hp_max_set(true), function(val)
+        self.m_player_hp_max = val
+        
+        local percent = self.m_player_hp / self.m_player_hp_max
+        self:set_hp_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_hp_text(text .. "%")
+        -- 策划测试
+        self:set_hp_text(self.m_player_hp)
+    end)
+end
+
+-- mana
+function M:handle_mana()
+    
+    local player = self.m_player
+    
+    self:subscribe(player:on_event_mana_set(true), function(val)
+        self.m_player_mana = val
+        
+        local percent = self.m_player_mana / self.m_player_mana_max
+        self:set_mana_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_mana_text(text .. "%")
+        -- 策划测试
+        self:set_mana_text(self.m_player_mana)
+    end)
+    
+    self:subscribe(player:on_event_mana_max_set(true), function(val)
+        self.m_player_mana_max = val
+        
+        local percent = self.m_player_mana / self.m_player_mana_max
+        self:set_mana_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_mana_text(text .. "%")
+        -- 策划测试
+        self:set_mana_text(self.m_player_mana)
+    end)
+
+end
+
+-- pain
+function M:handle_pain()
+    local player = self.m_player
+    
+    self:subscribe(player:on_event_pain_set(true), function(val)
+        self.m_player_pain = val
+        
+        local percent = self.m_player_pain / self.m_player_pain_max
+        self:set_pain_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_pain_text(text .. "%")
+        -- 策划测试
+        self:set_pain_text(self.m_player_pain)
+    end)
+    
+    self:subscribe(player:on_event_pain_max_set(true), function(val)
+        self.m_player_pain_max = val
+        
+        local percent = self.m_player_pain / self.m_player_pain_max
+        self:set_pain_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_pain_text(text .. "%")
+        -- 策划测试
+        self:set_pain_text(self.m_player_pain)
+    end)
+end
+
+-- fury
+function M:handle_fury()
+    local player = self.m_player
+    
+    self:subscribe(player:on_event_fury_set(true), function(val)
+        self.m_player_fury = val
+        
+        local percent = self.m_player_fury / self.m_player_fury_max
+        self:set_fury_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_fury_text(text .. "%")
+        -- 策划测试
+        self:set_fury_text(self.m_player_fury)
+    end)
+    
+    self:subscribe(player:on_event_fury_max_set(true), function(val)
+        self.m_player_fury_max = val
+        
+        local percent = self.m_player_fury / self.m_player_fury_max
+        self:set_fury_percent(percent)
+        
+        -- 正确代码 勿删
+        -- local text = string.format("%.1f", percent * 100)
+        -- self:set_fury_text(text .. "%")
+        -- 策划测试
+        self:set_fury_text(self.m_player_fury)
+    end)
+end
+
+-- 切换专精 清理旧的事件
+function M:clear_old_specialization()
+    for i, v in ipairs(self.m_special_list) do
+        self:unsubscribe(v)
+    end
+    
+    self:emit_event("special_spell", self:get_player_specialization(), 0)
+end
+
+-- 特殊技能效果处理
+function M:check_special_spell(val)
+    
+    if (self:get_player_specialization() == enum.shared.TalentSpecialization.MAGE_FIRE) then
+        
+        local player = self.m_player
+        
+        table.insert(self.m_special_list, self:subscribe(player:on_event_add_buff(), function(buff_list)
+            for i, v in ipairs(buff_list) do
+                if (v:get_spell_id() == 903013) then
+                    self:emit_event("special_spell", self:get_player_specialization(), v:get_stack_num())
+                    return
+                end
+            end
+        end))
+        
+        table.insert(self.m_special_list, self:subscribe(player:on_event_remove_buff(), function(buff_list)
+            for i, v in ipairs(buff_list) do
+                if (v:get_spell_id() == 903013) then
+                    self:emit_event("special_spell", self:get_player_specialization(), 0)
+                    return
+                end
+            end
+        end))
+    
+    elseif (self:get_player_specialization() == enum.shared.TalentSpecialization.DEMON_HUNTER_VENGEANCE) then
+        
+        local world = self:getFrame("world")
+        
+        self.m_linghunsuipian = 0
+        
+        table.insert(self.m_special_list, self:subscribe(world:on_event_add_linghunsuipian(), function(id)
+            if (id == self.m_player:get_id()) then
+                self.m_linghunsuipian = self.m_linghunsuipian + 1
+                self:emit_event("special_spell", self:get_player_specialization(), self.m_linghunsuipian)
+            end
+        end))
+        
+        table.insert(self.m_special_list, self:subscribe(world:on_event_del_linghunsuipian(), function(id)
+            if (id == self.m_player:get_id()) then
+                self.m_linghunsuipian = self.m_linghunsuipian - 1
+                self:emit_event("special_spell", self:get_player_specialization(), self.m_linghunsuipian)
+            end
+        end))
+    end
+
+end
+
+return M

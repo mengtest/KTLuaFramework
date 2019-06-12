@@ -1,0 +1,43 @@
+--npc交互状态基类
+
+local M = class("InteractStateBase")
+
+function M:initialize(fsm,mob_giver)
+	self.m_fsm=fsm
+	self.m_giver = mob_giver
+end
+
+-- stateMachine接口
+function M:change_state(state_name)
+    local state = nil
+    if type(state_name) == 'number' then
+        state = self.m_fsm.m_state_list[state_name]
+    end
+
+    assert(state ~= nil)
+
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:exit()
+    end
+
+    state:enter()
+    self.m_cur_state = state
+end
+
+-- state接口
+function M:update()
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:update()
+    end
+end
+
+
+function M:enter()
+
+end
+
+function M:exit()
+
+end
+
+return M

@@ -1,0 +1,124 @@
+local Entity = class("Entity")
+
+function Entity:declSyncAtt(name, type, pack, unpack)
+	assert(type(self) == "table")
+	assert(self:isSubclassOf(Entity))
+
+	type = type or "always"
+	assert(type == "once" or type == "always")
+
+	assert(pack == nil or type(pack) == "function")
+	assert(unpack == nil or type(unpack) == "function")
+
+	self.__sync_meta = self.__sync_meta or {}
+	self.__sync_meta[name] = {
+		type = type,
+		pack = pack,
+		unpack = unpack,
+	}
+end
+
+function Entity:initialize()
+	Attribute.init(self)
+
+	self.m_sync = {}
+
+	local meta = self.__sync_meta
+	self.__event_obj:subscribe(function(name, ...)
+		local field = string.match("^(.+)Set$")
+		if field and meta[field] and meta[field].type == "always" then
+			local val = ...
+			if meta[field].pack then val = meta[field].pack(val) end
+
+			table.insert(self.m_sync, {"set", field, val})
+		end
+
+		local field = string.match("^(.+)SetAt$")
+		if field and meta[field] and meta[field].type == "always" then
+			local key, val = ...
+			if meta[field].pack then val = meta[field].pack(val) end
+			table.insert(self.m_sync, {"setat", field, key, val})
+		end
+
+		local field = string.match("^(.+)Insert$")
+		if field and meta[field] and meta[field].type == "always" then
+			local pos, val = ...
+			if meta[field].pack then val = meta[field].pack(val) end
+			table.insert(self.m_sync, {"insert", field, pos, val})
+		end
+
+		local field = string.match("^(.+)Remove$")
+		if field and meta[field] and meta[field].type == "always" then
+			local pos = ...
+			table.insert(self.m_sync, {"remove", field, pos})
+		end
+	end)
+end
+
+function Entity:getSync()
+	local sync = self.m_sync
+	self.m_sync = {}
+	return sync
+end
+
+function Entity:applySync(sync)
+	local meta = self.__sync_meta
+	for i,v in ipairs(sync) do
+		local type, field = v[1], v[2]
+		if type == "set" then
+			local val = v[3]
+			if meta[field].unpack then val = meta[field].unpack(val) end
+			self:attSet(field, val)
+		elseif type == "setat" then
+			local key, val = v[3], v[4]
+			if meta[field].unpack then val = meta[field].unpack(val) end
+			self:attSetAt(field, key, val)
+		elseif type == "insert" then
+			local pos, val = v[3], v[4]
+			if meta[field].unpack then val = meta[field].unpack(val) end
+			self:attInsert(field, pos, val)
+		elseif type == "remove" then
+			local pos = v[3]
+			self:attRemove(field, pos)
+		end
+	end
+end
+
+function Entity:attGetAll()
+	local dump = {}
+	local meta = self.__sync_meta
+	for k,v in pairs(meta) do
+		dump[k] = self:attGet(name)
+	end
+	return dump
+end
+
+function Entity:attGet(name)
+	return self["get"..name](self)
+end
+
+function Entity:attSet(name, val)
+	self["set"..name](self, val)
+end
+
+function Entity:attGetAt(name, key)
+	local att = self:attGet(name)
+	return att[key]
+end
+
+function Entity:attSetAt(name, key, val)
+	local att = self:attGet(name)
+	att[key] = val
+end
+
+function Entity:attInsert(name, pos, val)
+	local att = self:attGet(name)
+	table.insert(att, pos, val)
+end
+
+function Entity:attRemove(name, pos)
+	local att = self:attGet(name)
+	table.remove(att, pos)
+end
+
+return Entity

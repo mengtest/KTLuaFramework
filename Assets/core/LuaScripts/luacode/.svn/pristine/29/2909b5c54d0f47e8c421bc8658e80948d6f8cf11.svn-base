@@ -1,0 +1,198 @@
+local ObserverHost = require "system.observer_host"
+
+local Frame = class("Frame")
+Frame:include(ObserverHost)			-- 继承"观察"事件功能
+
+Event.decl(Frame, "child_created")
+
+-- 2017年8月14日 clz  这里加个type  
+-- 针对从屏幕中获取一个go->frame之后 用来判断是什么frame
+function Frame:initialize(mgr, name, parent, frame_type, param, ...)
+    Attribute.init(self)
+    self.m_log_level = LOG_LEVEL_WARN
+    self.m_mgr = mgr
+    self.m_view = nil
+    self.m_dir = nil
+    self.m_name = name
+    self.m_parent = parent
+    self.m_param = param
+    self.m_child = {}
+    self.m_destroyed = nil
+    self.frame_type = frame_type
+    self.m_is_dont_create_go_automatic = false
+    self.m_is_add_rect_trans = false -- rjy 2018.01.03 所创建的view空壳是否添加recttransform
+    self:doInit(param)
+end
+
+-- 获取frame是否已经销毁
+function Frame:get_is_destroyed()
+    return self.m_destroyed
+end
+
+function Frame:destroy()
+    self.m_destroyed = true
+
+    for i, v in ipairs(self.m_child) do
+        self.m_mgr:destroyFrame(v)
+    end
+
+    self:unsubscribeAll()
+    self:doDestroy()
+end
+
+function Frame:setLogLevel(level)
+    self.m_log_level = level
+end
+
+
+function Frame:get_is_add_rect_trans()
+    return self.m_is_add_rect_trans
+end
+
+function Frame:set_is_add_rect_trans(flag)
+    flag = flag or false
+    self.m_is_add_rect_trans = flag
+end
+
+function Frame:get_is_dont_create_go_automatic()
+    return self.m_is_dont_create_go_automatic
+end
+
+function Frame:set_is_dont_create_go_automatic(flag)
+    flag = flag or false
+    self.m_is_dont_create_go_automatic = flag
+end
+
+function Frame:logDebug(...)
+    if self.m_log_level >= LOG_LEVEL_DEBUG then
+        app:logDebug(...)
+    end
+end
+
+function Frame:logInfo(...)
+    if self.m_log_level >= LOG_LEVEL_INFO then
+        app:logInfo(...)
+    end
+end
+
+function Frame:logWarn(...)
+    if self.m_log_level >= LOG_LEVEL_WARN then
+        app:logWarn(...)
+    end
+end
+
+function Frame:logError(...)
+    if self.m_log_level >= LOG_LEVEL_ERROR then
+        app:logError(...)
+    end
+end
+
+function Frame:update()
+    self:doUpdate()
+
+    for i, v in ipairs(self.m_child) do
+        v:update()
+    end
+end
+
+function Frame:addChild(c)
+    table.insert(self.m_child, c)
+end
+
+function Frame:delChild(c)
+    if self.m_destroyed then
+        return
+    end
+
+    for i, v in ipairs(self.m_child) do
+        if v == c then
+            table.remove(self.m_child, i)
+            return
+        end
+    end
+end
+
+function Frame:getFrameDir()
+    if not self.m_dir or self.m_dir == "" then
+        return nil
+    else
+        return self.m_dir
+    end
+    --return self.m_dir
+end
+
+function Frame:setFrameDir(dir)
+    if dir and type(dir) == "string" and dir ~= "" then
+        self.m_dir = dir
+    end
+end
+
+function Frame:getFrameName()
+    return self.m_name
+end
+
+function Frame:getParent()
+    return self.m_parent
+end
+
+function Frame:getFrameMgr()
+    return self.m_mgr
+end
+
+function Frame:getParam()
+    return self.m_param
+end
+
+function Frame:getFrame(name)
+    return name and self.m_mgr:getFrame(name) or self
+end
+
+function Frame:getChild(name)
+    local frame = self:getFrame(name)
+    if frame and frame:getParent() == self then
+        return frame
+    end
+end
+
+function Frame:createFrame(name, cls, parent, param)
+    local frame = self.m_mgr:createFrame(name, cls, parent, param)
+    return frame
+end
+
+function Frame:createChild(name, cls, param)
+    return self.m_mgr:createFrame(name, cls, self, param)
+end
+
+function Frame:destroyFrame(frame)
+    self.m_mgr:destroyFrame(frame)
+end
+
+function Frame:destroyChild(frame)
+    self.m_mgr:destroyFrame(frame)
+end
+
+function Frame:destroySelf()
+    self.m_mgr:destroyFrame(self)
+end
+
+function Frame:getType()
+    return self.frame_type
+end
+
+function Frame:doInit()
+end
+function Frame:doDestroy()
+end
+function Frame:doUpdate()
+end
+
+function Frame:getChildList()
+    local list = {}
+    for k, v in pairs(self.m_child) do
+        list[k] = v
+    end
+    return list
+end
+
+
+return Frame

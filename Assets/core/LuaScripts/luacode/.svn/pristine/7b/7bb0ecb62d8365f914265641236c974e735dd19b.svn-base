@@ -1,0 +1,211 @@
+
+local Frame = require("system.frame")
+local Team_manager = class("Team_manager", Frame)
+
+Event.decl(Team_manager, "add_member")
+Event.decl(Team_manager, "del_member")
+Event.decl(Team_manager, "login")
+Event.decl(Team_manager, "logout")
+
+function Team_manager:doInit()
+    
+    self.m_member_dict = {}
+    self.m_is_in_team = false
+
+
+end
+
+function Team_manager:init()
+	self:req_team_info()
+end
+
+function Team_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+
+
+-- *------------------[S]Sever interface-----------------——*
+-- [S2C]
+
+-- 队伍信息初始化
+function Team_manager:rec_all_team(team_info)
+    self:local_log("Team_manager:rec_all_team")
+    table.sort(team_info, function (former, later)
+        return former.time <= later.time
+    end)
+    for i = 1, #team_info do
+        local team_member_info = team_info[i]
+        if team_member_info.state == 0 then
+            team_member_info.entityID = nil
+        end
+        self:rec_add_member(team_member_info.dbid, team_member_info.entityID, team_member_info.name, team_member_info.state)
+        local db_id, entity_id, name = team_member_info.dbid, team_member_info.entityID, team_member_info.name
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, SharedEnum.TeamCode.JOIN_TEAM, db_id, entity_id, name)
+    end
+    self.m_is_in_team = true
+    
+    
+	--暂时这么处理（WTF...怎么可能这么弄,这简直是在制造黑洞）
+	self:subscribe(self:getFrame("world"):on_event("add_unit"), function (temp_entity_id, unit)
+		local db_id = unit:get_dbid()
+		local member = self:get_member_dict()[db_id]
+        self:local_log("temp_entity_id = %s, unit == nil = %s, \t db_id = %s, \t member == nil = %s", tostring(temp_entity_id), tostring(unit == nil), tostring(db_id), tostring(member == nil))
+        self:local_log("unit.db_id = %s", tostring(unit:get_dbid()))
+		if member then
+            local name = nil
+			Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, SharedEnum.TeamCode.LOGIN, db_id, temp_entity_id, name)
+		end
+	end)
+end
+
+-- 收到邀请反馈
+function Team_manager:rec_result_of_invitation(id, flag)
+    self:local_log("Team_manager:rec_result_of_invitation")
+end
+
+-- 请求结果回复
+--function Team_manager:rec_resp_result(answer_code, name, db_id, entity_id)
+function Team_manager:rec_resp_result(team_args_info)
+    self:local_log("Team_manager:rec_resp_result team_args_info.code = %s", tostring(team_args_info.code))
+    local answer_code = team_args_info.code
+    local name = team_args_info.name
+    local db_id = team_args_info.dbid
+    local entity_id = team_args_info.entityID
+    local state = team_args_info.state
+    if answer_code == SharedEnum.TeamCode.JOIN_TEAM then        -- xxx加入队伍
+        self:rec_add_member(db_id, entity_id, name, state)
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, answer_code, db_id, entity_id, name)
+    elseif answer_code == SharedEnum.TeamCode.LEAVE_TEAM then   -- xxx离开队伍
+        self:rec_remove_member(db_id)
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, answer_code, db_id, nil, nil)
+    elseif answer_code == SharedEnum.TeamCode.REFUSE_TEAM then  -- xxx拒绝加入
+        self:rec_refuse_invitation(name)
+    elseif answer_code == SharedEnum.TeamCode.LOGIN then        -- xxx登陆游戏
+        self:switch_member_state(db_id, entity_id, state or 1)
+        --Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, answer_code, db_id, entity_id, name)
+    elseif answer_code == SharedEnum.TeamCode.LOGOUT then       -- xxx登出游戏
+        self:switch_member_state(db_id, entity_id, state or 0)
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, answer_code, db_id, entity_id, name)
+    elseif answer_code == SharedEnum.TeamCode.LEAVE_TEAM_SUCCESS then -- 离队成功
+        self:remove_all_member()
+    else
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, answer_code)
+    end
+end
+
+-- 收到邀请
+function Team_manager:rec_invitation(db_id, inviter_name, team_id)
+    self:local_log("Team_manager:rec_invitation \t db_id = %s, \t inviter_name = %s, \t team_id = %s", tostring(db_id), tostring(inviter_name), tostring(team_id))
+    local ui_manager = app:get_ui_manager()
+    local confirm_win = ui_manager:CreateUI("confirm_win","confirm_win",ui_main,ui_manager.UI_Depth.HIGH)
+    local msg = string.format("%s邀请你加入他的小队。", inviter_name)
+    confirm_win:set_msg(msg)
+
+    local this = self
+    confirm_win.on_ensure = function ()
+        this:req_is_accept(true, team_id, db_id)
+    end
+    confirm_win.on_cancel = function ()
+        this:req_is_accept(false, team_id, db_id)
+    end
+end
+
+-- 添加成员
+function Team_manager:rec_add_member(db_id, entity_id, name, state)
+    self:local_log("Team_manager:rec_add_member \t db_id = %s, \t entity_id = %s, \t name = %s", tostring(db_id), tostring(entity_id), tostring(name))
+    local data = {["entity_id"] = entity_id, ["name"] = name, ["state"] = state or 1}
+    self.m_member_dict[db_id] = data
+    self:emit_event("add_member", db_id, data)
+end
+
+-- 移除成员
+function Team_manager:rec_remove_member(db_id)
+    self:local_log("Team_manager:rec_remove_member")
+    self.m_member_dict[db_id] = nil
+    self:emit_event("del_member", db_id)
+end
+
+function Team_manager:rec_refuse_invitation(name)
+    self:local_log("Team_manager:rec_refuse_invitation \t name: ", name)
+end
+
+--------------------------------------------------------------
+-- [C2S]
+
+-- 请求所有数据
+function Team_manager:req_team_info()
+	self:local_log("Team_manager:req_team_info")
+	self:base_call("team_info_for_client")
+end
+
+-- 请求组队
+function Team_manager:req_invitation(entity_id, db_id)
+    self:local_log("Team_manager:req_invitation")
+    self:base_call("invite_team", entity_id, db_id)
+end
+
+-- 是否同意组队
+function Team_manager:req_is_accept(flag, team_id, db_id)
+    self:local_log("Team_manager:req_is_accept")
+    if flag then
+        self:base_call("join_team", team_id)
+    else
+        self:base_call("refuse_team", db_id, team_id)
+    end
+end
+
+-- 请求离队
+function Team_manager:req_leave()
+    self:local_log("Team_manager:req_leave")
+    self:base_call("leave_team")
+end
+
+
+-- *------------------[E]Sever interface-----------------——*
+
+function Team_manager:cell_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function Team_manager:base_call(method_name, ...)
+	local kbesdk = app:getKBESDK()
+	local player_id = kbesdk:get_player_id()
+	kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function Team_manager:test(args)
+    print(args)
+end
+
+function Team_manager:get_member_dict()
+    return self.m_member_dict
+end
+
+function Team_manager:remove_all_member()
+    for db_id, member in pairs(self.m_member_dict) do
+        self:rec_remove_member(db_id)
+        Event_system:dispatch_event(EVENT_TEAM_STATUS_CHANGED, SharedEnum.TeamCode.LEAVE_TEAM, db_id, nil, nil)
+    end
+    self.m_is_in_team = false
+end
+
+function Team_manager:get_is_in_team()
+    return self.m_is_in_team
+end
+
+function Team_manager:switch_member_state(db_id, entity_id, flag)
+    self.m_member_dict[db_id]["entity_id"] = entity_id
+    self.m_member_dict[db_id]["state"] = flag
+    if flag == 1 then
+        self:emit_event("login", db_id)
+    elseif flag == 0 then
+        self:emit_event("logout", db_id)
+    end
+end
+
+
+
+return Team_manager

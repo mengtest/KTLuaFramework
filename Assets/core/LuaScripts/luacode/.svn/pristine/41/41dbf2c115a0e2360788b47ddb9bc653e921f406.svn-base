@@ -1,0 +1,202 @@
+local M = {}
+
+
+-- 先随便定义几个
+M.UI_Depth =
+    {
+        HUD = "HUD",
+        NORMAL = "NORMAL",
+        MIDDLE = "MIDDLE",
+        HIGH = "HIGH",
+        ALERT = "ALERT",
+    }
+
+M.UI_Depth_Sort =
+    {
+        [1] = M.UI_Depth.HUD,
+        [2] = M.UI_Depth.NORMAL,
+        [3] = M.UI_Depth.MIDDLE,
+        [4] = M.UI_Depth.HIGH,
+        [5] = M.UI_Depth.ALERT,
+    }
+
+-- 用于控制Active,下面有具体方法，不要在其它地方直接修改
+Attribute.decl(M, "show", true)
+
+Attribute.decl(M, "ui_camera", nil)
+
+Event.decl(M, "add_ui")
+
+Event.decl(M, "del_ui")
+
+Event.decl(M, "call_view")
+
+Event.decl(M, "adapt_resolution")
+
+
+function M:doInit(parma)
+    -- 所有ui_node节点的Frame,通过depthName可以直接获取到所属ui_node的frame
+    self.m_ui_node_list = {}
+    -- 所有frame的depth信息,通过frameName可以直接获取到所属depthName
+    self.m_ui_depth_list = {}
+    -- 所有通过ui_manager创建的frame
+    self.m_ui_frame_list = {}
+    
+    self.m_frame_mgr = parma.FrameMgr
+    
+    self:subscribe(self.m_frame_mgr:on_event_del_frame(), function(frame)
+        self:onDelFrame(frame)
+    end)
+
+end
+
+-- 创建UIFrame
+-- 先不要考虑canvas嵌套canvas的情况,相同canvas中UI的层级使用SetSiblingIndex()解决
+function M:CreateUI(name, cls, param, depthName)
+    assert(M.UI_Depth[depthName])
+    assert(self.m_ui_frame_list[name] == nil)
+    
+    local root = nil
+    local camera = nil
+    
+
+    if (self.m_ui_node_list[depthName] == nil) then
+        root = self:createChild(
+            depthName,
+            "ui_node",
+            {
+                canvas = true,
+                scaler = true,
+                raycaster = true;
+            })
+        self.m_ui_node_list[depthName] = root
+    else
+        root = self.m_ui_node_list[depthName]
+    end
+    
+    self.m_ui_depth_list[name] = depthName
+    
+    self.m_ui_frame_list[name] = root:createChild(name, cls, param)
+    
+    self:emit_event_add_ui(name)
+    
+    return self.m_ui_frame_list[name]
+end
+
+function M:DestroyUI(name)
+    self.m_frame_mgr:destroyFrame(name)
+end
+
+
+-- 获取指定层级uiroot
+function M:GetUIRoot(depthName)
+    assert(M.UI_Depth[depthName])
+    assert(self.m_ui_node_list[depthName])
+    return self.m_ui_node_list[depthName]
+end
+
+
+-- 根据FrameName获取所属DepthName
+function M:GetDepthName(frameName)
+    return self.m_ui_depth_list[frameName]
+end
+
+-- 根据DepthName 获取layer
+-- 先写死 应该有更好的自适应方法
+function M:GetDepth(depthName)
+    if (depthName == M.UI_Depth.HUD) then
+        return 1
+    elseif (depthName == M.UI_Depth.NORMAL) then
+        return 6
+    elseif (depthName == M.UI_Depth.MIDDLE) then
+        return 11
+    elseif (depthName == M.UI_Depth.HIGH) then
+        return 16
+    elseif (depthName == M.UI_Depth.ALERT) then
+        return 21
+    end
+end
+
+-- 获取UI相机
+function M:GetUICamera()
+    return self:get_ui_camera()
+end
+
+-- 显示指定层级uiroot
+function M:ShowUIRootByName(depthName)
+    assert(M.UI_Depth[depthName])
+    assert(self.m_ui_node_list[depthName])
+    self.m_ui_node_list[depthName]:set_show(true)
+end
+
+-- 隐藏指定层级uiroot
+function M:CloseUIRootByName(depthName)
+    assert(M.UI_Depth[depthName])
+    assert(self.m_ui_node_list[depthName])
+    self.m_ui_node_list[depthName]:set_show(false)
+end
+
+-- 显示低于指定层级的所有uiroot
+function M:ShowLowUIRootByName(depthName)
+    assert(M.UI_Depth[depthName])
+    for i = 1, #M.UI_Depth_Sort do
+        if (M.UI_Depth_Sort[i] == depthName) then
+            break
+        end
+        if (self.m_ui_node_list[M.UI_Depth_Sort[i]] ~= nil) then
+            self.m_ui_node_list[M.UI_Depth_Sort[i]]:set_show(true)
+        end
+    end
+end
+
+-- 隐藏低于指定层级的所有uiroot
+function M:CloseLowUIRootByName(depthName)
+    assert(M.UI_Depth[depthName])
+    for i = 1, #M.UI_Depth_Sort do
+        if (M.UI_Depth_Sort[i] == depthName) then
+            break
+        end
+        if (self.m_ui_node_list[M.UI_Depth_Sort[i]] ~= nil) then
+            self.m_ui_node_list[M.UI_Depth_Sort[i]]:set_show(false)
+        end
+    end
+end
+
+-- 当frame_mgr直接删除frame时调用
+function M:onDelFrame(frame)
+    local name = frame:getFrameName()
+    if (self.m_ui_frame_list[name] ~= nil) then
+        self.m_ui_frame_list[name] = nil
+        self:emit_event_del_ui(name)
+    end
+end
+
+
+-- 显示指定view
+function M:ShowView(name)
+    self:emit_event_call_view("show_view", name)
+end
+
+-- 隐藏指定view
+function M:HideView(name)
+    self:emit_event_call_view("hide_view", name)
+end
+
+-- 在当前root中显示到最前
+function M:SendTop(name)
+    self:emit_event_call_view("send_top", name)
+end
+
+-- 适应分辨率
+function M:AdaptResolution(name,go)
+    local node_name =self:GetDepthName(name)
+    self:emit_event_adapt_resolution(node_name,go)
+end
+
+function M:create_scroll_text(params, depth)
+    depth = depth or self.UI_Depth.HIGH
+    local perlin_float = UnityEngine.Mathf.PerlinNoise(Util_math:random_float(-1024, 1024), Util_math:random_float(-1024, 1024))
+    return self:CreateUI("scroll_text_" .. tostring(perlin_float), "scroll_text", params, self.UI_Depth.HIGH)
+end
+
+return M

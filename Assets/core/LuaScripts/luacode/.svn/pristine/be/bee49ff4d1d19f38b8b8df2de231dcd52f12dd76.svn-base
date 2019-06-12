@@ -1,0 +1,23 @@
+--npc½»»¥×´Ì¬»ùÀà
+
+local M = class("InteractStateBase")
+
+function M:initialize(fsm,mob_giver)
+	self.m_fsm=fsm
+	self.m_giver = mob_giver
+end
+
+function M:update()
+
+end
+
+
+function M:enter()
+
+end
+
+function M:exit()
+
+end
+
+return M

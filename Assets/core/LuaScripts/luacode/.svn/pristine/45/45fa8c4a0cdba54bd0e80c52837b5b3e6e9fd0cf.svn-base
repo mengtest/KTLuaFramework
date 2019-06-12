@@ -1,0 +1,44 @@
+-- 为了展示效果 临时添加的功能 并不规范也缺乏考量
+local ObserverHost = require "system.observer_host"
+
+local CacheMgr = class("CacheMgr")
+
+CacheMgr:include(ObserverHost)
+
+CacheMgr.SkillCacheList = {}
+
+CacheMgr.Container = nil
+
+
+function CacheMgr:init()
+    local new_go = GameObject()
+    CacheMgr.Container = new_go.transform
+end
+
+function CacheMgr.GetSkillCache(path)
+    local go = CacheMgr.SkillCacheList[path]
+
+    if(go~= nil) then
+        go:SetActive(true)
+    end
+
+   return go
+end
+
+function CacheMgr.GiveBackSkillCache(path,go)
+    return CacheMgr.SkillCacheList[path]
+end
+
+function CacheMgr.AddSkillCache(path)
+    self:subscribe(app:get_res_mgr():rxLoad(path), function(asset_ref)
+        local go = asset_ref.asset 
+        go.transform:SetParent(CacheMgr.Container) 
+        go:SetActive(false)
+    end)	
+end
+
+function CacheMgr.RemoveSkillCache()
+	
+end
+
+return CacheMgr

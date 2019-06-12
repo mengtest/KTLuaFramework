@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local loading = class("loading", Frame)
+
+function loading:doInit(param)
+
+end
+
+return loading

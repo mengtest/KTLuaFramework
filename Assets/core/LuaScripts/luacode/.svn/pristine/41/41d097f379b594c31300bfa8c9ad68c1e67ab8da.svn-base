@@ -1,0 +1,187 @@
+local View = require("system.view")
+local spirit_beast_view = class("spirit_beast_view", View)
+
+function spirit_beast_view:doInit(param)
+    -- unit是主角
+    self.m_unit = param.unit
+    -- 主角不移动时，宠物随机移动或播放动画的随机时间
+    self.m_random_time = 5
+    -- 默认为 0   随机为 1 或者 2
+    self.m_random = 0
+    -- 距主角 2 - 5 米时候的移动速度
+    self.m_normal_speed = 2
+    -- 距主角 5 米外的移动速度
+    -- TODO 因为现在在我本地获取不到其他unit的移动速度 所以这个速度先写死一个  print(self.m_unit:get_id(), self.m_fast_speed)  id是有并且正确的  速度却始终是 0
+    --self.m_fast_speed = self.m_unit:get_move_speed()
+    self.m_fast_speed = 5
+    -- 主角不动自己闲溜达时候的移动速度
+    self.m_walk_speed = 1
+    -- 已经附过魔了
+    self.m_is_already_enchanted = false
+    -- 脱离战斗后5秒宠物回来
+    self.m_out_combat_time = 10
+    -- Animator组件
+    self.m_anim = nil
+    -- 默认出生点
+    self.m_default_pos = Vector3(self.m_unit:get_pos().x + 1, self.m_unit:get_pos().y, self.m_unit:get_pos().z + 1)
+    -- 在脱战时间内又进战的标志
+    self.m_in_combat_again = false
+    local res_path = app:getAssetPathMgr().get_sfx_asset("lingshou_wuqi_shiyan")
+    self:subscribe(app:getResMgr():rxLoad(res_path), function(asset)
+        if asset then
+            -- 光球
+            self.m_light_ball = Object.Instantiate(asset)
+            self.m_light_ball.transform:SetParent(self:getParent():getGO().transform)
+            self.m_light_ball:SetActive(false)
+            self:subscribe(self:getFrame():on_event_spirit_beast_created(), function(spirit_beast_go)
+                self:on_spirit_beast_created(spirit_beast_go)
+            end)
+            self:subscribe(self.m_unit:on_event_pos_set(), function(val)
+                -- 设置宠物在人物身边的默认位置
+                self.m_default_pos = Vector3(val.x + 1, val.y, val.z + 1)
+            end)
+            self:subscribe(self.m_unit:on_event_in_combat_set(), function(val)
+                if val == 1 then
+                    self:on_unit_in_combat()
+                    self.m_in_combat_again = true
+                else
+                    self:on_unit_out_combat()
+                    self.m_in_combat_again = false
+                end
+            end)
+        end
+        -- 60008 风
+        -- 60009 水
+        -- 60010 火
+        -- 60011 土
+        self:getFrame():create_ctrller(dbc.sprite[self:getFrame():get_id()].model_id)
+    end)
+end
+
+-- 刚刚创建灵兽
+function spirit_beast_view:on_spirit_beast_created(spirit_beast_go)
+    -- 在这给光球起个名
+    self.m_light_ball.name = "light_ball_" .. self:getFrame():get_id()
+    self.m_pet_go = spirit_beast_go
+    -- 这里根据所选的角色scale来调整灵兽大小
+    self.m_default_scale = dbc.role[self.m_unit:get_rclass()].sprites_scale
+    self.m_pet_go.transform.localScale = Vector3(self.m_default_scale, self.m_default_scale, self.m_default_scale)
+    -- 因为没有创建view空壳，所以在这里把 宠物的gameObject 设置为 self.m_go   这样在删除frame的时候这个宠物模型也会随之删除掉
+    self.m_go = self.m_pet_go
+    self.m_pet_go.transform:SetParent(self:getParent():getGO().transform)
+    self.m_pet_go.transform.position = self.m_default_pos
+    self.m_pet_go.transform:LookAt(self.m_unit:get_pos())
+    self.m_anim = self.m_pet_go:GetComponent(UnityEngine.Animator)
+end
+
+-- 进战
+function spirit_beast_view:on_unit_in_combat()
+    if self.m_unit ~= nil and self.m_pet_go ~= nil then
+        if not self.m_is_already_enchanted then
+            -- 进入战斗状态
+            -- TODO 2018.01.17 光球出现 屏蔽掉 因为想让宠物自己飞 现在只是注释掉显示这块 防止策划以后再改回来  等这个事情完全确定了  再将白球特效有关的东西删除
+            --self.m_light_ball:SetActive(true)
+            self.m_light_ball.transform.position = self.m_pet_go.transform.position
+            -- 给武器上加特效
+            --self:getFrame():enchanted_weapon(self.m_light_ball, self:getFrame():get_id())
+            self:getFrame():enchanted_weapon(self.m_pet_go, self:getFrame():get_id())
+            -- 宠物消失
+            self.m_pet_go:SetActive(false)
+            self.m_is_already_enchanted = true
+        end
+    end
+end
+
+-- 脱战
+function spirit_beast_view:on_unit_out_combat()
+    self.m_flag = false
+    if self.m_unit ~= nil and self.m_pet_go ~= nil then
+        slua_timer.addDelayEvent(self.m_out_combat_time, function()
+            if self.m_in_combat_again then
+                return
+            end
+            if self.m_flag then
+                return
+            end
+            -- 武器特效消失
+            local unenchanted_weapon_cb = function()
+                self.m_pet_go:SetActive(true)
+                self.m_pet_go.transform.position = self.m_default_pos
+                self.m_is_already_enchanted = false
+            end
+            self:getFrame():unenchanted_weapon(unenchanted_weapon_cb)
+            self.m_flag = true
+        end)
+    end
+
+end
+
+function spirit_beast_view:doUpdate()
+    if self.m_pet_go ~= nil and self.m_pet_go.activeSelf then
+        --print(self.m_unit:get_id(), self.m_unit:get_move_speed())
+        if Vector3.Distance(self.m_pet_go.transform.position, self.m_unit:get_pos()) > 2 then
+            self.m_random_time = 5
+            self.m_random = 0
+            local move_speed = self.m_normal_speed
+            if Vector3.Distance(self.m_pet_go.transform.position, self.m_unit:get_pos()) > 5 then
+                move_speed = self.m_fast_speed
+            end
+            self.m_pet_go.transform.position = Vector3.MoveTowards(self.m_pet_go.transform.position, self.m_unit:get_pos(), move_speed * Time.deltaTime)
+            self.m_anim:SetBool(enum.spirit_beast.SpiritBeastAnimParamName.RUN, true)
+            self.m_pet_go.transform:LookAt(self.m_unit:get_pos())
+
+        else
+            ---- 大约每 5 秒从 1 和 2 这两个数之间产生一个随机数
+            self.m_random_time = self.m_random_time - app:get_delta_time()
+            if self.m_random_time < 0 then
+                ---- 1 和 2 两个数之间生成随机数
+                self.m_random = math.random(1, 2)
+                ---- 在以主角为圆心，3 为半径的圈内随机一个点
+                local p = Random.insideUnitCircle * 2
+                local p1 = p.normalized * (1 + p.magnitude)
+                self.m_p2 = Vector3(self.m_unit:get_pos().x + p1.x, self.m_unit:get_pos().y, self.m_unit:get_pos().z + p1.y)
+                --print(p, p.normalized, (1 + p.magnitude),p1)
+                self.m_random_time = 5
+            end
+            if self.m_random == 1 then
+                ---- 当这个随机数是 1 的时候宠物不动，原地呆着
+                self.m_anim:SetBool(enum.spirit_beast.SpiritBeastAnimParamName.RUN, false)
+            elseif self.m_random == 2 then
+                ---- 当这个随机数是 2 的时候宠物朝着一个 3 米圈内的随机点移动
+                if self.m_anim:GetCurrentAnimatorStateInfo(0):IsName(enum.spirit_beast.SpiritBeastAnimStateName.IDLE1) then
+                    ---- 如果此时播放的动画是idle1 则 return
+                    return
+                else
+                    self.m_pet_go.transform.position = Vector3.MoveTowards(self.m_pet_go.transform.position, self.m_p2, self.m_walk_speed * Time.deltaTime)
+                    self.m_anim:SetBool(enum.spirit_beast.SpiritBeastAnimParamName.RUN, true)
+                    self.m_pet_go.transform:LookAt(self.m_p2)
+                    ---- 当宠物走到了随机的目标点 就停下
+                    if self.m_pet_go.transform.position == self.m_p2 then
+                        self.m_anim:SetBool(enum.spirit_beast.SpiritBeastAnimParamName.RUN, false)
+                    else
+                        ---- 没走到目标点就不随机
+                        self.m_random_time = 5
+                    end
+                end
+
+            else
+                self.m_anim:SetBool(enum.spirit_beast.SpiritBeastAnimParamName.RUN, false)
+            end
+        end
+
+        -- 当宠物距离我 30 以外瞬移
+        if Vector3.Distance(self.m_pet_go.transform.position, self.m_unit:get_pos()) > 30 then
+            self.m_pet_go.transform.position = self.m_default_pos
+            --print("我看看你跟着走不", self.m_pet_go.transform.position, self.m_default_pos)
+        end
+    end
+
+
+end
+
+function spirit_beast_view:doDestroy()
+    Object.Destroy(self.m_light_ball)
+end
+
+
+return spirit_beast_view

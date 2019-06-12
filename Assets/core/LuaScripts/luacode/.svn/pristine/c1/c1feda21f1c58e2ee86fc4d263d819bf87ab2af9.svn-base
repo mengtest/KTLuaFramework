@@ -1,0 +1,29 @@
+local M = {}
+
+function M:doInit()
+    self.target = nil
+    self:load(app:getAssetPathMgr().get_ui_view_asset("InteractTip"), function(go)
+        go:SetActive(false)
+        self.go = go.transform.parent;
+        self:subscribe(self:getFrame():on_event_pos_set(), function(pos)
+            self.target = pos
+            
+            if (self.target == nil) then
+                go:SetActive(false)
+            else
+                go:SetActive(true)
+            end
+        end)
+    
+    end)
+end
+
+function M:doUpdate()
+    if (self.target ~= nil) then
+        -- local screenPos = UnityEngine.Camera.main:WorldToScreenPoint(self.target + Vector3(0,1,0));
+        -- local uicameraPos = app:get_ui_manager():get_ui_camera():ScreenToWorldPoint(screenPos);
+        self.go.position =  self.target + Vector3(0,2,0)
+        self.go.transform:LookAt(UnityEngine.Camera.main.transform)
+    end
+end
+return M

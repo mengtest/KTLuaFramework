@@ -1,0 +1,291 @@
+local Frame = require("system.frame")
+local big_map = class("big_map", Frame)
+
+Attribute.decl(big_map, "change_btn_text", "世界")
+Attribute.decl(big_map, "map_name", "")
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+----开始传送
+Event.decl(big_map, "begin_trans")
+--- 按钮点击事件
+Event.decl(big_map, "close")
+Event.decl(big_map, "change_map")
+--- 任务图标按钮点击时抛出的事件
+Event.decl(big_map, "quest_click")
+--- 传送点图标点击时抛出的事件
+Event.decl(big_map, "trans_click")
+--- 刷新信息显示面板的事件
+Event.decl(big_map, "refresh_quest_info")
+Event.decl(big_map, "refresh_trans_info")
+--- 需要显示多目标时的事件
+Event.decl(big_map, "show_choice_list")
+--- 切换到世界地图
+Event.decl(big_map, "change_world_map")
+
+function big_map:doInit(param)
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_world = self:getFrame("world")
+    self.m_map_manager = self:getFrame("map_manager")
+    self.m_map_id = self.m_world:get_map_id()
+    self.m_cur_map_id = param['map_id']
+    self.m_show_quest_data = param['show_quest_data']
+    self.m_quest_frame_list = {}
+    --- 已激活的传送点
+    self.m_unlock_tele_point = self.m_map_manager:gain_unlock_tele_point()
+    --- 未激活传送点
+    self.m_untrans_point = {}
+    --- 当前区域地图中传送点信息
+    self.m_area_trans = {}
+    --- 记录是否已经执行过init()函数
+    self.m_is_init = false
+    self:subscribe(self.m_map_manager:on_event("rec_unlock_trans_point"), function(unlock_tele_point)
+        self.m_unlock_tele_point = unlock_tele_point
+        --self.m_area_trans = self:load_trans_point(self.m_cur_map_id)
+    end)
+    self.m_map_manager:req_unlock_tele_point()
+
+    self.m_is_in_dungeon = param["inst_id"]
+    self.m_inst_data = dbc.instances[self.m_is_in_dungeon]
+    ----boss的信息
+    self.m_boss = {}
+    ----boss位置信息
+    self.m_boss_pos = {}
+    if self.m_is_in_dungeon > 0 then
+        self.m_boss = self.m_inst_data["progresses"]
+        self.m_boss_pos = self.m_inst_data["boss_pos"]
+    end
+    --- 存放已接取和已完成待交付的任务
+    self.m_quest_list = {}
+    --- 存放已解锁待交互的任务
+    self.m_interact_quest_list = {}
+    self.m_owner = self.m_world:get_main_player()
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    ----已解锁传送点
+    self.m_trans_point = {}
+    local map_data = dbc.map[self.m_cur_map_id]
+    self:set_map_name(map_data.name)
+
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+------获取当前场景中的任务
+function big_map:create_quest_in_current_map(map_id)
+    --- 清空当前任务列表
+    self.m_quest_list = {}
+    --- 当前区域地图中的任务，主要用于存储当前区域中任务的quest_data和area_data
+    local area_quest_list = {}
+    --- 获取已接取和已完成待交付的任务
+    local quest_list = self.m_quest_manager:get_all_quest_data()
+    for id, data in pairs(quest_list) do
+        local min_dis, mapId, area_id = data:get_target_info()
+        --- 筛选出当前地图中已接取或已完成待交付的任务
+        if map_id == mapId then
+            self.m_quest_list[id] = data
+        end
+    end
+
+    for id, data in pairs(self.m_quest_list) do
+        local quest_param = {}
+        local _, mapId, area_id, min_dir, state, target_type, finish = data:get_target_info()
+        local area_data = nil
+        if map_id == self.m_map_id then
+            area_data = self.m_world:get_area_data(self.m_map_id, area_id)
+        else
+            area_data = self:construct_area_data(mapId, area_id)
+        end
+        quest_param['map_id'] = map_id
+        quest_param['quest_data'] = data
+        quest_param['area_data'] = area_data
+        if area_data then
+            local radius = area_data['radius']
+            if not radius then
+                radius = 1
+            end
+            quest_param['radius'] = radius * self.m_scale_x
+        end
+        quest_param['target_type'] = target_type
+        quest_param['finish'] = finish
+        --- 将任务的信息保存起来
+        area_quest_list[#area_quest_list + 1] = quest_param
+        self.m_quest_frame_list[#self.m_quest_frame_list + 1] = self:createChild("quest_icon_" .. id, "map.big_map.big_map_quest", quest_param)
+    end
+    return area_quest_list
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    if not self.m_is_init then
+        self:init()
+        self.m_is_init = true
+    end
+end
+
+---- 获取传送点的信息
+function big_map:gain_trans_info()
+    return self.m_area_trans
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded(result)
+    --- 创建任务信息面板
+    self:createChild("quest_info", "map.big_map.big_map_quest_info")
+    ----- 创建世界地图
+    self:createChild("world_map", "map.big_map.big_map_world")
+    if result == 1 then
+        ----表示在副本内     加载boss信息
+        for i = 1, #self.m_boss do
+            self:createChild("boss_icon_" .. self.m_boss[i], "map.big_map.big_map_boss", { ["id"] = self.m_boss[i], ["pos"] = Vector3(self.m_boss_pos[i * 2 - 1], 0, self.m_boss_pos[i * 2]) })
+        end
+    end
+    --self:create_dungeon_join()
+end
+
+------创建副本在地图中的映射区域    在map表当中进行搜寻
+function big_map:create_dungeon_join()
+    local dungeon_join_list = {}
+    local dungeon_join_type_list = dbc.map[self.m_cur_map_id].dungeon_join_type
+    for i = 1, #dungeon_join_type_list do
+        dungeon_join_list["type"] = dungeon_join_type_list[i]
+        self:createChild("big_map_dungeon_join" .. i, "map.big_map.big_map_dungeon_join", dungeon_join_list)
+    end
+end
+
+---创建大地图上的传送点   兄弟们要注意了，涉及到表的移除一定要一定要复制一份，不要修改源文件中的表的结构
+function big_map:load_trans_point(map_id)
+    --- 本地图传送点
+    local trans = {}
+    --- 将已解锁和未解锁传送点列表置空
+    self.m_trans_point = {}
+    self.m_untrans_point = {}
+    --- 筛选出本地图中的传送点
+    for i, v in ipairs(dbc.teleport_point) do
+        if v.map_id == map_id then
+            trans[i] = v
+        end
+    end
+
+    --- 找出本地图已经解锁和未解锁的传送点
+    for i, v in pairs(trans) do
+        --- 传送点是否已解锁
+        local is_lock = true
+        for id = 1, #self.m_unlock_tele_point do
+            --- 将已解锁的传送点保存起来
+            if self.m_unlock_tele_point[id] == i then
+                self.m_trans_point[#self.m_trans_point + 1] = i
+                is_lock = false
+                break
+            end
+        end
+        --- 将未解锁的传送点保存起来
+        if is_lock then
+            self.m_untrans_point[#self.m_untrans_point + 1] = i
+        end
+    end
+
+    --- 清空原传送点列表，为了存储需要的传送点信息
+    trans = {}
+    --- 生成已激活传送点
+    for i = 1, #self.m_trans_point do
+        ---生成已经解锁的传送点
+        local send_list = {}
+        send_list['map_id'] = map_id
+        send_list["id"] = self.m_trans_point[i]
+        send_list["is_unlock"] = true
+        trans[#trans + 1] = send_list
+        self:createChild("transt" .. self.m_trans_point[i], "map.big_map.transmit", send_list)
+    end
+
+    --- 生成未激活的传送点
+    for i = 1, #self.m_untrans_point do
+        ---生成已经解锁的传送点
+        local send_list = {}
+        send_list['map_id'] = map_id
+        send_list["id"] = self.m_untrans_point[i]
+        send_list["is_unlock"] = false
+        trans[#trans + 1] = send_list
+        self:createChild("transt" .. self.m_untrans_point[i], "map.big_map.transmit", send_list)
+    end
+    return trans
+end
+
+---- 获取任务的area_data
+function big_map:construct_area_data(map_id, area_id)
+    local scene_data = self.m_world:get_scene_data(map_id)
+    if not scene_data then
+        return
+    end
+    local area_data = scene_data["patrolAreas"]
+    local temp_area_data = {}
+    for _, area in pairs(area_data) do
+        --local index = tonumber(utility.string:split_to_arr(area.addr, "##")[2]) + 1
+        local index = area.id
+        if index == area_id then
+            local worldPosition = Vector3(area.worldPosition.x, area.worldPosition.y, area.worldPosition.z)
+            local worldRotation = Quaternion(area.worldRotation.x, area.worldRotation.y, area.worldRotation.z, area.worldRotation.w)
+            local localScale = Vector3(area.localScale.x, area.localScale.y, area.localScale.z)
+            local radius = area.radius
+            temp_area_data = {
+                ["worldPosition"] = worldPosition,
+                ["worldRotation"] = worldRotation,
+                ["localScale"] = localScale,
+                ["radius"] = radius,
+            }
+            return temp_area_data
+        end
+    end
+    return nil
+end
+
+function big_map:gain_quest_frame_list()
+    return self.m_quest_frame_list
+end
+
+-----开始传送，隐藏大地图，开始读取进度条
+function big_map:on_begin_trans(id)
+    self:emit_event("begin_trans", id)
+end
+
+---- 点击传送点按钮，显示传送点信息
+function big_map:refresh_trans_info(id, is_unlock, pos)
+    self:emit_event("trans_click", id, is_unlock, pos)
+end
+
+---- 点击关闭地图按钮的事件
+function big_map:on_return_btn()
+    --- 关闭地图时解除计时器
+    slua_timer.removeTimerEvent(slua_timer.EVENT_LIST.Req_Team_Member_Pos_Timer)
+    self:emit_event("close")
+end
+
+---- 切换世界地图和区域地图按钮
+function big_map:on_change_map()
+    self:emit_event("change_map", self.m_map_id)
+end
+
+function big_map:gain_show_quest_param()
+    return self.m_show_quest_data, self.m_cur_map_id
+end
+
+function big_map:refresh_quest_info(quest_param, show_btn)
+    self:emit_event("refresh_quest_info", quest_param, show_btn)
+end
+
+return big_map

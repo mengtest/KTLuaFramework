@@ -1,0 +1,169 @@
+
+--local Frame = require("system.frame")
+--local Look_at_target = class("look_at_target", Frame)
+local Look_at_target = class("look_at_target")
+
+Look_at_target.Const = {}
+Look_at_target.Const.Look_at_min_angle_x = -1   -- pacman 2017-11-22 这个值大于0时，会导致不自然，需要和策划协商
+Look_at_target.Const.Look_at_max_angle_x = 80
+Look_at_target.Const.Look_at_max_angle_y = 0
+Look_at_target.Const.Look_at_cancel_angle_x = 100
+Look_at_target.Const.Look_at_min_angle_y = -1   -- pacman 2017-11-30 这个值大于0时，会导致不自然，需要和策划协商
+
+--function Look_at_target:doInit(params)
+--
+--end
+
+--function Look_at_target:initialize(root_go, head_tr)
+--    self.m_animator_ik = root_go:AddComponent(AnimatorIK)
+--    self.m_root_tr = root_go.transform
+--    self.m_head_tr = head_tr
+--end
+
+function Look_at_target:set_root_and_head(root_go, animator, head_tr)
+    self.m_animator_ik = root_go:GetComponent(AnimatorIK) or root_go:AddComponent(AnimatorIK)
+    self.m_root_tr = root_go.transform
+    self.m_head_tr = head_tr
+
+    -- 2017-11-17 pacman 平滑处理
+    self.m_animator = animator
+    self.m_cur_pos = head_tr.position + self.m_root_tr.forward      -- 用于平滑的中间层
+    self.m_target_pos = nil   -- 目标点位置
+    self.m_is_looking = false
+
+end
+
+
+function Look_at_target:set_look_at_position(pos)
+    if not self.m_root_tr then
+        return
+    end
+
+    local fwd = self.m_root_tr.forward
+    local vec = pos - self.m_head_tr.position
+    local angle_x = Util_math:get_delta_angle_in_xz(fwd, vec)
+
+    -- 计算y方向夹角
+    --local angle_y = Util_math:get_delta_angle_between_xz(vec)
+    local vec_on_xz = Vector3.ProjectOnPlane(vec, Vector3.up)   -- 头部_目标连线在xz平面上的投影
+    local vec_plane_normal = Vector3.Cross(vec_on_xz, vec)      -- 头部_目标连线方向上的纵切面
+    local fwd_on_vec_plane = Vector3.ProjectOnPlane(fwd, vec_plane_normal)      -- 角色朝向在纵切面上的投影
+    local angle_y = Vector3.Angle(fwd_on_vec_plane, vec)        -- 与头部_目标连线的夹角
+
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + fwd, Color.white)
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec, Color.blue)
+    --Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_on_xz, Color.white)
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + vec_plane_normal, Color.white)
+    Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + fwd_on_vec_plane, Color.blue)
+    --print(">>>>>>>>>>>>>", angle_y)
+
+    local is_in_sight = angle_x >= self.Const.Look_at_min_angle_x and angle_x <= self.Const.Look_at_cancel_angle_x and angle_y >= self.Const.Look_at_min_angle_y
+    if is_in_sight then
+        local mask = LayerMask.NameToLayer("Role")
+        local is_hit, hit_info = Physics.Raycast(self.m_head_tr.position, vec, Slua.out, vec.magnitude, mask)
+        if not is_hit then
+
+            -- pacman 2017-11-30 暂取消对水平方向角度的限制
+            --if angle_x > self.Const.Look_at_max_angle_x then
+            --    local delta_angle_x = angle_x - self.Const.Look_at_max_angle_x
+            --    pos = Quaternion.AngleAxis(delta_angle_x, Util_math:get_projection_vector(Vector3.Cross(vec, fwd), Vector3.up)) * vec + self.m_head_tr.position
+            --end
+
+            -- pacman 2017-11-30 临时加入对数值方向角度的限制，避免人物身体过度倾斜的问题
+            if angle_y > self.Const.Look_at_max_angle_y then
+                -- 将fwd_on_vec_plane 向 vec 旋转，作为限制之后的值
+                local rotated = Vector3.RotateTowards(fwd_on_vec_plane, vec, self.Const.Look_at_max_angle_y / 180 * math.pi, 0)
+                rotated = rotated.normalized * 10       -- pacman 2017-12-01 目标点距离角色头部太近容易导致角色扭腰，移动到10米远
+                Debug.DrawLine(self.m_head_tr.position, self.m_head_tr.position + rotated, Color.red)
+                self.m_target_pos = self.m_head_tr.position + rotated
+            else
+                self.m_target_pos = pos
+                Debug.DrawLine(self.m_head_tr.position, pos, Color.green)
+            end
+
+            -- 开始注视
+            self.m_is_looking = true
+
+            --print("++++++++++++++++++++++++look at true", angle_x)
+            --Util_log:logError(Util_log.Mask.SJG_Look, "pos = " .. tostring(pos))
+            return
+        end
+    end
+    Util_log:logError(Util_log.Mask.SJG_Look, "ClearLookAtPosition")
+
+    -- 如果目标位置不在范围内
+    self.m_is_looking = false
+    self.m_target_pos = self.m_head_tr.position + self.m_root_tr.forward
+    --print("-------------------------look at false", angle_x)
+
+
+end
+
+
+function Look_at_target:clear_look_at_position()
+    if self.m_root_tr == nil then
+        return
+    end
+
+    self.m_is_looking = false
+    self.m_target_pos = self.m_head_tr.position + self.m_root_tr.forward
+
+end
+
+
+function Look_at_target:doUpdate()
+    local delta_time = app.get_delta_time()
+
+    if self.m_animator_ik == nil then
+        return
+    end
+
+    -- 平滑注视权重值
+    local step = 0.1
+    if not self.m_is_looking then
+        step = step * -1
+    end
+
+    local weight = self.m_animator_ik.weight
+    weight = weight + step
+
+    if weight > 1 then
+        weight = 1
+    elseif weight < 0 then
+        weight = 0
+    end
+
+    self.m_animator_ik.weight = weight
+
+
+    if self.m_target_pos ~= nil and weight > 0 then
+        self:smooth_to_position(self.m_target_pos, delta_time)
+    end
+
+    --if self.m_head_tr ~= nil then
+    --    Debug.DrawLine(self.m_head_tr.position, self.m_cur_pos, Color.white)
+    --    if self.m_target_pos ~= nil then
+    --        Debug.DrawLine(self.m_head_tr.position, self.m_target_pos, Color.red)
+    --    end
+    --end
+
+end
+
+function Look_at_target:smooth_to_position(target_pos, delta_time)
+
+    -- 注视目标平滑转移
+    local cur_dir = self.m_cur_pos - self.m_head_tr.position
+    local target_dir = target_pos - self.m_head_tr.position
+    local dir = Vector3.RotateTowards(cur_dir, target_dir, delta_time * 3, 10000)
+
+    self.m_cur_pos = self.m_head_tr.position + dir
+    self.m_animator_ik:SetLookAtPosition(self.m_cur_pos)
+end
+
+
+
+
+
+
+
+return Look_at_target

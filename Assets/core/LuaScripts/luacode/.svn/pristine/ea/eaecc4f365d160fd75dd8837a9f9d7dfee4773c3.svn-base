@@ -1,0 +1,359 @@
+local HeadOverlayItem = {}
+
+Attribute.decl(HeadOverlayItem, "name", "")
+Attribute.decl(HeadOverlayItem, "hp", 0)
+Attribute.decl(HeadOverlayItem, "hp_max", 0)
+Attribute.decl(HeadOverlayItem, "lv", 0)
+Attribute.decl(HeadOverlayItem, "pos", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(HeadOverlayItem, "scale", 1)
+Attribute.decl(HeadOverlayItem, "base_scale", 1)
+Attribute.decl(HeadOverlayItem, "is_cur_target", false) -- 是否是选中目标
+Attribute.decl(HeadOverlayItem, "is_boss", false) -- 是否是boss
+Attribute.decl(HeadOverlayItem, "offsets", 0) -- y轴偏移值
+Attribute.decl(HeadOverlayItem, "enum_color", 0) -- 颜色
+
+
+Event.decl(HeadOverlayItem, "refresh")
+Event.decl(HeadOverlayItem, "show")
+Event.decl(HeadOverlayItem, "hide")
+Event.decl(HeadOverlayItem, "fade")
+Event.decl(HeadOverlayItem, "dye")
+Event.decl(HeadOverlayItem, "is_show_name_health")
+
+HeadOverlayItem.T_List = { 1, 4, 13 } -- 临时列表，记录代表 T 的天赋类型
+
+-- 是否显示生命
+local function is_show_health(creature,main_player_dist)
+    -- 策划基础配置
+    local condition_0 = dbc.heamal_strand[creature.hp_id].is_show_health
+
+    -- 距离小于20
+    local condition_2 = main_player_dist < 20
+
+    if(condition_0 == true) then
+        if(condition_2 == true) then
+            return true
+        end
+    end
+    return false
+end
+
+-- 是否显示名称
+local function is_show_name(creature , main_player_dist )
+    -- 策划基础配置
+    local condition_0 = dbc.heamal_strand[creature.hp_id].is_show_name
+    -- 距离小于20
+    local condition_2 = main_player_dist < 20
+    if(condition_0 == true) then
+        if(condition_2 == true) then
+            return true
+        end
+    end
+    return false
+end
+
+-- 是否显示boss图标
+local function is_show_boss(creature , main_player_dist )
+
+    -- 策划基础配置
+    local condition_0 = dbc.heamal_strand[creature.hp_id].is_show_icon
+
+    -- 距离小于20
+    local condition_2 = main_player_dist < 20
+
+    if(condition_0 == true) then
+        if(condition_2 == true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function show_scale(main_player_dist)
+    local main_player_dist_max = 20
+    local main_player_dist_min = 2
+    local change = 0.5
+    if(main_player_dist>main_player_dist_max) then
+        return Vector3(0.5,0.5,0.5)
+    end
+    if(main_player_dist<main_player_dist_min) then
+        return Vector3(1,1,1)
+    end
+    local diff = main_player_dist_max- main_player_dist_min
+    local scale = 1- main_player_dist / diff * 0.5
+    local sca = Vector3(scale,scale,scale)
+    return sca
+end
+
+-- 获取主玩家仇恨值
+function HeadOverlayItem:get_main_threat(unit_id)
+    local threat_manager = self:getFrame("threat_manager")
+    local main_player_threats = threat_manager:get_threat_info(self.m_main_player:get_id())
+    for _, v in pairs(main_player_threats) do
+        if unit_id == v["entity_id"] then
+            return v["threat"]
+        end
+    end
+    return 0
+end
+
+-- 当前目标是否是我
+function HeadOverlayItem:get_is_threat(threat_info)
+    if not threat_info then
+        return false,0
+    end
+    for i, v in pairs(threat_info) do
+        if(v["entity_id"] == self.m_main_player:get_id()) then
+            local threat = v["threat"]
+            return true,threat
+        end
+    end
+    return false,0
+end
+
+function HeadOverlayItem:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    -- 变量
+    self.m_is_threat = false
+    self.m_main_player = self:getFrame("world"):get_main_player()
+    self.m_unit = param.unit
+    self.m_displayable_flag = 0
+    self.m_cam_tr = self:getFrame("world"):getCamera():fetch_unity_camera().transform
+    self.m_threat_info = nil
+    -- 设置属性
+    local creature_cfg = self.m_unit:getCfg()
+    self:set_is_boss(dbc.heamal_strand[creature_cfg.hp_id].is_show_icon)
+    self:set_offsets(dbc.heamal_strand[creature_cfg.hp_id].offsets/100)
+
+    -- 注册事件
+    self:subscribe(self.m_unit:on_event_name_set(true), function(val)
+        self:set_name(val)
+    end)
+    self:subscribe(self.m_unit:on_event_hp_set(true), function(val)
+        self:set_hp(val)
+    end)
+    self:subscribe(self.m_unit:on_event_hp_max_set(true), function(val)
+        self:set_hp_max(val)
+    end)
+
+
+    if(self.m_unit:get_id() ~= self.m_main_player:get_id()) then
+        local main_player_dist = 0 -- 怪物与玩家的距离
+        local main_player_threat = false -- 是否仇恨玩家
+        -- 位置监听
+        self:subscribe(self.m_unit:on_event_pos_set(true), function(val)
+            main_player_dist = Vector3.Distance(self.m_main_player:get_pos(),val)
+            local is_show_health = is_show_health(creature_cfg , main_player_dist )
+            local is_show_name = is_show_name(creature_cfg , main_player_dist  )
+            local is_show_boss_icon = is_show_boss(creature_cfg , main_player_dist )
+            local show_scale = show_scale(main_player_dist)
+            self:emit_event("is_show_name_health",is_show_name,is_show_health,is_show_boss_icon,show_scale)
+        end)
+
+        self:subscribe(self.m_main_player:on_event_pos_set(true), function(val)
+            main_player_dist = Vector3.Distance(self.m_unit:get_pos(),val)
+            local is_show_health = is_show_health(creature_cfg , main_player_dist )
+            local is_show_name = is_show_name(creature_cfg , main_player_dist)
+            local is_show_boss_icon = is_show_boss(creature_cfg , main_player_dist )
+            local show_scale = show_scale(main_player_dist)
+            self:emit_event("is_show_name_health",is_show_name,is_show_health,is_show_boss_icon,show_scale)
+        end)
+
+        -- 仇恨监听
+        self:subscribe(self.m_unit:on_event_threat_update(true), function(threat_info)
+            self.m_threat_info = threat_info
+            if not self.m_is_threat then
+                return
+            end
+            self:refresh_threat(self.m_threat_info)
+
+        end)
+
+        self:subscribe(self.m_unit:on_event_in_combat_set(true), function(val)
+            local is_enemy = app.m_battle_mgr:is_enemy(self.m_unit)
+            -- 判断是否进入战斗
+            if(val == 1) then -- 进入战斗状态
+                if self.m_unit:get_is_role() then
+
+                    self.m_is_threat = false
+                    -- 玩家
+                    if is_enemy then -- 敌对玩家
+                        -- app:logError("敌对玩家进入战斗状态")
+                        self:enable()
+                        self:set_enum_color(enum.ui.HP_COLOR.ORANGE)
+                    else
+                        -- 友善 中立   不显示
+                        self:disable()
+                        -- app:logError("友善 中立玩家进入战斗状态")
+                    end
+                else
+                    -- npc 或者怪物 开记录仇恨值
+                    self.m_is_threat = true
+                    self:refresh_threat(self.m_threat_info)
+                    -- app:logError("怪物进入战斗状态")
+                end
+            else -- 未进入战斗状态
+                self.m_is_threat = false
+                if self.m_unit:get_is_role() then -- 玩家
+                    if is_enemy then
+                        -- app:logError("敌对玩家未进入战斗状态")
+                        self:enable()
+                        self:set_enum_color(enum.ui.HP_COLOR.RED)
+                    else
+                        -- app:logError("友善玩家未进入战斗状态")
+                        self:enable()
+                        self:set_enum_color(enum.ui.HP_COLOR.GREEN)
+                    end
+                else   -- npc 或者怪物
+                    if is_enemy then
+                        -- app:logError("敌对怪物未进入战斗状态")
+                        self:enable()
+                        self:set_enum_color(enum.ui.HP_COLOR.RED)
+                    else
+                        -- app:logError("友善怪物未进入战斗状态")
+                        self:disable()
+                    end
+                end
+            end
+        end)
+    end
+end
+function HeadOverlayItem:refresh_threat(threat_info)
+    local duty_data = dbc.specialization[self.m_main_player:get_specialization()].duty
+    if duty_data == enum.shared.InstanceMactchRoleDuty.TANK then -- 防御
+        self:tank(threat_info)
+    elseif duty_data == enum.shared.InstanceMactchRoleDuty.DAMAGE or data == enum.shared.InstanceMactchRoleDuty.HEALER then -- 伤害
+        self:damage_and_healer(threat_info)
+    end
+end
+--Tank
+function HeadOverlayItem:tank(threat_info)
+    local main_threat = self:get_main_threat(self.m_unit:get_id())
+    local is_main , threat = self:get_is_threat(threat_info)
+    if(is_main) then
+        local pre = threat/main_threat
+        if pre >=1 then
+            --有人达到我仇恨100%
+            self:set_enum_color(enum.ui.HP_COLOR.ORANGE)
+        else
+            --没人仇恨达到我的100%
+            self:set_enum_color(enum.ui.HP_COLOR.BLUE)
+        end
+    else
+        local pre = main_threat/threat
+        if pre >=1 then -- 我的仇恨达到当前怪物目标的100%
+            self:set_enum_color(enum.ui.HP_COLOR.ORANGE)
+        else
+            --我的仇恨还没达到当前目标的100%
+            self:set_enum_color(enum.ui.HP_COLOR.RED)
+        end
+    end
+end
+-- DPS和治疗
+function HeadOverlayItem:damage_and_healer(threat_info)
+    local main_threat = self:get_main_threat(self.m_unit:get_id())
+    local is_main , threat = self:get_is_threat(threat_info)
+    if(is_main) then
+        local pre = threat/main_threat
+        if pre >=1 then
+            -- 有人达到我仇恨100%
+            self:set_enum_color(enum.ui.HP_COLOR.ORANGE)
+        else
+            -- 没人仇恨达到我的100%
+            self:set_enum_color(enum.ui.HP_COLOR.RED)
+        end
+    else
+        local pre = main_threat/threat
+        if pre >=1 then
+            -- 我的仇恨达到当前仇恨目标的100%但未到ot百分比
+            self:set_enum_color(enum.ui.HP_COLOR.ORANGE)
+        else
+            -- 我的仇恨还未达到当前仇恨目标的100%
+            self:set_enum_color(enum.ui.HP_COLOR.BLUE)
+        end
+    end
+end
+function HeadOverlayItem:doUpdate()
+    local show_bone, offset_dis = nil, nil
+    show_bone, offset_dis = self.m_unit:get_bone("top"), self.m_unit:get_attr("model_radius")
+
+    local pos = show_bone and Vector3(show_bone.position.x,show_bone.position.y+self:get_offsets(),show_bone.position.z) or Vector3.up * 3
+    local sight_dir = (pos - self.m_cam_tr.position).normalized
+    local pos_end = pos --+ Vector3.Cross(sight_dir, self.m_cam_tr.right).normalized * offset_dis
+    self:set_pos(pos_end)
+    -- self:camera_to_unit_ray()   --新版策划案中没有这个需求  并且与控制显示隐藏冲突，先注释掉这个功能，如需要  则修改打开 by:wdd
+end
+
+function HeadOverlayItem:do_first_show()
+    if self.m_displayable_flag > 0 then
+        self:emit_event("show")
+    else
+        self:emit_event("hide")
+    end
+end
+
+function HeadOverlayItem:enable()
+    self:emit_event("show")
+end
+
+function HeadOverlayItem:disable()
+    self:emit_event("hide")
+end
+
+function HeadOverlayItem:fade()
+    self:emit_event("fade")
+end
+
+function HeadOverlayItem:dye()
+    self:emit_event("dye")
+end
+
+--这里是需要给view发送的事件需要在view中注册
+function HeadOverlayItem:refresh()
+    self:emit_event("refresh")
+end
+
+
+--相机到unit的射线，为了实现有遮挡时不显示血条 2018.1.20 xiaojingli   可以考虑放到view里面
+function HeadOverlayItem:camera_to_unit_ray()
+    local unit_pos = self.m_unit:get_pos()
+    unit_pos = Vector3(unit_pos.x, unit_pos.y + self.m_unit:get_model_height() * 0.5, unit_pos.z)
+    local camera_pos = self:getFrame("world"):getCamera():get_position()
+    local dir = unit_pos - camera_pos
+    local ok, hitinfo = Physics.Raycast(camera_pos, dir, Slua.out)
+    --print("unit id: " .. self.m_unit:get_id())
+    if ok then
+        --print("碰撞对象：" .. hitinfo.collider.name .. "        碰撞层级名称：" .. LayerMask.LayerToName(hitinfo.collider.gameObject.layer))
+        if "unit-" .. self.m_unit:get_id() ~= hitinfo.collider.name then
+            --不是自身
+            local layer_name = LayerMask.LayerToName(hitinfo.collider.gameObject.layer)
+            if layer_name == "Terrain" then
+                --地形
+                self:emit_event("hide")
+            else
+                --其他
+                self:emit_event("show")
+            end
+        else
+            --自身
+            self:emit_event("show")
+        end
+        Debug.DrawLine(camera_pos, unit_pos)
+    end
+end
+
+function HeadOverlayItem:target_click()
+    if(self.m_main_player:get_id() == self.m_unit:get_id())then
+        return
+    end
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    playerController:set_target_unit(self.m_unit)
+    self.m_main_player:set_target(self.m_unit)
+end
+function HeadOverlayItem:get_unit()
+    return self.m_unit
+end
+
+return HeadOverlayItem

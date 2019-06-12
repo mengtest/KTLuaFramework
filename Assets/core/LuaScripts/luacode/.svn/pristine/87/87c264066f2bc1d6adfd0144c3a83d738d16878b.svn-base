@@ -1,0 +1,24 @@
+﻿
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_collect = class("Quest_condition_collect", Quest_condition_base)
+
+function Quest_condition_collect:on_initialize(quest_id, index, quest_manager)
+	self.m_is_pass = false
+	self.m_collection_count = 0
+	self.m_quest_manager = quest_manager
+    
+    self.m_quest_manager:create_interact(self.m_aim_param[1])
+end
+
+function Quest_condition_collect:on_judge()
+    local cur_param = tonumber(self.m_cur_param[1]) or 100
+    local aim_param = self.m_aim_param[2] or 100
+    --app:logError(string.format("cur_param = %s, aim_param = %s", cur_param, aim_param))
+    if cur_param >= aim_param then
+        self.m_quest_manager:destroy_interact(self.m_aim_param[1])
+        return true
+    end
+    return false
+end
+
+return Quest_condition_collect

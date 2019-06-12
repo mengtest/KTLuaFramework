@@ -1,0 +1,17 @@
+
+local Quest_condition_base = require("frame.quest.condition.quest_condition_base")
+local Quest_condition_level = class("Quest_condition_level", Quest_condition_base)
+
+function Quest_condition_level:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_manager = quest_manager
+end
+
+function Quest_condition_level:get_cur_weight()
+    return self.m_is_passed and self.m_per_weight or 0
+end
+
+function Quest_condition_level:get_aim_weight()
+    return self.m_per_weight
+end
+
+return Quest_condition_level

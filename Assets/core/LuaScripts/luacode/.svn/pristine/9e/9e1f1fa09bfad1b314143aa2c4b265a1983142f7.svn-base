@@ -1,0 +1,10 @@
+local row_0 = {['id']=1,['obj_tp']=1,['obj_id']=1031,['action_tp']=1,['action_param']='1003',['action_radius']=2.0}
+local row_1 = {['id']=2,['obj_tp']=1,['obj_id']=1031,['action_tp']=1,['action_param']='1004',['action_radius']=2.0}
+local row_2 = {['id']=3,['obj_tp']=1,['obj_id']=1031,['action_tp']=1,['action_param']='1005',['action_radius']=2.0}
+
+local datas = {
+	[1] = row_0,
+	[2] = row_1,
+	[3] = row_2,
+}
+return datas

@@ -1,0 +1,16 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/22 23:24
+---
+
+local take_task_two_view = {}
+
+function take_task_two_view:doInit()
+    local ui_manager = app:get_ui_manager()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Take_the_task_two"), function(go)
+        ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+    end)
+
+end
+
+return take_task_two_view

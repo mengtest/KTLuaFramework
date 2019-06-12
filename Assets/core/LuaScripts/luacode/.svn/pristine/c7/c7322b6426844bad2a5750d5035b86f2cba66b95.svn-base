@@ -1,0 +1,41 @@
+-- pacman 2017-11-13
+-- 控制台命令合集，用于从c#控制台调用lua方法
+
+local CMD = {}
+
+local function change_player_controll_type(type)
+    if app == nil then
+        return
+    end
+
+    local frame_mgr = app:getFrameMgr()
+    if frame_mgr == nil then
+        return
+    end
+
+    local player_controller = frame_mgr:getFrame("player_controller")
+    if player_controller == nil then
+        print("切换控制模式失败: player_controller不存在。没有登录游戏吧？")
+        return
+    end
+
+    local type_enum = -1
+    if type == "1" then
+        type_enum = enum.battle.Player_Controll_Type.WOW_8D
+    elseif type == "2" then
+        type_enum = enum.battle.Player_Controll_Type.ALL_DIRECTION
+    elseif type == "3" then
+        type_enum = enum.battle.Player_Controll_Type.ALL_DIRECTION_SP
+    elseif type == "4" then
+        type_enum = enum.battle.Player_Controll_Type.ALL_DIRECTION_X
+    else
+        print("我不认识这个参数", type)
+        return
+    end
+
+    player_controller:set_player_controll_type(type_enum)
+end
+
+CMD.change_player_controll_type = change_player_controll_type
+
+return CMD

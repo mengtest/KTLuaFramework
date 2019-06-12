@@ -1,0 +1,12 @@
+local row_0 = {['id']=1001,['name']='测试地图',['type']=0,['inst_map_id']=0,['map_file']='res/map/hgs_jsz1_0.json',['res_server']='spaces/test',['res_client']='hgs_jsz1_0',['spawn_pos']={94.0,59.46,97.21},['spawn_dir']=2.4,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1003}]'}
+local row_1 = {['id']=1002,['name']='测试地图2',['type']=0,['inst_map_id']=0,['map_file']='',['res_server']='spaces/test',['res_client']='test2',['spawn_pos']={318.23,30.46,77.04},['spawn_dir']=4.88,['background_music']=100001,['area_music']='[]',['area_change_map']=''}
+local row_2 = {['id']=1003,['name']='副本地图',['type']=1,['inst_map_id']=22,['map_file']='res/map/hgs_jsz1_0.json',['res_server']='spaces/test',['res_client']='hgs_jsz1_0',['spawn_pos']={94.0,59.46,97.21},['spawn_dir']=1.2,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1001}]'}
+local row_3 = {['id']=10001,['name']='灵猴新手引导',['type']=0,['inst_map_id']=0,['map_file']='res/map/xinshourenwu/linghou.json',['res_server']='spaces/test',['res_client']='hgs_1_0',['spawn_pos']={710.43,271.73,873.98},['spawn_dir']=2.4,['background_music']=100001,['area_music']='[{1:100101},{2:100102}]',['area_change_map']='[{10001:1003}]'}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+	[10001] = row_3,
+}
+return datas

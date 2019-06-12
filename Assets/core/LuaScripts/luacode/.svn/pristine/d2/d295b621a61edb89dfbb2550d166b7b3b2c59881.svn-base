@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local big_map_dungeon_join = class("big_map_dungeon_join", Frame)
+
+function big_map_dungeon_join:doInit(param)
+
+end
+
+return big_map_dungeon_join

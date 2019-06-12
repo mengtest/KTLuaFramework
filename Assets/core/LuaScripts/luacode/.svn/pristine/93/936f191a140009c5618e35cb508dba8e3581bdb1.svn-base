@@ -1,0 +1,12 @@
+local M = {}
+
+-- 单位类型
+M.UnitType = {
+    NPC = 1, -- NPC
+    NORMAL_CREATURE = 2, -- 普通怪
+    ELITE_CREATURE = 3, -- 精英怪
+    BOSS = 4, -- BOSS
+    BIGBOSS = 5, -- 巨型BOSS
+}
+
+return M

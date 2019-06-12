@@ -1,0 +1,91 @@
+
+local Frame = require("system.frame")
+local Giver = class("Giver", Frame)
+
+
+
+Giver.QuestState = {
+    Invalid  = 0,   -- 不可见
+    Unlocked = 1,   -- 已解锁
+    Reveived = 2,   -- 已接取
+    Finished = 3,   -- 已完成
+}
+
+Attribute.decl(Giver, "tmpl", nil)                                      -- 原型id
+Attribute.decl(Giver, "pos", function() return Vector3(0, 0, 0) end)    -- 坐标
+Attribute.decl(Giver, "dir", function() return 0 end)                   -- 方向
+Attribute.decl(Giver, "top_state", Giver.QuestState.QuestState)         -- 头顶提示状态
+
+
+Event.decl(Giver, "be_choosed")
+
+local ATT_MAP = {
+    tmpl = "tmpl",
+    pos = "pos",
+    dir = "dir",
+}
+
+function Giver:doInit(param)
+    self.m_cfg = dbc.giver[param.giver:get_tmpl()]
+    self.m_is_close_enough = true
+    self.m_quest_state_dict = {}
+    self.m_cur_quest_id = nil
+    
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(param.giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+    
+    
+    self:subscribe(self:on_event("be_choosed"), function ()
+        app:logError("be_choosed")
+    end)
+end
+
+function Giver:get_cfg()
+    return self.m_cfg
+end
+
+function Giver:on_selected()
+    if not self.m_is_close_enough then
+        return
+    end
+    
+    local cur_quest_state = self.m_quest_state_dict[self.m_cur_quest_id] or self.QuestState.Invalid
+    if cur_quest_state == self.QuestState.Invalid then
+        app:logError("与当前NPC相关联的任务目前处于 ‘无任务状态’")
+    elseif cur_quest_state == self.QuestState.Unlocked then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已解锁状态’")
+    elseif cur_quest_state == self.QuestState.Reveived then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已接取锁状态’")
+    elseif cur_quest_state == self.QuestState.Finished then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已完成状态’, self.m_cur_quest_id: " .. tostring(self.m_cur_quest_id))
+        self:getFrame("quest_manager"):req_complete_quest(self.m_cur_quest_id)
+    end
+end
+
+--[[function Giver:register_choose_func()
+    self:subscribe(self:on_event("be_choosed"), function ()
+        self:on_selected()
+    end)
+end--]]
+
+function Giver:set_is_close_enough(flag)
+    app:logError(string.format("Giver:set_is_close_enough(%s)", tostring(flag)))
+    self.m_is_close_enough = flag
+end
+
+function Giver:on_quest_finished(quest_id)
+    self.m_quest_state_dict[quest_id] = self.QuestState.Finished
+    self:emit_event("top_state", self.QuestState.Finished)
+    
+    -- NPC存在多个状态并行的状况下如何确定当前状态还不清楚，目前暂时如此以供测试部分功能。
+    self.m_cur_quest_id = quest_id
+end
+
+--[[function Giver:unregister_choose_func()
+
+end--]]
+
+return Giver

@@ -1,0 +1,31 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local require_relative = REQUIRE_BASE(...)
+local UnitSfx = require_relative("unit_sfx")
+
+local SkillSingSfx = class("SkillSingSfx", UnitSfx)
+
+function SkillSingSfx:doInit(param)
+    UnitSfx.doInit(self, param)
+
+    --print("+++++++++++++++++", self:getFrameName())
+
+    -- 吟唱特效停止事件
+    -- pacman 2017-09-19
+    -- 目前这里有个bug
+    -- 如果一个unit身上有两个sing特效，那么只有第一个会被删除
+    -- 原因是第一个特效执行ObserverHost:unsubscribeAll会remove回调列表，从而导致第二个特效的回调没有被执行
+    self:subscribe(self.m_unit:on_event("skill_sing_stop"), function()
+        --print("skill_sing_stop ", self:getFrameName())
+        self:on_skill_sing_stop()
+    end)
+
+    -- 其他会导致吟唱中止的事件
+end
+
+function SkillSingSfx:on_skill_sing_stop()
+    self:destroySelf()
+end
+
+
+return SkillSingSfx

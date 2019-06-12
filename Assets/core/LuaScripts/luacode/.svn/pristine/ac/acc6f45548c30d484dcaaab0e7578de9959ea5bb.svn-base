@@ -1,0 +1,42 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/10/27 10:00
+ local View = require("system.view")
+ local skill_show_view = class("skill_show_view",View)
+
+  function skill_show_view : doInit()
+        self.frame = self:getFrame( )
+        self.ui_manager = app:get_ui_manager()
+      self:load("ui/Skill_show_hint.prefab",function(go)
+          --详细界面
+           self.m_hint = go.transform:Find("skill_show_hint_bg/skill_show_detail").gameObject
+          --缩略界面
+           self.m_hin = go.transform:Find("skill_show_hint_bg/skill_show_breviary").gameObject
+          --显示详细信息界面的按钮
+           self.m_up = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_up_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+          --显示详细信息界面的按钮
+           self.m_up_one = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_up").gameObject:GetComponent(UnityEngine.UI.Button)
+          --隐藏详细信息界面的按钮
+           self.m_down = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_btn/skill_show_down_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+
+          self.m_breviary = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_hint_breviary").gameObject:GetComponent(UnityEngine.UI.Text)
+           --显示按钮的监听事件
+           self.m_up.onClick:AddListener(function()
+               --技能信息界面显示
+                 self.m_hint:SetActive(true)
+                 self.m_hin:SetActive(false)
+          end)
+              --显示按钮的监听事件
+          self.m_up_one.onClick:AddListener(function()
+              --技能信息界面显示
+              self.m_hint:SetActive(true)
+               self.m_hin:SetActive(false)
+          end)
+          --隐藏按钮的监听事件
+          self.m_down.onClick:AddListener(function()
+                self.m_hint:SetActive(false)
+               self.m_hin:SetActive(true)
+          end)
+      end)
+  end
+ return skill_show_view

@@ -1,0 +1,72 @@
+local View = require("system.view")
+local dungeon_confirm_progress_view = class("dungeon_confirm_progress_view", View)
+
+function dungeon_confirm_progress_view:doInit(param)
+    local dungeon_progress = param.progress_array
+    local drag_progress = param.drag_array
+    self.m_pro_dic = {}
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self:load("ui/Confirmdungeonprogress.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local accept_btn = go.transform:Find("confirm_dungeon_progress/accept_btn"):GetComponent(UI.Button)
+        self.tip_text = go.transform:Find("confirm_dungeon_progress/Scroll View/Viewport/Content"):GetComponent(UI.Text)
+        local level_tip_text = go.transform:Find("confirm_dungeon_progress/level_tip_text"):GetComponent(UI.Text)
+        local normal_color = Color(1, 1, 1, 1)
+        local show_color = "red"
+        level_tip_text.text = "您已进入"
+
+        accept_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_confirm_progress")
+        end)
+        local id = self.m_dungeon_manager:gain_inst_id()
+        local dungeon_name = dbc.instances[id].name
+        level_tip_text.text = level_tip_text.text .. "<color=" ..show_color..">".. dungeon_name .. "</color>副本"
+        local type = dbc.instances[id].diff_name
+        level_tip_text.text = level_tip_text.text .. "<color=" ..show_color..">".. type .. "</color>难度"
+        level_tip_text.text = level_tip_text.text .. "，当前副本进度如下："
+        -----当前副本的需要显示的进度节点   这是一个列表   一个进度点在instance_progress中对应一个boss表
+        local progress_point = dbc.instances[id].progresses
+        -------用一个字典来记载进度点，以及每一个进度点表示的boss的id组
+        --for k, v in pairs(drag_progress) do
+        --    Debug.LogError("drag_progressV的值为......"..tostring(v))
+        --end
+        --for k, v in pairs(dungeon_progress) do
+        --    Debug.LogError("dungeon_progressV的值为......"..tostring(v))
+        --end
+        for k, v in pairs(progress_point) do
+            local boss_name = dbc.creature[v].name
+            local progress_point_id = v
+            local boss_drag_state = drag_progress[k]
+            ----1代表存活状态   0代表死亡
+            self.m_pro_dic[progress_point_id] = { ["boss_name"] = boss_name, ["boss_state"] = 1, ["boss_drag_state"] = boss_drag_state }
+        end
+        ----判断收到服务器进度消息的处理  如果已经通过boss进度，则修改其存活状态
+        for k, v in pairs(dungeon_progress) do
+            if self.m_pro_dic[v] ~= nil then
+                self.m_pro_dic[v]["boss_state"] = 0
+            end
+        end
+        self.tip_text.text = ""
+        ------接下来做对应的英雄名字状态的显示   temp处理
+        for k, v in pairs(self.m_pro_dic) do
+            if v["boss_state"] == 1 then
+                self.tip_text.text = self.tip_text.text .. "\n" .. v["boss_name"] .. "\t\t\t\t\t\t\t\t\t\t" .. "存活"
+                if v["boss_drag_state"] == 1 then
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t" .. "可拾取"
+                else
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "不可拾取</color>"
+                end
+            elseif v["boss_state"] == 0 then
+                self.tip_text.text = self.tip_text.text .. "\n" .. v["boss_name"] .. "\t\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "已击杀</color>"
+                if v["boss_drag_state"] == 1 then
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t" .. "可拾取"
+                else
+                    self.tip_text.text = self.tip_text.text .. "\t\t\t\t\t\t\t\t\t\t<color=" .. show_color .. ">" .. "不可拾取</color>"
+                end
+            end
+        end
+    end)
+end
+
+return dungeon_confirm_progress_view

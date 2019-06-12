@@ -1,0 +1,37 @@
+
+local M = class("Object")
+
+-- 原型id
+Attribute.decl(M, "tid", nil)
+-- 坐标
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+-- 方向
+Attribute.decl(M, "dir", function() return 0 end)
+-- 大小
+Attribute.decl(M, "scale", function() return Vector3(1, 1, 1) end)
+-- 状态
+Attribute.decl(M, "state",nil)
+
+function M:initialize(id)
+    Attribute.init(self)
+    self.m_id = id
+end
+
+function M:on_init(type)
+    
+end
+
+function M:on_destroy()
+    
+end
+
+function M:set_property(name, value)
+    self:set_attr(name, value)
+    self:emit_event("on_event_" .. name .. "_set", value)
+end
+
+function M:get_id()
+    return self.m_id
+end
+
+return M

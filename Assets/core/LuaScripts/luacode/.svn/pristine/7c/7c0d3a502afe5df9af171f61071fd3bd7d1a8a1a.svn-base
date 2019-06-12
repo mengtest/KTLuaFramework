@@ -1,0 +1,47 @@
+function REQUIRE_BASE(...)
+	local base = (...):match("^(.+)[%./][^%./]+")
+	return function(path)
+		if path and base then path = base.."/"..path end
+		return require(path)
+	end
+end
+
+local require_relative = REQUIRE_BASE(...)
+table.unpack = table.unpack or unpack
+
+--导入工具类
+require_relative("util.all")
+utility = {}	-- 2018-02-26 pacman 通用工具namespace
+utility.log    = require("common.util.util_log")
+utility.math	= require("common.util.util_math")
+utility.string	= require("common.util.util_string")
+utility.table	= require("common.util.util_table")
+utility.runtime_platform = require("common.util.runtime_platform")
+utility.easy_touch    = require("common.util.easy_touch")
+utility.func        = require("common.util.func")
+
+--导入枚举类
+enum = {}   -- 2018-02-26 pacman 枚举/常量namespace
+enum.ui = require("enum.enum_ui")
+enum.equipment = require("enum.enum_equipment")
+enum.battle = require("enum.enum_battle")
+enum.quest = require("enum.enum_quest")
+enum.scene = require("enum.enum_scene")
+enum.unit = require "enum.enum_unit"
+enum.shared      = require("shared_enum")
+enum.spirit_beast = require("enum.enum_spirit_beast")
+enum.object_special = require "enum.enum_object_special"
+enum.interact = require "enum.enum_interact"
+
+
+--主功能模块
+Attribute           = require_relative("attribute")
+Event               = require_relative("event")
+Event_system        = require("event.event_system")
+Event_system:init()
+Player              = require_relative("player.player")
+Remote              = require_relative("server.remote")
+TableLoader         = require_relative("table_loader")
+
+-- 初始化天气系统
+KTWeatherSystem.instance:Init()

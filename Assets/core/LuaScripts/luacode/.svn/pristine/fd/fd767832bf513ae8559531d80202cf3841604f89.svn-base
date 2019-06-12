@@ -1,0 +1,70 @@
+-- pacman 2017-12-06 原先的Action基类，基于lua协程
+-- todo 把更多既有的Action实现为本类的子类
+local Action = class("Action")
+
+function Action:initialize()
+    self.m_co_run = nil
+    self.m_cb_enter = nil
+    self.m_cb_exit = nil
+    self.m_cb_precondition = nil
+end
+
+
+function Action:start()
+    if self.m_cb_enter then
+        self.m_cb_enter()
+    end
+end
+
+
+function Action:close()
+    if self.m_cb_exit then
+        self.m_cb_exit()
+    end
+end
+
+
+function Action:update()
+    -- 终止条件判断
+    if self.m_cb_precondition then
+        if not self.m_cb_precondition() then
+            self:close()
+            return false
+        end
+    end
+    
+    if self.m_co_run then
+        coroutine.resume(self.m_co_run)       
+        if coroutine.status(self.m_co_run) ~= "dead" then
+            return true
+        end
+    end
+    
+    self:close()
+    return false
+end
+
+
+-- 注册回调 --
+function Action:onPrecondition(cb)
+    assert(type(cb) == "function")
+    self.m_cb_precondition = cb
+end
+
+function Action:onEnter(cb)
+    assert(type(cb) == "function")
+    self.m_cb_enter = cb
+end
+
+function Action:onRun(cb)
+    assert(type(cb) == "function")
+    self.m_co_run = coroutine.create(cb)
+end
+
+function Action:onExit(cb)
+    assert(type(cb) == "function")
+    self.m_cb_exit = cb
+end
+
+
+return Action

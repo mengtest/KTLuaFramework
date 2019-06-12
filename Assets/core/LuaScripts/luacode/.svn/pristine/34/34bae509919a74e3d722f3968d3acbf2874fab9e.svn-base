@@ -1,0 +1,289 @@
+---
+--- Created by PC.
+--- DateTime: 2018/2/2 16:39
+---
+local View = require("system.view")
+local mini_map_icon_template_view = class("mini_map_icon_template_view", View)
+
+function mini_map_icon_template_view:doInit()
+    self.m_current_icon = ""
+end
+
+function mini_map_icon_template_view:load_icon_prefab(icon_path, pivot)
+    self:load(app:getAssetPathMgr().get_ui_view_asset("MiniIconTemplate"), function(go)
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        local size_delta = self["sprite_GUIImage"].transform.sizeDelta
+        go.transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+        go.transform.anchoredPosition3D = Vector3.zero
+
+        self:load_icon(icon_path)
+        pivot = pivot or Vector2(0.5, 0.5)
+        self["sprite_GUIImage"].transform.pivot = pivot
+
+        local particle = self:getFrame():get_particle()
+        if particle then
+            self:load_sfx(particle, self["sprite_GUIImage"].transform, "particle")
+        end
+
+        self:hide()
+
+        local frame_name = self:getFrame():getFrameName()
+        --加载成功后刷一下追踪列表
+        if frame_name == "mini_map_trace_quest_icon_2" then
+            self:getFrame("trace_quest_bar"):refresh_all()
+        end
+        --加载成功后刷一下关注任务列表
+        if frame_name == "mini_map_interest_quest_icon_3" then
+            self:getFrame("mini_map"):refresh_interest()
+        end
+        --加载成功后刷一下待交互任务位置
+        if string.find(frame_name, "mini_map_quest_icon") then
+            if self:getFrame():get_quest_data() then
+                self:show()
+                self:refresh_icon_pos()
+            end
+        end
+    end)
+end
+
+--pivot:transform组件上的锚点
+function mini_map_icon_template_view:load_icon(path, pivot)
+    if path == nil then
+        return
+    end
+    if self["sprite_GUIImage"] == nil then
+        return
+    end
+    if self.m_current_icon == path then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("Mini_map_view ----> map表中没有配置地图路径或地图路径配置错误， path：" .. path)
+        else
+            self["sprite_GUIImage"].sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            if pivot then
+                self["sprite_GUIImage"].transform.pivot = pivot
+            end
+            self["sprite_GUIImage"]:SetNativeSize()
+            self.m_current_icon = path
+        end
+    end)
+end
+
+function mini_map_icon_template_view:load_event()
+    self:subscribe(self:getFrame():on_event("show"), function()
+        self:show()
+    end)
+    self:subscribe(self:getFrame():on_event("hide"), function()
+        self:hide()
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_icon_pos"), function()
+        self:refresh_icon_pos()
+    end)
+
+    local unit = self:getFrame("world"):get_main_player()
+    self:subscribe(unit:on_event_attr_set("pos", true), function(pos)
+        self:refresh_icon_pos()
+    end)
+end
+
+function mini_map_icon_template_view:show()
+    if self["sprite_GUIImage"] then
+        self["sprite_GUIImage"].gameObject:SetActive(true)
+    end
+end
+
+function mini_map_icon_template_view:hide()
+    if self["sprite_GUIImage"] then
+        self["sprite_GUIImage"].gameObject:SetActive(false)
+    end
+end
+
+--icon位置不随着主角的移动而变化
+function mini_map_icon_template_view:set_quest_point_pos()
+    local quest_data = self:getFrame():get_quest_data()
+    if quest_data then
+        local min_dis, map_id, area_id = quest_data:get_target_info()
+        if min_dis == -1 then
+            return
+        end
+        local area_data = self:getFrame("world"):get_area_data(map_id, area_id)
+        if area_data == nil then
+            return
+        end
+        local quest_pos = area_data.worldPosition
+        self:set_quest_point_pos_icons_in(quest_pos)
+    end
+end
+
+--设置图标在小地图上的位置(在遮罩内（icons_in层级下）)
+function mini_map_icon_template_view:set_quest_point_pos_icons_in(pos)
+    if self["sprite_GUIImage"] == nil then
+        return
+    end
+
+    local m_quest_area_reality_localPosition = self:project_3d_pos_to_map_pos(pos)
+    self["sprite_GUIImage"].transform.localPosition = m_quest_area_reality_localPosition
+
+    --为了处理任务区域中心在小地图内和外的情况
+    local mini_map = self:getFrame("mini_map")
+    local radius = mini_map:get_minimap_radius()
+    local area_pos = m_quest_area_reality_localPosition + mini_map:get_moveable_items_pos()
+    local distance = math.sqrt(   math.pow(area_pos.x, 2) + math.pow(area_pos.y, 2)   )   --任务与owner的距离
+    if distance < radius then
+        self:is_show(true)
+    else
+        self:is_show(false)
+    end
+end
+
+--设置图标在小地图上的位置(在遮罩外（icons_out层级下）)
+function mini_map_icon_template_view:set_quest_point_pos(pos)
+    if self["sprite_GUIImage"] == nil then
+        return
+    end
+
+    local m_quest_area_reality_localPosition = self:project_3d_pos_to_map_pos(pos)
+    local area_pos = m_quest_area_reality_localPosition + self:getFrame("mini_map"):get_moveable_items_pos()
+    self["sprite_GUIImage"].transform.localPosition = area_pos
+end
+
+--设置图标在小地图边缘的位置(在遮罩外（icons_out层级下）)
+function mini_map_icon_template_view:set_quest_point_pos_at_edge(pos)
+    if self["sprite_GUIImage"] == nil then
+        return
+    end
+    local mini_map = self:getFrame("mini_map")
+    local m_quest_area_reality_localPosition = self:project_3d_pos_to_map_pos(pos)
+    local area_pos = m_quest_area_reality_localPosition + mini_map:get_moveable_items_pos()
+    local radius = mini_map:get_minimap_radius()
+    if self["sprite_GUIImage"] == nil then
+        return
+    end
+    local border = radius - self["sprite_GUIImage"].transform.sizeDelta.x / 2
+
+    local distance = math.sqrt(   math.pow(area_pos.x, 2) + math.pow(area_pos.y, 2)   )   --任务与owner的距离
+
+    if distance < radius then
+        --图标在小地图最上边和最右边时，将图标向小地图里略微调整
+        local x = area_pos.x
+        local y = area_pos.y
+        --if x >= border then
+        --    x = border
+        --end
+        --if y >= border then
+        --    y = border
+        --end
+        self["sprite_GUIImage"].transform.localPosition = Vector3(x, y, 0)
+        self:is_show(false)
+    else
+        local x, y = self:get_screen_pos(area_pos, radius)
+        --图标在小地图最上边和最右边时，将图标向小地图里略微调整
+        --if x >= border then
+        --    x = border
+        --end
+        --if y >= border then
+        --    y = border
+        --end
+        self["sprite_GUIImage"].transform.localPosition = Vector3(x, y, 0)
+        self:is_show(true)
+    end
+end
+
+--改变图片icon, 有这种需要的在子类中重写该方法
+--is_show=true:显示任务图标
+--is_show=false:隐藏任务图标
+function mini_map_icon_template_view:is_show(is_show)
+
+end
+
+--获取任务在小地图边缘的位置
+--reality_localPosition : 任务目标区域在小地图中的位置坐标
+function mini_map_icon_template_view:get_screen_pos(reality_localPosition, radius)
+
+    --local owner_center_pos = self.m_owner_rt.localPosition
+    local owner_center_pos = Vector3(0, 0, 0)   --由于owner层级改变，现由此代替原owner坐标
+    local k = (reality_localPosition.y - owner_center_pos.y) / (reality_localPosition.x - owner_center_pos.x)
+    local temp_x = radius / math.sqrt(1 + math.pow(k, 2))
+    local temp_y = (radius * math.abs(k)) / math.sqrt(1 + math.pow(k, 2))
+    local interest_x1 = temp_x + owner_center_pos.x
+    local interest_x2 = -temp_x + owner_center_pos.x
+    local interest_y1 = temp_y + owner_center_pos.y
+    local interest_y2 = -temp_y + owner_center_pos.y
+
+    if self:get_area_count(reality_localPosition.x, reality_localPosition.y) == 1 and self:get_area_count(interest_x1, interest_y1) == 1 then
+        return interest_x1, interest_y1
+    end
+
+    if self:get_area_count(reality_localPosition.x, reality_localPosition.y) == 2 and self:get_area_count(interest_x2, interest_y1) == 2 then
+        return interest_x2, interest_y1
+    end
+
+    if self:get_area_count(reality_localPosition.x, reality_localPosition.y) == 3 and self:get_area_count(interest_x2, interest_y2) == 3 then
+        return interest_x2, interest_y2
+    end
+
+    if self:get_area_count(reality_localPosition.x, reality_localPosition.y) == 4 and self:get_area_count(interest_x1, interest_y2) == 4 then
+        return interest_x1, interest_y2
+    end
+
+end
+--以owner为圆心，获取关注任务所在象限
+function mini_map_icon_template_view:get_area_count(x, y)
+    if x > 0 and y > 0 then
+        return 1
+    end
+    if x < 0 and y > 0 then
+        return 2
+    end
+    if x < 0 and y < 0 then
+        return 3
+    end
+    if x > 0 and y < 0 then
+        return 4
+    end
+end
+
+--将3D世界中坐标转换成小地图坐标
+function mini_map_icon_template_view:project_3d_pos_to_map_pos(pos)
+    local mini_map = self:getFrame("mini_map")
+    return Vector3((pos.x - mini_map:get_map_x() ) * mini_map:get_map_scale_x(), (pos.z - mini_map:get_map_y() ) * mini_map:get_map_scale_y(), 0)
+end
+
+--加载特效
+function mini_map_icon_template_view:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        --go:SetActive(false)
+        --component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager:GetDepthName("ui_main"))
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        self[cache] = component
+    end)
+end
+
+function mini_map_icon_template_view:local_log(...)
+    app:logError(string.format(...))
+end
+
+return mini_map_icon_template_view

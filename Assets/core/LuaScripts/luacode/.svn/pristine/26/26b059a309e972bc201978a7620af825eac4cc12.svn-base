@@ -1,0 +1,390 @@
+local View = require("system.view")
+local quest_ui_list_view = class("quest_ui_list_view", View)
+
+function quest_ui_list_view:doInit()
+    local frame = self:getFrame()
+    self:pri_var_init()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("QuestList"), function(go)
+        go.transform:GetComponent(RectTransform).anchorMin = Vector2(0, 1)
+        go.transform:GetComponent(RectTransform).anchorMax = Vector2(0, 1)
+        go.transform:GetComponent(RectTransform).pivot = Vector2(0, 1)
+        go.transform.anchoredPosition3D = Vector3.zero
+        go.transform.localScale = Vector3.one
+        -- 子item布局
+        self:subscribe(frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 任务列表
+            if string.find(name, "quest_ui_list_item") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = self["content_gameObject"].transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            self.m_scroll_bar = self["scrollbar_GUIScrollbar"]
+        end)
+
+        local drag_area = self["scrollview_gameObject"]:GetComponent("DragSkill")
+
+        drag_area.onBeginDrag = DragSkill_OnBeginDragHandler()
+        drag_area.onBeginDrag:AddListener(function(eventdata)
+            self:on_begin_drag_call_back(eventdata)
+        end)
+
+        drag_area.onEndDrag = DragSkill_OnEndDragHandler()
+        drag_area.onEndDrag:AddListener(function(eventdata)
+            self:on_end_drag_call_back(eventdata)
+        end)
+
+        self:event_and_att_subscribe()
+        frame:on_loaded()
+        local sub_list = frame:gain_sub_list()
+        self.m_curr_item = sub_list[enum.quest.Quest_ui_type.Map][1]
+        self:on_main_nor_down(1)
+
+    end)
+end
+
+function quest_ui_list_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        -- 在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+-- 私有变量的初始化
+function quest_ui_list_view:pri_var_init()
+    -- scrollview的高度
+    self.m_scrollview_high = 610
+    -- page 之间的空隙
+    self.m_spacing = 30
+    -- 第一页翻过的长度
+    self.m_f_move = 435
+    -- 是否需要移动
+    self.m_need_move = false
+    -- 移动速度
+    self.m_move_speed = 0
+    -- 移动时间
+    self.m_move_time = 0.2
+    -- 滑动条
+    self.m_scroll_bar = nil
+    -- 滑动条的值
+    self.m_scroll_bar_target_value = 0
+    -- 开始拖拽的位置
+    self.m_drag_begin_pos = nil
+    -- 结束拖拽的位置
+    self.m_drag_end_pos = nil
+    -- 当前所在页对象
+    self.m_curr_item = nil
+end
+
+-- 开始拖拽
+function quest_ui_list_view:on_begin_drag_call_back(eventdata)
+    self.m_drag_begin_pos = eventdata.position
+end
+
+-- 结束拖拽
+function quest_ui_list_view:on_end_drag_call_back(eventdata)
+    self.m_drag_end_pos = eventdata.position
+    -- 向下
+    if self.m_drag_end_pos.y > self.m_drag_begin_pos.y then
+        self:on_page_down_call_back()
+        -- 向上滑
+    elseif self.m_drag_end_pos.y < self.m_drag_begin_pos.y then
+        self:on_page_up_call_back()
+    end
+end
+
+-- 注册属性事件
+function quest_ui_list_view:event_and_att_subscribe()
+    local frame = self:getFrame()
+    self:subscribe(frame:on_event("map_btn_down"), function()
+        self:on_main_nor_down(1)
+    end)
+    self:subscribe(frame:on_event("normal_btn_down"), function()
+        self:on_branch_nor_down(1)
+    end)
+    self:subscribe(frame:on_event("dungeon_btn_down"), function()
+        self:on_activity_nor_down(1)
+    end)
+    self:subscribe(frame:on_event("activity_btn_down"), function()
+        self:on_other_nor_down(1)
+    end)
+end
+
+function quest_ui_list_view:on_main_nor_down(val)
+    if val ~= 0 then
+        local sub_list = self:getFrame():gain_sub_list()
+        self.m_curr_item = sub_list[1][1]
+        self:change_scroll_rect(1)
+    end
+    self["map_sel_GUIImage"].gameObject:SetActive(true)
+    self["map_btn_GUIButton"].gameObject:SetActive(false)
+    self["normal_sel_GUIImage"].gameObject:SetActive(false)
+    self["normal_btn_GUIButton"].gameObject:SetActive(true)
+    self["dungeon_sel_GUIImage"].gameObject:SetActive(false)
+    self["dungeon_btn_GUIButton"].gameObject:SetActive(true)
+    self["activity_sel_GUIImage"].gameObject:SetActive(false)
+    self["activity_btn_GUIButton"].gameObject:SetActive(true)
+    self:btn_selected_bg_move(150)
+end
+
+function quest_ui_list_view:on_branch_nor_down(val)
+    if val ~= 0 then
+        local sub_list = self:getFrame():gain_sub_list()
+        self.m_curr_item = sub_list[2][1]
+        --获取总的conten长度
+        local content_len = self["content_gameObject"]:GetComponent(RectTransform).rect.height
+        -- 参与计算的长度
+        local cal_len = content_len - self.m_scrollview_high
+        local move_content = self:gain_page_high("plot") - 80
+        local scroll_bar_moved_value = move_content / cal_len
+        local cur_scroll_bar = 1 - scroll_bar_moved_value
+        self:change_scroll_rect(cur_scroll_bar)
+    end
+    self["map_sel_GUIImage"].gameObject:SetActive(false)
+    self["map_btn_GUIButton"].gameObject:SetActive(true)
+    self["normal_sel_GUIImage"].gameObject:SetActive(true)
+    self["normal_btn_GUIButton"].gameObject:SetActive(false)
+    self["dungeon_sel_GUIImage"].gameObject:SetActive(false)
+    self["dungeon_btn_GUIButton"].gameObject:SetActive(true)
+    self["activity_sel_GUIImage"].gameObject:SetActive(false)
+    self["activity_btn_GUIButton"].gameObject:SetActive(true)
+    self:btn_selected_bg_move(35)
+end
+
+function quest_ui_list_view:on_activity_nor_down(val)
+    if val ~= 0 then
+        local sub_list = self:getFrame():gain_sub_list()
+        self.m_curr_item = sub_list[3][1]
+        -- 获取总的conten长度
+        local content_len = self["content_gameObject"]:GetComponent(RectTransform).rect.height
+        -- 参与计算的长度
+        local cal_len = content_len - self.m_scrollview_high
+        local move_content = self:gain_page_high("plot") + self:gain_page_high("normal") - 50
+        local scroll_bar_moved_value = move_content / cal_len
+        local cur_scroll_bar = 1 - scroll_bar_moved_value
+        self:change_scroll_rect(cur_scroll_bar)
+    end
+
+    self["map_sel_GUIImage"].gameObject:SetActive(false)
+    self["map_btn_GUIButton"].gameObject:SetActive(true)
+    self["normal_sel_GUIImage"].gameObject:SetActive(false)
+    self["normal_btn_GUIButton"].gameObject:SetActive(true)
+    self["dungeon_sel_GUIImage"].gameObject:SetActive(true)
+    self["dungeon_btn_GUIButton"].gameObject:SetActive(false)
+    self["activity_sel_GUIImage"].gameObject:SetActive(false)
+    self["activity_btn_GUIButton"].gameObject:SetActive(true)
+    self:btn_selected_bg_move(-75)
+end
+
+function quest_ui_list_view:on_other_nor_down(val)
+    if val ~= 0 then
+        local sub_list = self:getFrame():gain_sub_list()
+        local cur_scroll_bar = 0
+        if #sub_list[4] == 1 then
+            cur_scroll_bar = 0
+        elseif #sub_list[4] > 1 then
+            -- 获取总的conten长度
+            local content_len = self["content_gameObject"]:GetComponent(RectTransform).rect.height
+            -- 参与计算的长度
+            local cal_len = content_len - self.m_scrollview_high
+            local move_content = self:gain_page_high("plot") + self:gain_page_high("normal") + self:gain_page_high("dungeon") - 20
+            local scroll_bar_moved_value = move_content / cal_len
+            cur_scroll_bar = 1 - scroll_bar_moved_value
+        end
+        self.m_curr_item = sub_list[4][1]
+        self:change_scroll_rect(cur_scroll_bar)
+    end
+
+    self["map_sel_GUIImage"].gameObject:SetActive(false)
+    self["map_btn_GUIButton"].gameObject:SetActive(true)
+    self["normal_sel_GUIImage"].gameObject:SetActive(false)
+    self["normal_btn_GUIButton"].gameObject:SetActive(true)
+    self["dungeon_sel_GUIImage"].gameObject:SetActive(false)
+    self["dungeon_btn_GUIButton"].gameObject:SetActive(true)
+    self["activity_sel_GUIImage"].gameObject:SetActive(true)
+    self["activity_btn_GUIButton"].gameObject:SetActive(false)
+    self:btn_selected_bg_move(-195)
+end
+
+function quest_ui_list_view:btn_selected_bg_move(target)
+    ShortcutExtensions.DOLocalMoveX(self["selected_line_GUIImage"].gameObject.transform, target, 0.6, false)
+end
+
+-- scrollRect开始滑动
+function quest_ui_list_view:change_scroll_rect(value)
+    self.m_need_move = true
+    self.m_move_speed = 0
+    self.m_scroll_bar_target_value = value
+end
+
+function quest_ui_list_view:click_btn_callback(press_btn, value)
+    self.m_need_move = true
+    self.m_move_speed = 0
+
+end
+
+-- 当页签向下时候的回调   value的初始值是1
+function quest_ui_list_view:on_page_down_call_back()
+    -- 获取总的conten长度
+    local content_len = self["content_gameObject"]:GetComponent(RectTransform).rect.height
+    -- 参与计算的长度
+    local cal_len = content_len - self.m_scrollview_high
+    local sub_list = self:getFrame():gain_sub_list()
+    -- scrollbar 移动的值
+    local scroll_bar_moved_value = 0
+    -- 移动后的scrollbar的值  即将参与计算
+    local cur_scroll_bar = 0
+    for i = 1, 4 do
+        for key, value in ipairs(sub_list[i]) do
+            if value == self.m_curr_item then
+                local max_key = #sub_list[i]
+                local moved_len = 0
+                if i == 1 then
+                    if key == max_key then
+                        self:on_branch_nor_down(1)
+                        return
+                    else
+                        -- page自身长度  spacing长度
+                        moved_len = self.m_f_move + (key - 1) * 406 + (key - 1) * self.m_spacing
+                        self.m_curr_item = sub_list[i][key + 1]
+                        self:on_main_nor_down(0)
+                    end
+                elseif i == 2 then
+                    if key == max_key then
+                        self:on_activity_nor_down(1)
+                        return
+                    else
+                        moved_len = self:gain_page_high("plot")
+                        + key * 406 + key * self.m_spacing - 80
+                        self.m_curr_item = sub_list[i][key + 1]
+                        self:on_branch_nor_down(0)
+                    end
+                elseif i == 3 then
+                    if key == max_key then
+                        self:on_other_nor_down(1)
+                        return
+                    else
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal") - 50
+                        + key * 406 + key * self.m_spacing
+                        self.m_curr_item = sub_list[i][key + 1]
+                        self:on_activity_nor_down(0)
+                    end
+                elseif i == 4 then
+                    if key == max_key then
+                        self:on_other_nor_down(1)
+                        return
+                    else
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal") + self:gain_page_high("dungeon")
+                        + 10 + key * 406 + key * self.m_spacing
+                        self.m_curr_item = sub_list[i][key + 1]
+                    end
+                    self:on_other_nor_down(0)
+                end
+                local scroll_bar_moved_value = moved_len / cal_len
+                local cur_scroll_bar = 1 - scroll_bar_moved_value
+                self:change_scroll_rect(cur_scroll_bar)
+                return
+            end
+        end
+    end
+end
+
+-- 当页签向上时候的回调
+function quest_ui_list_view:on_page_up_call_back()
+    -- 获取总的conten长度
+    local content_len = self["content_gameObject"]:GetComponent(RectTransform).rect.height
+    -- 参与计算的长度
+    local cal_len = content_len - self.m_scrollview_high
+    local sub_list = self:getFrame():gain_sub_list()
+    local scroll_bar_moved_value = 0
+    local cur_scroll_bar = 0
+    for i = 1, 4 do
+        for key, value in ipairs(sub_list[i]) do
+            if value == self.m_curr_item then
+                local moved_len = 0
+                if i == 1 then
+                    if key == 1 then
+                        self:change_scroll_rect(1)
+                        self:on_main_nor_down(0)
+                        return
+                    else
+                        moved_len = (key - 2) * 406 + (key - 2) * self.m_spacing
+                        self.m_curr_item = sub_list[i][key - 1]
+                        self:on_main_nor_down(0)
+                    end
+                elseif i == 2 then
+                    if key == 1 then
+                        moved_len = self:gain_page_high("plot") - 80 - 436
+                        if #sub_list[1] == 1 then
+                            self:on_main_nor_down(1)
+                            return
+                        else
+                            self.m_curr_item = sub_list[1][#sub_list[1]]
+                            self:on_main_nor_down(0)
+                        end
+                    else
+                        moved_len = self:gain_page_high("plot") - 80
+                        + (key - 2) * 406 + (key - 2) * self.m_spacing
+                        self.m_curr_item = sub_list[i][key - 1]
+                        self:on_branch_nor_down(0)
+                    end
+                elseif i == 3 then
+                    if key == 1 then
+
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal") - 50 - 436
+                        if #sub_list[2] == 1 then
+                            self:on_branch_nor_down(1)
+                            return
+                        else
+                            self.m_curr_item = sub_list[2][#sub_list[2]]
+                            self:on_branch_nor_down(0)
+                        end
+                    else
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal") - 50
+                        + (key - 2) * 406 + (key - 2) * self.m_spacing
+                        self.m_curr_item = sub_list[i][key - 1]
+                        self:on_activity_nor_down(0)
+                    end
+                elseif i == 4 then
+                    if key == 1 then
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal")
+                        + self:gain_page_high("dungeon") - 20 - 436
+                        if #sub_list[3] == 1 then
+                            self:on_activity_nor_down(1)
+                            return
+                        else
+                            self.m_curr_item = sub_list[3][#sub_list[3]]
+                            self:on_activity_nor_down(0)
+                        end
+                    else
+                        moved_len = self:gain_page_high("plot") + self:gain_page_high("normal")
+                        + self:gain_page_high("dungeon") - 20
+                        + (key - 2) * 406 + (key - 2) * self.m_spacing
+                        self.m_curr_item = sub_list[i][key - 1]
+                        self:on_other_nor_down(0)
+                    end
+                end
+                local scroll_bar_moved_value = moved_len / cal_len
+                local cur_scroll_bar = 1 - scroll_bar_moved_value
+                self:change_scroll_rect(cur_scroll_bar)
+            end
+        end
+    end
+end
+
+function quest_ui_list_view:gain_page_high(name)
+    local length = self[name .. "_gameObject"]:GetComponent(RectTransform).rect.height
+    return length
+end
+
+return quest_ui_list_view

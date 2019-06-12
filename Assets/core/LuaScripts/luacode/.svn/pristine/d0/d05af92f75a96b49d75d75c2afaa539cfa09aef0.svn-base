@@ -1,0 +1,127 @@
+-- 为了展示效果 临时添加的功能 并不规范也缺乏考量
+local ObserverHost = require "system.observer_host"
+
+local CacheMgr = class("CacheMgr")
+
+CacheMgr:include(ObserverHost)
+
+CacheMgr.AnimaCacheList = {}
+
+CacheMgr.SfxCacheList = {}
+
+CacheMgr.Container = nil
+
+
+function CacheMgr:init()
+    local new_go = GameObject("CacheMgr")
+    CacheMgr.Container = new_go.transform
+
+    -- 临时缓存动作
+    -- 灵猴
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_emjc_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_fight_attack_01.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_fight_attack_02.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_lh_mskillcast_01.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_lh_mskillcast_02.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_pl_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/linghou/animation/juling_yhzt_mskillcast.anim")
+
+    -- 罗刹
+    self:AddAnimaCache("models/Role/pc/luocha/animation/fhly_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/fight_attack_01.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/fight_attack_02.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/hqs_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/hqs_mskillsing_a.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/hqs_mskillsing_b.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/hycj_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/jx_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/lyfb_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/rs_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/sx_mskillcast_a.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/sx_mskillcast_b.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/ybs_mskillcast.anim")
+    self:AddAnimaCache("models/Role/pc/luocha/animation/lxs_mskillcast.anim")
+    
+
+    -- 临时缓存特效
+    -- 灵猴
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/lhb/lhb_eskillcast_a2.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/xianjiguanghuan/xjgh_eskillinstant_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/linghunpilie/lhpl_eskillcast_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/linghunpilie/lhpl_eskillinstant_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/dyhzj/dyhzj_eskillhit_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/xiu_gai/emobianshen/embs_eskillcast_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/zhemo/zm_eskillinstant_a.prefab")
+    
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/emojianci/lh_emjc_eskillinstant.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/emojianci/lh_emjc_eskillinstant.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/polie/polie_eskillhit_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/youhunzhadan/lh_youhunzhadan_eskillinstant.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/lhb/lhb_eskillhit_a2.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/xiu_gai/diyuhuozhuangji/dyhzj_eskillinstant_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/lieyanfuzhou/lyfz_eskillcon_a1.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/polie/polie_eskillinstant_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/polie/polie_eskillhit_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/linghou/lhb/lhb_eskillhit_a1.prefab")
+    
+
+    -- 罗刹
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/hqs/ls_hqs_baodian_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/hycj/hycj_eskillhit_b.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/ybs/ybs_eskillhit_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/lyfb/lyfb_eskillinstant_b_new_02.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/smlk/smlk_eskillhit_a.prefab")
+
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/hqs/ls_hqs_feidan_a.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/ybs/ybs_eskillcast_a_new.prefab")
+    self:AddSfxCache("sfx/skill/prefab/pc/luocha/smlk/smlk_eskillcast_a.prefab")
+end
+
+
+-- 动作
+function CacheMgr:GetAnimaCache(path)
+    --Debug.LogError("尝试获取资源----->"..path)
+    local result = CacheMgr.AnimaCacheList[path]
+    return result
+end
+
+function CacheMgr:AddAnimaCache(path)
+    if(CacheMgr.AnimaCacheList[path] ~= nil) then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset_ref)
+        local result = asset_ref
+        CacheMgr.AnimaCacheList[path] = result
+    end)	
+end
+
+function CacheMgr:RemoveAnimaCache()
+	
+end
+-- 动作
+
+-- 特效
+function CacheMgr:GetSfxCache(path)
+    --Debug.LogError("尝试获取资源----->"..path)
+    local result = CacheMgr.SfxCacheList[path]
+    return result
+end
+
+function CacheMgr:AddSfxCache(path)
+    if(CacheMgr.SfxCacheList[path] ~= nil) then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset_ref)
+        local result = asset_ref.asset
+        CacheMgr.SfxCacheList[path] = result
+    end)	
+end
+
+function CacheMgr:RemoveSfxCache()
+	
+end
+-- 特效
+
+return CacheMgr

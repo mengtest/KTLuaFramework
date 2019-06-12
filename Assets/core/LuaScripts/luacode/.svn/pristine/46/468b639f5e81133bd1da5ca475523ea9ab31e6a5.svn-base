@@ -1,0 +1,32 @@
+local BattlePreview = {}
+
+function BattlePreview:doInit()
+	--创建技能管理器
+	--创建主界面ui，包括摇杆，按键，特殊调节按钮，玩家控制器ui
+	
+	local map_id="3DMX_ZhanShi"
+	local world = self:createChild("bp.bp_world")	
+	world:set_map_id(map_id)
+	
+	local unit = world:add_unit(100001,"luocha",1003, Vector3(0, 0, 0), true, true)	
+	local guaiwu_unit = world:add_unit(200001,"雷叉天兵",200001, Vector3(0, 0, 0), false, false)	
+	local ctrl = app:get_ui_mgr():CreateUI("bp.bp_player_controller", nil, unit,app:get_ui_mgr().UI_Depth.NORMAL)
+		
+--[[	unit.set_position(Vector3(10, 0, 10))
+	guaiwu_unit.set_position(Vector3(10, 0, 10))--]]
+	--local unit  = world:getUnit(id)	
+	--后续需要传入unit创建ui等功能
+end
+
+function BattlePreview:doUpdate()
+    if Input.GetKeyDown(KeyCode.G) then
+	elseif Input.GetKeyDown(KeyCode.M) then
+        
+    elseif Input.GetKeyDown(KeyCode.N) then
+   
+    elseif Input.GetKeyDown(KeyCode.P) then
+
+	end
+end
+
+return BattlePreview

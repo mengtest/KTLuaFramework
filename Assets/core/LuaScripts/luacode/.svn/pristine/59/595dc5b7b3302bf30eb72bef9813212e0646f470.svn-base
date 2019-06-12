@@ -1,0 +1,22 @@
+
+local Delegate2 = class("Delegate2")
+
+function Delegate2:initialize()
+	self.m_action = {}
+end
+
+function Delegate2:add(func)
+	table.insert(self.m_action, func)
+end
+
+function Delegate2:remove(func)
+	Util_table:remove_by_val(self.m_action, func)
+end
+
+function Delegate2:call(msg)
+	for k, v in pairs(self.m_action) do
+		v(msg)
+	end
+end
+
+return Delegate2

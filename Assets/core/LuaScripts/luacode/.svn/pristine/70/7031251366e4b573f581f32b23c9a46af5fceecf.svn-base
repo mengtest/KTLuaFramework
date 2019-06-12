@@ -1,0 +1,270 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/2 14:22
+---
+local ObserverHost = require "system.observer_host"
+local team_mgr = class("team_mgr")
+team_mgr:include(ObserverHost)
+
+Event.decl(team_mgr, "rec_invite_team")
+Event.decl(team_mgr, "add_member")
+Event.decl(team_mgr, "del_member")
+Event.decl(team_mgr, "del_all_member")
+Event.decl(team_mgr, "update_specialization")
+Event.decl(team_mgr, "update_hp")
+Event.decl(team_mgr, "update_max_hp")
+Event.decl(team_mgr, "change_leader")
+Event.decl(team_mgr, "resp_result")
+Event.decl(team_mgr, "state_change")
+Event.decl(team_mgr, "update_member")
+Event.decl(team_mgr, "member_position")
+
+function team_mgr:initialize()
+    Event.init(self)
+    self.m_member_dict = {}
+end
+
+function team_mgr:local_log(...)
+    --app:logError(string.format(...))
+end
+
+-- 添加成员
+function team_mgr:add_member(member_info, is_leader)
+    local data = { ["dbid"] = member_info.dbid, ["name"] = member_info.name, ["hp"] = member_info.hp, ["max_hp"] = member_info.max_hp, ["state"] = member_info.state, ["groupid"] = member_info.groupid, ["entity_id"] = member_info.entityID, ["time"] = member_info.time, ["specialization"] = member_info.specialization, ["aura_list"] = member_info.aura_list, ["is_leader"] = is_leader }
+    self.m_member_dict[member_info.dbid] = data
+    self:emit_event("add_member", data)
+end
+
+--移除成员
+function team_mgr:remove_member(dbid)
+    self.m_member_dict[dbid] = nil
+end
+
+--移除所有成员
+function team_mgr:remove_all_member()
+    local list = {}
+    for i, v in pairs(self.m_member_dict) do
+        table.insert(list, i)
+    end
+
+    for i, v in pairs(list) do
+        self.m_member_dict[v] = nil
+    end
+end
+
+--获取成员列表
+function team_mgr:get_member_dict()
+    return self.m_member_dict
+end
+
+--通过dbid获取成员
+function team_mgr:get_member_info(dbid)
+    return self.m_member_dict[dbid]
+end
+
+--队伍是否有该成员
+function team_mgr:is_has_member(entity_id)
+    for i, v in pairs(self.m_member_dict) do
+        if v["entity_id"] == entity_id then
+            return true
+        end
+    end
+    return false
+end
+
+---------------------------server begin--------------------------------
+function team_mgr:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function team_mgr:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+----[S2C]
+----队伍数据
+function team_mgr:rec_team_info(leader_id, team_info)
+    self:local_log("team_mgr:rec_team_info leader_id:" .. leader_id)
+    self:emit_event("change_leader", leader_id)
+
+    local player_dbid = app:getFrameMgr():getFrame("world"):get_main_player():get_dbid()
+    self:emit_event("del_member", player_dbid)
+
+    local owner = nil
+    local t = {}
+    for i, v in pairs(team_info) do
+        if player_dbid == v.dbid then
+            owner = v
+        else
+            table.insert(t, v)
+        end
+    end
+    table.sort(t, function(former, later)
+        return former.time <= later.time
+    end)
+    if owner then
+        table.insert(t, 1, owner)
+    end
+
+    for i = 1, #t do
+        local member_info = t[i]
+        local is_leader = false
+        if leader_id == member_info.dbid then
+            is_leader = true
+        end
+        self:add_member(member_info, is_leader)
+    end
+end
+----队伍某个成员数据更新
+function team_mgr:rec_member_info(member_info)
+    self:local_log("team_mgr:rec_member_info dbid:" .. member_info.dbid)
+    if self.m_member_dict[member_info.dbid] == nil then
+        return
+    end
+    self.m_member_dict[member_info.dbid]["name"] = member_info.name
+    self.m_member_dict[member_info.dbid]["hp"] = member_info.hp
+    self.m_member_dict[member_info.dbid]["max_hp"] = member_info.max_hp
+    self.m_member_dict[member_info.dbid]["state"] = member_info.state
+    self.m_member_dict[member_info.dbid]["groupid"] = member_info.groupid
+    self.m_member_dict[member_info.dbid]["entity_id"] = member_info.entityID
+    self.m_member_dict[member_info.dbid]["time"] = member_info.time
+    self.m_member_dict[member_info.dbid]["specialization"] = member_info.specialization
+    self.m_member_dict[member_info.dbid]["aura_list"] = member_info.aura_list
+    self:emit_event("update_member", member_info.dbid)
+end
+----收到邀请
+function team_mgr:rec_invite_team(dbid, inviter_name, team_id)
+    self:local_log("team_mgr:rec_invite_team db_id:" .. dbid)
+    self:emit_event("rec_invite_team", dbid, inviter_name, team_id)
+end
+----请求结果回复
+function team_mgr:rec_resp_result(team_args_info)
+    self:local_log("team_mgr:rec_resp_result")
+    self:emit_event("resp_result", team_args_info)
+end
+----转移队长
+function team_mgr:rec_change_leader(dbid)
+    self:local_log("team_mgr:rec_change_leader db_id:" .. dbid)
+    for i, v in pairs(self.m_member_dict) do
+        v["is_leader"] = i == dbid
+    end
+    self:emit_event("change_leader", dbid)
+end
+----队员血量更新
+function team_mgr:rec_change_hp_for_team(dbid, hp)
+    self:local_log("team_mgr:rec_change_hp_for_team db_id:" .. dbid .. ", hp:" .. hp)
+    if self.m_member_dict[dbid] == nil then
+        return
+    end
+    self.m_member_dict[dbid].hp = hp
+    self:emit_event("update_hp", dbid)
+end
+----队员血量最大值更新
+function team_mgr:rec_change_max_hp_for_team(dbid, max_hp)
+    self:local_log("team_mgr:rec_change_hp_for_team db_id:" .. dbid .. ", max_hp:" .. max_hp)
+    if self.m_member_dict[dbid] == nil then
+        return
+    end
+    self.m_member_dict[dbid].max_hp = max_hp
+    self:emit_event("update_max_hp", dbid)
+end
+----队员专精更新
+function team_mgr:rec_change_specialization_for_team(dbid, specialization)
+    self:local_log("team_mgr:rec_change_specialization_for_team db_id:" .. dbid .. ", specialization:" .. specialization)
+    if self.m_member_dict[dbid] == nil then
+        return
+    end
+    self.m_member_dict[dbid].specialization = specialization
+    self:emit_event("update_specialization", dbid)
+end
+----队员增加buff
+function team_mgr:rec_member_add_aura_for_team(dbid, aura_info)
+    self:local_log("team_mgr:rec_member_add_aura_for_team db_id:" .. dbid)
+end
+----队员移除buff
+function team_mgr:rec_member_del_aura_for_team(dbid, index)
+    self:local_log("team_mgr:rec_member_del_aura_for_team db_id:" .. dbid .. ", index:" .. index)
+end
+----加入队员
+function team_mgr:rec_join_team_notify(member_info)
+    self:local_log("team_mgr:rec_join_team_notify db_id:" .. member_info.dbid .. ", name:" .. member_info.name)
+    self:add_member(member_info, false)
+end
+----队员离开
+function team_mgr:rec_leave_team_notify(dbid)
+    self:local_log("team_mgr:rec_leave_team_notify db_id:" .. dbid)
+    self:emit_event("del_member", dbid)
+end
+----队员状态（1:在线/0:离线）
+function team_mgr:rec_member_state_change(dbid, state)
+    self:local_log("team_mgr:rec_member_state_change db_id:" .. dbid .. ", index:" .. state)
+    if self.m_member_dict[dbid] == nil then
+        return
+    end
+    self.m_member_dict[dbid].state = state
+    self:emit_event("state_change", dbid, state)
+end
+
+--- 获取队员位置信息
+function team_mgr:rec_member_position(map_id, team_member_position_info)
+    self:local_log("map_id : " .. tostring(map_id))
+    for i = 1, #team_member_position_info do
+        --self:local_log("team_member_position_info" .. i .. ": " .. tostring(team_member_position_info[i].entityID) .. "  " .. team_member_position_info[i].position)
+    end
+    self:emit_event("member_position", map_id, team_member_position_info)
+end
+
+----[C2S]
+----请求队伍数据
+function team_mgr:req_team_info()
+    self:local_log("team_mgr:req_team_info")
+    self:base_call("team_info_for_client")
+end
+
+----请求组队
+function team_mgr:req_invitation(entity_id, dbid)
+    self:local_log("team_mgr:req_invitation")
+    self:base_call("invite_team", entity_id, dbid)
+end
+
+----是否同意组队
+function team_mgr:req_is_accept(flag, team_id, dbid)
+    self:local_log("team_mgr:req_is_accept")
+    if flag then
+        self:base_call("join_team", team_id)
+    else
+        self:base_call("refuse_team", dbid, team_id)
+    end
+end
+
+----请求离队
+function team_mgr:req_leave()
+    self:local_log("team_mgr:req_leave")
+    self:base_call("leave_team")
+end
+
+----请求踢出队员
+function team_mgr:req_del_member(dbid)
+    self:local_log("team_mgr:del_member db_id:" .. dbid)
+    self:base_call("del_member", dbid)
+end
+
+----请求转移队长
+function team_mgr:req_change_leader(dbid)
+    self:local_log("team_mgr:req_change_leader db_id:" .. dbid)
+    self:base_call("change_leader", dbid)
+end
+
+--- 请求队员位置信息
+function team_mgr:req_member_position(map_id)
+    self:local_log("team_mgr:req_member_position")
+    self:base_call("get_member_position", map_id)
+end
+---------------------------server end--------------------------------
+
+return team_mgr
+

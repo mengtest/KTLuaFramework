@@ -1,0 +1,22 @@
+local Frame = require("system.frame")
+local skill_ui_main = class("skill_ui_main", Frame)
+
+function skill_ui_main:doInit(param)
+
+
+end
+
+function skill_ui_main:on_loaded()
+
+    local ui_main = self:getFrame("ui_main")
+    --技能信息
+    self:createChild("skill_ui_show","%subsystem/skill_system_ui/skill_ui_show")
+    --技能配置
+    self:createChild("skill_ui_setting", "%subsystem/skill_system_ui/skill_ui_setting")
+    --技能列表
+    self:createChild("skill_ui_list", "%subsystem/skill_system_ui/skill_ui_list")
+    ui_main:set_skill_show_is_created(true)
+    ui_main:set_skill_setting_is_created(true)
+end
+
+return skill_ui_main

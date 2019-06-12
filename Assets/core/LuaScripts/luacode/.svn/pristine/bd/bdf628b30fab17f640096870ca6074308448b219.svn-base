@@ -1,0 +1,47 @@
+local Frame = require("system.frame")
+local backpack_sub_list = class("backpack_sub_list", Frame)
+
+function backpack_sub_list:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_name = param[2]
+    self.m_list = {}
+    local list = param[1]
+    for i, v in pairs(list) do
+        self.m_list[i] = v
+    end
+    self:sort_list()
+end
+
+function backpack_sub_list:on_loaded()
+    --背包item   temp
+    for i = 1, 20 do
+        local send = { self.m_name, i }
+        if self.m_list[i] ~= nil then
+            send[3] = self.m_list[i]
+        else
+            send[3] = { ["unique"] = 0, ["tmpl"] = 0, ["lvl"] = 0 }
+        end
+        self:createChild("backpack_item_" .. self.m_name .. i, "%subsystem/backpack_equipment/backpack_item", send)
+    end
+end
+
+--排序，目前先按等级，以及部位来排序
+function backpack_sub_list:sort_list()
+    for i = 1, #self.m_list - 1 do
+        for j = 1, #self.m_list - i - 1 do
+            if self.m_list[j]["lvl"] < self.m_list[j + 1]["lvl"] then
+                local temp = self.m_list[j + 1]
+                self.m_list[j + 1] = self.m_list[j]
+                self.m_list[j] = temp
+            elseif self.m_list[j]["lvl"] == self.m_list[j + 1]["lvl"] then
+                if dbc.item[self.m_list[j]["tmpl"]].derived_params[3] < dbc.item[self.m_list[j + 1]["tmpl"]].derived_params[3] then
+                    local temp = self.m_list[j + 1]
+                    self.m_list[j + 1] = self.m_list[j]
+                    self.m_list[j] = temp
+                end
+            end
+        end
+    end
+end
+
+return backpack_sub_list

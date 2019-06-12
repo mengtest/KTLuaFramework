@@ -1,0 +1,30 @@
+local BotControllerView = {}
+
+local INTERVAL = {5, 10}
+local SIZE = 10
+
+function BotControllerView:doInit(role)
+	self.m_role = role
+	self.m_world_view = self:getView("world")
+	self.m_next = 0
+end
+
+function BotControllerView:doUpdate()
+	if self.m_role:is_dead() then
+		return
+	end
+	
+	if Time.time >= self.m_next then
+		self.m_next = Time.time + math.random(INTERVAL[1], INTERVAL[2])
+
+		local pos  = Vector3(math.random(-SIZE, SIZE), 0, math.random(-SIZE, SIZE))
+		local path = self.m_world_view:findPath(self.m_role:get_pos(), pos)
+		if path then
+			self.m_role:moveWithPath(path)
+		else
+			self.m_next = 0
+		end
+	end
+end
+
+return BotControllerView

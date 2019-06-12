@@ -1,0 +1,14 @@
+local MessageBox = {}
+
+Attribute.decl(MessageBox, "title", "Title Text")
+Attribute.decl(MessageBox, "message", "Message Text")
+Attribute.decl(MessageBox, "ok_text", "OK")
+
+Event.decl(MessageBox, "click_ok")
+
+function MessageBox:on_ok()
+	self:emit_event_click_ok()
+	self:destroySelf()
+end
+
+return MessageBox

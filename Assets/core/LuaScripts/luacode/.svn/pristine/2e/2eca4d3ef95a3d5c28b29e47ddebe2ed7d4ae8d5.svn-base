@@ -1,0 +1,11 @@
+local UICharacterInfoView = {}
+function UICharacterInfoView:doInit()
+    local ui_manager = app:get_ui_manager()
+    self:load("ui/CharacterAttr.prefab", function(go)
+
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+    end)
+end
+
+return UICharacterInfoView

@@ -1,0 +1,22 @@
+
+local EnumScene = {}
+
+-- 触发区域类型
+EnumScene.Trigger_Area = {
+    Box = 1,        -- 立方体
+    Sphere = 2,     -- 圆球体
+    Capsule = 3,    -- 胶囊体
+    Cylinder = 4,   -- 圆柱体
+}
+
+-- 交互物类型
+EnumScene.Interact_Obj_Tp = {
+    Npc = 1,        -- Npc
+}
+
+-- 交互行为类型
+EnumScene.Interact_Action_Tp = {
+    Pop_Bubble = 1, --弹泡泡框
+}
+
+return EnumScene

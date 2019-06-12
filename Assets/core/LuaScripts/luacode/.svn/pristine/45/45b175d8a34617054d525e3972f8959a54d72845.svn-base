@@ -1,0 +1,90 @@
+local Frame = require("system.frame")
+local spirit_handbook_info = class("spirit_handbook_info", Frame)
+
+Attribute.decl(spirit_handbook_info, "name", "") -- 名称
+Attribute.decl(spirit_handbook_info, "desc", "") -- 描述
+Attribute.decl(spirit_handbook_info, "level_max", "") -- 最大等级
+Attribute.decl(spirit_handbook_info, "property", "") -- 所属元素
+Attribute.decl(spirit_handbook_info, "weapon_lvl", "") -- 提高的武器等级
+Attribute.decl(spirit_handbook_info, "endurance", "") -- 奖励
+Attribute.decl(spirit_handbook_info, "endurance_str", "")-- 灵兽提高的耐力str
+Event.decl(spirit_handbook_info, "refresh_star")
+function spirit_handbook_info:doInit()
+    self.m_id = 0
+    self:set_is_add_rect_trans(true)
+    -- 点击槽位切换信息
+    self:subscribe(self:getFrame("spirit_handbook_list"):on_event("change_card"), function(id)
+        self.m_id = id
+        if id == 0 then
+            return
+        else
+            self:refresh_data(id)
+        end
+    end)
+end
+
+function spirit_handbook_info:on_loaded()
+    self:refresh_data(self.m_id)
+end
+
+function spirit_handbook_info:refresh_data(id)
+    -- 名字
+    self:set_name(dbc.sprite[id].name)
+    -- 等级
+    self:set_level_max("Lv." .. dbc.sprite[id].max_level)
+    -- 描述
+    self:set_desc(dbc.sprite[id].description)
+    -- 属性文字
+    if dbc.sprite[id].slot == enum.spirit_beast.SpiritBeastProperty.FIRE then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.FIRE)
+    elseif dbc.sprite[id].slot == enum.spirit_beast.SpiritBeastProperty.WATER then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WATER)
+    elseif dbc.sprite[id].slot == enum.spirit_beast.SpiritBeastProperty.WOOD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WOOD)
+    elseif dbc.sprite[id].slot == enum.spirit_beast.SpiritBeastProperty.GOLD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.GOLD)
+    end
+    -- upgrade_bonuses
+    local bonus1_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[id].upgrade_bonuses[1] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus1_str = str
+                end
+            end
+        end
+    end
+    self:set_endurance_str(bonus1_str)
+    self:set_endurance((dbc.sprite[id].upgrade1_params[#dbc.sprite[id].upgrade1_params]))
+    local bonus2_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[id].upgrade_bonuses[2] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus2_str = str
+                end
+            end
+        end
+    end
+    self:set_weapon_lvl(bonus2_str .. "    " .. tostring(dbc.sprite[id].upgrade2_params[#dbc.sprite[id].upgrade2_params]))
+
+    -- 技能
+    -- TODO 现在技能先走一下创建删除试试，今后会改成全都创建出来，用哪个显示哪个/ 或者用设置tmpl的方式
+    if self.m_skill_btn_list ~= nil then
+        for i, v in pairs(self.m_skill_btn_list) do
+            self:destroyChild(v)
+        end
+    end
+    self.m_skill_btn_list = {}
+    for i, v in ipairs(dbc.sprite[id].min_abilities_num) do
+        local skill_data = { tmpl = v, stat = dbc.sprite[id].min_abilities_level[i], level = dbc.sprite[id].min_abilities_level[i] }
+        self.m_skill_btn_list[i] = self:createChild("spirit_handbook_info_skill_btn" .. v, "spirit_beast.spirit_skill_btn", skill_data)
+    end
+    self:emit_event("refresh_star", id)
+end
+
+
+return spirit_handbook_info

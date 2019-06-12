@@ -1,0 +1,7 @@
+##ignore this file##
+/Library/
+/Logs/
+/obj/
+/ProjectSettings/
+.vs
+*.meta

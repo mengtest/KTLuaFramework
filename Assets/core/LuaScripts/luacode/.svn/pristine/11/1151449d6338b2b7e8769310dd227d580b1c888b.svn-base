@@ -1,0 +1,18 @@
+
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_skill = class("Quest_condition_skill", Quest_condition_base)
+
+function Quest_condition_skill:on_initialize(...)
+	self.m_is_pass = false
+	self.m_cast_count = 0
+	
+end
+
+--清除所有相关数据 by lijunfeng 2018/2/6
+function Quest_condition_skill:clear()
+    print("清理条件数据")
+    Quest_condition_skill.super.clear(self)
+    self.m_cast_count = 0
+end
+
+return Quest_condition_skill

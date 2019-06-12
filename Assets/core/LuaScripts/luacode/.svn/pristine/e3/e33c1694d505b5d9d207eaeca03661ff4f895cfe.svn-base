@@ -1,0 +1,198 @@
+local Frame = require("system.frame")
+local backpack_list = class("backpack_list", Frame)
+
+Event.decl(backpack_list, "equip")
+
+function backpack_list:doInit(param)
+    self.m_inventory_manager = self:getFrame("inventory_manager")
+    local equip_list = self.m_inventory_manager:gain_equipment_list()
+    -----所有装备的数据  在这里需要将他们进行分类，并且需要将这些分类按顺序进行显示
+    self.m_sub_bag_list = {}
+    self.m_weapon_list = {}
+    self.m_armor_list = {}
+    self.m_ring_list = {}
+    for i, v in pairs(equip_list) do
+        if dbc.item[v["tmpl"]].inventory_type == 1 then
+            self.m_weapon_list[#self.m_weapon_list + 1] = v
+        elseif dbc.item[v["tmpl"]].inventory_type == 2 then
+            self.m_armor_list[#self.m_armor_list + 1] = v
+        elseif dbc.item[v["tmpl"]].inventory_type == 3 then
+            self.m_ring_list[#self.m_ring_list + 1] = v
+        end
+    end
+
+    ---temp
+    self:subscribe(self.m_inventory_manager:on_event("add_equipment"), function(wearable_info)
+        for i, v in pairs(wearable_info) do
+            if dbc.item[v["tmpl"]].inventory_type == 1 then
+                self.m_sub_bag_list[1]:on_equipment_add(v)
+            elseif dbc.item[v["tmpl"]].inventory_type == 2 then
+                self.m_sub_bag_list[2]:on_equipment_add(v)
+            elseif dbc.item[v["tmpl"]].inventory_type == 3 then
+                self.m_sub_bag_list[3]:on_equipment_add(v)
+            end
+        end
+    end)
+
+    --for i, v in pairs(self.m_equipment_list) do
+    --    self:local_log("wearable_info..i>>" .. tostring(i))
+    --    self:local_log("wearable_info..unique>>" .. tostring(v["unique"]))
+    --    self:local_log("wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+    --    self:local_log("wearable_info..tmpl>>" .. tostring(v["lvl"]))
+    --end
+    -----这里根据表中的装备类型进行表的分类，同时做完之后要对数据进行排序，传入到sub_list内
+end
+
+function backpack_list:on_loaded()
+    self:create_sub_backpack_list(self.m_weapon_list, 1)
+    self:create_sub_backpack_list(self.m_armor_list, 2)
+    self:create_sub_backpack_list(self.m_ring_list, 3)
+end
+
+-----点击背包item的时候
+function backpack_list:on_item_selected(list, obj_list)
+    --for i, v in pairs(list) do
+    --    self:local_log("on_item_selected..i>>" .. tostring(i))
+    --    self:local_log("on_item_selected..unique>>" .. tostring(v))
+    --end
+    self:emit_event("equip", list, obj_list)
+end
+
+---当装备位变化时被调取，  temp
+function backpack_list:on_equip_change(wearable_info, put_off_info)
+    --for i, v in pairs(wearable_info) do
+    --    self:local_log("equip_change..i>>" .. tostring(i))
+    --    self:local_log("equip_change..unique>>" .. tostring(v))
+    --end
+    --for i, v in pairs(put_off_info) do
+    --    self:local_log("on_equip_change..tmpl>>" .. tostring(v))
+    --end
+    self:backpack_item_add(put_off_info)
+    self:backpack_item_remove(wearable_info)
+end
+
+------装备移除时调用
+function backpack_list:backpack_item_remove(wearable_info)
+    if wearable_info["tmpl"] ~= 0 then
+        if dbc.item[wearable_info["tmpl"]].inventory_type == 1 then
+            self:remove_item_and_sort(self.m_weapon_list, wearable_info)
+            self:refresh_sub_list_data(self.m_weapon_list, 1)
+        elseif dbc.item[wearable_info["tmpl"]].inventory_type == 2 then
+            self:remove_item_and_sort(self.m_armor_list, wearable_info)
+            self:refresh_sub_list_data(self.m_armor_list, 2)
+        elseif dbc.item[wearable_info["tmpl"]].inventory_type == 3 then
+            self:remove_item_and_sort(self.m_ring_list, wearable_info)
+            self:refresh_sub_list_data(self.m_ring_list, 3)
+        end
+    end
+end
+
+-------装备添加时调用
+function backpack_list:backpack_item_add(put_off_info)
+    if put_off_info["tmpl"] ~= 0 then
+        if dbc.item[put_off_info["tmpl"]].inventory_type == 1 then
+            self:add_item_and_sort(self.m_weapon_list, put_off_info)
+            self:refresh_sub_list_data(self.m_weapon_list, 1)
+        elseif dbc.item[put_off_info["tmpl"]].inventory_type == 2 then
+            self:add_item_and_sort(self.m_armor_list, put_off_info)
+            self:refresh_sub_list_data(self.m_armor_list, 2)
+        elseif dbc.item[put_off_info["tmpl"]].inventory_type == 3 then
+            self:add_item_and_sort(self.m_ring_list, put_off_info)
+            self:refresh_sub_list_data(self.m_ring_list, 3)
+        end
+    end
+end
+
+------移除某一个item——data  然后将list排序
+function backpack_list:remove_item_and_sort(list, wearable_info)
+    for i, v in ipairs(list) do
+        if v["tmpl"] == wearable_info["tmpl"] and v["unique"] == wearable_info["unique"] then
+            table.remove(list, i)
+        end
+    end
+    self:sort_list(list)
+end
+
+----添加一个item——data   然后将list排序
+function backpack_list:add_item_and_sort(list, wearable_info)
+    table.insert(list, wearable_info)
+    self:sort_list(list)
+end
+
+-------当发生了添加或移除物品时，那么在这个时候同时也要通知子列表去检查刷新自身的数据
+function backpack_list:refresh_sub_list_data(list, index)
+    for i,v in ipairs(self.m_sub_bag_list[index])  do
+        if i == #self.m_sub_bag_list[index] then
+            v:on_refresh(list, i, 1)
+        else
+            v:on_refresh(list, i, 0)
+        end
+
+    end
+end
+
+----创建子背包页
+function backpack_list:create_sub_backpack_list(sub_list, index)
+    local sub_backpack_num = nil
+
+    -----用列表中的数除以每页的背包格数，向上取整取出初始化要生成的背包页数
+    --local num = #self.m_weapon_list / 20
+    --Debug.LogError(math.ceil(num))
+
+    if #sub_list <= 20 then
+        sub_backpack_num = 1
+    else
+        local temp = #sub_list / 20
+        sub_backpack_num = math.ceil(temp)
+    end
+    local list = {}
+    self.m_sub_bag_list[index] = {}
+    ------创建子背包页   在这里需要将数据传入到子背包页中，因为在父级当中来做这个事情的话会有些繁琐，所有直接在子页的frame中来索引列表的长度就可以
+    for i = 1, sub_backpack_num do
+        list[1] = sub_list
+        list[2] = index
+        list[3] = i
+        -------这里传入最后一个参数来判断是否为本类型的最后一个page
+        if i == sub_backpack_num then
+            list[4] = 1
+        else
+            list[4] = 0
+        end
+        if index == 1 then
+            self.m_sub_bag_list[index][i] = self:createChild("backpack_sub_list" .. "weapon" .. i, "%subsystem/backpack_equipment/backpack_sub_list", list)
+        elseif index == 2 then
+            self.m_sub_bag_list[index][i] = self:createChild("backpack_sub_list" .. "armor" .. i, "%subsystem/backpack_equipment/backpack_sub_list", list)
+        elseif index == 3 then
+            self.m_sub_bag_list[index][i] = self:createChild("backpack_sub_list" .. "ring" .. i, "%subsystem/backpack_equipment/backpack_sub_list", list)
+        end
+    end
+end
+
+--排序，目前先按等级，以及部位来排序   因为同类型有多个PAGE，所以的话处理排序应该放在此层级
+function backpack_list:sort_list(list)
+    for i = 1, #list - 1 do
+        for j = 1, #list - 1 do
+            local h = list[j]["enhanced_level"] + dbc.item[list[j]["tmpl"]].level_label
+            local k = list[j + 1]["enhanced_level"] + dbc.item[list[j + 1]["tmpl"]].level_label
+            if h < k then
+                --Debug.LogError("当前等级j" .. tostring(h))
+                --Debug.LogError("当前等级j+1" .. tostring(k))
+                local temp = list[j + 1]
+                list[j + 1] = list[j]
+                list[j] = temp
+            elseif h == k then
+                if dbc.item[list[j]["tmpl"]].derived_params[2] < dbc.item[list[j + 1]["tmpl"]].derived_params[2] then
+                    local temp = list[j + 1]
+                    list[j + 1] = list[j]
+                    list[j] = temp
+                end
+            end
+        end
+    end
+end
+
+function backpack_list:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return backpack_list

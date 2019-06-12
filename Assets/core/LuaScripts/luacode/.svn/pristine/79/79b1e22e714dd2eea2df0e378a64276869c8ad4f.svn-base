@@ -1,0 +1,112 @@
+local death_manager = class("death_manager")
+local bit = require("bit")
+local ObserverHost = require "system.observer_host"
+death_manager:include(ObserverHost)
+Event.decl(death_manager, "death_event")
+Event.decl(death_manager, "refresh_data")
+
+
+
+function death_manager:initialize()
+    Event.init(self)
+end
+
+-- @ fighting_phase_number 战斗阶段id
+-- @ fighting_phase_state 战斗阶段状态 0 --> boss死亡    1 --> boss存活且不在战斗中  3 --> boss存活且在战斗中
+-- 这个参数是通过living and stat两个数组成的 拆解后的第一个位元表示living 第二个位元表示stat
+function death_manager:revival_conds(fighting_phase_number, fighting_phase_state)
+    --print("death_manager", fighting_phase_number, fighting_phase_state)
+    self:emit_event("death_event", fighting_phase_number, fighting_phase_state)
+end
+function death_manager:revival_rescuing(param)
+    --print(param)
+    -- 首先要把人物传回到出生点
+    local sdk = app:getKBESDK()
+    local pos, dir = self:get_born_locations()
+    -- 通知服务器变位置
+    --print(pos, dir)
+    sdk:player_update(pos, Vector3(0, dir, 0))
+    self:revival_rescued(param)
+
+end
+
+
+
+function death_manager:resurgence(fighting_phase_number, fighting_phase_state)
+    --复活弹板
+    self.map_id = app:getFrameMgr():getFrame("world"):get_map_id()
+    self.type_id = dbc.map[self.map_id].type
+    --print("地图类型",self.type_id)
+    if self.type_id == 1 then
+        if fighting_phase_number ~= 0 then
+            if fighting_phase_state == 0 then
+                slua_timer.addDelayEvent(3.87, function()
+                    self:emit_event("refresh_data", enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION)  --复活点复活
+                end)
+            end
+            if fighting_phase_state == 1 then
+                slua_timer.addDelayEvent(3.87, function()
+                    self:emit_event("refresh_data", enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION)  --复活点复活
+                end)
+            end
+            if fighting_phase_state == 3 then
+                slua_timer.addDelayEvent(3.87, function()
+                    self:emit_event("refresh_data", enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION_MASK)  --复活点不能复活
+                end)
+            end
+        else
+            slua_timer.addDelayEvent(3.87, function()
+                self:emit_event("refresh_data", enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION)  --复活点复活
+            end)
+        end
+    else
+        slua_timer.addDelayEvent(3.87, function()
+            self:emit_event("refresh_data", enum.ui.Enum_UI_Rebounding.SITU_RESURRECTION)  --原地复活
+        end)
+    end
+end
+
+function death_manager:revival_others_death()
+    --复活请求
+    self:cell_call("revival_others")
+end
+function death_manager:revival_battle_death()
+    --复活请求
+    self:cell_call("revival_battle")
+end
+
+function death_manager:revival_rescued(param)
+    -- 完成异地复活
+    self:cell_call("revival_rescued", param)
+end
+
+function death_manager:revival_rescuer()
+    -- 初始化的时候请求复活信息
+    self:cell_call("revival_rescuer")
+end
+
+
+function death_manager:local_log(...)
+    app:logError(string.format(...))
+end
+
+
+function death_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function death_manager:get_born_locations()
+    local kbe_mgr = app:getFrameMgr():getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local pos = role:get_pos()
+    local dir = role:get_dir()
+    return pos, dir
+end
+
+
+
+return death_manager

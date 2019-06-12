@@ -1,0 +1,84 @@
+local View = require("system.view")
+local quick_matching_main_view = class("quick_matching_main_view", View)
+
+function quick_matching_main_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Matching"), function(go)
+        self.m_ui_manager:AdaptResolution(self.m_frame:getFrameName(), go)
+        self:event_and_att_subscribe()
+        self:getGO().gameObject:SetActive(false)
+        self.m_frame:on_loaded()
+    end)
+end
+
+-- 注册事件属性
+function quick_matching_main_view:event_and_att_subscribe()
+    self:subscribe(self.m_frame:on_event("team_btn_down"), function()
+        self:on_team_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("troops_btn_down"), function()
+        self:on_troops_btn_down()
+    end)
+    self:subscribe(self.m_frame:on_event("battle_btn_down"), function()
+        self:on_battle_btn_down()
+    end)
+
+    self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+        local name = child_frame:getFrameName()
+        if string.find(name, "team_matching") then
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            --选择创建挂点以及设置位置和大小
+            local parent_transform = self["page_container_gameObject"].transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end
+    end)
+end
+
+-- 队伍按钮回调
+function quick_matching_main_view:on_team_btn_down()
+    self["team_btn_GUIButton"].gameObject:SetActive(false)
+    self["team_img_gameObject"]:SetActive(true)
+
+    self["troops_btn_GUIButton"].gameObject:SetActive(true)
+    self["troops_img_gameObject"]:SetActive(false)
+    self["battle_btn_GUIButton"].gameObject:SetActive(true)
+    self["battle_img_gameObject"]:SetActive(false)
+    self:move_target(130)
+end
+
+-- 团队按钮回调
+function quick_matching_main_view:on_troops_btn_down()
+    self["troops_btn_GUIButton"].gameObject:SetActive(false)
+    self["troops_img_gameObject"]:SetActive(true)
+
+    self["team_btn_GUIButton"].gameObject:SetActive(true)
+    self["team_img_gameObject"]:SetActive(false)
+    self["battle_btn_GUIButton"].gameObject:SetActive(true)
+    self["battle_img_gameObject"]:SetActive(false)
+    self:move_target(10)
+end
+
+-- 战场按钮回调
+function quick_matching_main_view:on_battle_btn_down()
+    self["battle_btn_GUIButton"].gameObject:SetActive(false)
+    self["battle_img_gameObject"]:SetActive(true)
+
+    self["team_btn_GUIButton"].gameObject:SetActive(true)
+    self["team_img_gameObject"]:SetActive(false)
+    self["troops_btn_GUIButton"].gameObject:SetActive(true)
+    self["troops_img_gameObject"]:SetActive(false)
+    self:move_target(-110)
+end
+
+-- 移动指定物体的Y轴
+function quick_matching_main_view:move_target(target)
+    ShortcutExtensions.DOLocalMoveY(self["selected_line_img_gameObject"].gameObject.transform, target, 0.6, false)
+end
+
+return quick_matching_main_view

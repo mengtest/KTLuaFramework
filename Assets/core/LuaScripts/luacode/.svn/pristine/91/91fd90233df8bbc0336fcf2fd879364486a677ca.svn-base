@@ -1,0 +1,269 @@
+local HeadOverlayItem = {}
+
+Attribute.decl(HeadOverlayItem, "name", "")
+Attribute.decl(HeadOverlayItem, "hp_percent", 0)
+Attribute.decl(HeadOverlayItem, "lv", 0)
+Attribute.decl(HeadOverlayItem, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(HeadOverlayItem, "color", Color.blue)
+Attribute.decl(HeadOverlayItem, "scale", 1)
+Attribute.decl(HeadOverlayItem, "base_scale", 1)
+
+-- pacman 2017-10-28 添加两种法力消耗属性
+-- 实际的需求是要能根据角色的专精属性，自动的决定使用哪个法力消耗值，以及其对应的进度条控件
+-- 更好的做法是封装出不同的进度条控件。时间仓促，这里先临时处理下，留待日后
+Attribute.decl(HeadOverlayItem, "use_spell_cost_1", nil)          -- 启用法力消耗1
+Attribute.decl(HeadOverlayItem, "spell_cost_percent_1", 0)      -- 法力消耗1
+Attribute.decl(HeadOverlayItem, "use_spell_cost_2", nil)          -- 启用法力消耗2
+Attribute.decl(HeadOverlayItem, "spell_cost_percent_2", 0)      -- 法力消耗2
+
+Event.decl(HeadOverlayItem, "refresh")
+Event.decl(HeadOverlayItem, "show")
+Event.decl(HeadOverlayItem, "hide")
+Event.decl(HeadOverlayItem, "fade")
+Event.decl(HeadOverlayItem, "dye")
+
+
+
+HeadOverlayItem.T_List = {1, 4, 13} -- 临时列表，记录代表 T 的天赋类型
+
+function HeadOverlayItem:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    local unit = param.unit
+    local unit_id = unit:get_id()
+    local player_id = app:getKBESDK():get_player_id()
+    self.m_unit = param.unit
+    self.m_displayable_flag = 0
+    self.m_is_locked_player_flag = false
+    self.m_cam_tr = self:getFrame("world"):getCamera():fetch_unity_camera().transform
+    if unit_id == player_id then
+        self:set_color(Color.green)
+    end
+
+    -- 2017-8-27 pacman 尝试逐步不再使用unit用作数据模型
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    self.m_entity_obj = kbe_mgr:get_entity(unit_id)
+    self.m_buff_list = self.m_entity_obj:get_buff_list()
+    self.m_buff_icon_frame_list = {}
+
+    -- 注册事件
+    self:subscribe(unit:on_event_name_set(true), function(val)
+        self:set_name(val)
+    end)
+    self:subscribe(unit:on_event_hp_set(true), function(val)
+        self:set_hp_percent(unit:get_hp() / unit:get_hp_max())
+    end)
+
+
+    --	self:subscribe(unit:on_event_pos_set(true), function(val)
+    --        local show_bone = app:getKBESDK():get_player_id() == unit_id and unit:get_bone("bottom") or unit:get_bone("top")
+    --        local pos = show_bone and show_bone.position or Vector3.up * 3
+    --		self:set_pos(pos)
+    --	end)
+end
+
+
+-- pacman 2017-10-27 根据角色的数据来决定headOverlayItem要使用哪些类型的技能消耗值
+function HeadOverlayItem:init_spell_cost()
+    -- 角色合法性检查
+    if self.m_entity_obj == nil then
+        return
+    end
+
+    -- 获取该专精的技能消耗类型列表 --
+    -- 角色的专精类型
+    local specialization = self.m_unit:get_specialization()
+    if specialization == Enum_Battle.TalentSpecialization.INVALID then
+        return
+    end
+
+    -- 获取消耗类型列表
+    local specialization_t = dbc.specialization[specialization]
+    local cost_type_list = specialization_t.spell_cost_type
+    if cost_type_list == nil or #cost_type_list == 0 then
+        return
+    end
+
+
+    for i, v in ipairs(cost_type_list) do
+        local cost_att_name, cost_max_att_name = Enum_Battle.get_spell_cost_att_name(v)
+
+        -- pacman 2017-10-28 目前先临时只支持两个法力消耗类型
+        if i <= 2 then
+            if cost_att_name ~= nil then
+                self["set_use_spell_cost_"..i](self, true)
+                -- 注册事件
+                -- 属性变化
+                self:subscribe(self.m_entity_obj:on_event_attr_set(cost_att_name, true), function(val)
+                    self["set_spell_cost_percent_"..i](self, val / self.m_entity_obj:get_attr(cost_max_att_name))
+                end)
+
+                -- 属性最大值变化
+                self:subscribe(self.m_entity_obj:on_event_attr_set(cost_max_att_name, true), function(val)
+                    self["set_spell_cost_percent_"..i](self, self.m_entity_obj:get_attr(cost_att_name) / val)
+                end)
+            end
+        end
+    end
+
+
+
+
+end
+
+
+
+function HeadOverlayItem:doUpdate()
+    local show_bone, offset_dis = nil, nil
+    if app:getKBESDK():get_player_id() == self.m_unit:get_id() then
+        show_bone, offset_dis = self.m_unit:get_bone("bottom"), -self.m_unit:get_attr("model_radius")
+    else
+        show_bone, offset_dis = self.m_unit:get_bone("top"), self.m_unit:get_attr("model_radius")
+    end
+    local pos = show_bone and show_bone.position or Vector3.up * 3
+    local sight_dir = (pos - self.m_cam_tr.position).normalized
+    local pos_end = pos + Vector3.Cross(sight_dir, self.m_cam_tr.right).normalized * offset_dis
+    self:set_pos(pos_end)
+end
+
+function HeadOverlayItem:on_prepared()
+    local option_1 = GCFG.option_display.is_show_all_enemy_hp_bar       -- 所有敌方单位
+    local option_2 = GCFG.option_display.is_show_your_aim_hp_bar        -- 自己锁定的目标
+    local option_3 = GCFG.option_display.is_show_your_damaged_hp_bar    -- 伤害的目标
+    local option_4 = GCFG.option_display.is_show_your_tracer_hp_bar     -- 锁定自己的目标
+    local option_5 = GCFG.option_display.is_show_teammate_hp_bar
+    if option_1 then
+        self:plus_displayable_flag()
+    else
+        if option_3 then
+            self:subscribe(self.m_unit:on_event("be_hit"), function (attacker_id, skill_id, hit_outcome, damage)
+                self:plus_displayable_flag()
+            end)
+        end
+    end
+
+    if self.m_unit:get_attr("selectable") == 0 then
+        self:disable()
+    end
+    if self.m_unit:get_attr("attackable") == 0 then
+        self:disable()
+    end
+    self:subscribe(self.m_unit:on_event_attr_set("selectable"), function (flag)
+        if flag == 1 then
+            self:enable()
+        else
+            self:disable()
+        end
+    end)
+    self:subscribe(self.m_unit:on_event_attr_set("attackable"), function (flag)
+        if flag == 1 then
+            self:enable()
+        else
+            self:disable()
+        end
+    end)
+    self:do_first_show()
+end
+
+function HeadOverlayItem:do_first_show()
+    if self.m_displayable_flag > 0 then
+        self:emit_event("show")
+    else
+        self:emit_event("hide")
+    end
+end
+
+function HeadOverlayItem:enable()
+    self:plus_displayable_flag(100)
+end
+
+function HeadOverlayItem:disable()
+    self:minus_displayable_flag(100)
+end
+
+function HeadOverlayItem:fade()
+    self:emit_event("fade")
+end
+
+function HeadOverlayItem:dye()
+    self:emit_event("dye")
+end
+
+function HeadOverlayItem:be_locked()
+    self:plus_displayable_flag()
+    self:set_scale(1.2)
+    self:refresh()
+end
+
+function HeadOverlayItem:be_unlocked()
+    self:minus_displayable_flag()
+    self:set_scale(1)
+    self:refresh()
+end
+
+function HeadOverlayItem:lock_player()
+    self:switch_color_when_lock_player()
+    if not self.m_is_locked_player_flag then
+        self:plus_displayable_flag()
+        self.m_is_locked_player_flag = true
+    end
+end
+
+function HeadOverlayItem:unlock_player()
+    self:switch_color_when_unlock_player()
+    if self.m_is_locked_player_flag then
+        self:minus_displayable_flag()
+        self.m_is_locked_player_flag = false
+    end
+end
+
+function HeadOverlayItem:switch_color_when_lock_player()
+    local is_t = Util_table:is_contain(self.T_List, self.m_unit:get_specialization())
+    if is_t then
+        self:set_color(Color.orange)
+    else
+        self:set_color(Color.red)
+    end
+end
+
+function HeadOverlayItem:switch_color_when_unlock_player()
+    self:set_color(Color.blue)
+end
+
+--function HeadOverlayItem:set_color(color)
+--	self:set_attr("color", color)
+--end
+
+--function HeadOverlayItem:set_scale(scale)
+--	self:set_attr("scale", scale)
+--end
+
+--function HeadOverlayItem:set_base_scale(scale)
+--    self:set_attr("base_scale", scale)
+--end
+
+--这里是需要给view发送的事件需要在view中注册
+function HeadOverlayItem:refresh()
+    self:emit_event("refresh")
+end
+
+function HeadOverlayItem:plus_displayable_flag(val)
+    val = val or 1
+    self.m_displayable_flag = self.m_displayable_flag + val
+    if self.m_displayable_flag > 0 then
+        self:emit_event("show")
+    end
+end
+
+function HeadOverlayItem:minus_displayable_flag(val)
+    val = val or -1
+    self.m_displayable_flag = self.m_displayable_flag - val
+    if self.m_displayable_flag <= 0 then
+        self:emit_event("hide")
+    end
+end
+
+function HeadOverlayItem:get_entity_obj()
+    return self.m_entity_obj
+end
+
+return HeadOverlayItem

@@ -1,0 +1,18 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/11/22 14:47
+---
+local Frame = require("system.frame")
+local equipment_list = class("equipment_list", Frame)
+
+Event.decl(equipment_list, "equip_change")
+
+function equipment_list:doInit()
+    
+end
+
+function equipment_list:equip_change(wearable_info)
+    self:emit_event("equip_change", wearable_info)
+end
+
+return equipment_list

@@ -1,0 +1,94 @@
+local Frame = require("system.frame")
+local spirit_model_show = class("spirit_model_show", Frame)
+
+Event.decl(spirit_model_show, "show_sfx")
+Event.decl(spirit_model_show, "hide_sfx")
+
+Event.decl(spirit_model_show, "play_sfx")
+
+
+function spirit_model_show:doInit()
+    -- 存放模型的字典
+    self.m_model_dict = {}
+    -- 当前展示的模型
+    self.m_cur_model = nil
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    -- 点击槽位切换模型
+    self:subscribe(self:getFrame("sprite"):on_event("change_slot"), function(spirit_data, slot)
+        if spirit_data == nil then
+            --  放个特效
+            self:emit_event("show_sfx", slot)
+            if self.m_cur_model then
+                self.m_cur_model:SetActive(false)
+            end
+        else
+            self:emit_event("hide_sfx")
+            self:load_model(dbc.sprite[spirit_data.tmpl].model_id)
+        end
+    end)
+
+    -- 装备
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data, args)
+        self:load_model(dbc.sprite[spirit_data.tmpl].model_id)
+        self:emit_event("hide_sfx")
+        self:emit_event("play_sfx", args)
+
+    end)
+
+    -- 打开界面[关闭界面删除所有模型   打开界面再重新加载]
+    self:subscribe(self:getFrame("sprite"):on_event("show"), function()
+        if self:getFrame("sprite"):get_selected_slot():get_spirit_data() then
+            self:load_model(dbc.sprite[self:getFrame("sprite"):get_selected_slot():get_spirit_data().tmpl].model_id)
+        end
+    end)
+end
+
+---- 加载模型
+function spirit_model_show:load_model(id)
+    local model = self.m_model_dict[id]
+    if model then
+        self.m_cur_model:SetActive(false)
+        model:SetActive(true)
+        self.m_cur_model = model
+        self.m_cur_model.transform.rotation = Vector3(0, 180, 0)
+    else
+        self:create_ctrller(id, function(model)
+            -- 将其余已创建的模型隐藏
+            for k, v in pairs(self.m_model_dict) do
+                if v ~= model then
+                    v:SetActive(false)
+                end
+            end
+            self.m_cur_model = model
+        end)
+    end
+end
+
+function spirit_model_show:create_ctrller(id, cb)
+    self:subscribe(app:getResMgr():rxLoad(app:get_model_mgr().GetPrefabPathById(id)), function(asset)
+        local go = Object.Instantiate(asset)
+        go.transform.position = Vector3(500, 0, 0)
+        go.transform.rotation = Vector3(0, 180, 0)
+        go.transform.localScale = Vector3.one * 1
+        self.m_model_dict[id] = go
+
+        if cb then
+            cb(self.m_model_dict[id])
+        end
+    end)
+end
+
+function spirit_model_show:start_rotate(is_clockwise, speed)
+    local rot_speed = 360 / 6 * speed
+    rot_speed = is_clockwise and rot_speed or -rot_speed
+    if self.m_cur_model then
+        self.m_cur_model.transform:Rotate(Vector3.up, rot_speed * Time.deltaTime)
+    end
+
+end
+
+function spirit_model_show:get_model_dict()
+    return self.m_model_dict
+end
+
+return spirit_model_show

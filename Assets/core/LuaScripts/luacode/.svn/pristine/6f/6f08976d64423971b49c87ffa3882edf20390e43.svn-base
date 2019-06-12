@@ -1,0 +1,46 @@
+local View = require("system.view")
+local spirit_handbook_card_view = class("spirit_handbook_card_view", View)
+
+function spirit_handbook_card_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SpiritHandbookCard"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+
+        -- 选中
+        self:subscribe(self:getFrame():on_event("selected"), function()
+            self["selected_gameObject"]:SetActive(true)
+        end)
+        -- 未选中
+        self:subscribe(self:getFrame():on_event("unselected"), function()
+            self["selected_gameObject"]:SetActive(false)
+        end)
+
+
+        self:subscribe(self:getFrame():on_event_id_set(true), function(id)
+            local icon_path = app:getAssetPathMgr().get_spirit_handbook_card_view_resource('default_icon')
+            if id == 0 then
+                self:change_sprite(self["icon_GUIImage"], icon_path)
+            else
+                icon_path = dbc.sprite[id].handbook_icon
+                self:change_sprite(self["icon_GUIImage"], icon_path)
+            end
+        end)
+        self:getFrame("spirit_handbook_list"):set_select()
+    end)
+
+end
+
+
+function spirit_handbook_card_view:change_sprite(image, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return spirit_handbook_card_view

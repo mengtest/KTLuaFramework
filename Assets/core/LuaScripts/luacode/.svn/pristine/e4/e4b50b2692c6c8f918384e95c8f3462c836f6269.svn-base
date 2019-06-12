@@ -1,0 +1,12 @@
+---
+--- Created by xjl.
+--- DateTime: 2017/11/22 14:47
+---
+local Frame = require("system.frame")
+local equipment_list = class("equipment_list", Frame)
+
+function equipment_list:doInit()
+    
+end
+
+return equipment_list

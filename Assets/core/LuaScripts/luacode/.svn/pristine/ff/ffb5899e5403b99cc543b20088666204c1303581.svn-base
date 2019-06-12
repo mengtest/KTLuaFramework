@@ -1,0 +1,36 @@
+-- 挂在unit内部的特效基类
+local Frame = require("system.frame")
+local UnitSfx = class("UnitSfx", Frame)
+
+
+function UnitSfx:doInit(param)
+    self.m_unit = param.unit
+    self.m_sfx_path = param.sfx_path
+    self.m_mount_point = param.mount_point
+    self.m_duration = param.time
+end
+
+
+function UnitSfx:doUpdate()
+
+end
+
+
+function UnitSfx:get_unit()
+    return self.m_unit
+end
+
+function UnitSfx:get_sfx_path()
+    return self.m_sfx_path
+end
+
+function UnitSfx:get_mount_point()
+    return self.m_mount_point
+end
+
+-- 对于自动销毁的特效增加这个属性 当不为nil时会根据这个值销毁 而不是特效的duration 
+function UnitSfx:get_duration()
+    return self.m_duration
+end
+
+return UnitSfx

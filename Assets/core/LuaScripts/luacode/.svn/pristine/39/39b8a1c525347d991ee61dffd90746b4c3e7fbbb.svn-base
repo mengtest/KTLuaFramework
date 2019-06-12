@@ -1,0 +1,124 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+local Enum_Unit = require "common.Enum.Enum_Unit"
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+    
+    local unit = self.m_unit
+    local type = self.m_param.type
+    local override_anim = self.m_param.anim
+    
+    unit:set_main_act(UAFsm.MAIN_ACT.Auto_Move)
+
+    
+    self.m_update_func = nil
+    
+    -- 暂时先只考虑跳跃 而且是抛物线跳跃 之后按照需求扩展
+    if (type == Enum_Battle.Move_Type_4_Client.JUMP) then
+        unit:emit_event("override_animator_clip", "auto_move_a", "base_jump_a")
+        unit:emit_event("override_animator_clip", "auto_move_b", "base_jump_d")
+        unit:emit_event("override_animator_clip", "auto_move_c", "base_jump_c")
+        unit:emit_event("anim_param", "auto_move_type", "int", Enum_Battle.Move_Type_4_Client.JUMP)
+        
+        self.m_curve_point_index = 1
+        self.m_point_count = 1 / Time.deltaTime
+        self.m_curve_point = {}
+        local startPos = unit:get_pos()
+        local endPos = self.m_param.target_pos
+        
+        self.m_center = (startPos + endPos) * 0.5
+        self.m_center.y = math.max(startPos.y, endPos.y) + 3
+        for i = 1, self.m_point_count, 1 do
+            local pos1 = Vector3.Lerp(startPos, self.m_center, i / self.m_point_count)
+            local pos2 = Vector3.Lerp(self.m_center, endPos, i / self.m_point_count)
+            local find = Vector3.Lerp(pos1, pos2, i / self.m_point_count)
+            table.insert(self.m_curve_point, find)
+        end
+        
+        self.m_update_func = self["jump_update"]
+    elseif (type == Enum_Battle.Move_Type_4_Client.MOVEFAST) then
+        --unit:emit_event("override_animator_clip", "auto_move_a", override_anim.."_a")
+        unit:emit_event("override_animator_clip", "auto_move_a", override_anim.a)
+        unit:emit_event("override_animator_clip", "auto_move_b", override_anim.b)
+        unit:emit_event("anim_param", "auto_move_type", "int", Enum_Battle.Move_Type_4_Client.MOVEFAST)
+        self.m_startPos = unit:get_pos()
+        self.m_endPos = self.m_param.target_pos      
+        local dist = Vector3.Distance(self.m_startPos,self.m_endPos)
+        self.m_start_time = Time.time
+        self.m_end_time = Time.time + dist / 10
+        self.m_update_func = self["move_fast_update"]
+    end
+end
+
+
+function M:exit()
+    self.m_update_func = nil
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+    
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+end
+
+
+function M:change_move_state(move_state)
+
+end
+
+function M:jump_update()
+    if (self.m_curve_point_index < #self.m_curve_point) then
+        local next_pos = self.m_curve_point[self.m_curve_point_index + 1]
+        self.m_unit:lookAt(next_pos)
+        
+        self.m_unit:set_pos(next_pos)
+        
+        self.m_unit:emit_event("set_position", next_pos)
+        
+        self.m_curve_point_index = self.m_curve_point_index + 1;
+    else
+        self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+    end
+end
+
+function M:move_fast_update()
+    if (Time.time < self.m_end_time) then
+
+        local next_pos = Vector3.Lerp(self.m_startPos, self.m_endPos, 
+        (Time.time - self.m_start_time) / (self.m_end_time - self.m_start_time))
+        
+        self.m_unit:lookAt(next_pos)
+        
+        self.m_unit:set_pos(next_pos)
+        
+        self.m_unit:emit_event("set_position", next_pos)
+    
+    else
+        self.m_startPos = nil
+        
+        self.m_endPos = nil
+
+        self.m_sum_time = nil
+        
+        self.m_fsm:change_state(Enum_Battle.Unit_Main_Act.MOVE)
+    end
+end
+
+return M

@@ -1,0 +1,84 @@
+﻿
+local Popup_item_base = class("Popup_item_base")
+
+Popup_item_base.Const = {}
+Popup_item_base.Const.startPointDisCoef = 0.05   -- 起始点远离中心的距离系数（屏幕宽度的百分比）
+Popup_item_base.Const.move_dis_coef = 0.15        -- 最大滑动距离系数（屏幕宽度的百分比）
+
+function Popup_item_base:initialize(go, cam, start_world_pos, is_cirt, owner)
+    self.m_tr = go.transform:Find("Item").transform
+    self.m_tr_sync = go.transform
+    self.m_tr_crit = go.transform:Find("Item/crit")
+    self.m_cam = cam
+    local screen_pos, is_fwd = cam:worldToScreenPoint(start_world_pos)
+    self.m_is_fwd = is_fwd
+    --self.m_start_screen_pos = screen_pos
+    --self.m_start_screen_pos = self.m_tr.worldToLocalMatrix:MultiplyPoint3x4(screen_pos)
+    self.m_start_screen_pos = Vector3.zero
+    self.m_is_cirt = is_cirt
+    self.m_owner = owner
+    self.m_width = cam:get_pixel_width()
+    self.m_height = cam:get_pixel_height()
+    self.m_duration = 1
+    if self.m_tr_crit then
+        self.m_tr_crit.gameObject:SetActive(self.m_is_cirt)
+    end
+    self:init()
+end
+
+function Popup_item_base:refresh_to_screen_pos()
+
+    local show_bone  = self.m_owner:get_bone("top")
+    local pos = show_bone and show_bone.position or Vector3.up * 3
+    local spos, is_front = self.m_cam:worldToUIScreenPoint(pos)
+    if is_front then
+        self.m_tr_sync.position = Vector3(spos.x, spos.y, spos.z)
+    end
+end
+
+
+function Popup_item_base:get_inside_screen_pos(dir, dis)
+    if not self.m_is_fwd then
+        return nil
+    end
+    local aim_pos = self.m_start_screen_pos + dir * dis
+    local half_width = self.m_width / 2
+    local half_height = self.m_height / 2
+    local coef_x = math.abs(aim_pos.x) / half_width
+    local coef_y = math.abs(aim_pos.y) / half_height
+    if coef_x > coef_y then
+        if coef_x > 1 then
+            if math.abs(self.m_start_screen_pos.x) > half_width then
+                return nil
+            end
+            aim_pos = aim_pos / coef_x
+        end
+    else
+        if coef_y > 1 then
+            if math.abs(self.m_start_screen_pos.y) > half_height then
+                return nil
+            end
+            aim_pos = aim_pos / coef_y
+        end
+    end
+    return aim_pos
+end
+
+function Popup_item_base:get_leave_coef(ori_pos)
+    local bounding_radius = self.m_owner:get_bounding_radius()
+    local dis = Vector3.Distance(self.m_owner:get_pos(), self.m_cam:fetch_unity_camera().transform.position)
+    --local rst = (dis / 10) * (bounding_radius) * self.m_height * app:get_curve_storage().startPointDisCoef
+    local rst = (dis / 10) * (bounding_radius) * self.m_height * self.Const.startPointDisCoef
+    return rst
+end
+
+function Popup_item_base:set_duration(duration)
+    self.m_duration = duration
+end
+
+function Popup_item_base:update(delta_time)
+    self.m_tr.position = self.self.m_start_screen_pos
+    return true
+end
+
+return Popup_item_base

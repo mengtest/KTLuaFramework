@@ -1,0 +1,28 @@
+﻿
+local Quest_condition_base = require("frame.quest.condition.quest_condition_base")
+local Quest_condition_collect = class("Quest_condition_collect", Quest_condition_base)
+
+function Quest_condition_collect:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_manager = quest_manager
+    
+    self.m_quest_manager:create_interact(self.m_tbl_params[1])
+end
+
+function Quest_condition_collect:set_cur_param(cur_param)
+    self.m_cur_param = cur_param["stats"][1] or -1
+    self.m_is_passed = cur_param["done"] == enum.shared.QuestCond.NONE
+    self.m_is_fail= cur_param["done"] <0--by lijunfeng 2018/3/5 是否失败
+
+    if self.m_is_passed then
+        self.m_quest_manager:destroy_interact(self.m_tbl_params[1])
+    end
+end
+
+--清除所有相关数据 by lijunfeng 2018/2/6
+function Quest_condition_collect:clear()
+    print("清理条件数据")
+    Quest_condition_collect.super.clear(self)
+    self.m_quest_manager:create_interact(self.m_tbl_params[1])
+end
+
+return Quest_condition_collect

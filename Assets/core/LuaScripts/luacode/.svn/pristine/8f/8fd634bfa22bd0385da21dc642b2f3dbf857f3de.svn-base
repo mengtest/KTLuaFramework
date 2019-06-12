@@ -1,0 +1,15 @@
+local View = require("system.view")
+local matching_back_inst_view = class("matching_back_inst_view", View)
+
+
+function matching_back_inst_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Dungeon_leave_sure"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local text = go.transform:Find("bg/Text"):GetComponent(UI.Text)
+        text.text = param
+    end)
+end
+
+return matching_back_inst_view

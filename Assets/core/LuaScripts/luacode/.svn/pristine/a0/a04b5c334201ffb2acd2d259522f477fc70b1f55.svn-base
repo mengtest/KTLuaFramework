@@ -1,0 +1,22 @@
+local Frame = require("system.frame")
+local skill_ui_setting_list_btn = class("skill_ui_setting_list_btn", Frame)
+
+-- 技能id
+Attribute.decl(skill_ui_setting_list_btn, "skill_id", -1)
+
+-- 客户端显示
+Attribute.calc(skill_ui_setting_list_btn, "client_cfg",
+function(self)
+    return dbc.spell_client[self:get_skill_id()]
+end,
+"skill_id")
+
+
+
+function skill_ui_setting_list_btn:doInit(skill_id)
+
+    self:set_skill_id(skill_id)
+end
+
+
+return skill_ui_setting_list_btn

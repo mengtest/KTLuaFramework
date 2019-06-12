@@ -1,0 +1,36 @@
+---
+--- Created by xiaojingli.
+--- DateTime: 2018/1/15 17:12
+---
+local Frame = require("system.frame")
+local float_hint = class("float_hint", Frame)
+
+Attribute.decl(float_hint, "start_y", 30)
+Attribute.decl(float_hint, "duration", 3)
+Attribute.decl(float_hint, "stop_time", 2)
+Attribute.decl(float_hint, "str", "")
+Event.decl(float_hint, "set_height")
+
+function float_hint:doInit(params)
+    self:set_is_dont_create_go_automatic(true)
+
+    self:set_start_y(params["start_y"] or self:get_start_y())    --初始y值
+    self:set_duration(params["duration"] or self:get_duration())    --飘字时间
+    self:set_stop_time(params["stop_time"] or self:get_stop_time())    --飘字时间
+
+    local s = params["str"]
+    for str in string.gmatch(params["str"], "#%x%x%x%x%x%x") do
+        s = string.gsub(params["str"], str, str .. "ff")
+    end
+    self:set_str(s)
+end
+
+function float_hint:destroy_self()
+    self:destroyFrame(self:getFrameName())
+end
+
+function float_hint:set_height(height)
+    self:emit_event("set_height", height)
+end
+
+return float_hint

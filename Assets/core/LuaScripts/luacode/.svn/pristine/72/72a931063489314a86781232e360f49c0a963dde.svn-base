@@ -1,0 +1,343 @@
+local Frame = require("system.frame")
+local inventory_manager = class("inventory_manager", Frame)
+
+-----增加了新的装备
+Event.decl(inventory_manager, "add_equipment")
+----增加了新的物品（非装备）
+Event.decl(inventory_manager, "add_unequipment")
+Event.decl(inventory_manager, "equipped_head")
+Event.decl(inventory_manager, "unequipped_head")
+Event.decl(inventory_manager, "equipped_shoulder")
+Event.decl(inventory_manager, "unequipped_shoulder")
+Event.decl(inventory_manager, "equipped_chest")
+Event.decl(inventory_manager, "unequipped_chest")
+Event.decl(inventory_manager, "equipped_wrist")
+Event.decl(inventory_manager, "unequipped_wrist")
+Event.decl(inventory_manager, "equipped_hands")
+Event.decl(inventory_manager, "unequipped_hands")
+Event.decl(inventory_manager, "equipped_waist")
+Event.decl(inventory_manager, "unequipped_waist")
+Event.decl(inventory_manager, "equipped_legs")
+Event.decl(inventory_manager, "unequipped_legs")
+Event.decl(inventory_manager, "equipped_feet")
+Event.decl(inventory_manager, "unequipped_feet")
+Event.decl(inventory_manager, "equipped_neck")
+Event.decl(inventory_manager, "unequipped_neck")
+Event.decl(inventory_manager, "equipped_back")
+Event.decl(inventory_manager, "unequipped_back")
+Event.decl(inventory_manager, "equipped_finger1")
+Event.decl(inventory_manager, "unequipped_finger1")
+Event.decl(inventory_manager, "equipped_finger2")
+Event.decl(inventory_manager, "unequipped_finger2")
+Event.decl(inventory_manager, "equipped_accessory1")
+Event.decl(inventory_manager, "unequipped_accessory1")
+Event.decl(inventory_manager, "equipped_accessory2")
+Event.decl(inventory_manager, "unequipped_accessory2")
+Event.decl(inventory_manager, "equipped_mainhand_weapon")
+Event.decl(inventory_manager, "unequipped_mainhand_weapon")
+Event.decl(inventory_manager, "equipped_offhand_weapon")
+Event.decl(inventory_manager, "unequipped_offhand_weapon")
+
+function inventory_manager:doInit(param)
+    -----装备的表
+    self.m_equipment_list = {}
+    -----可叠加物品的表（非装备）
+    self.m_unequipment_list = {}
+    -----装备栏格位数据
+    self.m_equipping_dic = {}
+end
+
+function inventory_manager:init()
+    self:local_log("inventory_manager  初始化")
+    self:base_call("inventory_list")
+end
+
+function inventory_manager:inventory_all(countable_info, wearable_info, equipped_inventory)
+    for i, v in pairs(countable_info) do
+        self:local_log("countable_info..i>>" .. tostring(i))
+        self:local_log("countable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("countable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("countable_info..qty>>" .. tostring(v["qty"]))
+    end
+
+    for i, v in pairs(countable_info) do
+        self.m_unequipment_list[i] = v
+    end
+
+    for i, v in pairs(wearable_info) do
+        self:local_log("wearable_info..i>>" .. tostring(i))
+        self:local_log("wearable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("wearable_info..lvl>>" .. tostring(v["lvl"]))
+    end
+
+    for i, v in pairs(wearable_info) do
+        self.m_equipment_list[i] = v
+    end
+
+    for i, v in pairs(equipped_inventory) do
+        self:local_log("equipped_inventory..key>>" .. tostring(i))
+        self:local_log("equipped_inventory..wearable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("equipped_inventory..wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("wearable_info..tmpl>>" .. tostring(v["lvl"]))
+    end
+
+    for i, v in pairs(equipped_inventory) do
+        self.m_equipping_dic[i] = v
+    end
+end
+
+function inventory_manager:inventory_countables(countable_info)
+    for i, v in pairs(countable_info) do
+        self.m_equipping_dic[#self.m_unequipment_list] = v
+    end
+    self:emit_event("add_unequipment", countable_info)
+end
+
+function inventory_manager:inventory_wearables(wearable_info)
+    for i, v in pairs(wearable_info) do
+        self.m_equipping_dic[#self.m_equipment_list] = v
+    end
+    self:emit_event("add_equipment", wearable_info)
+end
+
+-----佩戴头盔
+function inventory_manager:inventory_equipped_head(wearable_info)
+    self.m_equipping_dic["head"] = wearable_info
+    self:emit_event("equipped_head", wearable_info)
+end
+
+----卸下头盔
+function inventory_manager:inventory_unequipped_head()
+    self.m_equipping_dic["head"]["unique"] = 0
+    self.m_equipping_dic["head"]["tmpl"] = 0
+    self:emit_event("unequipped_head")
+end
+
+----佩戴肩甲
+function inventory_manager:inventory_equipped_shoulder(wearable_info)
+    self.m_equipping_dic["shoulder"] = wearable_info
+    self:emit_event("equipped_shoulder", wearable_info)
+end
+
+----卸下肩甲
+function inventory_manager:inventory_unequipped_shoulder()
+    self.m_equipping_dic["shoulder"]["unique"] = 0
+    self.m_equipping_dic["shoulder"]["tmpl"] = 0
+    self:emit_event("unequipped_shoulder")
+end
+
+----佩戴胸甲
+function inventory_manager:inventory_equipped_chest(wearable_info)
+    self.m_equipping_dic["chest"] = wearable_info
+    self:emit_event("equipped_chest", wearable_info)
+end
+
+----卸下胸甲
+function inventory_manager:inventory_unequipped_chest()
+    self.m_equipping_dic["chest"]["unique"] = 0
+    self.m_equipping_dic["chest"]["tmpl"] = 0
+    self:emit_event("unequipped_chest")
+end
+
+----佩戴护腕
+function inventory_manager:inventory_equipped_wrist(wearable_info)
+    self.m_equipping_dic["wrist"] = wearable_info
+    self:emit_event("equipped_wrist", wearable_info)
+end
+
+----卸下护腕
+function inventory_manager:inventory_unequipped_wrist()
+    self.m_equipping_dic["wrist"]["unique"] = 0
+    self.m_equipping_dic["wrist"]["tmpl"] = 0
+    self:emit_event("unequipped_wrist")
+end
+
+---佩戴手套
+function inventory_manager:inventory_equipped_hands(wearable_info)
+    self.m_equipping_dic["hands"] = wearable_info
+    self:emit_event("equipped_hands", wearable_info)
+end
+
+----卸下手套
+function inventory_manager:inventory_unequipped_hands()
+    self.m_equipping_dic["hands"]["unique"] = 0
+    self.m_equipping_dic["hands"]["tmpl"] = 0
+    self:emit_event("unequipped_hands")
+end
+
+----佩戴腰带
+function inventory_manager:inventory_equipped_waist(wearable_info)
+    self.m_equipping_dic["waist"] = wearable_info
+    self:emit_event("equipped_waist", wearable_info)
+end
+
+----卸下腰带
+function inventory_manager:inventory_unequipped_waist()
+    self.m_equipping_dic["waist"]["unique"] = 0
+    self.m_equipping_dic["waist"]["tmpl"] = 0
+    self:emit_event("unequipped_waist")
+end
+
+----佩戴腿甲
+function inventory_manager:inventory_equipped_legs(wearable_info)
+    self.m_equipping_dic["legs"] = wearable_info
+    self:emit_event("equipped_legs", wearable_info)
+end
+
+---卸下腿甲
+function inventory_manager:inventory_unequipped_legs()
+    self.m_equipping_dic["legs"]["unique"] = 0
+    self.m_equipping_dic["legs"]["tmpl"] = 0
+    self:emit_event("unequipped_legs")
+end
+
+----佩戴战靴
+function inventory_manager:inventory_equipped_feet(wearable_info)
+    self.m_equipping_dic["feet"] = wearable_info
+    self:emit_event("equipped_feet", wearable_info)
+end
+
+----卸下战靴
+function inventory_manager:inventory_unequipped_feet()
+    self.m_equipping_dic["feet"]["unique"] = 0
+    self.m_equipping_dic["feet"]["tmpl"] = 0
+    self:emit_event("unequipped_feet")
+end
+
+----佩戴项链
+function inventory_manager:inventory_equipped_neck(wearable_info)
+    self.m_equipping_dic["neck"] = wearable_info
+    self:emit_event("equipped_neck", wearable_info)
+end
+
+----卸下项链
+function inventory_manager:inventory_unequipped_neck()
+    self.m_equipping_dic["neck"]["unique"] = 0
+    self.m_equipping_dic["neck"]["tmpl"] = 0
+    self:emit_event("unequipped_neck")
+end
+
+-----佩戴披风
+function inventory_manager:inventory_equipped_back(wearable_info)
+    self.m_equipping_dic["back"] = wearable_info
+    self:emit_event("equipped_back", wearable_info)
+end
+
+----卸下披风
+function inventory_manager:inventory_unequipped_back()
+    self.m_equipping_dic["back"]["unique"] = 0
+    self.m_equipping_dic["back"]["tmpl"] = 0
+    self:emit_event("unequipped_back")
+end
+
+----佩戴戒指1
+function inventory_manager:inventory_equipped_finger1(wearable_info)
+    self.m_equipping_dic["finger1"] = wearable_info
+    self:emit_event("equipped_finger1", wearable_info)
+end
+
+---卸下戒指1
+function inventory_manager:inventory_unequipped_finger1()
+    self.m_equipping_dic["finger1"]["unique"] = 0
+    self.m_equipping_dic["finger1"]["tmpl"] = 0
+    self:emit_event("unequipped_finger1")
+end
+
+-----佩戴戒指2
+function inventory_manager:inventory_equipped_finger2(wearable_info)
+    self.m_equipping_dic["finger2"] = wearable_info
+    self:emit_event("equipped_finger2", wearable_info)
+end
+
+-----卸下戒指2
+function inventory_manager:inventory_unequipped_finger2()
+    self.m_equipping_dic["finger2"]["unique"] = 0
+    self.m_equipping_dic["finger2"]["tmpl"] = 0
+    self:emit_event("unequipped_finger2")
+end
+
+----佩戴配饰1
+function inventory_manager:inventory_equipped_accessory1(wearable_info)
+    self.m_equipping_dic["accessory1"] = wearable_info
+    self:emit_event("equipped_accessory1", wearable_info)
+end
+
+----卸下配饰1
+function inventory_manager:inventory_unequipped_accessory1()
+    self.m_equipping_dic["accessory1"]["unique"] = 0
+    self.m_equipping_dic["accessory1"]["tmpl"] = 0
+    self:emit_event("unequipped_accessory1")
+end
+
+----佩戴配饰2
+function inventory_manager:inventory_equipped_accessory2(wearable_info)
+    self.m_equipping_dic["accessory2"] = wearable_info
+    self:emit_event("equipped_accessory2", wearable_info)
+end
+
+---卸下配饰2
+function inventory_manager:inventory_unequipped_accessory2()
+    self.m_equipping_dic["accessory2"]["unique"] = 0
+    self.m_equipping_dic["accessory2"]["tmpl"] = 0
+    self:emit_event("unequipped_accessory2")
+end
+
+----佩戴主手武器
+function inventory_manager:inventory_equipped_mainhand_weapon(wearable_info)
+    self.m_equipping_dic["mainhand_weapon"] = wearable_info
+    self:emit_event("equipped_mainhand_weapon", wearable_info)
+end
+
+---卸下主手武器
+function inventory_manager:inventory_unequipped_mainhand_weapon()
+    self.m_equipping_dic["mainhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["mainhand_weapon"]["tmpl"] = 0
+    self:emit_event("unequipped_mainhand_weapon")
+end
+
+----佩戴副手武器
+function inventory_manager:inventory_equipped_offhand_weapon(wearable_info)
+    self.m_equipping_dic["offhand_weapon"] = wearable_info
+    self:emit_event("equipped_offhand_weapon", wearable_info)
+end
+
+----卸下副手武器
+function inventory_manager:inventory_unequipped_offhand_weapon()
+    self.m_equipping_dic["offhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["offhand_weapon"]["tmpl"] = 0
+    self:emit_event("unequipped_offhand_weapon")
+end
+
+----获取到装备的列表
+function inventory_manager:gain_equipment_list()
+    return self.m_equipment_list
+end
+
+----获取到非装备的列表
+function inventory_manager:gain_unequipment_list()
+    return self.m_unequipment_list
+end
+
+----获取到装备位的数据
+function inventory_manager:gain_equiping_dic()
+    return self.m_equipping_dic
+end
+
+function inventory_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function inventory_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function inventory_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return inventory_manager

@@ -1,0 +1,30 @@
+local M = {}
+
+Attribute.decl(M,"tmpl",nil)
+Attribute.decl(M,"pos",function() return Vector3(0,0,0) end)
+Attribute.decl(M,"dir",function() return 0 end)
+
+function M:doInit(parma)
+    self:set_tmpl(parma:get_tmpl())
+    self:set_pos(parma:get_pos())
+    self:set_dir(parma:get_dir())
+
+    self.m_merchant_data = dbc.merchant[parma:get_tmpl()]
+    self.m_merchant_data.entity_id = parma:get_id()
+    self.m_shop_items_id = self.m_merchant_data.items
+    self.m_shop_items_info = {}
+    for i,v in pairs(self.m_shop_items_id) do
+        table.insert(self.m_shop_items_info,dbc.item[v])
+    end
+end
+
+function M:get_merchat_data()
+    return self.m_merchant_data
+end
+
+function M:get_shop_items_info()
+    return self.m_shop_items_info
+end
+
+
+return M

@@ -1,0 +1,113 @@
+local Frame = require("system.frame")
+local team_matching = class("team_matching", Frame)
+
+Event.decl(team_matching, "attack_btn_down")
+Event.decl(team_matching, "cure_btn_down")
+Event.decl(team_matching, "tank_btn_down")
+Event.decl(team_matching, "matching_btn_down")
+Event.decl(team_matching, "nor_btn_down")
+Event.decl(team_matching, "hero_btn_down")
+Event.decl(team_matching, "epic_btn_down")
+Event.decl(team_matching, "random_btn_down")
+Event.decl(team_matching, "sub_item_down")
+Event.decl(team_matching, "refresh")
+
+function team_matching:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_matching_manager = self:getFrame("matching_manager")
+    self.m_matching_item_list = {}
+    self.m_matching_data_list = {}
+    self.m_sel_sub_item = nil
+end
+
+function team_matching:on_loaded()
+    local list = self.m_matching_manager:gain_dungeon_series()
+    if list == nil then
+        return
+    else
+        for i, v in ipairs(list) do
+            local send = {}
+            send[1] = i
+            send[2] = v
+            self.m_matching_item_list[i] = self:createChild("matching_list_item" .. i, "team.team_quick_matching.matching_list_item", send)
+        end
+    end
+end
+
+function team_matching:gain_sel_sub_item()
+    return self.m_sel_sub_item
+end
+
+-- 点击列表item回调
+function team_matching:on_sub_item_down(frame)
+    local is_matching = self.m_matching_manager:gain_matching_state()
+    if is_matching == 1 then
+        return
+    end
+    if self.m_sel_sub_item == nil then
+        self.m_sel_sub_item = frame
+        self:emit_event("sub_item_down")
+    else
+        if frame == self.m_sel_sub_item then
+            return
+        end
+        self.m_sel_sub_item:on_item_sel_cancle()
+        self.m_sel_sub_item = frame
+    end
+    self:refresh()
+end
+
+-- 匹配按钮回调
+function team_matching:on_matching_btn()
+    self:emit_event("matching_btn_down")
+end
+
+-- 随机匹配按钮回调
+function team_matching:on_random_btn()
+    local is_matching = self.m_matching_manager:gain_matching_state()
+    if is_matching == 1 then
+        return
+    end
+    if self.m_sel_sub_item ~= nil then
+        self.m_sel_sub_item:on_item_sel_cancle()
+        self.m_sel_sub_item = nil
+    end
+    self:emit_event("random_btn_down")
+end
+
+-- 刷新view
+function team_matching:refresh()
+    self:emit_event("refresh", self.m_sel_sub_item)
+end
+
+-- 输出按钮回调
+function team_matching:on_attack_btn()
+    self:emit_event("attack_btn_down")
+end
+
+-- 治疗按钮回调
+function team_matching:on_cure_btn()
+    self:emit_event("cure_btn_down")
+end
+
+-- 坦克按钮回调
+function team_matching:on_tank_btn()
+    self:emit_event("tank_btn_down")
+end
+
+-- 日常按钮回调
+function team_matching:on_nor_btn()
+    self:emit_event("nor_btn_down")
+end
+
+-- 英雄按钮回调
+function team_matching:on_hero_btn()
+    self:emit_event("hero_btn_down")
+end
+
+-- 史诗按钮回调
+function team_matching:on_epic_btn()
+    self:emit_event("epic_btn_down")
+end
+
+return team_matching

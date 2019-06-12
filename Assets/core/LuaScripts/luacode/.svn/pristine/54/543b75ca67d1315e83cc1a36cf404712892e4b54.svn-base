@@ -1,0 +1,259 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/24 10:19
+---
+local Frame = require("system.frame")
+local trace_quest_item = class("trace_quest_item", Frame)
+
+---outlet
+Attribute.decl(trace_quest_item, "txt_title", "无")
+Attribute.decl(trace_quest_item, "txt_sketch", "无")
+Attribute.decl(trace_quest_item, "time", "9分32秒")
+Attribute.decl(trace_quest_item, "schdule", "(0/0)")
+Attribute.decl(trace_quest_item, "distance", "0m")
+
+Event.decl(trace_quest_item, "show")
+Event.decl(trace_quest_item, "hide")
+Event.decl(trace_quest_item, "play_particle")
+Event.decl(trace_quest_item, "refresh_aim_info")
+
+function trace_quest_item:doInit(param)
+    self:set_is_dont_create_go_automatic(true)
+    self.m_outline_color = param.outline_color
+    self.m_quest_data = nil         --quest_data
+    self.m_data = nil               --数据库中该任务信息
+    self.m_main_player = self:getFrame("world"):get_main_player()
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_current_quest_id = -1
+end
+
+function trace_quest_item:on_btn()
+    if self.m_quest_data == nil then
+        return
+    end
+
+    if self.m_mgr:getFrame("big_map") ~= nil then
+        return
+    end
+    local inst_id = self:getFrame("dungeon_manager"):gain_inst_id()
+    local init_map_size = {}
+    init_map_size["inst_id"] = inst_id
+    local dis_aim, map_id = self.m_quest_data:get_target_info()
+    map_id = map_id == 0 and self:getFrame("world"):get_map_id() or map_id
+    local map_data = dbc.map[map_id]
+    init_map_size['map_id'] = map_id
+    --if dis_aim > 0 then
+    init_map_size['show_quest_data'] = self.m_quest_data
+    --end
+    init_map_size["map_left_bottom"] = Vector3(map_data["left_bottom"][1], 0, map_data["left_bottom"][2])
+    init_map_size["map_right_up"] = Vector3(map_data["right_top"][1], 0, map_data["right_top"][2])
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("big_map", "map.big_map.big_map", init_map_size, ui_manager.UI_Depth.ALERT)
+end
+
+function trace_quest_item:show()
+    self:emit_event("show")
+end
+
+function trace_quest_item:hide()
+    self:emit_event("hide")
+end
+
+function trace_quest_item:play_particle(quest_id)
+    if self.m_current_quest_id == quest_id then
+        return
+    end
+    self.m_current_quest_id = quest_id
+    self:emit_event("play_particle")
+end
+
+--设置quest_data
+function trace_quest_item:set_quest_data(quest_data)
+    if quest_data == nil then
+        self.m_quest_data = nil
+        self.m_data = nil
+        self:set_txt_title("无")
+        self:set_txt_sketch("无")
+        self:set_schdule("(0/0)")
+        self:set_distance("0m")
+        self:hide()
+        return
+    end
+    self.m_quest_data = quest_data
+    local quest_id = quest_data:get_quest_id()
+    self.m_data = dbc.quest[quest_id]
+
+    self:refresh_txt_title()
+    self:refresh_txt_sketch()
+    self:refresh_schdule()
+    local dis_aim, _, _, dir_aim, finish_desc = quest_data:get_target_info()
+    local dir_self = self.m_main_player:get_dir()
+    self:refresh_aim_info(dis_aim, dir_aim, dir_self)
+    self:play_particle(quest_id)
+    self:show()
+end
+
+function trace_quest_item:get_quest_data()
+    if self.m_quest_data == nil then
+        return nil
+    end
+    return self.m_quest_data
+end
+
+--更新任务名称
+function trace_quest_item:refresh_txt_title()
+    if self.m_quest_data == nil or self.m_data == nil then
+        return
+    end
+    local txt_title = self.m_data.name
+    self:set_txt_title(txt_title)
+end
+
+--更新详细描述名称
+---@param text 如果text不为空， 将text赋给txt_sketch
+---@param is_judge_state 是否判断状态
+function trace_quest_item:refresh_txt_sketch(text)
+    if self.m_quest_data == nil or self.m_data == nil then
+        return
+    end
+
+    local txt_sketch = self.m_data.sketchy
+
+    if text then
+        txt_sketch = text
+    end
+
+    --如果通过刷新距离来调用的，则不判断任务状态（为了解决状态会一闪而过的情况）
+    local state = self.m_quest_data:get_quest_state()
+    if state == enum.quest.Quest_State.Interact then
+        txt_sketch = "<color=yellow>可接取</color>"
+        self:refresh_schdule("")
+    elseif state == enum.quest.Quest_State.Finished then
+        txt_sketch = "<color=#4CE10B>可交付</color>"
+        self:refresh_schdule("")
+    end
+
+    if self.m_quest_data:get_is_fall() then
+        txt_sketch = "<color=red>失败</color>"
+        self:refresh_schdule("")
+    end
+
+    self:set_txt_sketch(txt_sketch)
+end
+
+--更新任务进度
+function trace_quest_item:refresh_schdule(text)
+    if self.m_quest_data == nil then
+        return
+    end
+    local schdule = string.format("%d/%d", self.m_quest_data:get_cur_weights(), self.m_quest_data:get_aim_weights())
+
+    if text then
+        schdule = text
+    end
+
+    self:set_schdule(schdule)
+end
+
+--更新任务目标区域的方向和距离
+function trace_quest_item:refresh_aim_info()
+    if self.m_quest_data == nil then
+        return
+    end
+
+    local dis_aim, map_id, area_id, dir_aim, finish_desc = self.m_quest_data:get_target_info()
+    local dir_self = self.m_main_player:get_dir()
+
+    self:refresh_txt_sketch(finish_desc)
+
+    if dis_aim == nil then
+        local dis = string.format("<color=red>999+</color>m")
+        --self:local_log("trace_quest_item:refresh_aim_info------------------>> quest_id:" .. self.m_quest_data:get_quest_id() .. ",   dis:" .. dis)
+        --self:set_distance(dis)
+        return
+    end
+    -- 任务和角色之间距离
+    local dis_color = nil
+    if math.floor(dis_aim) + 1 <= 150 then
+        dis_color = "#4CE10BFF"
+    elseif math.floor(dis_aim) + 1 <= 500 then
+        dis_color = "yellow"
+    else
+        dis_color = "red"
+    end
+
+    local dis = string.format("<color=" .. dis_color .. ">%d</color>m", math.floor(dis_aim) + 1)
+
+    if math.floor(dis_aim) + 1 > 999 then
+        dis = string.format("<color=red>999+</color>m")
+    end
+    --self:local_log("trace_quest_item:refresh_aim_info------------------>> quest_id:" .. self.m_quest_data:get_quest_id() .. ",   dis:" .. dis)
+    self:set_distance(dis)
+
+    self:emit_event("refresh_aim_info", dir_aim, dir_self)
+end
+
+function trace_quest_item:limit_time()
+    if self.m_quest_data == nil then
+        self:set_time("")
+        return
+    end
+
+    if self.m_quest_data:get_timestamp() == nil then
+        self:set_time("")
+        return
+    end
+    if self.m_quest_data:check_timeout() then
+        self:set_time("")
+        return
+    end
+
+    if self.m_data.timeout == nil or self.m_data.timeout <= 0 then
+        self:set_time("")
+        return
+    end
+
+    local t = tonumber(utility.math:GetPreciseDecimal(self.m_quest_data:get_timestamp() - self.m_quest_manager:get_timestamp(), 0))
+
+    if t <= 0 then
+        self:set_time("")
+        self:refresh_txt_sketch()
+        self:refresh_aim_info()
+        return
+    end
+
+    local second = t % 60
+    local minute = math.floor(t / 60)
+
+    --local m = nil
+    --local s = nil
+    --
+    --if minute < 10 then
+    --    m = "0" .. tostring(minute)
+    --else
+    --    m = tostring(minute)
+    --end
+    --
+    --if second < 10 then
+    --    s = "0" .. tostring(second)
+    --else
+    --    s = tostring(second)
+    --end
+
+    local time = string.format("%d分%d秒", minute, second)
+    if minute == 0 then
+        time = string.format("%d秒", second)
+    end
+
+    self:set_time(time)
+end
+
+function trace_quest_item:doUpdate()
+    self:limit_time()
+end
+
+function trace_quest_item:local_log(...)
+    app:logError(string.format(...))
+end
+
+return trace_quest_item

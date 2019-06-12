@@ -1,0 +1,22 @@
+local M = {}
+
+function M:doInit(data)
+    self.m_shop_items_info = data.items_info
+    self.m_merchant_info = data.merchant_info
+end
+
+
+function M:on_close_btn()
+    local ui_manager = app:get_ui_manager()
+    ui_manager:HideView("ui_shop")
+end
+
+function M:get_shop_items_info()
+    return self.m_shop_items_info
+end
+
+function M:get_merchant_info()
+    return self.m_merchant_info
+end
+
+return M

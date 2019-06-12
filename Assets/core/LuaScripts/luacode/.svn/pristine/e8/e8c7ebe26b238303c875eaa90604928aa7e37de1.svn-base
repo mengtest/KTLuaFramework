@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+function big_map:doInit(param)
+
+end
+
+return big_map

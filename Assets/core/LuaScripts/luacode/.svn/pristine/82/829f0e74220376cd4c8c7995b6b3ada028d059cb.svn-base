@@ -1,0 +1,7 @@
+local rows = {}
+rows[1] = {['id']=2481,['items']={11,22}}
+
+local datas = {
+	[2481] = rows[1],
+}
+return datas

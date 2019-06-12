@@ -1,0 +1,147 @@
+local HeadOverlay = {}
+
+
+
+function HeadOverlay:doInit( )
+    self.m_item_map = {}
+    self.m_target_item = nil
+
+    local m_world = self:getFrame("world")
+
+
+    self:subscribe(m_world:on_event_add_unit(), function(id, unit)
+        self:create_item(id, unit)
+    end)
+    self:subscribe(m_world:on_event_del_unit(), function(id, unit)
+        self:destroy_item(id)
+    end)
+end
+
+function HeadOverlay:create_item(id, unit)
+    local sdk = app:getKBESDK()
+    local player_id = sdk:get_player_id()
+    if id == player_id then
+        self:create_own_item(id, unit, player_id)
+    else
+        self:create_tar_item(id, unit, player_id)
+    end
+end
+
+function HeadOverlay:create_own_item(id, unit, player_id)
+    local item = self:create_overlay_item(id, unit)
+    item:set_base_scale(1.5)
+    item:init_spell_cost()
+    item:refresh()
+    local option_1 = GCFG.option_display.is_show_all_enemy_hp_bar
+    local option_2 = GCFG.option_display.is_show_your_aim_hp_bar
+    if option_1 or option_2 then
+        self:subscribe(unit:on_event_attr_set("target_id"), function(target_id, old_target_id)
+            if target_id ~= 0 then
+                local tar_item = self.m_item_map[target_id]
+                if tar_item then
+                    tar_item:be_locked()
+                end
+            end
+            if old_target_id ~= 0 then
+                local tar_item = self.m_item_map[old_target_id]
+                if tar_item then
+                    tar_item:be_unlocked()
+                end
+            end
+
+            if target_id == 0 then
+                for k, v in pairs(self.m_item_map) do
+                    v:dye()
+                end
+            else
+                if old_target_id == 0 then
+                    for k, v in pairs(self.m_item_map) do
+                        if k == target_id or k == player_id then
+                            -- do nothing
+                        else
+                            v:fade()
+                        end
+                    end
+                else
+                    self:fade_item(old_target_id)
+                    self:dye_item(target_id)
+                end
+            end
+        end)
+    end
+end
+
+function HeadOverlay:create_tar_item(id, unit, player_id)
+    local item = self:create_overlay_item(id, unit)
+    local option_1 = GCFG.option_display.is_show_all_enemy_hp_bar
+    --local option_2 = GCFG.option_display.is_show_your_aim_hp_bar
+    local option_4 = GCFG.option_display.is_show_your_tracer_hp_bar
+    if option_1 or option_4 then
+        self:subscribe(unit:on_event_attr_set("target_id", true), function(target_id, old_target_id)
+            if player_id == target_id then
+                item:lock_player()
+            elseif player_id == old_target_id then
+                item:unlock_player()
+            end
+        end)
+    end
+end
+
+function HeadOverlay:create_overlay_item(id, unit)
+    local param = { unit = unit }
+    local item = self:createChild(self:get_node_name(id), "head_overlay_item", param)
+    self.m_item_map[id] = item
+    return item
+end
+
+--泡泡对话框
+function HeadOverlay:creat_bubble_item(id, enemy_id)
+    local param = { id = id, enemy_id = enemy_id }
+    local bubbleitem = self:createChild("bubble" .. id .. enemy_id, "bubble_item", param)
+    return bubbleitem
+end
+
+function HeadOverlay:destroy_item(id)
+    local item = self.m_item_map[id]
+    if item then
+        self:destroyChild(item)
+    end
+    self.m_item_map[id] = nil
+end
+
+-- 使指定的血条 item 变得可见
+function HeadOverlay:enable_item(id)
+    local item = self.m_item_map[id]
+    if item then
+        item:enable()
+    end
+end
+
+-- 使指定的血条 item 变得不可见
+function HeadOverlay:disable_item(id)
+    local item = self.m_item_map[id]
+    if item then
+        item:disable()
+    end
+end
+
+function HeadOverlay:fade_item(id)
+    local item = self.m_item_map[id]
+    if item then
+        item:fade()
+    end
+end
+
+function HeadOverlay:dye_item(id)
+    local item = self.m_item_map[id]
+    if item then
+        item:dye()
+    end
+end
+
+function HeadOverlay:get_node_name(id)
+    return string.format("head-%d", id)
+end
+
+
+return HeadOverlay

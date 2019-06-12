@@ -1,0 +1,29 @@
+local sect_info = {}
+Attribute.decl(sect_info, "introduction", "我是不可能完成的，请多指教！！！")
+Attribute.decl(sect_info, "talent_target", "激活八个天赋")
+Attribute.decl(sect_info, "spirit_target", "带上五只灵兽")
+Attribute.decl(sect_info, "equipment_target", "穿上十六件装备")
+
+
+function sect_info:doInit()
+    self:set_is_add_rect_trans(true)
+end
+
+function sect_info:on_loaded()
+
+end
+-- 天赋前往
+function sect_info:on_talent_achieve()
+
+end
+-- 灵兽前往
+function sect_info:on_spirit_achieve()
+
+end
+-- 装备前往
+function sect_info:on_equipment_achieve()
+
+end
+
+
+return sect_info

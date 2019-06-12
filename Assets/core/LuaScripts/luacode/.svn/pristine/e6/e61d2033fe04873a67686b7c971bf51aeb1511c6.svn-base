@@ -1,0 +1,67 @@
+--[[
+	* 实现了多个list相乘的逻辑, 方便做Collector模块参数的展开和枚举.
+	* 例如:
+	ListA = {Debug, Release}
+	ListB = {Win32, Android}
+	ListA * ListB = {{Debug Win32}, {Debug Android}, Release Win32}, {Release Android}}
+--]]
+local U = require 'common.util.underscore'
+
+local M = {}
+
+local function create_list_for_each_item( list )
+	return U.map(list, function( v )
+		return {v}
+	end)
+end
+
+local function mul_2_list(list_a, list_b, insert_to_a)
+	local list_a_num, list_b_num = #list_a, #list_b
+
+	if list_a_num == 0 then
+		return create_list_for_each_item(list_b)
+	end
+
+	if list_b_num == 0 then
+		return create_list_for_each_item(list_a)
+	end
+
+	local result = {}
+	for list_a_idx, list_a_value in ipairs(list_a) do
+		local list_a_value = list_a[list_a_idx]
+		for list_b_idx, list_b_value in ipairs(list_b) do
+			local value
+			if insert_to_a then
+				value = U.copy(list_a_value)
+				value[#value + 1] = list_b_value
+			else
+				value = {list_a_value, list_b_value}
+			end
+			result[#result + 1] = value
+		end
+	end
+	return result
+end
+
+function M.mul_list( ... )
+	local lists = {...}
+
+	local list_num = #lists
+	
+	if list_num == 0 then
+		return {}
+	end
+
+	if list_num == 1 then
+		return create_list_for_each_item(lists[1])
+	end
+
+	local values = mul_2_list(lists[1], lists[2])
+	for i=3, list_num do
+		values = mul_2_list(values, lists[i], true)
+	end
+	return values
+end
+
+return M
+

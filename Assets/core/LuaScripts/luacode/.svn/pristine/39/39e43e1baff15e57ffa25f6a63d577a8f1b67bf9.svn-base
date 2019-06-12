@@ -1,0 +1,127 @@
+local ObserverHost = require "system.observer_host"
+local Frame = require "system.frame"
+
+local FrameMgr = class("FrameMgr")
+FrameMgr:include(ObserverHost)
+
+Event.decl(FrameMgr, "add_frame")
+Event.decl(FrameMgr, "del_frame")
+
+function FrameMgr:initialize()
+	Event.init(self)
+
+	self.m_root = Frame:new(self, "Root")
+	self.m_class_map = {}
+	self.m_frame_map = {}
+
+	self.m_frame_map[self.m_root:getFrameName()] = self.m_root
+end
+
+function FrameMgr:destroy()
+	if self.m_root then
+		self.m_frame_map[self.m_root:getFrameName()] = nil
+		self.m_root:destroy()
+		self.m_root = nil
+	end
+	
+	self:unsubscribeAll()
+end
+
+function FrameMgr:update()
+	if self.m_root then
+		self.m_root:update()
+	end
+end
+
+function FrameMgr:getFrame(name)
+	return self.m_frame_map[name]
+end
+
+function FrameMgr:createFrame(name, cls, parent, param)
+	assert(type(name) == "string")
+	cls = cls or name
+	
+	local file_dir = nil
+	local file_name = nil
+	local fullpath = ""
+	local sign = string.sub(cls, 0, 1)
+	if sign == "%" then
+		file_dir = ""
+		cls = string.sub(cls, 2)
+		while not file_name do
+			local s, e = string.find(cls, "[%w_]+[%./]")
+			if s then
+				file_dir = file_dir .. string.sub(cls, s, e)
+				cls = string.sub(cls, e + 1)
+			else
+				file_name = cls
+			end
+		end
+		assert(file_name)
+		fullpath = file_dir .. file_name
+	else
+		fullpath = string.format("frame.%s", cls)
+	end
+	
+	parent = parent or self.m_root
+
+	assert(self.m_frame_map[name] == nil,name)
+
+	local c = self.m_class_map[cls]
+	if c == nil then
+		--local path = string.format("frame.%s", cls)
+		local ok, mixin = pcall(require, fullpath)
+		if not ok then mixin = {} end
+		assert(type(mixin) == "table")
+
+		if mixin.isSubclassOf and mixin:isSubclassOf(Frame) then
+			c = mixin
+		else
+			assert(getmetatable(mixin) == nil)
+			c = class(cls, Frame)
+			c:include(mixin)
+		end
+		
+		function c:getClass() return cls end
+		self.m_class_map[cls] = c
+	end
+
+	local frame = c:new(self, name, parent,cls,param)
+	frame:setFrameDir(file_dir)
+	self.m_frame_map[name] = frame
+	parent:addChild(frame)
+
+	self:emit_event_add_frame(frame)
+    parent:emit_event_child_created(frame)
+	return frame
+end
+
+function FrameMgr:destroyFrame(frame)
+if(frame == nil) then
+	Debug.LogError("frame is nil ---  in Func destroyFrame ")
+	return
+end
+
+
+	if type(frame) == "string" then
+		local name = frame
+		frame = self:getFrame(frame)
+		assert(frame, name)
+	end
+
+	assert(frame:isInstanceOf(Frame))
+	-- pacman 2017-09-23 临时屏蔽
+	--assert(self.m_frame_map[frame:getFrameName()] ~= nil, frame:getFrameName())
+
+	self:emit_event_del_frame(frame)
+
+	self.m_frame_map[frame:getFrameName()] = nil
+
+	if frame:getParent() then
+		frame:getParent():delChild(frame)
+	end
+
+	frame:destroy()
+end
+
+return FrameMgr

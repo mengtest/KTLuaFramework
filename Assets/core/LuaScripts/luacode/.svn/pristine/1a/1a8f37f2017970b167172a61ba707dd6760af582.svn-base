@@ -1,0 +1,75 @@
+local View = require("system.view")
+local spirit_merge_btn_view = class("spirit_merge_btn_view", View)
+
+function spirit_merge_btn_view:doInit(spirit_data)
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("SpiritMerge"), function(loaded_go)
+        self.m_res_loaded = true
+        local frame = self:getFrame()
+        self.m_frame = frame
+        local template_go = loaded_go.transform:Find("spirit").gameObject
+        local go = Object.Instantiate(template_go)
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        local btn = go:GetComponent(UI.Button)
+        -- 头像
+        self.m_icon = go.transform:Find("icon"):GetComponent(UI.Image)
+
+        self:subscribe(frame:on_event_tmpl_set(true), function(val)
+            local icon_path = nil
+            if val == -1 then
+                icon_path = app:getAssetPathMgr().get_spirit_merge_btn_view_resource('icon_plus')
+            else
+                icon_path = dbc.sprite[val].icon
+            end
+            self:change_sprite(icon_path)
+        end)
+        -- 显示
+        self:subscribe(frame:on_event("show"), function()
+            self:show()
+        end)
+        -- 隐藏
+        self:subscribe(frame:on_event("hide"), function()
+            self:hide()
+        end )
+        btn.onClick:AddListener(function()
+            if self.m_frame:get_spirit_data() == nil then
+                self:getFrame("float_hint_manager"):add_float("去找策划要，现在你身上没有！")
+            else
+                self:getFrame("spirit_list"):show(self:getFrame("spirit_list").ChildPageName.MERGE_PAGE)
+                self:getFrame("spirit_list"):refresh_merge_list(self.m_frame:check_main_spirit())
+                self:getFrame("spirit_strengthen"):hide()
+            end
+        end)
+        -- 初始化的时候，如果灵兽满星  则隐藏
+        if spirit_data ~= nil then
+            if spirit_data.rating == 5 then
+                self:hide()
+            end
+        end
+    end)
+end
+
+
+function spirit_merge_btn_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+---- 显示自己
+function spirit_merge_btn_view:show()
+    self:getGO():SetActive(true)
+end
+---- 隐藏自己
+function spirit_merge_btn_view:hide()
+    self:getGO():SetActive(false)
+end
+
+return spirit_merge_btn_view

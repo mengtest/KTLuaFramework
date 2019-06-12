@@ -1,0 +1,100 @@
+local Login = {}
+
+Attribute.decl(Login, "username", "")
+Attribute.decl(Login, "password", "")
+
+function Login:doInit()
+	local username = PlayerPrefs.GetString("username")
+	local password = PlayerPrefs.GetString("password")
+	self:set_attr("username", username)
+	self:set_attr("password", password)
+	
+	self:subscribe(app:getKBESDK():on_event("login_result"), function(ok, msg)
+		self:on_login_result(ok, msg)
+	end)
+end
+
+function Login:onDisconnect()
+	local mb = app:getFrameMgr():getFrame("connection_lost")
+	if mb == nil then
+		mb = app:getFrameMgr():createFrame("connection_lost", "message_box")
+		mb:set_title("Notify")
+		mb:set_message("Connection disconnected")
+		mb:set_ok_text("Return login")
+		mb:on_event_click_ok():subscribe(function() app:doReturnLogin() end)
+	end
+end
+
+function Login:on_login_result(ok, msg)
+	print("on_login_result", ok, msg)
+	if ok then
+		self:destroySelf()
+		app:doGameWithKBE()
+	end
+end
+
+function Login:on_login(server_ip)
+	local username = self:get_attr("username")
+	local password = self:get_attr("password")
+	PlayerPrefs.SetString("username", username)
+	PlayerPrefs.SetString("password", password)
+	
+	self:logDebug("Login:onLogin", username, password)
+
+	if GCFG.standalone then
+		self:destroySelf()
+		app:doGameWithoutNetwork(username)
+		return
+	end
+
+	if GCFG.server_type == "kbe" then
+		self:createFrame("kbe.kbe_mgr")
+		
+		local cfg = GCFG.login
+		app:getKBESDK():login(server_ip, cfg.server_port,
+			username, password)
+	end
+
+	if GCFG.server_type == "skynet" then
+		app:tryExclusiveRpc(function()
+			local cfg = GCFG.login
+			local cs = app:getClientSession()
+			local ok, msg = cs:login(server_ip, cfg.server_port,
+				username, password, cfg.account_type, 
+				cfg.server_id, cfg.server_name, cfg.udid, cfg.server_version)
+
+			if ok then
+				cs:setDisconnectCallback(function()
+					cs:setDisconnectCallback(nil)
+					self:onDisconnect()
+				end)
+
+				self:destroySelf()
+
+				if app:getPlayer():isInited() then
+					app:doGameWithNetwork()
+				else
+					app:doCreateRole()
+				end
+			else
+				self:logError(msg)
+			end
+		end)
+	end
+end
+
+function Login:on_login_lan()
+	self:on_login(GCFG.login.lan_server_ip)
+end
+
+function Login:on_login_wan()
+	self:on_login(GCFG.login.wan_server_ip)
+end
+
+function Login:on_login_local()
+	self:on_login(GCFG.login.local_server_ip)
+end
+
+
+
+return Login

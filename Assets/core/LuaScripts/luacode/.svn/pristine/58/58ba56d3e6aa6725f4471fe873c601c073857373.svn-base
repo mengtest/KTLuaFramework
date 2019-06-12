@@ -1,0 +1,67 @@
+local Frame = require("system.frame")
+local spirit_property = class("spirit_property", Frame)
+
+
+Event.decl(spirit_property, "change_slot")
+
+
+function spirit_property:doInit()
+    self:set_is_add_rect_trans(true)
+    self.m_slot_frame_list = {}
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self.m_equipped_spirit_list = self.m_inventory_mgr:gain_equipping_sprite_dict()
+
+end
+
+function spirit_property:on_loaded()
+    self.m_selected_frame = nil
+    -- 创建最左侧 金木水火槽位 frame
+    for i = 18, 21 do
+        self.m_slot_frame_list[i] = self:createChild("spirit_property_slot" .. i, "spirit_beast.spirit_slot")
+    end
+
+    for i, v in pairs(self.m_equipped_spirit_list) do
+        for slot_id, slot_frame in pairs(self.m_slot_frame_list) do
+            if slot_id == dbc.sprite[v.tmpl].slot then
+                slot_frame:set_spirit_data(v)
+            end
+        end
+    end
+
+    -- 装备灵兽
+    self:subscribe(self.m_inventory_mgr:on_event("equip_sprite"), function(spirit_data, slot, args)
+        for i, v in pairs(self.m_slot_frame_list) do
+            if i == slot then
+                v:set_spirit_data(spirit_data)
+            end
+        end
+    end)
+
+
+end
+
+
+function spirit_property:get_selected_slot()
+    return self.m_selected_frame
+end
+function spirit_property:change_selected_slot(child)
+    if child == self.m_selected_frame then
+        return
+    elseif self.m_selected_frame then
+        self.m_selected_frame:set_is_selected(false)
+    end
+    for k, v in pairs(self.m_slot_frame_list) do
+        if v == child then
+            self.m_selected_frame = child
+            child:set_is_selected(true)
+            break
+        end
+    end
+    self:emit_event("change_slot", self.m_selected_frame:get_spirit_data(), self.m_selected_frame:get_slot_id())
+end
+-- 获取槽位frame列表
+function spirit_property:get_slot_list()
+    return self.m_slot_frame_list
+end
+
+return spirit_property

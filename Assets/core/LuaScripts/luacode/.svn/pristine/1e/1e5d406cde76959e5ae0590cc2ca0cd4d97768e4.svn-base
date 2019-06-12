@@ -1,0 +1,776 @@
+﻿local Frame = require("system.frame")
+
+local BPUnit = class("BPUnit", Frame)
+
+local DIR_THRESHOLD = 0.01
+local SMOOTH_TIME = 0.05
+BPUnit.BACK_SPEED_SCALE = 0.6
+BPUnit.GRAVITY = 9.8
+BPUnit.START_JUMP_SPEED = 5
+BPUnit.FALL_DISTANCE = 1
+
+BPUnit.MOVE_STATE = 
+{
+    IDLE = 0,
+    FORWARD = 1,
+    R_FORWARD = 2,
+    RIGHT = 3,
+    R_BACK = 4,
+    BACK = 5,
+    L_BACK = 6,
+    LEFT = 7,
+    L_FORWARD = 8,
+}
+--初始参数
+Attribute.decl(BPUnit, "id", nil)
+Attribute.decl(BPUnit, "name", "")
+Attribute.decl(BPUnit, "type", nil)
+Attribute.decl(BPUnit, "is_role", false)
+Attribute.decl(BPUnit, "is_main_player", false)
+
+--表属性
+Attribute.decl(BPUnit, "model_height", 2)
+Attribute.decl(BPUnit, "model_radius", 0.5)
+Attribute.decl(BPUnit, "bounding_radius", 0)
+Attribute.decl(BPUnit, "attack_damage", 10)
+Attribute.decl(BPUnit, "attack_time", 1)
+Attribute.decl(BPUnit, "attack_range", 1)
+Attribute.decl(BPUnit, "main_act", -1)-- 主行为
+Attribute.decl(BPUnit, "move_dir", 0)-- 移动方向
+Attribute.decl(BPUnit, "move_speed", 3)-- 正常移动速度
+Attribute.decl(BPUnit, "gravity_speed", 5)-- 重力方向速度 向上为正
+
+--实际属性
+Attribute.decl(BPUnit, "actural_move_speed", 3)-- 最终移动速度
+Attribute.decl(BPUnit, "to_jump", false)-- 同步状态
+Attribute.decl(BPUnit, "move_state", BPUnit.MOVE_STATE.IDLE)
+Attribute.decl(BPUnit, "pos", function()return Vector3(166, 22.08244, 107.8)end)
+Attribute.decl(BPUnit, "dir", 0)-- 角色朝向
+Attribute.decl(BPUnit, "target", nil)
+Attribute.decl(BPUnit, "target_id", 0)
+Attribute.decl(BPUnit, "in_combat", 0)
+Attribute.decl(BPUnit, "stunned", nil)
+Attribute.decl(BPUnit, "frozen", nil)
+Attribute.decl(BPUnit, "silenced", nil)
+Attribute.decl(BPUnit, "target_distance", 0) -- rjy 2017.11.07 用于判断目标距离
+Attribute.decl(BPUnit, "skill_dir", 0)
+Attribute.decl(BPUnit, "display_id", 0)
+Attribute.decl(BPUnit, "skill_valid", true)
+Attribute.decl(BPUnit, "is_show_view", true)
+Attribute.decl(BPUnit, "skill_sing_start_time", 0)-- 吟唱开始时间
+Attribute.decl(BPUnit, "skill_sing_end_time", 0)-- 吟唱结束时间
+Attribute.decl(BPUnit, "is_Selected", function()
+    return false
+end)
+--身上部件
+Attribute.decl(BPUnit, "skill_id", 0)
+Attribute.decl(BPUnit, "controller", nil)
+Attribute.decl(BPUnit, "action", nil)
+
+Event.decl(BPUnit, "be_hit")
+Event.decl(BPUnit, "show_skill_idctr")
+Event.decl(BPUnit, "move_skill_area")
+Event.decl(BPUnit, "yaw_skill_area")
+Event.decl(BPUnit, "popup_text")
+Event.decl(BPUnit, "anim_event")
+Event.decl(BPUnit, "instant_skill")
+Event.decl(BPUnit, "skill_sing_stop")-- 吟唱停止
+Event.decl(BPUnit, "override_animator_clip")
+Event.decl(BPUnit, "skill_sing")
+Event.decl(BPUnit, "play_anim")
+Event.decl(BPUnit, "cross_fade")
+Event.decl(BPUnit, "show_enemy_skill_area")
+Event.decl(BPUnit, "set_position")
+Event.decl(BPUnit, "update_position")
+Event.decl(BPUnit, "run_function")
+-- pacman 2017-11-21 旧写法中anim_trigger/anim_param是Attribute
+-- 但要修改动画状态机参数的话用Attribute不好，用Event才对
+-- 参数1 string trigger名称`
+Event.decl(BPUnit, "anim_trigger")
+-- 参数1 string animation参数名称
+-- 参数2 string 参数值类型 "bool", "int", "float", 对应着Animator.SetBool,SetInteger,SetFloat
+-- 参数3 动态类型 参数值
+Event.decl(BPUnit, "anim_param")
+
+-- 成员方法
+function BPUnit:doInit(param)
+    assert(param.id)
+    self:set_id(param.id)
+--	self:set_type(param.type)
+	self.m_cfg = param.cfg
+    self:set_is_role(param.is_role)
+    self:set_is_main_player(param.is_main_player)
+    self.m_skill_list = {}
+	
+	
+    UAFsm = require "frame.bp_unit_act_state.ua_state_machine"
+	
+    if param.name then
+        self:set_name(param.name)
+    end
+    if param.pos then
+        self:set_pos(param.pos)
+    end	
+	
+	self:on_event_action_set():subscribe(function(new, old)
+        if old then
+            old:close()
+        end
+        if new then
+            new:start()
+        end
+    end)
+	
+	self.m_target_dir = self:get_dir()
+	self.m_is_syncing_dir = false-- 同步角度开关  
+	self.m_dir_velocity = 0    -- smoothDamp用
+    self.m_move_back = false    -- 是否向后移动
+	self.m_char_ctrl_component = nil--人物控制器	    
+    self.m_uafsm = UAFsm(nil, self)-- 行为状态机
+	
+	local world = self:getFrame("bp.bp_world")
+	self:subscribe(world:on_event_map_loaded_set(true), function(loaded)
+        if loaded then
+            self.m_uafsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+        end
+    end)
+
+    if world:get_map_loaded() then
+        self.m_uafsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+    end
+	
+    local SkillData = require("data.bp_skill_data")
+	local battle_cfg=require("data.bp_battle_cfg")
+	
+	local skill_data = SkillData:new(battle_cfg.skill)
+	self.m_skill_list[battle_cfg.skill.id] = skill_data
+	
+	--初始化测试技能列表
+	print("unit_created")
+end
+
+-- 修改指定技能为新技能
+function BPUnit:change_skill(ori_skill_id, new_skill_id)
+--[[    local dbc_spell = dbc.spell[new_skill_id]
+    local ori_skill_data = self:get_skill(ori_skill_id)
+    if (ori_skill_data:get_id() == new_skill_id) then
+        return
+    end
+    ori_skill_data:set_id(new_skill_id)
+    ori_skill_data:set_cooldown(dbc_spell.cooldown)
+    ori_skill_data:set_global_cooldown_time(dbc_spell.global_cooldown_time)
+    ori_skill_data:wrap_set_max_charges(dbc_spell.max_charges)
+    ori_skill_data:wrap_set_charged_count(dbc_spell.max_charges)--]]
+end
+
+-- 技能修改 ？？？
+function BPUnit:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+    local skill_data = self:get_skill(skill_id)
+    skill_data:add_spell_mod(spell_mod_op, spell_mod_type, value)
+end
+
+function BPUnit:get_skill(id)
+    return self.m_skill_list[id]
+end
+
+function BPUnit:getCfg()
+    return dbc.creature[1003]
+end
+
+function BPUnit:get_cfg()
+    return self.m_cfg
+end
+
+function BPUnit:set_cc(cc)
+    self.m_char_ctrl_component = cc
+end
+
+function BPUnit:get_cc()
+    return self.m_char_ctrl_component
+end
+
+function BPUnit:get_uafsm()
+    return self.m_uafsm;
+end
+
+function BPUnit:get_bone(bone_name)
+    local bone = nil
+    self:emit_event("get_bone", bone_name, function(out_bone)
+        bone = out_bone
+    end)
+    return bone
+end
+
+-- 获取当前技能行为信息对象
+function BPUnit:get_skill_act_info()
+    return {target_id = self.m_skill_target_id}
+end
+
+function BPUnit:update()
+    if Input.GetKeyDown(KeyCode.M) then
+        app:logError("self.id = " .. self:get_id() .. ",\t self.target_id = " .. self:get_target_id())
+    end
+	
+    if self:get_controller() then
+        self:get_controller():update()
+    end
+
+    if self:get_action() then
+        if not self:get_action():update() then
+            self:set_action(nil)
+        end
+    end
+	
+	self.m_uafsm:update()
+
+    if self:get_is_main_player() then
+        for k, v in pairs(self.m_skill_list) do
+            v:update()
+        end
+
+        -- rjy 添加一下判断目标距离(用于施法)
+        if self:get_target() then
+            local main_player_radius = self:get_bounding_radius()
+            local target_radius = self:get_target():get_bounding_radius()
+            local dist = Vector3.Distance(self:get_pos(), self:get_target():get_pos()) - main_player_radius - target_radius
+		--	print("施法距离设置:",dist)
+            self:set_target_distance(dist)
+        else
+		--	print("施法距离设置为0")
+            self:set_target_distance(0)
+        end
+    end
+end
+
+-- 同步角度
+function BPUnit:update_dir()
+    if self.m_is_syncing_dir then
+        local cur_dir = self:get_dir()
+        -- print(cur_dir, self.m_target_dir, math.abs(cur_dir - self.m_target_dir), self.m_is_syncing_dir)
+        if math.abs(cur_dir - self.m_target_dir) < DIR_THRESHOLD then
+            self:set_dir(self.m_target_dir)
+            self.m_is_syncing_dir = false
+        else
+            local smoothed_dir = Mathf.SmoothDampAngle(cur_dir, self.m_target_dir, self.m_dir_velocity, SMOOTH_TIME);
+            self:set_dir(smoothed_dir)
+        end
+    end
+end
+
+function BPUnit:set_target_dir(worldEulerY)
+    -- todo 检查玩家状态是否允许操作
+    -- 转换到 [-180, 180]
+    worldEulerY = utility.func.clamp_angle_180(worldEulerY)
+
+    self.m_target_dir = worldEulerY
+    self.m_is_syncing_dir = true
+end
+
+function BPUnit:change_move_state(move_state)
+    self.m_uafsm:change_move_state(move_state)
+end
+
+function BPUnit:navMoveTo(pos)
+    self:set_action(UnitAction.MoveTo(self, pos))
+end
+
+function BPUnit:tryAttackTarget(target)
+    -- 多个普通攻击动作随机一个
+--[[    local atk_anim = model_mgr.RandomAtkAnim(self.m_cfg.model_id) --不读配置,所以没有普通攻击
+    if (atk_anim ~= nil) then
+        self:emit_event("override_animator_clip", "normal_atk", atk_anim)
+    end--]]
+
+    --self:set_action(UnitAction.AttackTarget(self, target))
+end
+
+function BPUnit:moveWithPath(path)
+    assert(#path >= 2)
+    local from = path[1]
+    self:set_pos(from)
+    self:set_action(UnitAction.MoveWithPath(self, path, 2))
+end
+
+--显示技能指示器
+function BPUnit:show_skill_indicator(is_show, skill_id)
+    self:emit_event("show_skill_idctr", is_show, skill_id)
+end
+
+--释放技能
+function BPUnit:cast_skill(skill_id, target_id, target_pos, target_dir)
+    print("释放技能id = " .. skill_id)
+    self:set_skill_id(skill_id)
+	
+	
+    print("--------", skill_id)
+--[[    if (enum.unit.UnitType.BOSS == self.m_cfg.unit_type or
+    enum.unit.UnitType.BIGBOSS == self.m_cfg.unit_type) then
+        
+    end--]]
+	--这个boss判断会触发区域技能，但是如果去掉了逻辑就不对了，但是这块是用到了配置，而咱们不能用配置
+
+	self:emit_event("show_enemy_skill_area", skill_id, target_pos)
+    local skill_mgr = app:get_skill_mgr()
+
+
+    if skill_id == 1 then
+        local world = self:getFrame("bp.bp_world")
+        local target = world:get_unit(target_id)
+        if target then
+            self:tryAttackTarget(target)
+        end
+    else
+        -- 开始标准技能流程 --
+        self:start_skill(skill_id, target_id, target_pos, target_dir)
+    end
+
+
+    -- 技能cd
+--[[    if self:get_is_main_player() then
+        -- 技能cd
+        local skill_data = self.m_skill_list[skill_id]
+        if skill_data == nil then
+            return
+        end
+
+        -- 判断是否充能技
+        if skill_data:is_type_charge() then
+            -- 剩余充能数 - 1
+            local charged_count = skill_data:get_charged_count()
+            skill_data:wrap_set_charged_count(charged_count - 1)
+
+            -- 开始充能
+            local is_charging = skill_data:get_is_charging()
+            if not is_charging then
+                skill_data:set_is_charging(true)
+                skill_data:start_charge_cd()
+            end
+            -- 当没有充能格了
+            -- 要开始自cd
+            if skill_data:get_charged_count() == 0 then
+                skill_data:start_cd()
+            end
+        else
+            -- 如果不是充能技能
+            -- 开始自cd
+            skill_data:start_cd()
+        end--]]
+        -- 公共cd
+        --self:start_skill_g_cd(skill_id)
+    --end
+
+end
+
+-- 开始标准技能流程
+---@param skill_id System.Single
+function BPUnit:start_skill(skill_id, target_id, target_pos, target_dir)
+    --print("---------start_skill", skill_id, target_id, target_pos, target_dir)
+    -- 记录本次流程要用到的数据
+    -- pacman 2017-09-14 我现在更倾向于应该在用到目标的时候，再次获取当前目标
+    -- 用来应对类似吟唱过程中切换了新目标的情况
+    -- 2017-09-15 经与策划确认，吟唱过程中切换了新目标，但是仍然对旧目标出手
+    self.m_skill_target_id = target_id
+    self.m_skill_target_pos = target_pos
+    self.m_skill_target_dir = target_dir
+
+    self:emit_event("start_skill", skill_id)
+
+    -- 启动吟唱
+    if self:start_skill_state_sing(skill_id) then
+        -- do nothing
+    else
+        -- 进入后继环节 --
+        print("进入后续环节")
+        self:on_skill_sing_state_exit(skill_id,enum.battle.Sing_Finish.FINISH)
+    end
+end
+-- 尝试开始技能吟唱环节，指定技能没有吟唱环节则返回false
+---@param skill_id System.Single
+---@return System.Boolean
+function BPUnit:start_skill_state_sing(skill_id)
+    --print("---------start_skill_state_sing", skill_id)
+    local skill_cfg = require("data.bp_battle_cfg").skill
+    --local client_cfg = dbc.spell_client[skill_id]
+    --assert(skill_cfg and client_cfg, string.format("invalid skill_id %d", skill_id))
+    local channelInterval = skill_cfg.channelInterval -- 引导间隔
+    local cast_time =skill_cfg.castTime-- self:get_skill(skill_id):get_cast_time() -- 吟唱时间
+    local is_sing = skill_cfg.singSwitch
+
+    -- 判断是否有吟唱环节
+    -- 非引导技能，且吟唱时间不为0
+    if channelInterval == 0 and cast_time ~= 0 and is_sing then
+        -- 开始吟唱阶段 --
+        -- 是否可以吟唱中移动？
+        -- todo 从正确的地方获取【是否可以移动】标记
+        print("开始吟唱")
+        local can_move = true
+        if can_move then
+            self.m_uafsm:change_state(enum.battle.Unit_Main_Act.SKILL_SING)
+        else
+            self.m_uafsm:change_state(enum.battle.Unit_Main_Act.SKILL_SING)
+        end
+
+        -- 播放角色吟唱动作/特效
+        self:emit_event("skill_sing", skill_cfg.id)
+
+        return true
+    else
+        --print("------------ no sing state")
+        return false
+    end
+end
+-- 吟唱环节结束处理
+---@param skill_id System.Single
+function BPUnit:on_skill_sing_state_exit(skill_id, val)
+    self:emit_event("skill_sing_stop")
+	print("吟唱环节结束")
+    if (val ~= enum.battle.Sing_Finish.FINISH) then
+        return
+    end
+    -- 后继环节：出手或者引导 --
+    --    if self:start_skill_state_channel(skill_id) then
+    --        -- do nothing
+    --    else
+    --        -- 出手
+    --        self:skill_unleash(skill_id)
+    --    end
+
+--	local skill_cfg = require(data.bp_battle_cfg)
+ --   local skill_cfg = dbc.spell[skill_id]
+ --   local client_cfg = dbc.spell_client[skill_id]
+ --   local is_jump_to_tar = skill_cfg.is_jump_to_tar
+--去掉跳跃功能
+	if self:start_skill_state_channel(skill_id) then
+		-- do nothing
+	else
+		-- 出手
+        print("出手")
+		self.m_uafsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+		self:skill_unleash(skill_id)
+	end
+end
+
+function BPUnit:start_skill_jump(skill_id)
+    self:skill_unleash(skill_id)
+    self.m_uafsm:change_state(enum.battle.Unit_Main_Act.SKILL_JUMP)
+end
+
+function BPUnit:stop_skill_jump(skill_id)
+    if self:start_skill_state_channel(skill_id) then
+        -- do nothing
+    else
+        -- 回到站立姿态
+        self.m_uafsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+    end
+end
+
+-- function M:stop_skill_jump()
+--     self.m_uafsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+-- end
+
+-- 尝试开始技能引导环节，指定技能没有引导环节则返回false
+---@param skill_id System.Single
+---@return System.Boolean
+function BPUnit:start_skill_state_channel(skill_id)
+--[[    local skill_cfg = dbc.spell[skill_id]
+    local client_cfg = dbc.spell_client[skill_id]
+    local channel_interval = skill_cfg.channel_interval -- 引导间隔--]]
+	local skill_cfg = require("data.bp_battle_cfg").skill
+
+    -- 判断是否有引导环节
+    if skill_cfg.channelInterval > 0 then
+        -- 引导间隔非零，开始【引导】
+        -- 角色状态
+        -- 是否可以引导中移动？
+        -- todo 从正确的地方获取【是否可以移动】标记
+        local can_move = true
+        if can_move then
+            self.m_uafsm:change_state(enum.battle.Unit_Main_Act.SKILL_CHANNEL)
+        else
+            self.m_uafsm:change_state(enum.battle.Unit_Main_Act.SKILL_CHANNEL)
+        end
+
+        local skill_mgr = app:get_skill_mgr()
+		print("add_aoe-----------")
+        skill_mgr:add_aoe(self, skill_id, self.m_skill_target_pos)
+
+        return true
+    else
+        return false
+    end
+end
+-- 吟唱环节结束处理
+---@param skill_id System.Single
+function BPUnit:on_skill_channel_state_exit(skill_id)
+    -- do nothing
+end
+
+-- 释放法术
+---@param skill_id System.Single
+function BPUnit:skill_unleash(skill_id)
+print("释放法术")
+--[[    local skill_cfg = dbc.spell[skill_id]
+    local client_cfg = dbc.spell_client[skill_id]--]]
+	local skill_cfg = require("data.bp_battle_cfg").skill
+    local skill_mgr = app:get_skill_mgr()
+ --   local skill_effect_cfg_list = skill_mgr:get_effect_cfg_list(skill_id)
+
+    -- 播放释放动作
+    self:emit_event("instant_skill", skill_id)
+    -- 出招/受击特效播放时机将由animationClip上配置的animationEvent决定
+    -- 过程特效开关，如果为1则不立即释放飞弹等，而是等待动画事件 于2017年10月9日16:14 定义的临时做法
+    if skill_cfg.processVfxEventSwitch then
+        return
+    end
+
+	print("释放飞弹")
+    -- 过程特效：飞弹或者是空间特效
+    local speed = skill_cfg.ballisticSpeed
+    if speed ~= 0 then
+        -- 飞弹 --
+        -- todo 对于死亡目标的处理
+        -- 飞弹/空间特效处理
+        -- 目标是unit
+        if skill_mgr:is_target_type_target_bp(skill_cfg) then
+            local world = self:getFrame("bp.bp_world")
+            local target = world:get_unit(self.m_skill_target_id)
+            print(self:get_target_id(), target)
+            skill_mgr:shoot_projectile_at_unit(skill_cfg, self, target, function(projectile)
+                -- 飞弹命中目标回调
+                --print(")))))))))))) on_projectile_hit", skill_id)
+                -- 销毁飞弹对象
+                projectile:destroySelf()
+
+                skill_mgr:add_autodestory_sklsfx_in_unit(skill_cfg,
+                enum.battle.Skill_Sfx_Type_Bp.HIT, enum.battle.Skill_Mount_Point_Type_Bp.HIT,
+                target)
+            end)
+
+            -- 目标是空间位置
+        elseif skill_mgr:is_target_type_dest_area_bp(skill_cfg) then
+            --print(">>>>>>>>", skill_id, self.m_skill_target_pos)
+            local target_pos = self.m_skill_target_pos
+
+            --print("???????????????", self:get_id(), self:get_pos())
+            skill_mgr:shoot_projectile_at_pos(skill_cfg, self, target_pos, function(projectile)
+                -- 飞弹命中目标回调
+                -- 销毁飞弹对象
+                local dir = projectile:get_euler().y
+                projectile:destroySelf()
+
+                -- 播放命中特效
+                skill_mgr:add_skill_eft_at_pos(skill_cfg, enum.battle.Skill_Sfx_Type_Bp.HIT, target_pos, dir)
+
+            end)
+        end
+
+    else
+        -- 空间特效
+        -- pacman 2017-09-23 【普通过程特效】的播放过程临时移动到了unit:on_animation_event方法中
+        --local target_pos = self.m_skill_target_pos
+        --skill_mgr:add_skill_eft_at_pos(skill_id, enum.battle.Skill_Sfx_Type.CAST, target_pos, self.m_skill_target_dir)
+    end
+
+end
+
+function BPUnit:on_be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff)
+    --print(">>>>>>>>> unit:on_be_hit", attacker_id, skill_id, hit_outcome, damage)
+    self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff)
+    self:emit_event("popup_text", attacker_id, skill_id, hit_outcome, damage, is_buff)
+end
+
+function BPUnit:change_battle_state(state)
+    self:set_in_combat(state)
+    -- 修改UI显示的
+    if (self:get_attr("is_main_player")) then
+        local ui_main_frame = self:getFrame("ui_main")
+        ui_main_frame:on_change_battle_state(state)
+    end
+
+end
+------技能-------
+-- 开始技能cd
+function BPUnit:start_skill_cd(skill_id)
+    local skill_data = self.m_skill_list[skill_id]
+    if skill_data == nil then
+        return
+    end
+    skill_data:start_cd()
+end
+
+-- 与指定技能同属同一【公共cd组】的技能开始公共cd
+function BPUnit:start_skill_g_cd(skill_id)
+--[[    local target_cfg = dbc.spell[skill_id]
+    if target_cfg == nil then
+        return
+    end
+
+    for k, v in pairs(self.m_skill_list) do
+        local cfg = v:get_cfg()
+        if cfg.global_cooldown_category == target_cfg.global_cooldown_category then
+            v:start_g_cd()
+        end
+    end--]]
+end
+-- 处理动画事件
+function BPUnit:on_animation_event(evt)
+    local skill_id = self:get_skill_id()
+--[[    local client_cfg = dbc.spell_client[skill_id]--]]
+	local skill_cfg = require("data.bp_battle_cfg").skill
+    local evt_type = evt.stringParameter
+  --  local skill_cfg = dbc.spell[skill_id]
+
+    local skill_mgr = app:get_skill_mgr()
+  --  local skill_effect_cfg_list = skill_mgr:get_effect_cfg_list(skill_id)
+
+    -- 施法者 --
+    local evt_type = evt.stringParameter
+    local evt_int = evt.intParameter
+	print("飞弹事件"..evt_type)
+    -- 类型 施放点 --
+    if evt_type == enum.battle.Anim_Evt_Type.CAST then
+
+    elseif evt_type == enum.battle.Anim_Evt_Type.SHOOT then
+        local speed = skill_cfg.ballisticSpeed
+        if speed ~= 0 then
+            -- 飞弹 --
+            -- todo 对于死亡目标的处理
+            -- 飞弹/空间特效处理
+            -- 目标是unit
+            if skill_mgr:is_target_type_target_bp(skill_cfg) then
+				print("发射飞弹到目标")
+                local world = self:getFrame("bp.bp_world")
+                local target = world:get_unit(self.m_skill_target_id)
+                print(self.m_skill_target_id, target)
+                -- 添加锁定特效 暂时只考虑目标是unit的情况 
+                local aim_sfx = skill_mgr:add_aim_sfx_in_unit(skill_cfg, target)
+                skill_mgr:shoot_projectile_at_unit(skill_cfg, self, target, function(projectile)
+                    -- 飞弹命中目标回调
+                    --print(")))))))))))) on_projectile_hit", skill_id)
+                    -- 销毁飞弹对象
+                    projectile:destroySelf()
+					print("发射飞弹到目标销毁")
+
+                    skill_mgr:add_autodestory_sklsfx_in_unit(skill_cfg,
+                    enum.battle.Skill_Sfx_Type_Bp.HIT, enum.battle.Skill_Mount_Point_Type_Bp.HIT,
+                    target)
+                    -- 飞弹击中时 删除锁定特效
+                    if (aim_sfx ~= nil and type(aim_sfx) == "table") then
+                        for i, v in ipairs(aim_sfx) do
+                            v:destroySelf()
+                        end
+                    end
+
+                end)
+
+                -- 目标是空间位置
+			elseif skill_mgr:is_target_type_dest_area_bp(skill_cfg) then
+				print("发射飞弹到位置")
+                --print(">>>>>>>>", skill_id, self.m_skill_target_pos)
+                local target_pos = self.m_skill_target_pos
+
+                --print("???????????????", self:get_id(), self:get_pos())
+                skill_mgr:shoot_projectile_at_pos(skill_cfg, self, target_pos, function(projectile)
+                    -- 飞弹命中目标回调
+                    -- 销毁飞弹对象
+                    local dir = projectile:get_euler().y
+                    projectile:destroySelf()
+					print("发射飞弹到位置销毁")
+                    -- 播放命中特效
+                    skill_mgr:add_skill_eft_at_pos(skill_cfg, enum.battle.Skill_Sfx_Type_Bp.HIT, target_pos, dir)
+
+                end)
+            end
+
+        else
+			print("发射飞弹到方向")
+            skill_mgr:add_skill_eft_at_pos(skill_cfg, enum.battle.Skill_Sfx_Type_Bp.CAST, self:get_pos(), self.m_skill_target_dir)
+
+            -- 检查播放对地命中特效
+            -- 如果该技能是对地攻击类型
+            if skill_mgr:is_target_type_dest_area_bp(skill_cfg) then
+                local target_pos = self.m_skill_target_pos
+                skill_mgr:add_skill_eft_at_pos(skill_cfg, enum.battle.Skill_Sfx_Type_Bp.HIT, target_pos, self.m_skill_target_dir)
+            end
+        end
+    end
+
+    -- 执法者view后继处理：播放施法特效
+    self:emit_event("anim_event", skill_id, evt, false)
+
+
+
+    -------------
+    -- 施法目标 --
+    local world = self:getFrame("bp.bp_world")
+    local target = world:get_unit(self.m_skill_target_id)
+    --print("-----------------", skill_id, self.m_skill_target_id, target)
+    -- 如果没有施法目标
+    if target == nil then
+        return
+    else
+        -- 目前暂无需要在frame层进行的操作
+        -- 施法目标view后继处理
+        target:emit_event("anim_event", skill_id, evt, true)
+    end
+end
+
+function BPUnit:is_interact_state()
+    return self:get_main_act() == enum.battle.Unit_Main_Act.INTERACT
+end
+
+-- 临时处理：通知角色地板被破坏
+function BPUnit:break_plane()
+    self.m_uafsm:change_state(enum.battle.Unit_Main_Act.JUMP)
+    self:get_cc():Move(Vector3.zero)
+end
+
+function BPUnit:start_normal_atk(skill_id, target, target_pos, target_dir)
+    -- 暂定 0、1时播放动作 2-9时不能攻击 10以上舍弃动作
+    -- pacman 2017-11-14 实际的set_anim_trigger等动作移动到了spell_start协议的回应处理
+    -- (最终执行的是unit:cast_skill/tryAttackTarget)
+    if (self:get_main_act() < 2) then
+        --self:set_anim_trigger("attack")
+    elseif (self:get_main_act() < 10) then
+        return false
+    end
+
+    return true
+end
+
+function BPUnit:calc_back()
+    local state = self:get_move_state()
+
+    if state == BPUnit.MOVE_STATE.R_BACK
+    or state == BPUnit.MOVE_STATE.BACK
+    or state == BPUnit.MOVE_STATE.L_BACK then
+        return true
+    else
+        return false
+    end
+end
+
+
+function BPUnit:lookAt(pos)
+    local vec = Vector3.ProjectOnPlane(pos - self:get_pos(), Vector3.up)
+    local dir = math.atan2(vec.x, vec.z) * 180 / math.pi
+    self:set_dir(dir)
+end
+
+-- 静态方法
+-- 计算move_state对应的8相角
+-- [-180, 180]，0度向前，以45度增减
+function BPUnit.get_angle8d_from_move_state(move_state)
+    if move_state <= BPUnit.MOVE_STATE.IDLE or move_state > BPUnit.MOVE_STATE.L_FORWARD then
+        return nil
+    else
+        return utility.func.clamp_angle_180((move_state - 1) * 45)
+    end
+end
+
+-- 计算8相角对应的move_state
+function BPUnit.get_move_state_from_angle8d(angle_8d)
+    return math.floor(utility.func.clamp_angle_0_360(angle_8d) / 45) + 1
+end
+
+return BPUnit

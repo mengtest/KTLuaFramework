@@ -1,0 +1,238 @@
+local U = require 'common.util.underscore'
+local list_mul = require 'system.collector.list_mul'
+local json = require 'system.collector.json'
+local M = {}
+
+local function list_to_compare_string( list )
+	table.sort(U.copy(list))
+	return json.encode(list)
+end
+
+local function list_equal( list_a, list_b )
+	return list_to_compare_string(list_a) == list_to_compare_string(list_b)
+end
+
+local function list_first_diff( list_a, list_b )
+	local left_list = U.copy(list_a)
+	table.sort(left_list)
+	local right_list = U.copy(list_b)
+	table.sort(right_list)
+	local max_num = math.max(#left_list, #right_list)
+	for i=1, max_num do
+		local value_left = left_list[i]
+		local value_right = right_list[i]
+		if value_left ~= value_right then
+			return true, value_left, value_right
+		end
+	end
+end
+
+------------------------------
+-- Args
+--
+local _arg_name_to_arg_source = {}
+
+function M.def_arg(name, arg_source)
+	assert(_arg_name_to_arg_source[name] == nil, string.format('arg %s already define', name))
+	_arg_name_to_arg_source[name] = arg_source
+end
+
+function M.is_arg_defined( name )
+	return _arg_name_to_arg_source[name] ~= nil
+end
+
+------------------------------
+-- Builders
+--
+local _fn_name_to_builder_info = {}
+local _fn_name_to_builders = {}
+function M.set_builders( builders )
+	local result = {}
+	for key, value in pairs(builders) do
+		if type(value) == 'function' then
+			result[key] = value
+		end
+	end
+	_fn_name_to_builders = result
+end
+
+function M.def_builder(fn_name, ...)
+	assert(_fn_name_to_builder_info[fn_name] == nil, fn_name)
+	local args = {...}
+	local fn = assert(_fn_name_to_builders[fn_name], fn_name)
+	_fn_name_to_builder_info[fn_name] = {
+		fn = fn,
+		args = args,
+	}
+end
+
+------------------------------
+-- Package
+--
+local _bundle_infos = {}
+
+local function eval_arg( arg )
+	local arg_source = assert(_arg_name_to_arg_source[arg])
+	return arg_source:eval()
+end
+
+local function eval_args( args )
+	local arg_values = U.map(args, function( arg )
+		local val = eval_arg(arg)
+		return val
+	end)
+	return list_mul.mul_list(unpack(arg_values))
+end
+
+local function format_asset_path( path )
+	local format_path = string.gsub(path, '\\', '/')
+	return string.format('Assets/%s', format_path)
+end
+
+local function collect_asset( assets, fn_name, fn_args )
+	local fn = (type(fn_name) == 'string') and assert(_fn_name_to_builders[fn_name]) or fn_name
+
+	local new_asset = fn(unpack(fn_args))
+	if not new_asset then
+		return
+	end
+
+	if new_asset == '' then
+		return
+	end
+
+	if type(new_asset) == 'table' then
+		U.each(new_asset, function( asset )
+			assets[#assets + 1] = format_asset_path(asset)
+		end) 
+	else
+		assets[#assets + 1] = format_asset_path(new_asset) 
+	end
+end
+
+local function get_args_of_function( fn_name )
+	local build_info = assert(_fn_name_to_builder_info[fn_name], fn_name)
+	return build_info.args		
+end
+
+local function collect_all_assets_of_fn( assets, fn_name )
+	local build_info = assert(_fn_name_to_builder_info[fn_name])
+	local fn = build_info.fn
+	local arg_names = build_info.args
+	local expanded_args = eval_args(arg_names)
+	for _, fn_args in ipairs(expanded_args) do
+		collect_asset(assets, fn, fn_args)
+	end
+end
+
+--! 函数返回的所有资源都打包到一起
+local function collect_full_package(info, packages)
+	local package = {}
+	package.asset_bundle_name = info.asset_bundle_name
+
+	local assets = {}		
+	U.each(info.fns, function( fn_name )
+		collect_all_assets_of_fn(assets, fn_name)
+	end)
+	package.assets = assets
+	packages[#packages + 1] = package
+end
+
+local function make_asset_bundle_name( prefix, fn_args )
+	--! TODO: 这个方案还是需要思考一下.
+	fn_args = U.flatten(fn_args)
+	return string.format('%s_%s', prefix, U.join(fn_args, '_'))
+end
+
+local function assert_all_functions_has_same_args( fn_names )
+	local check_str = list_to_compare_string(get_args_of_function(fn_names[1]))
+	for i=2, #fn_names do
+		local args = get_args_of_function(fn_names[i])
+		local list_str = list_to_compare_string(args)
+		assert(check_str == list_str, check_str .. '|' .. list_str)
+	end
+end
+
+--! 参数的每一种情况都打一个单独的包.
+local function collect_single_package(info, packages)
+	assert_all_functions_has_same_args(info.fns)
+	local args = get_args_of_function(info.fns[1])
+	local expanded_args = eval_args(args)
+	for _, fn_args in ipairs(expanded_args) do
+		local package = {}
+		package.asset_bundle_name = make_asset_bundle_name(info.asset_bundle_name, fn_args)
+		package.assets = {}
+		U.each(info.fns, function( fn_name )
+			collect_asset(package.assets, fn_name, fn_args)	
+		end)		
+		packages[#packages + 1] = package	
+	end
+end
+
+local function def_package_with_collector(bundle_name, collector, ...)
+	local info = _bundle_infos[bundle_name]
+
+	if not info then
+		info = {
+			fns = {},
+			collector = collector,
+			asset_bundle_name = bundle_name,
+		}
+		_bundle_infos[bundle_name] = info
+	end
+
+	local fn_names = {...}
+	U.each(fn_names, function( fn_name )
+		info.fns[#info.fns + 1] = fn_name
+	end)
+end
+
+function M.def_package(bundle_name, ...)
+	def_package_with_collector(bundle_name, collect_single_package, ...)
+end
+
+function M.def_full_package(bundle_name, ...)
+	def_package_with_collector(bundle_name, collect_full_package, ...)
+end
+
+function M.collect_main_assets()
+	local result = {}
+	U.each(U.values(_bundle_infos), function( info )
+		info:collector(result)
+	end)
+	print('collector done!')
+	return result
+end
+
+local function get_builder_used_function_set()
+	local result = {}
+	for _, info in pairs(_bundle_infos) do
+		local fns = info.fns
+		U.each(fns, function( fn_name )
+			result[fn_name] = true
+		end)
+	end
+	return result
+end
+
+function M.check_all_defined()
+	local game_define_functions = U.keys(_fn_name_to_builders)
+	local collector_define_functions = U.keys(_fn_name_to_builder_info)
+	local has_diff, diff_left, diff_right = list_first_diff(game_define_functions, collector_define_functions)
+	if has_diff then
+		-- dump(game_define_functions)
+		-- dump(collector_define_functions)
+		assert(false, string.format("game_define_functions and collector_define_functions not equal, left=%s, right=%s", 
+			tostring(diff_left),
+			tostring(diff_right)))
+	end
+
+	local builder_used_fn_set = get_builder_used_function_set()
+	U.each(collector_define_functions, function( fn_name )
+		if not builder_used_fn_set[fn_name] then
+			def_package_with_collector(fn_name, collect_single_package, fn_name)
+		end
+	end)
+end
+
+return M

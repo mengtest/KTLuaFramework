@@ -1,0 +1,112 @@
+local Frame = require("system.frame")
+local spirit_merge = class("spirit_merge", Frame)
+
+-- 名称
+Attribute.decl(spirit_merge, "name", "")
+-- 等级
+Attribute.decl(spirit_merge, "level", "")
+-- 属性
+Attribute.decl(spirit_merge, "property", "")
+-- 灵兽等级上限
+Attribute.decl(spirit_merge, "lvl_max", 0)
+Event.decl(spirit_merge, "refresh_star")
+Event.decl(spirit_merge, "play_sfx")
+
+function spirit_merge:doInit(data)
+    -- 升星之前的spirit
+    self.m_old_spirit_data = data
+    -- 当前的spirit
+    self.m_spirit_data = data
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self:set_is_add_rect_trans(true)
+
+    -- 灵兽卸下  融灵卸下
+    self:subscribe(self.m_inventory_mgr:on_event("unequip_sprite"), function(slot, type)
+        if type == enum.spirit_beast.UnequippingType.MERGE then
+            -- 再开始融合操作的时候记录一下原来的
+            self.m_old_spirit_data = self.m_spirit_data
+            -- 卸下之后开始融合
+            -- 融合的主体灵兽unique
+            local main_spirit_unique = self.m_spirit_data.unique
+            -- 融合的主体灵兽tmpl
+            local main_spirit_id = self.m_spirit_data.tmpl
+            -- 融合的碎片灵兽unique列表
+            local merge_spirit_unique_list = ListObject()
+            -- 融合的碎片灵兽tmpl列表
+            local merge_spirit_id_list = ListObject()
+            merge_spirit_unique_list:Add(self.m_merge_btn_frame:get_spirit_data().unique)
+            merge_spirit_id_list:Add(self.m_merge_btn_frame:get_spirit_data().tmpl)
+            self.m_inventory_mgr:sprite_merging_request_server(main_spirit_unique, main_spirit_id, merge_spirit_unique_list, merge_spirit_id_list, type)
+        end
+    end)
+
+
+end
+
+function spirit_merge:on_loaded()
+    if self.m_spirit_data ~= nil then
+        self:refresh_data(self.m_spirit_data)
+    end
+    -- 创建那个加号 被吃的
+    self.m_merge_btn_frame = self:createChild("spirit_merge_btn", "spirit_beast.spirit_merge_btn", self.m_spirit_data)
+    -- 装备
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data, args)
+        self:refresh_data(spirit_data)
+        self.m_spirit_data = spirit_data
+        self:emit_event("play_sfx", args)
+    end)
+
+    -- 当点击左侧槽位时
+    self:subscribe(self:getFrame("sprite"):on_event("change_slot"), function(spirit_data)
+        if spirit_data == nil then
+            self.m_spirit_data = nil
+        else
+            self:refresh_data(spirit_data)
+            self.m_spirit_data = spirit_data
+        end
+    end)
+
+end
+
+
+-- 刷新信息
+function spirit_merge:refresh_data(spirit_data)
+    ---- TODO 有些东西还需要  暂时先有  名字  等级  描述
+    -- 名字
+    self:set_name(dbc.sprite[spirit_data.tmpl].name)
+    -- 等级
+    self:set_level("Lv." .. spirit_data.stat)
+    -- 属性文字
+    if dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.FIRE then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.FIRE)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WATER then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WATER)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WOOD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WOOD)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.GOLD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.GOLD)
+    end
+    -- 灵兽等级上限
+    self:set_lvl_max(spirit_data.level)
+    self:emit_event("refresh_star", spirit_data)
+end
+
+-- 融灵按钮
+function spirit_merge:on_merge()
+    if self.m_merge_btn_frame:get_spirit_data() == nil then
+        self:getFrame("float_hint_manager"):add_float("没有可供融合的灵兽！")
+        return
+    end
+    self.m_inventory_mgr:sprite_unequipping_request_server(dbc.sprite[self.m_spirit_data.tmpl].slot, enum.spirit_beast.UnequippingType.MERGE)
+end
+
+function spirit_merge:get_spirit_data(flag)
+    if flag then
+        return self.m_spirit_data
+    else
+        return self.m_old_spirit_data
+    end
+
+end
+
+return spirit_merge

@@ -1,0 +1,209 @@
+local Frame = require("system.frame")
+local skill_ui_list = class("skill_ui_list", Frame)
+
+function skill_ui_list:doInit(param)
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    -----要生成的技能数据列表  这里从skill_ui_manager中获取未解锁的和已经学习的列表当中维护一个新的列表
+    --self.m_skill_list = {}
+    self:init_skill_list()
+
+
+    self:subscribe(self.m_skill_ui_manager:on_event("master_info_add"), function(master_info)
+        self:refresh_unlocked_skill(master_info)
+    end)
+
+    self:subscribe(self.m_skill_ui_manager:on_event("skill_curr_level_up"), function(skill_id)
+        self:up_curr_level_skill(skill_id)
+    end)
+
+    self:subscribe(self.m_skill_ui_manager:on_event("skill_max_level_up"), function(skill_id)
+        self:up_max_level_skill(skill_id)
+    end)
+
+    self:subscribe(self.m_skill_ui_manager:on_event("change_specilization"), function()
+
+        self:init_skill_list()
+        self:on_loaded()
+
+    end)
+
+end
+
+function skill_ui_list:on_loaded()
+    self:load_skill_btn_list(#self.m_skill_list)
+end
+
+function skill_ui_list:load_skill_btn_list(num)
+    -- 先清空原有技能
+    if (self.m_skill_frame_list ~= nil and #self.m_skill_frame_list > 0) then
+        for i, v in ipairs(self.m_skill_frame_list) do
+            v:destroySelf()
+        end
+    end
+    -- 清空完毕
+    self.m_selected_frame = nil
+    self.m_skill_frame_list = {}
+    local num = 0
+    for k, v in ipairs(self.m_skill_list) do
+        ---- rjy 2017.12.13 这里暂时只处理一下一直隐藏的技能
+        -- show_type -> 0 一直显示 ; 1 未解锁隐藏 ; 2 不可用隐藏 ; 3 一直隐藏
+        if dbc.spell_ui[v["id"]].show_type == 0 then
+            if dbc.spell_ui[v["id"]].passivity_skill == enum.ui.Enum_UI_SkillType.PASSIVE_SKILL and dbc.spell_ui[v["id"]].is_talent > 0 then
+                -- 被动的天赋技能不创建
+
+            else
+                num = num + 1
+                v["ins_frame"] = self:createChild("skill_ui_list_btn" .. v["id"], "skill_system_ui.skill_ui.skill_ui_list_btn",
+                { ["id"] = v["id"], ["max_level"] = v["max_level"], ["curr_level"] = v["curr_level"], ["state"] = v["state"] }
+                )
+                self.m_skill_frame_list[num] = v["ins_frame"]
+            end
+        end
+    end
+    if #self.m_skill_list ~= 0 then
+        --print(self.m_skill_list[1]["ins_frame"], self.m_skill_list[1]["ins_frame"]:getFrameName())
+        self.m_selected_frame = self.m_skill_list[1]["ins_frame"]
+        self.m_selected_frame:emit_event("selected")
+    end
+    --self.m_selected_frame = self.m_skill_list[1]["ins_frame"]
+    --self.m_selected_frame:emit_event("selected")
+end
+
+------刷新技能列表中的数据
+function skill_ui_list:init_skill_list()
+    self.m_skill_list = {}
+    self.m_skill_id_list = {}
+    local master_info_list = self.m_skill_ui_manager:get_master_info_list()
+    -----state表示是否解锁  如果是解锁的话是1,，未解锁的话是0
+    for k, v in ipairs(master_info_list) do
+        local id = v["tmpl"]
+        local max_level = v["level"]
+        local curr_level = v["stat"]
+        self.m_skill_list[k] = { ["id"] = id, ["max_level"] = max_level, ["curr_level"] = curr_level, ["state"] = 1 }
+    end
+
+    -----如果是未解锁的状态的话  max_level  curr_level  的值均为0
+    local locked_skill_id_list = self.m_skill_ui_manager:get_locked_skill_id_list()
+    for k, v in ipairs(locked_skill_id_list) do
+        local id = v
+        self.m_skill_list[#self.m_skill_list + 1] = { ["id"] = id, ["max_level"] = 0, ["curr_level"] = 0, ["state"] = 0 }
+    end
+    for k, v in ipairs(self.m_skill_list) do
+        self:local_log("未排序前显示的技能id   %s", v["id"])
+    end
+
+    local temp = nil
+    -----在这里来根据策划要求，读取技能列表的序号来进行显示的排序   这里采用冒泡来排
+    for i = 1, #self.m_skill_list - 1 do
+        for j = 1, #self.m_skill_list - 1 do
+            if dbc.spell_ui[self.m_skill_list[j]["id"]].show_rule > dbc.spell_ui[self.m_skill_list[j + 1]["id"]].show_rule then
+                temp = self.m_skill_list[j + 1]
+                self.m_skill_list[j + 1] = self.m_skill_list[j]
+                self.m_skill_list[j] = temp
+            end
+        end
+    end
+
+    for i = 1, #self.m_skill_list - 1 do
+        for j = 1, #self.m_skill_list - 1 do
+            if dbc.spell_ui[self.m_skill_list[j]["id"]].passivity_skill > dbc.spell_ui[self.m_skill_list[j + 1]["id"]].passivity_skill then
+                temp = self.m_skill_list[j + 1]
+                self.m_skill_list[j + 1] = self.m_skill_list[j]
+                self.m_skill_list[j] = temp
+            end
+        end
+    end
+
+    for k, v in ipairs(self.m_skill_list) do
+        self:local_log("显示的键   %s", k)
+        self:local_log("显示的技能id   %s %s", v["id"], v["max_level"])
+        --print(v["id"], v["max_level"])
+        self:local_log("显示的技能顺序   %s", dbc.spell_ui[self.m_skill_list[k]["id"]].show_rule)
+    end
+end
+
+----修改列表中已经学习的技能的各个状态
+function skill_ui_list:refresh_unlocked_skill(master_info)
+    local flag = false
+    for k, v in ipairs(self.m_skill_list) do
+        if v["id"] == master_info[1]["tmpl"] then
+            v["max_level"] = master_info["level"]
+            v["curr_level"] = master_info["stat"]
+            v["state"] = 1
+            v["ins_frame"]:emit_event("unlock_skill", master_info)
+            flag = true
+            break
+        end
+    end
+    -- 如果新解锁的技能是被动的天赋技能则不要显示在列表中
+    if #self.m_skill_list ~= 0 and not flag then
+        if dbc.spell_ui[master_info[1]["tmpl"]].passivity_skill == enum.ui.Enum_UI_SkillType.PASSIVE_SKILL and dbc.spell_ui[master_info[1]["tmpl"]].is_talent then
+            return
+        end
+        local frame_item = self:createChild("skill_ui_list_btn" .. master_info[1]["tmpl"], "skill_system_ui.skill_ui.skill_ui_list_btn",
+        { ["id"] = master_info[1]["tmpl"], ["max_level"] = master_info[1]["level"], ["curr_level"] = master_info[1]["stat"], ["state"] = 1 }
+        )
+        if #self.m_skill_frame_list ~= 0 then
+            self.m_skill_frame_list[#self.m_skill_frame_list + 1] = frame_item
+        end
+        self.m_skill_list[#self.m_skill_list + 1] = { ["id"] = master_info[1]["tmpl"], ["max_level"] = master_info[1]["level"], ["curr_level"] = master_info[1]["stat"], ["state"] = 1, ["ins_frame"] = frame_item }
+    end
+end
+
+----技能当前等级的变化
+function skill_ui_list:up_curr_level_skill(skill_id)
+    for k, v in ipairs(self.m_skill_list) do
+        if v["id"] == skill_id then
+            v["curr_level"] = v["curr_level"] + 1
+            v["ins_frame"]:emit_event("up_cur_level_skill")
+            break
+        end
+    end
+end
+
+-----技能最高可升的等级的变化
+function skill_ui_list:up_max_level_skill(skill_id)
+    for k, v in ipairs(self.m_skill_list) do
+        if v["id"] == skill_id then
+            --print(v["id"], v["max_level"])
+            v["max_level"] = v["max_level"] + 1
+            v["ins_frame"]:emit_event("up_max_level_skill")
+            break
+        end
+    end
+end
+
+------当点击了技能按钮当中的某一个按钮时会调用此方法，在技能按钮的上一级处理其它按钮的操作
+function skill_ui_list:change_selected_btn(child)
+    if child == self.m_selected_frame then
+        return
+    else
+        self.m_selected_frame:emit_event("unselected")
+    end
+    for k, v in ipairs(self.m_skill_list) do
+        if v["ins_frame"] == child then
+            self.m_selected_frame = child
+            child:emit_event("selected")
+            break
+        end
+    end
+end
+
+-----temp   这个是在显示面板初始化的时候调取的技能信息，第一次打开技能面板的时候默认显示第一个
+function skill_ui_list:get_curr_selected_skill()
+    local ret = {}
+    if #self.m_skill_list ~= 0 then
+        ret["id"] = self.m_skill_list[1]["id"]
+        ret["curr_level"] = self.m_skill_list[1]["curr_level"]
+        ret["max_level"] = self.m_skill_list[1]["max_level"]
+        ret["state"] = self.m_skill_list[1]["state"]
+        return ret
+    end
+
+end
+
+function skill_ui_list:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return skill_ui_list

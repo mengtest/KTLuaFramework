@@ -1,0 +1,97 @@
+local NetworkWorldWatcher = {}
+
+local function pid_is_local_player(pid)
+	return pid == app:getPlayer():getPid()
+end
+
+function NetworkWorldWatcher:doInit()
+	local world = self:getFrame("world")
+	self.m_world = assert(world)
+
+	self.m_msg_map = {
+		unit_enter = function(_, ...) self:onUnitEnter(...) end,
+		unit_exit = function(_, ...) self:onUnitExit(...) end,
+		move = function(_, ...) self:onUnitMove(...) end,
+		skill = function(_, ...) self:onUnitSkill(...) end,
+		attset = function(_, ...) self:onUnitAttSet(...) end
+	}
+	app:getClientSession():subscribe(self.m_msg_map)
+
+	app:asyncExec(function()
+		app:getPlayer():enterMap()
+	end)
+end
+
+function NetworkWorldWatcher:doDestroy()
+	app:getClientSession():unsubscribe(self.m_msg_map)
+end
+
+function NetworkWorldWatcher:onUnitEnter(pid, dump)
+	self:logDebug("NetworkWorldWatcher:onUnitEnter", pid, dump)
+
+	if pid_is_local_player(pid) then return end
+
+	local move_data
+	local skill_data
+
+	local unit = self.m_world:addUnit(pid, dump.type, dump.name, Vector3.zero)
+	for k,v in pairs(dump) do
+		if k == "pos" then
+			unit:set_pos(Vector3(unpack(v)))
+		elseif k == "move_data" then
+			move_data = v
+		elseif k == "skill_data" then
+			skill_data = v
+		else
+			unit:set_attr(k, v)
+		end
+	end
+
+	if move_data then
+		local to = Vector3(unpack(move_data.to))
+		unit:navMoveTo(to)
+	end
+end
+
+function NetworkWorldWatcher:onUnitExit(pid)
+	self:logDebug("NetworkWorldWatcher:onUnitExit", pid)
+
+	if pid_is_local_player(pid) then return end
+
+	self.m_world:delUnit(pid)
+end
+
+function NetworkWorldWatcher:onUnitMove(pid, from, to)
+	self:logDebug("NetworkWorldWatcher:onUnitMove", pid, from, to)
+
+	if pid_is_local_player(pid) then return end
+
+	local unit = self.m_world:getUnit(pid)
+	if unit then
+		unit:set_pos(Vector3(from[1], from[2], from[3]))
+		unit:navMoveTo(Vector3(to[1], to[2], to[3]))
+	end
+end
+
+function NetworkWorldWatcher:onUnitSkill(pid, skill_id, target_id)
+	self:logDebug("NetworkWorldWatcher:onUnitSkill", pid, skill_id, target_id)
+
+	if pid_is_local_player(pid) then return end
+
+	local unit = self.m_world:getUnit(pid)
+	local target = self.m_world:getUnit(target_id)
+	if unit and target then
+		unit:tryAttackTarget(target)
+	end
+end
+
+function NetworkWorldWatcher:onUnitAttSet(pid, key, val)
+	self:logDebug("NetworkWorldWatcher:onUnitAttSet", pid, key, val)
+
+	local unit = self.m_world:getUnit(pid)
+	if unit then
+		unit:set_attr(key, val)
+	end
+end
+
+return NetworkWorldWatcher

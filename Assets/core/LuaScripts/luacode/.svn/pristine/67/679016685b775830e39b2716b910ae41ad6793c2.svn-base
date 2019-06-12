@@ -1,0 +1,32 @@
+local sect_elements = {}
+Attribute.decl(sect_elements, "sect_name", "叫啥呢")
+Attribute.decl(sect_elements, "talent_percent_num", "50%")
+Attribute.decl(sect_elements, "spirit_percent_num", "60%")
+Attribute.decl(sect_elements, "equipment_percent_num", "80%")
+
+
+function sect_elements:doInit()
+    self:set_is_add_rect_trans(true)
+end
+
+function sect_elements:on_loaded()
+
+end
+-- 天赋入口
+function sect_elements:on_talent_btn()
+    self:getFrame("sect_talent"):show()
+end
+-- 灵兽入口
+function sect_elements:on_spirit_btn()
+
+end
+-- 装备入口
+function sect_elements:on_equipment_btn()
+    self:getFrame("sect_info_compare"):show()
+end
+-- 演示入口
+function sect_elements:on_play_btn()
+
+end
+
+return sect_elements

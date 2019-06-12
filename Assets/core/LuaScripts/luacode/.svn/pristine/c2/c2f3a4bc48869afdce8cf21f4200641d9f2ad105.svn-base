@@ -1,0 +1,93 @@
+local M = {}
+
+function M:doInit()
+    self.m_name_text = nil
+    self.m_icon_img = nil
+    self.m_hp_per_text = nil
+    self.m_hp_slider = nil
+    self:loadRes()
+end
+
+function M:is_res_loaded()
+    return self.m_res_loaded
+end
+
+function M:loadRes()
+    self:load_prefab("ui/PlayerController.prefab", function(loaded_go)
+        self.m_res_loaded = true
+
+        -- 从模板clone对象
+        local template_go = loaded_go.transform:Find("Thumb").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_mine = go
+        --local go = self:init_with_go(template_go)
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        ---用outlet来初始化各个组件
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+
+        local frame = self:getFrame()
+
+        local name_text = go_trsf:Find("PlayerName").gameObject:GetComponent(UI.Text)
+        self.m_name_text = name_text
+        local hp_per_text = go_trsf:Find("HpPercent").gameObject:GetComponent(UI.Text)
+        self.m_hp_per_text = hp_per_text
+        local icon_img = go_trsf.gameObject:GetComponent(UI.Image)
+        self.m_icon_img = icon_img
+        local hp_slider = go_trsf:Find("HpSlider").gameObject:GetComponent(UI.Slider)
+        self.m_hp_slider = hp_slider
+
+
+        -- 响应unit目标变化事件
+        self.m_unit = nil
+        self:subscribe(frame:on_event_unit_set(true), function(new_unit)
+            -- 尝试注销对旧unit的监听
+            if self.m_unit ~= nil then
+                -- 注销对旧unit的监听
+                print("-- 注销对旧unit的监听", self.m_unit:get_id())
+                self:unsubscribe(self.m_conn_name)
+                self:unsubscribe(self.m_conn_hp)
+            end
+
+            -- 尝试注册对新unit的监听
+            if new_unit == nil then
+                -- 对空目标的情况进行重绘
+                --self.m_mine:SetActive(false)
+            else
+                -- 注册对新unit的监听
+                -- hp
+                self.m_conn_name = self:subscribe(new_unit:on_event_name_set(true), function(val)
+                    self.m_name_text.text = tostring(val)
+                end)
+
+                self.m_conn_hp = self:subscribe(new_unit:on_event_hp_set(true), function(val)
+                    local per = new_unit:get_hp() / new_unit:get_hp_max()
+                    local temp = string.format("%d", per*100)
+                    self.m_hp_per_text.text = temp.."%"
+                    self.m_hp_slider.value = per
+                end)
+
+                self.m_conn_hp_max = self:subscribe(new_unit:on_event_hp_max_set(true), function(val)
+                    local per = new_unit:get_hp() / new_unit:get_hp_max()
+                    local temp = string.format("%d", per*100)
+                    self.m_hp_per_text.text = temp.."%"
+                    self.m_hp_slider.value = per
+                end)
+
+                -- 记录新unit
+                self.m_unit = new_unit
+            end
+        end)
+
+
+    end)
+end
+
+
+
+
+return M

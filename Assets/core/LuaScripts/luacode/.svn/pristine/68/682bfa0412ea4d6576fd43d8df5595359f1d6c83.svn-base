@@ -1,0 +1,36 @@
+local M = {}
+
+-- 原型id
+Attribute.decl(M, "tid", nil)
+-- 坐标
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+-- 方向
+Attribute.decl(M, "dir", function() return 0 end)
+-- 大小
+Attribute.decl(M, "scale", function() return Vector3(1, 1, 1) end)
+-- 状态
+Attribute.decl(M, "state")
+
+function M:doInit(param)
+    --Debug.LogError("init an object")
+    
+    self:set_tid(param:get_tid())
+    self:set_pos(param:get_pos())
+    self:set_dir(param:get_dir())
+    self:set_scale(param:get_scale())    
+    self:set_state(param:get_state())
+    self.m_data = dbc.abiotic[self:get_tid()]
+    --第一次创建时候的初始状态
+end
+
+-- 获取原型数据
+function M:get_data()
+    return self.m_data
+end
+
+function M:set_data(id)
+    self.m_data = dbc.abiotic[id]
+    return self.m_data
+end
+
+return M

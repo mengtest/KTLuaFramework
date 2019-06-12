@@ -1,0 +1,1 @@
+return require "view.game_with_network_view"

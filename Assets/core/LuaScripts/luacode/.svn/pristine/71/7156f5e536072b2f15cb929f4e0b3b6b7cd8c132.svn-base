@@ -1,0 +1,138 @@
+
+--local Frame = require("system.frame")
+--local Look_at_target = class("look_at_target", Frame)
+local Look_at_target = class("look_at_target")
+
+Look_at_target.Const = {}
+Look_at_target.Const.Look_at_min_angle_x = 10
+Look_at_target.Const.Look_at_max_angle_x = 80
+Look_at_target.Const.Look_at_cancel_angle_x = 100
+Look_at_target.Const.Look_at_min_angle_y = 0
+
+--function Look_at_target:doInit(params)
+--
+--end
+
+--function Look_at_target:initialize(root_go, head_tr)
+--    self.m_animator_ik = root_go:AddComponent(AnimatorIK)
+--    self.m_root_tr = root_go.transform
+--    self.m_head_tr = head_tr
+--end
+
+function Look_at_target:set_root_and_head(root_go, animator, head_tr)
+    self.m_animator_ik = root_go:GetComponent(AnimatorIK) or root_go:AddComponent(AnimatorIK)
+    self.m_root_tr = root_go.transform
+    self.m_head_tr = head_tr
+
+    -- 2017-11-17 pacman 平滑处理
+    self.m_animator = animator
+    self.m_cur_pos = head_tr.position + self.m_root_tr.forward      -- 用于平滑的中间层
+    self.m_target_pos = nil   -- 目标点位置
+    self.m_is_looking = false
+
+end
+
+
+function Look_at_target:set_look_at_position(pos)
+    if not self.m_root_tr then
+        return
+    end
+    
+    local fwd = self.m_root_tr.forward
+    local vec = pos - self.m_head_tr.position
+    local angle_x = Util_math:get_delta_angle_in_xz(fwd, vec)
+    local angle_y = Util_math:get_delta_angle_between_xz(vec)
+
+    local is_in_sight = angle_x >= self.Const.Look_at_min_angle_x and angle_x <= self.Const.Look_at_cancel_angle_x and angle_y >= self.Const.Look_at_min_angle_y
+    if is_in_sight then
+        local mask = LayerMask.NameToLayer("Role")
+        local is_hit, hit_info = Physics.Raycast(self.m_head_tr.position, vec, Slua.out, vec.magnitude, mask)
+        if not is_hit then
+            if angle_x > self.Const.Look_at_max_angle_x then
+                local delta_angle_x = angle_x - self.Const.Look_at_max_angle_x
+                pos = Quaternion.AngleAxis(delta_angle_x, Util_math:get_projection_vector(Vector3.Cross(vec, fwd), Vector3.up)) * vec + self.m_head_tr.position
+            end
+
+            -- 开始注视
+            self.m_is_looking = true
+            self.m_target_pos = pos
+
+            Util_log:logError(Util_log.Mask.SJG_Look, "pos = " .. tostring(pos))
+            return
+        end
+    end
+    Util_log:logError(Util_log.Mask.SJG_Look, "ClearLookAtPosition")
+
+    self.m_is_looking = false
+    self.m_target_pos = self.m_head_tr.position + self.m_root_tr.forward
+
+end
+
+
+function Look_at_target:clear_look_at_position()
+    if self.m_root_tr == nil then
+        return
+    end
+
+    self.m_is_looking = false
+    self.m_target_pos = self.m_head_tr.position + self.m_root_tr.forward
+
+end
+
+
+    function Look_at_target:doUpdate()
+        local delta_time = app.get_delta_time()
+
+        if self.m_animator_ik == nil then
+            return
+        end
+
+        -- 平滑注视权重值
+        local step = 0.1
+        if not self.m_is_looking then
+            step = step * -1
+        end
+
+        local weight = self.m_animator_ik.weight
+        weight = weight + step
+
+        if weight > 1 then
+            weight = 1
+        elseif weight < 0 then
+            weight = 0
+        end
+
+        self.m_animator_ik.weight = weight
+
+
+        if self.m_target_pos ~= nil and weight > 0 then
+            self:smooth_to_position(self.m_target_pos, delta_time)
+        end
+
+        if self.m_head_tr ~= nil then
+            Debug.DrawLine(self.m_head_tr.position, self.m_cur_pos, Color.white)
+            if self.m_target_pos ~= nil then
+                Debug.DrawLine(self.m_head_tr.position, self.m_target_pos, Color.red)
+            end
+        end
+
+    end
+
+    function Look_at_target:smooth_to_position(target_pos, delta_time)
+
+        -- 注视目标平滑转移
+        local cur_dir = self.m_cur_pos - self.m_head_tr.position
+        local target_dir = target_pos - self.m_head_tr.position
+        local dir = Vector3.RotateTowards(cur_dir, target_dir, delta_time * 1.7, 10000)
+
+        self.m_cur_pos = self.m_head_tr.position + dir
+        self.m_animator_ik:SetLookAtPosition(self.m_cur_pos)
+    end
+
+
+
+
+
+
+
+    return Look_at_target

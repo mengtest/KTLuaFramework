@@ -1,0 +1,116 @@
+local sect_equipment_item = {}
+
+-- 装备类型  用于显示没有装备时的底图
+Attribute.decl(sect_equipment_item, "type", -1)
+-- 装备id  用于显示装备icon
+Attribute.decl(sect_equipment_item, "id", 0)
+-- 装备品质  用于显示品质icon
+Attribute.decl(sect_equipment_item, "quality", 0)
+-- 装备名称
+Attribute.decl(sect_equipment_item, "name", "装备五字名")
+-- 装备装等
+Attribute.decl(sect_equipment_item, "level", 1100)
+-- 默认的文字
+Attribute.decl(sect_equipment_item, "default_txt", "")
+
+
+function sect_equipment_item:doInit(param)
+    local info = param.info
+    self.m_inventory_manager = app:getFrameMgr():getFrame("inventory_manager")
+
+    -- 初始化的时候设置一些属性
+    self:set_type(param.type)
+    self:set_default_txt(self:get_slot_text(param.type))
+    self:refresh_equipment_data(info)
+    self:set_is_add_rect_trans(true)
+
+end
+
+function sect_equipment_item:on_loaded()
+
+
+end
+
+function sect_equipment_item:on_item_btn()
+    if not self.m_wearable_info or self.m_wearable_info.tmpl == 0 then
+        self:getFrame("float_hint_manager"):add_float("你还没有穿戴这件装备哦！")
+    else
+        -- TODO tips暂时不重要了  先去搞界面滑动 2018.03.07  
+        --local param = { wearable = self.m_wearable_info, max_height = 300, need_show_button = false }
+        --self:getFrame("sect_equipment_tips"):refresh_view(param)
+        --self:getFrame("sect_equipment_tips"):show()
+    end
+
+end
+function sect_equipment_item:refresh_equipment_data(info)
+    self.m_wearable_info = info
+    local color = nil
+    if info ~= nil and info.tmpl ~= 0 then
+        local quality = self.m_inventory_manager:gain_equipment_quality(info.tmpl, dbc.item[info.tmpl].level_label + info.enhanced_level)
+        if quality == 0 then
+            color = "#b8cce1"
+        elseif quality == 1 then
+            color = "#23b403"
+        elseif quality == 2 then
+            color = "#0a82ee"
+        elseif quality == 3 then
+            color = "#8106e8"
+        else
+            color = "#ebd121"
+        end
+        self:set_quality(quality)
+    end
+    -- 卸下装备的时候 info 会传进来 nil
+    if info == nil then
+        self:set_id(0)
+    else
+        self:set_id(info.tmpl)
+    end
+
+    if info == nil or info.tmpl == 0 then
+        self:set_name(string.format("<color=%s>%s</color>", "#b8cce1", "无"))
+        self:set_level("")
+    else
+        local name = self.m_inventory_manager:gain_equipment_name(info.tmpl, dbc.item[info.tmpl].level_label + info.enhanced_level)
+        self:set_name(string.format("<color=%s>%s</color>", color, name))
+        self:set_level(dbc.item[info.tmpl].level_label + info.enhanced_level)
+    end
+
+end
+
+function sect_equipment_item:get_slot_text(type)
+    if type == enum.shared.WearableTarget.ACCESSORY1 then
+        return "饰品"
+    elseif type == enum.shared.WearableTarget.CHEST then
+        return "胸甲"
+    elseif type == enum.shared.WearableTarget.FINGER1 then
+        return "戒指"
+    elseif type == enum.shared.WearableTarget.LEGS then
+        return "腿甲"
+    elseif type == enum.shared.WearableTarget.MAINHAND_WEAPON then
+        return "武器"
+    elseif type == enum.shared.WearableTarget.FINGER2 then
+        return "戒指"
+    elseif type == enum.shared.WearableTarget.WAIST then
+        return "腰带"
+    elseif type == enum.shared.WearableTarget.ACCESSORY2 then
+        return "饰品"
+    elseif type == enum.shared.WearableTarget.FEET then
+        return "战靴"
+    elseif type == enum.shared.WearableTarget.HANDS then
+        return "手套"
+    elseif type == enum.shared.WearableTarget.BACK then
+        return "披风"
+    elseif type == enum.shared.WearableTarget.NECK then
+        return "项链"
+    elseif type == enum.shared.WearableTarget.WRIST then
+        return "护腕"
+    elseif type == enum.shared.WearableTarget.HEAD then
+        return "头盔"
+    elseif type == enum.shared.WearableTarget.SHOULDER then
+        return "肩甲"
+    end
+    return -1
+end
+
+return sect_equipment_item

@@ -1,0 +1,41 @@
+local sect_equipment_item_view = {}
+
+function sect_equipment_item_view:doInit()
+    local frame = self:getFrame()
+    self.m_frame = frame
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectEquipmentItem"), function(go)
+        go.transform:GetComponent(RectTransform).anchorMin = Vector2(0.5, 0.5)
+        go.transform:GetComponent(RectTransform).anchorMax = Vector2(0.5, 0.5)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+        self:subscribe(frame:on_event_id_set(true), function(id)
+            if id == 0 then
+                self["quality_GUIImage"].gameObject:SetActive(false)
+                self["default_txt_GUIText"].gameObject:SetActive(true)
+                self:change_sprite(self["icon_GUIImage"], app:getAssetPathMgr().get_backpack_item_view_resource('sect_default'))
+            else
+                self["quality_GUIImage"].gameObject:SetActive(true)
+                self["default_txt_GUIText"].gameObject:SetActive(false)
+                self:change_sprite(self["quality_GUIImage"], dbc.equip_quality_client[frame:get_quality()].backpack_icon)
+                self:change_sprite(self["icon_GUIImage"], dbc.item[id].equip_path)
+            end
+        end)
+
+        -- TODO 先隐藏左上角的感叹号
+        self["tip_gameObject"]:SetActive(false)
+    end)
+end
+function sect_equipment_item_view:change_sprite(image, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+
+return sect_equipment_item_view

@@ -1,0 +1,21 @@
+﻿
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_enter_hunt = class("Quest_condition_enter_hunt", Quest_condition_base)
+
+function Quest_condition_enter_hunt:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_manager = quest_manager
+    
+    local tp_param_name = string.format("finish%s_params", tostring(index))
+    self.m_prey_id = dbc.quest[quest_id][tp_param_name][1]
+    self.m_quest_manager:add_prey(self.m_prey_id)
+end
+
+function Quest_condition_enter_hunt:on_judge()
+    if self.m_cur_param >= self.m_aim_param then
+        self.m_quest_manager:del_prey(self.m_prey_id)
+        return true
+    end
+    return false
+end
+
+return Quest_condition_enter_hunt

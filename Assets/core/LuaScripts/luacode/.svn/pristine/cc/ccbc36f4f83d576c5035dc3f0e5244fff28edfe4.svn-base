@@ -1,0 +1,153 @@
+local M = {}
+
+Event.decl(M, "role_enter")
+Event.decl(M, "role_exit")
+Event.decl(M, "interact_obj_enter")
+Event.decl(M, "interact_obj_exit")
+Event.decl(M, "Object_enter")
+Event.decl(M, "Object_exit")
+Event.decl(M, "Merchant_enter")
+Event.decl(M, "Merchant_exit")
+Event.decl(M, "giver_enter")
+Event.decl(M, "giver_exit")
+Event.decl(M, "mob_giver_enter")--add by lijunfeng 2017/12/7
+Event.decl(M, "mob_giver_exit")
+Event.decl(M, "EnergyBall_enter")
+Event.decl(M, "EnergyBall_exit")
+
+function M:doInit()
+    self.m_entity_map = {}
+    
+    local sdk = app:getKBESDK()
+    self:subscribe(sdk:on_event("entity_init"), function(...)self:on_entity_init(...) end)
+    self:subscribe(sdk:on_event("entity_destroy"), function(...)self:on_entity_destroy(...) end)
+    self:subscribe(sdk:on_event("entity_enter"), function(...)self:on_entity_enter(...) end)
+    self:subscribe(sdk:on_event("entity_exit"), function(...)self:on_entity_exit(...) end)
+    self:subscribe(sdk:on_event("entity_property_set"), function(...)self:on_entity_property_set(...) end)
+    self:subscribe(sdk:on_event("entity_remote_method_call"), function(...)self:on_entity_remote_method_call(...) end)
+    self:subscribe(sdk:on_event("entity_set_position"), function(...)self:on_entity_set_position(...) end)
+    self:subscribe(sdk:on_event("entity_set_direction"), function(...)self:on_entity_set_direction(...) end)
+    self:subscribe(sdk:on_event("entity_update_position"), function(...)self:on_entity_update_position(...) end)
+end
+
+function M:doUpdate()
+    local delta = Time.deltaTime
+    for k, v in pairs(self.m_entity_map) do
+        if v.update then
+            v:update(delta)
+        end
+    end
+end
+
+function M:reproduce_enter_event()
+    local sdk = app:getKBESDK()
+    for _, id in ipairs(sdk:get_all_entity()) do
+        if sdk:is_entity_in_world(id) then
+            self:on_entity_enter(id)
+        end
+    end
+end
+
+function M:on_entity_init(id, entity_type, is_main_player)
+    assert(self.m_entity_map[id] == nil)
+    local path = string.format("frame.kbe.%s", entity_type)
+    
+    local cls = require(path)
+    local inst = cls:new(id)
+    if entity_type == "Role" and is_main_player then
+        inst:set_is_main_player(true)
+    end
+
+    inst:on_init()
+    
+    self.m_entity_map[id] = inst
+end
+
+function M:on_entity_destroy(id)
+    local inst = assert(self.m_entity_map[id])
+    
+    inst:on_destroy()
+    
+    self.m_entity_map[id] = nil
+end
+
+function M:on_entity_enter(id)
+    local inst = assert(self.m_entity_map[id])
+    if inst.class.name == "Role" or inst.class.name == "Creature" then
+        self:emit_event("role_enter", inst)
+    elseif inst.class.name == "Treasure" then
+        self:emit_event("interact_obj_enter", inst)
+    elseif inst.class.name == "Object" then
+        self:emit_event("Object_enter", inst)
+    elseif inst.class.name == "Giver" then
+        self:emit_event("giver_enter", inst)
+	elseif inst.class.name == "MobGiver" then-- lijunfeng 2017/12/7 带creature属性的 npc
+		self:emit_event("mob_giver_enter", inst)
+    elseif inst.class.name == "Merchant" then
+        self:emit_event("Merchant_enter", inst)  
+    elseif inst.class.name == "EnergyBall" then
+        self:emit_event("EnergyBall_enter", inst)  
+    end
+end
+
+function M:on_entity_exit(id)
+    local inst = assert(self.m_entity_map[id])
+    if inst.class.name == "Role" or inst.class.name == "Creature" then
+        self:emit_event("role_exit", inst)
+    elseif inst.class.name == "Treasure" then
+        self:emit_event("interact_obj_exit", inst)
+    elseif inst.class.name == "Object" then
+        self:emit_event("Object_exit", inst)
+    elseif inst.class.name == "Giver" then
+        self:emit_event("giver_exit", inst)
+	elseif inst.class.name == "MobGiver" then-- lijunfeng 2017/12/7 带creature属性的 npc
+		self:emit_event("mob_giver_exit", inst)
+    elseif inst.class.name == "Merchant" then
+        self:emit_event("Merchant_exit", inst)    
+    elseif inst.class.name == "EnergyBall" then
+        self:emit_event("EnergyBall_exit", inst)  
+    end
+end
+
+function M:on_entity_property_set(id, name, value)
+    local inst = assert(self.m_entity_map[id])
+    inst:set_attr(name, value)
+end
+
+function M:on_entity_remote_method_call(id, name, args)
+    local inst = assert(self.m_entity_map[id])
+    local func = inst[name]
+    if func and type(func) == "function" then
+        func(inst, table.unpack(args))
+    end
+end
+
+
+function M:on_entity_set_position(id, position)
+    local inst = assert(self.m_entity_map[id])
+    inst:set_attr("pos", position, true)
+	-- lijunfeng 2017/12/7 带creature属性的 npc 也需要设定位置
+    if inst.class.name == "Role" or inst.class.name == "Creature" or inst.class.name=="MobGiver" then
+        inst:reset_pos()
+    end
+end
+
+function M:on_entity_set_direction(id, direction)
+    local inst = assert(self.m_entity_map[id])
+    inst:set_attr("dir", direction.z)
+end
+
+function M:on_entity_update_position(id, position)
+    local inst = assert(self.m_entity_map[id])
+    inst:set_attr("pos", position)
+	-- lijunfeng 2017/12/7 带creature属性的 npc 也需要更新位置
+    if inst.class.name == "Role" or inst.class.name == "Creature" or inst.class.name=="MobGiver" then
+        inst:move_to(position)
+    end
+end
+
+function M:get_entity(id)
+    return self.m_entity_map[id]
+end
+
+return M

@@ -1,0 +1,11 @@
+local rows = {}
+rows[1] = {['id']=1,['name']='罗刹',['creature_id']=1003,['model_id']=1003,['exhibition_id']=1001,['role_pos']={0.0,0.0,0.0},['role_scale']=1.4,['cam_pos']={0.0,1.25,3.5},['cam_rot']={0.0,180.0,0.0},['btn_icon_normal']='exhibition/icon_luocha_normal.png',['btn_icon_pressed']='exhibition/icon_luocha_pressed.png',['img_presentation']='exhibition/presentation_luocha.png',['specialization']=3}
+rows[2] = {['id']=2,['name']='镜童',['creature_id']=1001,['model_id']=1001,['exhibition_id']=4001,['role_pos']={0.0,0.0,0.0},['role_scale']=1.4,['cam_pos']={0.0,1.25,3.5},['cam_rot']={0.0,180.0,0.0},['btn_icon_normal']='exhibition/icon_jingtong_normal.png',['btn_icon_pressed']='exhibition/icon_jingtong_pressed.png',['img_presentation']='exhibition/presentation_jingtong.png',['specialization']=6}
+rows[3] = {['id']=4,['name']='灵猴',['creature_id']=1002,['model_id']=1002,['exhibition_id']=6001,['role_pos']={0.0,0.0,0.0},['role_scale']=1.4,['cam_pos']={0.0,1.25,3.5},['cam_rot']={0.0,180.0,0.0},['btn_icon_normal']='exhibition/icon_linghou_normal.png',['btn_icon_pressed']='exhibition/icon_linghou_pressed.png',['img_presentation']='exhibition/presentation_linghou.png',['specialization']=13}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[4] = rows[3],
+}
+return datas

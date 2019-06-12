@@ -1,0 +1,31 @@
+local EtcUtil = {}
+
+function EtcUtil.is_all_fingers_not_over_gui(gesture)
+	-- if utility.runtime_platform.is_in_touchable_platform() then
+		if gesture.touchCount == 2 then
+			if (not EasyTouch.instance:GetFinger(0).isOverGui) and 
+				(not EasyTouch.instance:GetFinger(1).isOverGui) then
+				return true
+			end
+		end
+	-- end
+
+	return false
+end
+
+
+-- 是否有任一触摸开始于ui之上
+function EtcUtil.is_any_finger_over_gui(gesture)
+	-- if utility.runtime_platform.is_in_touchable_platform() then
+	    if gesture.touchCount == 2 then
+			if EasyTouch.instance:GetFinger(0).isOverGui or 
+				EasyTouch.instance:GetFinger(1).isOverGui then
+				return true
+			end
+		end
+	-- end
+
+	return false
+end
+
+return EtcUtil

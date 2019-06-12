@@ -1,0 +1,22 @@
+local View = require("system.view")
+local transmit_view = class("transmit_view", View)
+
+function transmit_view:doInit(param)
+    self:load_prefab("ui/BigMap.prefab", function(loaded_go)
+        self.m_res_loaded = true
+        local template_go = loaded_go.transform:Find("map/transmit_list/transmit_item").gameObject
+        local go = Object.Instantiate(template_go)
+        self.m_transmit = go.transform:Find("transmit_btn_use").gameObject
+        self.m_transmit_no = go.transform:Find("transmit_btn_no").gameObject
+        self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        go:SetActive(true)
+        self.m_transmit:SetActive(true)
+    end)
+end
+
+return transmit_view

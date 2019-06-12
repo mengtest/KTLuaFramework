@@ -1,0 +1,32 @@
+local M = {}
+
+Attribute.decl(M, "caster", nil)
+Attribute.decl(M, "time", 0)
+Attribute.decl(M, "pos", function() return Vector3(0, 0, 0) end)
+
+function M:doInit(cfg)
+	self.m_cfg = cfg
+    self:set_time(self.m_cfg.cast_time)
+end
+
+
+function M:update()
+    local delta_time = app.get_delta_time()
+
+    local time = self:get_time()
+    time = time - delta_time
+
+    if time < 0 then
+        self:destroySelf()
+    else
+        self:set_time(time)
+    end
+
+end
+
+function M:get_cfg()
+    return self.m_cfg
+end
+
+
+return M

@@ -1,0 +1,83 @@
+
+local Frame = require("system.frame")
+local Mini_map = class("Mini_map", Frame)
+
+--Event.decl(Mini_map, "get_mini_map_size")
+Event.decl(Mini_map, "refresh_owner_pos")
+Event.decl(Mini_map, "refresh_owner_dir")
+Event.decl(Mini_map, "show_quest_condition_aim_area")
+
+function Mini_map:doInit(params)
+    self:set_is_dont_create_go_automatic(true)
+    
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_owner = params.owner
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    
+    --[[self.m_quest_condition_aim_area_dict = {}
+    self.m_quest_aim_area_dict = {}--]]
+    
+    
+    
+    Event_system:add_event_listener(EVENT_QUEST_ADD_CONDITION_AREA, event_binder(self, self.show_quest_condition_aim_area))
+    Event_system:add_event_listener(EVENT_QUEST_DEL_CONDITION_AREA, event_binder(self, self.hide_quest_condition_aim_area))
+    Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST_AREA, event_binder(self, self.show_quest_aim_area))
+    Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.hide_quest_aim_area))
+end
+
+function Mini_map:doDestroy()
+    Event_system:del_event_listener(EVENT_QUEST_ADD_CONDITION_AREA, event_binder(self, self.show_quest_condition_aim_area))
+    Event_system:del_event_listener(EVENT_QUEST_DEL_CONDITION_AREA, event_binder(self, self.hide_quest_condition_aim_area))
+    Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST_AREA, event_binder(self, self.show_quest_aim_area))
+    Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.hide_quest_aim_area))
+end
+
+function Mini_map:on_prepared()
+    --[[local temp_map_size = Vector2(400, 400)
+    local cur_mini_map_size = nil
+    self:emit_event("get_mini_map_size", function (size)
+        cur_mini_map_size = size
+    end)
+    Util_log:logError(Util_log.Mask.SJG_Map, string.format("cur_mini_map_size = %s", tostring(cur_mini_map_size)))
+    self.m_scale_x = temp_map_size.x / cur_mini_map_size.x
+    self.m_scale_y = temp_map_size.y / cur_mini_map_size.y--]]
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function (pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function (dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+function Mini_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+end
+
+function Mini_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function Mini_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function Mini_map:show_quest_condition_aim_area(quest_id, index)
+    self:emit_event("show_quest_condition_aim_area", quest_id, index)
+end
+
+function Mini_map:hide_quest_condition_aim_area(quest_id, index)
+    self:emit_event("hide_quest_condition_aim_area", quest_id, index)
+end
+
+function Mini_map:show_quest_aim_area(quest_id)
+    self:emit_event("show_quest_aim_area", quest_id)
+end
+
+function Mini_map:hide_quest_aim_area(quest_id)
+    self:emit_event("hide_quest_aim_area", quest_id)
+end
+
+return Mini_map

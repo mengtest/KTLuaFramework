@@ -1,0 +1,62 @@
+local M = {}
+
+function M:doInit(unit)
+
+    self:set_is_add_rect_trans(true)
+    self.m_unit = unit
+    self:subscribe(app:getDeathMgr():on_event("death_event"), function(fighting_phase_number, fighting_phase_state)
+        self.fighting_phase_number = fighting_phase_number
+        -- 下面这个if 可以放回到 DeathMgr ，但是反正这里也要监听 就放在这里了
+        if (self.m_unit:get_hp() <= 0) then
+            app:getDeathMgr():resurgence(fighting_phase_number, fighting_phase_state)
+        end
+    end)
+
+    self:subscribe(app:getDeathMgr():on_event("refresh_data"), function(enum_ui_rebounding)
+        self:resurrection_rebounding(enum_ui_rebounding)
+    end)
+end
+
+function M:on_loaded()
+    if self.m_unit:get_dead() then
+        app:getDeathMgr():revival_rescuer()
+    end
+end
+-----死亡复活
+function M:resurrection_rebounding(enum_ui_rebounding)
+    self:emit_event("resurrection_rebounding", enum_ui_rebounding)
+end
+--点击原地复活按钮
+function M:on_situ_but_btn()
+    if not self.fighting_phase_number then
+        app:getDeathMgr():revival_others_death()
+    end
+    if self.fighting_phase_number ~= 0 then
+        app:getDeathMgr():revival_battle_death()
+    else
+        app:getDeathMgr():revival_others_death()
+    end
+    self:emit_event("situ_but_btn_click")
+end
+--点击复活点复活按钮
+function M:on_bind_but_btn()
+    if not self.fighting_phase_number then
+        app:getDeathMgr():revival_others_death()
+    end
+    if self.fighting_phase_number ~= 0 then
+        app:getDeathMgr():revival_battle_death()
+    else
+        app:getDeathMgr():revival_others_death()
+    end
+    self:emit_event("bind_but_btn_click")
+end
+function M:on_situ_but_btn_grey()
+    local float_hint_frame = self:getFrame("float_hint_manager")
+    float_hint_frame:add_float("玩家死亡")
+end
+function M:on_bind_but_btn_grey()
+    local float_hint_frame = self:getFrame("float_hint_manager")
+    float_hint_frame:add_float("还在boos战区域，无法复活")
+end
+
+return M

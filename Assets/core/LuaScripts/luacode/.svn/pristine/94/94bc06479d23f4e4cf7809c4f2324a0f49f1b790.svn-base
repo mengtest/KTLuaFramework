@@ -1,0 +1,9 @@
+local rows = {}
+rows[1] = {['id']=1,['map_id']=999,['pos']={710.5,270.0,875.0},['dir']=2.4,['condi']={1},['condi_param']={1},['teleport_point_name']='灵猴山洞',['client_map_pos']={710.5,875.0}}
+rows[2] = {['id']=2,['map_id']=999,['pos']={122.1,40.0,485.2},['dir']=4.71,['condi']={1},['condi_param']={1},['teleport_point_name']='监神者营地',['client_map_pos']={122.1,485.2}}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+}
+return datas

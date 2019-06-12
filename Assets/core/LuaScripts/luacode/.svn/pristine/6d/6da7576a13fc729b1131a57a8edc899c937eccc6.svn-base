@@ -1,0 +1,31 @@
+local Frame = require("system.frame")
+local spirit_handbook = class("spirit_handbook", Frame)
+local bit = require("bit")
+
+Event.decl(spirit_handbook, "move")
+
+function spirit_handbook:doInit()
+
+    self:set_is_add_rect_trans(true)
+
+
+end
+
+function spirit_handbook:on_loaded()
+    -- 图鉴列表
+    self:createChild("spirit_handbook_list", "spirit_beast.spirit_handbook.spirit_handbook_list")
+    -- 图鉴模型
+    self:createChild("spirit_handbook_model_show", "spirit_beast.spirit_handbook.spirit_handbook_model_show")
+    -- 图鉴信息
+    self:createChild("spirit_handbook_info", "spirit_beast.spirit_handbook.spirit_handbook_info")
+
+end
+
+function spirit_handbook:on_left()
+    self:emit_event("move", 0)
+end
+function spirit_handbook:on_right()
+    self:emit_event("move", 1)
+end
+
+return spirit_handbook

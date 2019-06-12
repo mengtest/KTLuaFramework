@@ -1,0 +1,105 @@
+local View = require("system.view")
+local equipment_tips_view = class("equipment_tips_view", View)
+
+function equipment_tips_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    ---临时测试
+    self.m_equip = dbc.equipment[101]
+    self.m_need_option = false
+    print(self.m_equip)
+
+    self:load("ui/EquipmentTips.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        self:init()
+        self.m_need_option = true
+    end)
+end
+
+------Tips采用激活和隐藏的形式，用来在每次显示Tips时初始化信息
+function equipment_tips_view:init(param)
+    ------装备Tips头信息区域
+    self.m_equip_top = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/equipment_tips_top")
+    ------装备Tips信息滑动区域
+    self.m_equip_info_scroll_view = self:getGO().transform:Find("EquipmentTips(Clone)/equipment_tips_bg/equipment_tips_info")
+    self.m_equip_info_view = self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.RectTransform)
+    --临时测试
+    local item_text = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/item_text").gameObject
+    local equipment_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_attr").gameObject
+    local equipment_level_info = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_level/equipment_level_info").gameObject:GetComponent(UnityEngine.UI.Text)
+    local equipment_third_attr = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_third_attr").gameObject
+    local equipment_des = self.m_equip_info_scroll_view:Find("Viewport/Content/equipment_des/equipment_des_value").gameObject:GetComponent(UnityEngine.UI.Text)
+    ------装备Tips按钮区域
+    local sell_btn = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/equipment_tips_info/sell_btn").gameObject
+    local inset_btn = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/equipment_tips_info/inset_btn").gameObject
+    local put_on_btn = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/equipment_tips_info/put_on_btn").gameObject
+    local get_off_btn = self:getGO().transform:GetChild(0):Find("equipment_tips_bg/equipment_tips_info/get_off_btn").gameObject
+
+    --临时测试
+    equipment_level_info.text = self.m_equip['level']
+    local equip_nomal_info = self.m_equip['normal_attr']
+    local equip_third_info = self.m_equip['third_attr']
+    for k, v in pairs(equip_nomal_info) do
+        local go = Object.Instantiate(item_text)
+        go:SetActive(true)
+        go.transform:SetParent(equipment_attr.transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.name = 'equipment_attr_info' .. k
+        go:GetComponent(UnityEngine.UI.Text).text = v
+    end
+
+    for k, v in pairs(equip_third_info) do
+        local go = Object.Instantiate(item_text)
+        go:SetActive(true)
+        go.transform:SetParent(equipment_third_attr.transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.name = 'equipment_third_attr_info' .. k
+        go:GetComponent(UnityEngine.UI.Text).text = v
+    end
+    equipment_des.text = self.m_equip['miaoshu']
+
+    ------为按钮添加点击事件
+    sell_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+        --出售按钮点击事件
+    end)
+
+    inset_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+        --镶嵌按钮点击事件
+    end)
+
+    put_on_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+        --装备按钮点击事件,抛出Frame的事件，参数后面做，暂时传nil
+        self:getFrame():put_on_equipment(nil)
+    end)
+
+    get_off_btn:GetComponent(UnityEngine.UI.Button).onClick:AddListener(function()
+        --卸下按钮点击事件,抛出Frame的事件，参数后面做，暂时传nil
+        self:getFrame():get_off_equipment(nil)
+    end)
+
+
+
+
+end
+
+function equipment_tips_view:doUpdate()
+    ------当预设体实例化完成之后设置ScrollView的高度与其内容的高度一致
+    if self.m_need_option then
+        ------当Tips高度超过屏幕高度时，设置其最大高度为屏幕高度，改变滑动区域的滑动方式
+        local equip_info_content_size = self.m_equip_info_scroll_view.transform:Find("Viewport/Content").gameObject:GetComponent(UnityEngine.RectTransform)
+        self.m_equip_info_view.sizeDelta = equip_info_content_size.rect.size
+        if equip_info_content_size.rect.height > Screen.height - self.m_equip_top.gameObject:GetComponent(UnityEngine.RectTransform).rect.height then
+            --local vertical_layout_group = self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.UI.VerticalLayoutGroup)
+            --local vertical_layout_group_parent = self.m_equip_info_scroll_view.parent.gameObject:GetComponent(UnityEngine.UI.VerticalLayoutGroup)
+            --vertical_layout_group.childControlHeight = false
+            --vertical_layout_group_parent.childControlHeight = false
+            self.m_equip_info_view.sizeDelta = Vector2(self.m_equip_info_view.rect.width, Screen.height - self.m_equip_top.gameObject:GetComponent(UnityEngine.RectTransform).rect.height)
+            --self.m_equip_info_scroll_view.transform:GetChild(0).gameObject:GetComponent(UnityEngine.RectTransform).sizeDelta = self.m_equip_info_view.sizeDelta
+            self.m_equip_info_scroll_view.gameObject:GetComponent(UnityEngine.UI.ScrollRect).movementType = UnityEngine.UI.ScrollRect.MovementType.Elastic
+            self.m_need_option = false
+        end
+    end
+end
+
+return equipment_tips_view

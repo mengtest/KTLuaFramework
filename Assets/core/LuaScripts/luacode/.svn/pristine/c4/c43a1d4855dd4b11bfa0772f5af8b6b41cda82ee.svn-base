@@ -1,0 +1,544 @@
+local View = require("system.view")
+local Team_bar_view = class("Team_bar_view", View)
+
+function Team_bar_view:local_log(...)
+    app:logError(string.format(...))
+end
+
+function Team_bar_view:doInit()
+    self.m_current_selected_toggle = nil
+    self.m_team_manager = self:getFrame("team_manager")
+    self.m_member_item_prefab = nil
+    self.m_member_item_dict = {}
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    self.m_role_db_id = kbe_mgr:get_entity(role_id):get_dbid()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("sidebar/tab_team"), function(go)
+        local parent_node = self:getParent():getGO().transform:Find("border/border_mask/border_detail")
+        self:init_with_go(go, parent_node)
+    end)
+end
+
+function Team_bar_view:on_prepared()
+    --    Event_system:add_event_listener(EVENT_TEAM_ADD_MEMBER, event_binder(self, self.add_member))
+    --    Event_system:add_event_listener(EVENT_TEAM_DEL_MEMBER, event_binder(self, self.del_member))
+    Event_system:add_event_listener(EVENT_TEAM_STATUS_CHANGED, event_binder(self, self.on_state_changed))
+
+    --	self:subscribe(self.m_frame:on_event("show"), function ()
+    --		self.m_go:SetActive(true)
+    --	end)
+    --	self:subscribe(self.m_frame:on_event("hide"), function ()
+    --		self.m_go:SetActive(false)
+    --	end)
+    self:subscribe(self.m_frame:on_event_attr_set("is_show", true),
+    function(flag)
+        self.m_go:SetActive(flag)
+    end)
+
+    self:subscribe(self:getFrame("team_manager"):on_event("change_leader"), function(db_id)
+        self:change_leader(db_id)
+    end)
+
+    self.m_rect = self.m_go:GetComponent(RectTransform)
+    self.m_rect.sizeDelta = Vector2(0, 0)
+
+    self.m_tr = self.m_go.transform
+    self.m_member_item_node = self.m_tr:Find("grid")
+    self.m_member_item_prefab = self.m_member_item_node:Find("member_item").gameObject
+    self.m_member_item_empty_prefab = self.m_member_item_node:Find("member_item_empty").gameObject
+    self.m_member_item_prefab:SetActive(false)
+    self.m_member_item_empty_prefab:SetActive(false)
+    self:refresh_all()
+end
+
+function Team_bar_view:doDestroy()
+    Event_system:del_event_listener(EVENT_TEAM_ADD_MEMBER, event_binder(self, self.add_member))
+    Event_system:del_event_listener(EVENT_TEAM_DEL_MEMBER, event_binder(self, self.del_member))
+
+    self:unsubscribeAll()
+end
+
+function Team_bar_view:refresh_all()
+    local member_dict = self.m_team_manager:get_member_dict()
+    for db_id, param in pairs(member_dict) do
+        self:add_member(db_id, param.entity_id, param.name, param["is_leader"])
+        self:add_hp_monitor(db_id, param.entity_id)
+
+        ------暂时注释掉
+        --if param.entity_id and param.entity_id ~= 0 and self:getFrame("world"):getUnit(param.entity_id) then
+        --    self:add_hp_monitor(db_id, param.entity_id)
+        --else
+        --    self:del_monitor(db_id)
+        --end
+    end
+end
+
+function Team_bar_view:on_state_changed(answer_code, db_id, entity_id, name, is_leader)
+    --print("Team_bar_view======================================>>>>db_id:"..tostring(db_id)..", name:"..tostring(name)..", answer_code:"..answer_code)
+    if answer_code == enum.shared.TeamCode.JOIN_TEAM then
+        self:add_member(db_id, entity_id, name, is_leader)
+        self:add_hp_monitor(db_id, entity_id)
+        ---------暂时注释掉
+        --if entity_id and entity_id ~= 0 and self:getFrame("world"):getUnit(entity_id) then
+        --    self:add_hp_monitor(db_id, entity_id)
+        --else
+        --    self:del_monitor(db_id)
+        --end
+        self:show_scroll_text(name, "加入队伍")
+    elseif answer_code == enum.shared.TeamCode.LEAVE_TEAM then
+        self:del_member(db_id)
+        self:show_scroll_text(name, "离开队伍")
+    elseif answer_code == enum.shared.TeamCode.DEL_MEMBER then
+        self:del_member(db_id)
+        self:show_scroll_text(name, "被踢出队伍")
+    elseif answer_code == enum.shared.TeamCode.DEL_MEMBER_FOR_ROLE then
+        self:del_member(db_id)
+        if self.m_role_db_id == db_id then
+            self:show_scroll_text("", "你被踢出队伍")
+        end
+    elseif answer_code == enum.shared.TeamCode.REFUSE_TEAM then
+        self:show_scroll_text(name, "拒绝加入队伍")
+    elseif answer_code == enum.shared.TeamCode.IN_THE_TEAM then
+        self:show_scroll_text("", "对方已有队伍")
+    elseif answer_code == enum.shared.TeamCode.LOGIN then
+        self:add_hp_monitor(db_id, entity_id)
+        self:show_scroll_text(name, "上线了")
+    elseif answer_code == enum.shared.TeamCode.LOGOUT then
+        self:del_monitor(db_id, entity_id)
+        self:show_scroll_text(name, "下线了")
+    end
+
+    if answer_code == enum.shared.TeamCode.CANNOT_JOIN_TEAM_IN_INSTANCE then
+        self:show_scroll_text("", "当前副本不允许加入队伍")
+    elseif answer_code == enum.shared.TeamCode.CREATURE_LOOT then
+        self:show_scroll_text("", "怪物掉落拾取")
+    elseif answer_code == enum.shared.TeamCode.NO_EXISTS_INST then
+        self:show_scroll_text("", "不存在目标副本")
+    elseif answer_code == enum.shared.TeamCode.MUST_BE_SINGLE then
+        self:show_scroll_text("", "单人副本")
+    elseif answer_code == enum.shared.TeamCode.MUST_BE_IN_TEAM then
+        self:show_scroll_text("", "队伍副本")
+    elseif answer_code == enum.shared.TeamCode.NO_UNLOCK_INST then
+        self:show_scroll_text("", "未解锁副本")
+    elseif answer_code == enum.shared.TeamCode.NO_SELECT_DIFF then
+        self:show_scroll_text("", "只要队长才能选择难度")
+    elseif answer_code == enum.shared.TeamCode.NO_IN_AREA then
+        self:show_scroll_text("", "未在指定区域")
+    elseif answer_code == enum.shared.TeamCode.NO_IN_MAP then
+        self:show_scroll_text("", "未在指定地图")
+    elseif answer_code == enum.shared.TeamCode.CHANGE_SPECIALIZATION then
+        self:show_scroll_text("", "请切换到指定专精")
+    elseif answer_code == enum.shared.TeamCode.TEAM_COUNT_LESS then
+        self:show_scroll_text("", "队伍人数不足")
+    elseif answer_code == enum.shared.TeamCode.NO_HAVE_TARGET_INST then
+        self:show_scroll_text("", "队伍没有共同副本目标")
+    end
+
+    if answer_code == enum.shared.TeamCode.IN_MATCHING_QUEUE then
+        --已经在匹配队列了
+        self:show_scroll_text("", "已经在匹配队列了")
+    elseif answer_code == enum.shared.TeamCode.MEMBER_ALL_ONLINE then
+        --所在队伍必须全部在线
+        self:show_scroll_text("", "所在队伍必须全部在线")
+    elseif answer_code == enum.shared.TeamCode.TEAM_IN_MATCHING_QUEUE then
+        --所在队伍已经在匹配队列了
+        self:show_scroll_text("", "所在队伍已经在匹配队列了")
+    elseif answer_code == enum.shared.TeamCode.FIGHTING_IN_INST then
+        --当前队伍有正在进行的副本
+        self:show_scroll_text("", "当前队伍有正在进行的副本")
+    elseif answer_code == enum.shared.TeamCode.MEMBER_IN_MATCHING_INST then
+        --有队员正在匹配副本
+        self:show_scroll_text("", "有队员正在匹配副本")
+    elseif answer_code == enum.shared.TeamCode.NO_LOSE_DUTY then
+        --当前匹配副本尚在，职责全部存在
+        self:show_scroll_text("", "请通关此匹配副本")
+    end
+end
+
+function Team_bar_view:show_scroll_text(name, msg)
+    name = name or "nil"
+    local str = ""
+    if name == "" then
+        str = string.format("%s", tostring(msg))
+    else
+        str = string.format("【%s】%s", tostring(name), tostring(msg))
+    end
+    self:getFrame("float_hint_manager"):add_float(str)
+end
+
+function Team_bar_view:add_member(db_id, entity_id, name, is_leader)
+    if self.m_member_item_dict[db_id] then
+        print("Team_bar_view:add_member \t the member is already existed, member db_id: " .. db_id)
+        return
+    end
+
+    if self.m_role_db_id == db_id then
+        return
+    end
+
+    local member_item_inst_tr = Object.Instantiate(self.m_member_item_prefab).transform
+    assert(db_id, "Team_bar_view:add_member, db_id is nil")
+    self.m_member_item_dict[db_id] = {}
+    self.m_member_item_dict[db_id]["func"] = {}
+    self.m_member_item_dict[db_id]["blood_color"] = "green"
+    self.m_member_item_dict[db_id]["is_leader"] = is_leader
+    self.m_member_item_dict[db_id]["duty_event"] = nil
+    self.m_member_item_dict[db_id]["tr"] = member_item_inst_tr
+    member_item_inst_tr.gameObject:SetActive(true)
+    member_item_inst_tr.parent = self.m_member_item_node
+    member_item_inst_tr.localPosition = Vector3.zero
+    member_item_inst_tr.localScale = Vector3.one
+    member_item_inst_tr:Find("name"):GetComponent(UnityEngine.UI.Text).text = name
+    local m_function = member_item_inst_tr:Find("function")
+    local quit_team_cmp = m_function:Find("quit_team"):GetComponent(UnityEngine.UI.Button)
+    local change_leader_cmp = m_function:Find("change_leader"):GetComponent(UnityEngine.UI.Button)
+    local toggle = member_item_inst_tr:Find("team_btn"):GetComponent(UnityEngine.UI.Toggle)
+    local selected_img = member_item_inst_tr:Find("selected").gameObject
+    local duty = member_item_inst_tr:Find("duty").gameObject
+    local unit = self:getFrame("world"):getUnit(entity_id)
+
+    if unit then
+        self.m_member_item_dict[db_id]["duty_event"] = self:subscribe(unit:on_event_attr_set("specialization", true), function(val)
+            if val and val ~= -1 then
+                local specialization_id = unit:get_specialization()
+                local duty_id = dbc.specialization[val].duty
+                self:set_duty(duty, duty_id)
+            end
+        end)
+    else
+        self:set_duty(duty, 1)
+    end
+    duty:SetActive(true)
+    local leader_icon = member_item_inst_tr:Find("leader_icon").gameObject
+    leader_icon:SetActive(is_leader or false)
+    toggle.group = self:getFrame("sidebar"):get_toggle_group()
+
+    --加载选中特效
+    local particle_path = "ui_zudui_biankuang_01"
+    self:load_xuanzhong_sfx(app:getAssetPathMgr().get_sfx_asset(particle_path), member_item_inst_tr, db_id)
+
+    toggle.onValueChanged:AddListener(function(flag)
+        local is_leader = self.m_member_item_dict[db_id]["is_leader"] or false
+
+        if flag then
+            leader_icon:SetActive(false)
+            m_function.gameObject:SetActive(self:getFrame("sidebar"):get_is_leader())
+            self.m_current_selected_toggle = toggle
+        else
+            leader_icon:SetActive(is_leader)
+            m_function.gameObject:SetActive(false)
+            self.m_current_selected_toggle = nil
+        end
+        duty:SetActive(not flag)
+        selected_img:SetActive(flag)
+        self.m_frame:set_target(entity_id)
+
+        if self.m_member_item_dict[db_id]["xuanzhong_partical"] then
+            self.m_member_item_dict[db_id]["xuanzhong_partical"].gameObject:SetActive(flag)
+            if flag then
+                self.m_member_item_dict[db_id]["xuanzhong_partical"]:Play()
+            else
+                self.m_member_item_dict[db_id]["xuanzhong_partical"]:Stop()
+            end
+        end
+    end)
+    quit_team_cmp.onClick:AddListener(function()
+        self.m_team_manager:req_del_member(db_id)
+    end)
+    change_leader_cmp.onClick:AddListener(function()
+        self.m_team_manager:req_change_leader(db_id)
+        m_function.gameObject:SetActive(false)
+        duty:SetActive(true)
+    end)
+
+    --加载残血特效
+    local particle_path = "ui_zuidui_canxue_01"
+    self:load_canxue_sfx(app:getAssetPathMgr().get_sfx_asset(particle_path), member_item_inst_tr, db_id)
+
+    ------邀请按钮暂时注释掉
+    --if utility.table:count(self.m_team_manager:get_member_dict()) == 4 then
+    --    self.m_member_item_empty_prefab:SetActive(false)
+    --else
+    --    self.m_member_item_empty_prefab:SetActive(true)
+    --    self.m_member_item_empty_prefab:GetComponent(UnityEngine.RectTransform):SetSiblingIndex(10)
+    --end
+end
+
+-----转移队长
+function Team_bar_view:change_leader(db_id)
+    for i, v in pairs(self.m_member_item_dict) do
+        local leader_icon = self.m_member_item_dict[i]["tr"]:Find("leader_icon").gameObject
+        if i == db_id then
+            self.m_member_item_dict[i]["is_leader"] = true
+            leader_icon:SetActive(true)
+            local leader_name = self.m_team_manager:get_member_dict()[db_id]["name"]
+            self:show_scroll_text(leader_name, "成为队长")
+        else
+            self.m_member_item_dict[i]["is_leader"] = false
+            leader_icon:SetActive(false)
+        end
+    end
+end
+
+function Team_bar_view:del_member(db_id)
+
+    if self.m_role_db_id == db_id then
+        self.m_member_item_empty_prefab:SetActive(false)
+        return
+    end
+
+    local member = self.m_member_item_dict[db_id]
+    if not member then
+        print("There is no member's db_id is: " .. db_id)
+        return
+    end
+
+    if self.m_current_selected_toggle then
+        self.m_current_selected_toggle.isOn = false
+        self.m_current_selected_toggle = nil
+    end
+
+    if member["duty_event"] ~= nil then
+        self:unsubscribe(member["duty_event"])
+    end
+
+    Object.Destroy(member["tr"].gameObject)
+    for _, func in ipairs(member["func"]) do
+        self:unsubscribe(func)
+    end
+    self.m_member_item_dict[db_id] = nil
+
+    ------邀请按钮暂时注释掉
+    --local member_count = utility.table:count(self.m_team_manager:get_member_dict())
+    --if member_count == 4 or member_count == 0 then
+    --    self.m_member_item_empty_prefab:SetActive(false)
+    --else
+    --    self.m_member_item_empty_prefab:SetActive(true)
+    --    self.m_member_item_empty_prefab:GetComponent(UnityEngine.RectTransform):SetSiblingIndex(10)
+    --end
+end
+
+function Team_bar_view:add_hp_monitor(db_id, entity_id)
+
+    if self.m_role_db_id == db_id then
+        return
+    end
+
+    local member_item_inst = self.m_member_item_dict[db_id]
+    if not member_item_inst then
+        app:logError("Team_bar_view:add_hp_monitor \t cannot found member_item_inst, db_id: ", db_id)
+    end
+
+    member_item_inst["tr"]:Find("fg_hp").gameObject:SetActive(true)
+    member_item_inst["tr"]:Find("mask_logout").gameObject:SetActive(false)
+    member_item_inst["tr"]:Find("mask_dead").gameObject:SetActive(false)
+
+    local world = self:getFrame("world")
+    local unit = world:getUnit(entity_id)
+    if unit == nil then
+        member_item_inst["tr"]:Find("fg_hp"):GetComponent(UnityEngine.UI.Image).fillAmount = 1
+        return
+    end
+    local func_hp = self:subscribe(unit:on_event_attr_set("hp", true), function(hp)
+        local blood_color = member_item_inst["blood_color"]
+        local img_cmp = member_item_inst["tr"]:Find("fg_hp"):GetComponent(UnityEngine.UI.Image)
+        local hp_max = unit:get_hp_max()
+        local percent = hp / hp_max
+        local icon_path = ""
+        local color = ""
+        if percent >= 0.75 then
+            color = "green"
+            icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_high')
+            if self.m_member_item_dict[db_id]["canxue_partical"] then
+                self.m_member_item_dict[db_id]["canxue_partical"].gameObject:SetActive(false)
+                self.m_member_item_dict[db_id]["canxue_partical"]:Stop()
+            end
+        elseif percent >= 0.35 then
+            color = "yellow"
+            icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_middle')
+            if self.m_member_item_dict[db_id]["canxue_partical"] then
+                self.m_member_item_dict[db_id]["canxue_partical"].gameObject:SetActive(false)
+                self.m_member_item_dict[db_id]["canxue_partical"]:Stop()
+            end
+        elseif percent > 0 then
+            color = "red"
+            icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_low')
+            if self.m_member_item_dict[db_id]["canxue_partical"] then
+                self.m_member_item_dict[db_id]["canxue_partical"].gameObject:SetActive(true)
+                self.m_member_item_dict[db_id]["canxue_partical"]:Play()
+            end
+        else
+            color = "red"
+            icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_low')
+            if self.m_member_item_dict[db_id]["canxue_partical"] then
+                self.m_member_item_dict[db_id]["canxue_partical"].gameObject:SetActive(false)
+                self.m_member_item_dict[db_id]["canxue_partical"]:Stop()
+            end
+        end
+        if color ~= blood_color then
+            member_item_inst["blood_color"] = color
+            self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+                local tex = asset
+                img_cmp.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            end)
+        end
+        img_cmp.fillAmount = percent
+        --local light_tr = member_item_inst["tr"]:Find("fg_hp/img_light")
+        --local rect = light_tr:GetComponent(UnityEngine.RectTransform).rect
+        --light_tr.localPosition = Vector3(rect.width * (percent - 1) + 7.5, 0, 0)
+    end)
+
+    local func_dead = self:subscribe(unit:on_event_attr_set("dead", true), function(flag)
+        member_item_inst["tr"]:Find("fg_hp").gameObject:SetActive(not flag)
+        member_item_inst["tr"]:Find("mask_logout").gameObject:SetActive(false)
+        member_item_inst["tr"]:Find("mask_dead").gameObject:SetActive(flag)
+    end)
+    table.insert(member_item_inst["func"], func_hp)
+
+end
+
+function Team_bar_view:del_monitor(db_id, entity_id)
+    if self.m_role_db_id == db_id then
+        return
+    end
+
+    self.m_member_item_dict[db_id]["tr"]:Find("fg_hp").gameObject:SetActive(false)
+    self.m_member_item_dict[db_id]["tr"]:Find("mask_logout").gameObject:SetActive(true)
+    self.m_member_item_dict[db_id]["tr"]:Find("mask_dead").gameObject:SetActive(false)
+
+    for _, func in ipairs(self.m_member_item_dict[db_id]["func"]) do
+        self:unsubscribe(func)
+    end
+    self.m_member_item_dict[db_id]["func"] = {}
+    -----------xjl暂时注释掉
+    --self.m_member_item_dict[db_id]["tr"]:Find("btn"):GetComponent(UnityEngine.UI.Button).onClick:RemoveAllListeners()
+end
+
+function Team_bar_view.refresh_hp(hp)
+    local hp_max = unit:get_hp_max()
+    member_item_inst_tr:GetComponent(UnityEngine.UI.Image).fillAmount = hp / hp_max
+end
+
+--加载残血特效
+function Team_bar_view:load_canxue_sfx(path, parent, db_id)
+    self:load(path, function(go)
+        local component = go.transform:Find("Particle System"):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        component.gameObject:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (db_id == nil) then
+            return
+        end
+
+        self.m_member_item_dict[db_id]["canxue_partical"] = component
+    end)
+end
+
+--加载选中特效
+function Team_bar_view:load_xuanzhong_sfx(path, parent, db_id)
+    self:load(path, function(go)
+        local component = go.transform:Find("Particle System"):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3(688, -128, 0)
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        component.gameObject:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (db_id == nil) then
+            return
+        end
+
+        self.m_member_item_dict[db_id]["xuanzhong_partical"] = component
+    end)
+end
+
+function Team_bar_view:doUpdate()
+    if self.m_current_selected_toggle and self.m_current_selected_toggle.isOn then
+        if Input.GetMouseButtonDown(0) or (Input.touchCount > 0 and Input.GetTouch(0).phase == TouchPhase.Began) then
+            --print("鼠标触摸屏幕")
+            local click_name = self:OnePointColliderObject()
+            --print("------------------->>click_name",tostring(click_name))
+            if click_name then
+                if click_name == "team_btn" or click_name == "quit_team" or click_name == "change_leader" then
+                else
+                    self.m_current_selected_toggle.isOn = false
+                    self.m_current_selected_toggle = nil
+                end
+            else
+                self.m_current_selected_toggle.isOn = false
+                self.m_current_selected_toggle = nil
+            end
+        else
+            --print("无鼠标触摸屏幕")
+        end
+    end
+end
+
+--获取点击到的ui名称
+function Team_bar_view:OnePointColliderObject()
+    local eventData = EventSystems.PointerEventData(EventSystems.EventSystem.current)
+    eventData.position = Vector2(Input.mousePosition.x, Input.mousePosition.y)
+
+    local results = ListRaycastResult()
+    EventSystems.EventSystem.current:RaycastAll(eventData, results)
+
+    if results.Count > 0 then
+        return results:getItem(0).gameObject.name
+    else
+        return nil
+    end
+end
+
+-----设置职责图标
+function Team_bar_view:set_duty(duty_go, duty_id)
+    if duty_go == nil then
+        return
+    end
+
+    local path = ""
+    if duty_id == 1 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('tank')
+    elseif duty_id == 2 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('damage')
+    elseif duty_id == 3 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('healer')
+    else
+        path = app:getAssetPathMgr().get_sidebar_view_resource('damage')
+    end
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        local tex = asset
+        duty_go.transform:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+end
+
+return Team_bar_view

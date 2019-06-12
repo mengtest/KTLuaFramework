@@ -1,0 +1,12 @@
+local View = require("system.view")
+local quest_ui_give_up_view = class("quest_ui_give_up", View)
+
+function quest_ui_give_up_view:doInit(param)
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Alert"), function(go)
+        go.transform.localPosition = Vector3.one
+        go.transform.localScale = Vector3.one
+        self.m_alert_text = go.transform:Find("bg/alert/Text"):GetComponent(UI.Text)
+        self.m_alert_text.text = "确定放弃该任务吗？"
+    end)
+end
+return quest_ui_give_up_view

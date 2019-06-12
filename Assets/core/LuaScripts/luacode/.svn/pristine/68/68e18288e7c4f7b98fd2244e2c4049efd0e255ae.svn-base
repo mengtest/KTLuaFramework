@@ -1,0 +1,157 @@
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+local require_relative = REQUIRE_BASE(...)
+
+local Ua_state_base = require("frame.unit_act_state.ua_state_base")
+local Ua_state_skill_jump = class("Ua_state_skill_jump", Ua_state_base)
+
+Ua_state_skill_jump.Const = {}
+Ua_state_skill_jump.Const.h = 5         -- 跳跃的最低高度
+Ua_state_skill_jump.Const.g1 = 60 * Vector3.up      -- 阶段1的重力加速度
+Ua_state_skill_jump.Const.g2 = 100 * Vector3.up     -- 阶段2的重力加速度
+
+function Ua_state_skill_jump:initialize(fsm, unit)
+    Ua_state_base.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    self.m_cur_duration = 0
+    self.m_stage = 0    --对应于跳跃的四个阶段（起跳、滞空、翻滚、落地，1-4）
+    self.m_played_hit_anim = false
+end
+
+function Ua_state_skill_jump:enter()
+    Ua_state_base.enter(self)
+
+    self.m_unit:set_main_act(UAFsm.MAIN_ACT.SKILL_JUMP)
+    self.m_cur_duration = 0
+    self.m_played_hit_anim = false
+    --self.m_unit:emit_event("cross_fade", "skill_jump_a", 0.2)
+    self.m_stage = 1
+
+    -- 环节控制 1.起跳时间点 2.翻滚时间点(从起跳后开始计时) 3.砸地时间点(从落地时间点开始计算)
+    self.m_jump_param = Util_string:parse_to_list(dbc.spell[self.m_unit:get_skill_id()].jump_param)
+    
+    self.m_ori_pos = self.m_unit:get_pos()
+    self.m_end_pos = self.m_unit.m_skill_target_pos
+    local s_vec = self.m_end_pos - self.m_ori_pos
+    local h1, h2 = nil, nil
+
+    -- 跳跃高度
+    if s_vec.y > self.Const.h - 0.5 then
+        h1 = s_vec.y + 0.5
+        h2 = 0.5
+    else
+        h1 = self.Const.h
+        h2 = self.Const.h - s_vec.y
+    end
+
+    self.m_s = s_vec.magnitude
+    self.m_t1 = math.sqrt(2 * h1 / self.Const.g1.magnitude)     -- 上升时间
+    self.m_t2 = math.sqrt(2 * h2 / self.Const.g2.magnitude)     -- 下落时间
+    self.m_vv = math.sqrt(2 * h1 * self.Const.g1.magnitude) * Vector3.up    -- 起跳初速度
+    self.m_t = self.m_t1 + self.m_t2        -- 跳跃总时间(不含蹲地起跳时间)
+    self.m_vh = s_vec / self.m_t        -- 直线方向的速度
+    self.m_td = Util_math:clamp(self.m_t - self.m_jump_param[2], 0, self.m_t)   -- 砸地动作时间点
+    self.m_cc = self.m_unit:get_cc()
+
+    -- pacman 2017-11-02 临时做法，不停的向服务器更新自己的位置来覆盖服务器端的位移操作
+    self.m_unit:set_pos(self.m_ori_pos)
+    self.m_unit:emit_event("set_position", self.m_ori_pos)
+
+end
+
+function Ua_state_skill_jump:exit()
+    Ua_state_base.exit(self)
+    
+end
+
+function Ua_state_skill_jump:update()
+    Ua_state_base.update(self)
+    local dt = app:get_delta_time()
+    self.m_cur_duration = self.m_cur_duration + dt
+
+
+    -- pacman 2017-11-02 梳理了一下思路
+    -- 整个跳跃过程分为 起跳、滞空、翻滚、落地，1-4
+    -- 从水平/垂直两个方面描述跳跃过程的位置曲线
+    -- 用额外的时间点来控制各个动作切换的时机
+    if self.m_stage == 0 then
+
+    elseif self.m_stage == 1 then
+        -- 起跳阶段 --
+        -- pacman 2017-11-02 临时做法，不停的向服务器更新自己的位置来覆盖服务器端的位移操作
+        self.m_unit:set_pos(self.m_ori_pos)
+        self.m_unit:emit_event("set_position", self.m_ori_pos)
+
+        -- 此阶段不会移动
+        if self.m_cur_duration >= self.m_jump_param[1] then
+            -- pacman 2017-11-02 改成了在animator中自动播放
+            -- 因为美术给过来的动画起跳中包含了腾空的动作，无法通过延长【起跳】阶段的时间来实现蓄力
+            --self.m_unit:emit_event("cross_fade", "skill_jump_d", 0.2)
+            self.m_cur_duration = 0     -- 重置计时
+            self.m_stage = 2            -- 开始【跳跃-腾空】
+        end
+    elseif self.m_stage == 2 then   -- 跳跃-腾空
+        if not self.m_cc then
+            return
+        end
+
+        -- 起跳一段时间后进入【跳跃-翻滚】
+        if self.m_cur_duration >= self.m_jump_param[2] then
+            self.m_unit:emit_event("cross_fade", "skill_jump_b", 0.1)
+            self.m_stage = 3
+        end
+
+        self:update_jump_pos(dt)
+    elseif self.m_stage == 3 then   -- 翻滚
+        if not self.m_cc then
+            return
+        end
+
+        -- 临落地前提前播放砸地动画
+        if self.m_cur_duration >= self.m_t + self.m_jump_param[3] then
+            -- 播放一次砸地动画
+            if self.m_played_hit_anim == false then
+                self.m_played_hit_anim = true
+                self.m_unit:emit_event("cross_fade", "skill_jump_c", 0.1)
+            end
+
+            if self.m_cur_duration >= self.m_t then
+                self.m_cur_duration = 0
+                self.m_stage = 4
+            end
+        end
+
+        self:update_jump_pos(dt)
+    elseif self.m_stage == 4 then   -- 落地
+        -- 直接结束
+        self.m_unit:stop_skill_jump(self.m_unit:get_skill_id())
+
+        --if self.m_cur_duration >= self.m_jump_param[3] then
+        --    print("<---------------- time to stop jump")
+        --    self.m_unit:stop_skill_jump(self.m_unit:get_skill_id())
+        --end
+    end
+end
+
+
+function Ua_state_skill_jump:update_jump_pos(dt)
+    local g = self.m_cur_duration <= self.m_t1 and self.Const.g1 or self.Const.g2
+    self.m_vv = self.m_vv - g * dt
+    local vec = (self.m_vv + self.m_vh) * dt
+    self.m_cc:Move(vec)
+    self.m_unit:set_pos(self.m_cc.transform.position)
+    self.m_unit:emit_event("set_position",self.m_cc.transform.position)
+end
+
+
+
+function Ua_state_skill_jump:change_move_state(move_state)
+    --self.m_unit:set_move_state(move_state)
+    --app:logError("Ua_state_skill_jump change_move_state")
+end
+
+
+
+return Ua_state_skill_jump

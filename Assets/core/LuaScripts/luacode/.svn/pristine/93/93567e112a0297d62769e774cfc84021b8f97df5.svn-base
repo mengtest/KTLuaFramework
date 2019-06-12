@@ -1,0 +1,243 @@
+
+local View = require("system.view")
+local Mini_map_view = class("Mini_map_view", View)
+
+function Mini_map_view:doInit()
+    --Util_log:logError(Util_log.Mask.SJG_Map, string.format("parent.name = %s, parent.child0.name = %s", self:getParent():getGO().transform.name, self:getParent():getGO().transform:GetChild(0).name))
+    local ui_main_entity_tr = self:getParent():getGO().transform:GetChild(0)
+    local ctrl_node = ui_main_entity_tr:Find("MiniMap")
+    
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_moveable_rt = nil
+    self.m_layer_quest_rt = nil
+
+    --关注任务
+    self.m_interest_quest_data = nil       --关注任务数据
+    self.m_interest_quest_area_data = nil  --关注任务区域数据
+    self.m_interest_quest_area_reality_localPosition = nil   --关注任务区域实际的localPosition
+
+    self.m_quest_condition_aim_area_dict = {}
+    self.m_quest_aim_area_dict = {}
+    
+    self:init_with_go(ctrl_node, ui_main_entity_tr)
+end
+
+function Mini_map_view:on_prepared()
+    self:init()
+    
+    self:subscribe(self:getFrame():on_event("refresh_owner_pos"), function (pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_dir"), function (dir)
+        self:refresh_owner_dir(dir)
+    end)
+    self:subscribe(self:getFrame():on_event("show_quest_condition_aim_area"), function (quest_id, index)
+        self:show_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self:getFrame():on_event("hide_quest_condition_aim_area"), function (quest_id, index)
+        self:hide_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self:getFrame():on_event("show_quest_aim_area"), function (quest_id)
+        self:show_quest_aim_area(quest_id)
+    end)
+    self:subscribe(self:getFrame():on_event("hide_quest_aim_area"), function (quest_id)
+        self:hide_quest_aim_area(quest_id)
+    end)
+
+    --关注任务
+    Event_system:add_event_listener(EVENT_QUEST_SET_INTEREST, event_binder(self, self.set_interest_quest_data))
+    
+    --self:subscribe(self:getFrame():on_event("refresh_"))
+end
+
+function Mini_map_view:init()
+    local temp_map_size = Vector2(400, 400)
+    local tr = self:getGO().transform
+    local mini_map_size = tr:Find("mask/moveable_items/bg_terrain"):GetComponent(UnityEngine.RectTransform).rect.size
+    self.m_scale_x = mini_map_size.x / temp_map_size.x
+    self.m_scale_y = mini_map_size.y / temp_map_size.y
+    self.m_moveable_rt = tr:Find("mask/moveable_items"):GetComponent(UnityEngine.RectTransform)
+    self.m_owner_rt = tr:Find("mask/owner"):GetComponent(UnityEngine.RectTransform)
+    self.m_layer_quest_rt = tr:Find("mask/moveable_items/layer_quest"):GetComponent(UnityEngine.RectTransform)
+    self:getFrame():set_scale(self.m_scale_x, self.m_scale_y)
+
+    --关注任务
+    self.m_interest_point_rt = tr:Find("mask/moveable_items/layer_quest/interest_point"):GetComponent(UnityEngine.RectTransform)
+    self.m_minimap_radius = tr:Find("mask"):GetComponent(UnityEngine.RectTransform).sizeDelta.x/2--小地图半径
+
+end
+
+function Mini_map_view:refresh_owner_pos(pos)
+    --[[local map_pos = Vector2(-pos.x * self.m_scale_x, -pos.z * self.m_scale_y)
+    self.m_moveable_rt.anchoredPosition = map_pos--]]
+    self.m_moveable_rt.anchoredPosition3D = -self:project_3d_pos_to_map_pos(pos)
+
+    --关注任务
+    if self.m_interest_quest_data and self.m_interest_quest_data:get_interest() then
+        self:set_interest_point_pos()
+    end
+end
+
+function Mini_map_view:refresh_owner_dir(dir)
+    self.m_owner_rt.localEulerAngles = Vector3(0, 0, - dir)
+end
+
+function Mini_map_view:show_quest_condition_aim_area(quest_id, index)
+    local quest_layer = self.m_quest_condition_aim_area_dict[quest_id]
+    if not quest_layer then
+        quest_layer = {}
+        self.m_quest_condition_aim_area_dict[quest_id] = quest_layer
+    end
+    local area_rt = quest_layer[index]
+    if area_rt then
+        --area_rt.gameObject:SetActive(true)
+        return
+    end
+
+    local area_info = self.m_quest_manager:get_quest_list()[quest_id]:get_condition_aim_area(index)
+    local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+    if not area_data then
+        return
+    end
+
+    quest_layer[index] = "locked"
+    self:load("ui/map/aim_area.prefab", function (go)
+        go.name = "quest_condition_aim_area_" .. area_info[2]
+        area_rt = go:GetComponent(UnityEngine.RectTransform)
+        area_rt.parent = self.m_layer_quest_rt
+        area_rt.localScale = Vector3.one
+        area_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+        area_rt.sizeDelta = Vector2(2 * area_data.radius * self.m_scale_x, 2 * area_data.radius * self.m_scale_y)
+
+        quest_layer[index] = area_rt
+        Util_log:logError(Util_log.Mask.SJG_Map, string.format("quest_id = %d, index = %d, radius = %d\n area_data = \n%s", quest_id, index, 2 * area_data.radius, Util_string:get_string_by_tbl(area_data)))
+    end)
+end
+
+function Mini_map_view:hide_quest_condition_aim_area(quest_id, index)
+    local quest_layer = self.m_quest_condition_aim_area_dict[quest_id]
+    if not quest_layer then
+        return
+    end
+    local area_rt = quest_layer[index]
+    if not area_rt then
+        return
+    end
+
+    Object.Destroy(area_rt.gameObject)
+    table.remove(quest_layer, index)
+    if #quest_layer == 0 then
+        table.remove(self.m_quest_condition_aim_area_dict, quest_id)
+    end
+end
+
+function Mini_map_view:show_quest_aim_area(quest_id)
+    local area_rt = self.m_quest_aim_area_dict[quest_id]
+    if area_rt then
+        return
+    end
+
+    local area_info = self.m_quest_manager:get_quest_list()[quest_id]:get_aim_area()
+    local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+    if not area_data then
+        return
+    end
+
+    self.m_quest_aim_area_dict[quest_id] = "locked"
+    self:load("ui/map/aim_area.prefab", function (go)
+        go.name = "quest_aim_area_" .. area_info[2]
+        area_rt = go:GetComponent(UnityEngine.RectTransform)
+        area_rt.parent = self.m_layer_quest_rt
+        area_rt.localScale = Vector3.one
+        area_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+        area_rt.sizeDelta = Vector2(2 * area_data.radius * self.m_scale_x, 2 * area_data.radius * self.m_scale_y)
+
+        self.m_quest_aim_area_dict[quest_id] = area_rt
+    end)
+end
+
+function Mini_map_view:hide_quest_aim_area(quest_id)
+    local area_rt = self.m_quest_aim_area_dict[quest_id]
+    if not area_rt then
+        return
+    end
+
+    Object.Destroy(area_rt.gameObject)
+    self.m_quest_aim_area_dict[quest_id] = nil
+end
+
+function Mini_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3(pos.x * self.m_scale_x, pos.z * self.m_scale_y, 0)
+end
+
+--关注任务
+--获取关注任务数据和关注任务区域的localPosition
+function Mini_map_view:set_interest_quest_data(quest_id, quest_data)
+    if quest_data:get_interest() then   --关注任务
+        self.m_interest_quest_data = quest_data
+        local area_info = quest_data:get_condition_aim_area(quest_id)
+        local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+        self.m_interest_quest_area_reality_localPosition = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+        self.m_interest_point_rt.gameObject:SetActive(true)
+        self.m_interest_point_rt:SetSiblingIndex(10)
+        self:set_interest_point_pos()
+    else   --取消关注任务
+        self.m_interest_point_rt.gameObject:SetActive(false)
+    end
+
+end
+--设置关注任务在小地图边缘的位置
+function Mini_map_view:set_interest_point_pos()
+    local area_pos = self.m_interest_quest_area_reality_localPosition+self.m_moveable_rt.localPosition
+
+    local distance = math.sqrt(   math.pow(area_pos.x, 2) + math.pow(area_pos.y, 2)   )   --关注任务与owner的距离
+
+    if distance<self.m_minimap_radius then
+        self.m_interest_point_rt.localPosition = self.m_interest_quest_area_reality_localPosition
+    else
+        local x,y = self:get_interest_screen_pos()
+        self.m_interest_point_rt.localPosition = Vector3(x,y,0) - self.m_moveable_rt.localPosition
+    end
+end
+--获取关注任务在小地图边缘的位置
+function Mini_map_view:get_interest_screen_pos()
+
+    local area_pos = self.m_interest_quest_area_reality_localPosition+self.m_moveable_rt.localPosition
+    local k = (area_pos.y-self.m_owner_rt.localPosition.y)/(area_pos.x-self.m_owner_rt.localPosition.x)
+    local temp_x = self.m_minimap_radius / math.sqrt(1+math.pow(k, 2))
+    local temp_y = (self.m_minimap_radius*math.abs(k)) / math.sqrt(1+math.pow(k, 2))
+    local interest_x1 = temp_x + self.m_owner_rt.localPosition.x
+    local interest_x2 = -temp_x + self.m_owner_rt.localPosition.x
+    local interest_y1 = temp_y + self.m_owner_rt.localPosition.y
+    local interest_y2 = -temp_y + self.m_owner_rt.localPosition.y
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 1 and self:get_area_count(interest_x1, interest_y1) == 1 then
+        return interest_x1, interest_y1
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 2 and self:get_area_count(interest_x2, interest_y1) == 2 then
+        return interest_x2, interest_y1
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 3 and self:get_area_count(interest_x2, interest_y2) == 3 then
+        return interest_x2, interest_y2
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 4 and self:get_area_count(interest_x1, interest_y2) == 4 then
+        return interest_x1, interest_y2
+    end
+
+end
+--以owner为圆心，获取关注任务所在象限
+function Mini_map_view:get_area_count(x, y)
+    if x>0 and y>0 then return 1 end
+    if x<0 and y>0 then return 2 end
+    if x<0 and y<0 then return 3 end
+    if x>0 and y<0 then return 4 end
+end
+
+
+return Mini_map_view

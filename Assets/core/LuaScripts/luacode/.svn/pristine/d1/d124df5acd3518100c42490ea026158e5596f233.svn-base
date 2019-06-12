@@ -1,0 +1,72 @@
+local Frame = require("system.frame")
+local map_manager = class("map_manager", Frame)
+
+Event.decl(map_manager, "rec_unlock_trans_point")
+Event.decl(map_manager, "refresh_member_pos")
+
+function map_manager:doInit(param)
+    self.m_unlock_trans_point_list = {}
+    self:req_unlock_tele_point()
+end
+
+function map_manager:init()
+    self:local_log("map_manager  初始化")
+end
+
+-----服务器返回解锁的传送点
+function map_manager:resp_unlock_tele_point(unlock_tele_point)
+    self.m_unlock_trans_point_list = unlock_tele_point
+    self:emit_event("rec_unlock_trans_point", unlock_tele_point)
+end
+
+---- 获取所有已解锁传送点列表 by xinghanzhong 2018/02/09
+function map_manager:gain_unlock_tele_point()
+    return self.m_unlock_trans_point_list
+end
+
+----向服务器请求已经解锁的传送点
+function map_manager:req_unlock_tele_point()
+    --Debug.LogError("req_unlock_tele_point")
+    self:base_call("req_unlock_tele_point")
+end
+
+-----向服务器请求传送
+function map_manager:req_transform(id)
+    self:base_call("req_tele_to_point", id)
+end
+
+function map_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+function map_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function map_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+---- 获取队友的位置信息
+function map_manager:gain_team_member_pos_info(map_id)
+    --- 这个标识的作用是，当队伍中其他成员都退队只剩下自己，再请求一次服务器队友位置，之后便不再请求
+    local need_req = true
+    slua_timer.addTimerEvent(slua_timer.EVENT_LIST.Req_Team_Member_Pos_Timer, 0, 2, function()
+        if not need_req and utility.table:count(app:get_team_mgr():get_member_dict()) == 1 then
+            return
+        end
+        --- 当自己目前处于组队状态，并且队伍中有其他队员时才会请求队友位置
+        if app:get_team_mgr():is_has_member(app:getKBESDK():get_player_id()) and utility.table:count(app:get_team_mgr():get_member_dict()) >= 1 then
+            if utility.table:count(app:get_team_mgr():get_member_dict()) == 1 then
+                need_req = false
+            end
+            app:get_team_mgr():req_member_position(map_id)
+        end
+    end)
+end
+
+return map_manager

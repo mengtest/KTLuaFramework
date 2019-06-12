@@ -1,0 +1,16 @@
+local M = {}
+
+
+function M:doInit(buff_data)
+    --print("-------buff_hud_icon")
+    self.m_buff_data = buff_data     --buff数据
+    --self:set_is_dont_create_go_automatic(true)
+    self:set_is_add_rect_trans(true)
+
+end
+
+function M:get_buff_data()
+    return self.m_buff_data
+end
+
+return M

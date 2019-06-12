@@ -1,0 +1,175 @@
+local ObserverHost = require "system.observer_host"
+local Frame = require "system.frame"
+
+local FrameMgr = class("FrameMgr")
+FrameMgr:include(ObserverHost)
+
+Event.decl(FrameMgr, "add_frame")
+Event.decl(FrameMgr, "del_frame")
+
+function FrameMgr:initialize()
+	Event.init(self)
+
+	self.m_root = Frame:new(self, "Root")
+	self.m_class_map = {}
+	self.m_frame_map = {}
+
+	self.m_frame_map[self.m_root:getFrameName()] = self.m_root
+end
+
+function FrameMgr:destroy()
+	if self.m_root then
+		self.m_frame_map[self.m_root:getFrameName()] = nil
+		self.m_root:destroy()
+		self.m_root = nil
+	end
+	
+	self:unsubscribeAll()
+end
+
+function FrameMgr:update()
+	if self.m_root then
+		self.m_root:update()
+	end
+end
+-- by lijunfeng 2017/12/13
+function FrameMgr:fixed_update()
+	if self.m_root then
+		if self.m_root.fixed_update~=nil then
+			self.m_root:fixed_update()
+		end
+	end
+end
+-- by lijunfeng 2017/12/13
+function FrameMgr:late_update()
+	if self.m_root then
+		if self.m_root.fixed_update~=nil then
+			self.m_root:late_update()
+		end
+	end
+end
+
+function FrameMgr:getFrame(name)
+	return self.m_frame_map[name]
+end
+
+---@param name string   所创建frame对象的名称
+---@param cls string    frame类定义的名称
+---@param parent frame  父frame对象
+---@param param table  参数列表
+function FrameMgr:createFrame(name, cls, parent, param)
+    -- 断言
+    assert(type(name) == "string")  -- name应为string类型
+    assert(self.m_frame_map[name] == nil,name)  -- 该name应尚未被占用
+
+    -- 如果cls参数为nil，那么使用name参数的值
+	cls = cls or name
+
+	local file_dir = nil    -- cls文件路径
+	local file_name = nil   -- cls文件名称
+	local fullpath = ""     -- cls文件完整路径
+
+    -- 获取cls字串值的第一个字母
+    local sign = string.sub(cls, 0, 1)
+
+    -- 这里有一些潜规则
+	if sign == "%" then
+        -- 如果cls字串值的第一个字母是%，我们认为它描述了一个完整的lua文件路径
+		file_dir = ""
+		cls = string.sub(cls, 2)    -- 剔除%符号
+
+		-- 解析cls字串值，以"."或"/"为分隔符将其拆分成路径和文件名两部分
+        -- 例如 "subsystem.map.big_map.transmit"将被拆解成下列值
+        -- file_dir = "subsystem.map.big_map."
+        -- file_name = "transmit"
+        -- fullpath = "subsystem.map.big_map.transmit"
+		while not file_name do
+			local s, e = string.find(cls, "[%w_]+[%./]")
+			if s then
+				file_dir = file_dir .. string.sub(cls, s, e)
+				cls = string.sub(cls, e + 1)
+			else
+				file_name = cls
+			end
+		end
+
+		assert(file_name)
+		fullpath = file_dir .. file_name
+	else
+        -- 如果cls字串值第一个字母不是%，我们认为它描述了一个frame文件夹下的相对路径名
+		fullpath = string.format("frame.%s", cls)
+	end
+
+    -- parent为空则取frameMgr的成员节点
+    -- 代码等同于if parent == nil then parent = self.m_root end
+	parent = parent or self.m_root
+
+    -- 尝试从缓存中获取cls所对应的类定义
+	local c = self.m_class_map[cls]
+    -- 如果缓存中没有找到类定义
+	if c == nil then
+        -- 使用protected mode 执行 require(fullpath)
+        -- 关于mixin的解释，翻译自Wiki的Mixin词条
+        -- "在面向对象的编程语言中，Mixin是一个类，它包含了供【其他class】使用的方法，但它并不是这些【其他class】的父类"
+        -- "这些【其他class】如何获取/使用Mixin的方法，这取决于具体的编程语言"
+        -- "Mixin（的用法），有时被描述为"导入(included)"而不是"继承(inherited)""
+        -- 总之，用法上可以理解为多重继承中的某一个父类
+		local ok, mixin = pcall(require, fullpath)
+
+        -- 如果pcall(require, fullpath)返回的ok值不为true，说明require执行失败，原因是fullpath这个路径不存在
+        -- 这种情况下创建一个空白对象用作mixin
+		if not ok then mixin = {} end
+		assert(type(mixin) == "table")
+
+
+		if mixin.isSubclassOf and mixin:isSubclassOf(Frame) then
+			c = mixin
+		else
+			assert(getmetatable(mixin) == nil)
+			c = class(cls, Frame)
+			c:include(mixin)
+		end
+		
+		function c:getClass() return cls end
+		self.m_class_map[cls] = c
+	end
+
+	local frame = c:new(self, name, parent,cls,param)
+	frame:setFrameDir(file_dir)
+	self.m_frame_map[name] = frame
+	parent:addChild(frame)
+
+	self:emit_event_add_frame(frame)
+    parent:emit_event_child_created(frame)
+	return frame
+end
+
+function FrameMgr:destroyFrame(frame)
+if(frame == nil) then
+	Debug.LogError("frame is nil ---  in Func destroyFrame ")
+	return
+end
+
+
+	if type(frame) == "string" then
+		local name = frame
+		frame = self:getFrame(frame)
+		assert(frame, name)
+	end
+
+	assert(frame:isInstanceOf(Frame))
+	-- pacman 2017-09-23 临时屏蔽
+	--assert(self.m_frame_map[frame:getFrameName()] ~= nil, frame:getFrameName())
+
+	self:emit_event_del_frame(frame)
+
+	self.m_frame_map[frame:getFrameName()] = nil
+
+	if frame:getParent() then
+		frame:getParent():delChild(frame)
+	end
+
+	frame:destroy()
+end
+
+return FrameMgr

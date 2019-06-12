@@ -1,0 +1,37 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/12 19:39
+---
+--local require_relative = REQUIRE_BASE(...)
+--local BuffData = require_relative("buff_data")
+local BuffData = require("frame.kbe.data.buff_data")
+
+local Frame = require("system.frame")
+local team_buff_item = class("team_buff_item", Frame)
+
+Attribute.decl(team_buff_item, "remain_time", "0")
+Attribute.decl(team_buff_item, "stack", "0")
+
+Event.decl(team_buff_item, "update")
+
+function team_buff_item:doInit(params)
+    self:set_is_add_rect_trans(true)
+
+    self.m_buff = BuffData:new()
+    self.m_buff:set_spell_id(params.buff_info.spell_id)
+    self.m_buff:set_slot(params.buff_info.slot)
+    self.m_buff:set_caster_id(params.buff_info.caster_id)
+    self.m_buff:set_duration(params.buff_info.duration)
+    self.m_buff:set_remaining(params.buff_info.remaining)
+    self.m_buff:set_stack_num(params.buff_info.stack_num)
+end
+
+function team_buff_item:get_buff()
+    return self.m_buff
+end
+
+function team_buff_item:doUpdate()
+    self.m_buff:update()
+end
+
+return team_buff_item

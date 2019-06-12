@@ -1,0 +1,1045 @@
+local Frame = require("system.frame")
+local inventory_manager = class("inventory_manager", Frame)
+
+-- 灵蕴值
+Attribute.decl(inventory_manager, "inspiration", 0)
+-- 槽位解锁标志位
+Attribute.decl(inventory_manager, "slot_flag", 0)
+-- 图鉴
+Attribute.decl(inventory_manager, "handbook", 0)
+
+-----增加了新的装备
+Event.decl(inventory_manager, "add_equipment")
+----增加了新的物品（非装备）
+Event.decl(inventory_manager, "add_unequipment")
+Event.decl(inventory_manager, "equipped")
+Event.decl(inventory_manager, "unequipped")
+Event.decl(inventory_manager, "quick_equipment")
+---- 灵兽
+Event.decl(inventory_manager, "add_sprite")
+Event.decl(inventory_manager, "equip_sprite")
+Event.decl(inventory_manager, "unequip_sprite")
+Event.decl(inventory_manager, "change_sprite_skin")
+Event.decl(inventory_manager, "attach_sprite")
+Event.decl(inventory_manager, "unattached_sprite")
+Event.decl(inventory_manager, "upgrade_sprite")
+Event.decl(inventory_manager, "inverted_sprites")
+Event.decl(inventory_manager, "merged_sprites")
+
+
+function inventory_manager:doInit(param)
+    self.m_world = self:getFrame("world")
+    -----装备的表
+    self.m_equipment_list = {}
+    -----可叠加物品的表（非装备）
+    self.m_unequipment_list = {}
+    -----装备栏格位数据
+    self.m_equipping_dic = {}
+    -----灵兽的表
+    self.m_sprite_list = {}
+    -----灵兽装备栏数据
+    self.m_equipping_sprite_dict = {}
+    -----已出战灵兽
+    self.m_out_sprite = 0
+    self:base_call("inventory_list")
+end
+
+function inventory_manager:init()
+    self:local_log("inventory_manager  初始化")
+end
+
+function inventory_manager:inventory_all(countable_info, wearable_info, attachable_info, equipped_inventory, slot_flag, inspiration, handbook)
+    -- 初始灵蕴值
+    self:set_inspiration(inspiration)
+    -- 初始解锁槽位标志位
+    self:set_slot_flag(slot_flag)
+    -- 初始图鉴
+    self:set_handbook(handbook[1])
+
+    for i, v in pairs(countable_info) do
+        self:local_log("countable_info..i>>" .. tostring(i))
+        self:local_log("countable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("countable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("countable_info..qty>>" .. tostring(v["qty"]))
+    end
+
+    for i, v in pairs(countable_info) do
+        self.m_unequipment_list[i] = v
+    end
+
+    for i, v in pairs(wearable_info) do
+        self:local_log("wearable_info..i>>" .. tostring(i))
+        self:local_log("wearable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("wearable_info..level>>" .. tostring(v["level"]))
+        self:local_log("wearable_info..bound>>" .. tostring(v["bound"]))
+        --Debug.LogError("wearable_info..enhanced_level" .. tostring(v["enhanced_level"]))
+    end
+
+    for i, v in pairs(wearable_info) do
+        self.m_equipment_list[i] = v
+    end
+    ---- 可附加物品  暂时只有灵兽   rjy 2018.01.10
+    for i, v in pairs(attachable_info) do
+        --Debug.LogError("attachable_info..i>>>" .. i)
+        --Debug.LogError("attachable_info..unique>>>" .. v["unique"])
+        --Debug.LogError("attachable_info..tmpl>>>" .. v["tmpl"])
+        --Debug.LogError("attachable_info..level>>>" .. v["level"])
+        --Debug.LogError("attachable_info..bound>>>" .. v["bound"])
+        --Debug.LogError("attachable_info..look>>>" .. v["look"])
+        self.m_sprite_list[i] = v
+    end
+    --for i, v in pairs(equipped_inventory) do
+    --    self:local_log("equipped_inventory..key>>" .. tostring(i))
+    --    self:local_log("equipped_inventory..wearable_info..unique>>" .. tostring(v["unique"]))
+    --    self:local_log("equipped_inventory..wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+    --    self:local_log("wearable_info..tmpl>>" .. tostring(v["level"]))
+    --end
+
+    for i, v in pairs(equipped_inventory) do
+        self.m_equipping_dic[i] = v
+        if type(v) == "table" then
+            for key, val in pairs(dbc.sprite) do
+                if v.tmpl == val.tmpl then
+                    self.m_equipping_sprite_dict[i] = v
+                end
+            end
+        else
+            self.m_out_sprite = v
+        end
+    end
+end
+
+function inventory_manager:inventory_countables(countable_info)
+    for i, v in pairs(countable_info) do
+        self.m_unequipment_list[#self.m_unequipment_list + 1] = v
+    end
+    self:emit_event("add_unequipment", countable_info)
+end
+
+function inventory_manager:inventory_wearables(wearable_info)
+    for i, v in pairs(wearable_info) do
+        self.m_equipment_list[#self.m_equipment_list + 1] = v
+        self:quick_equipped(v)
+    end
+    self:emit_event("add_equipment", wearable_info)
+end
+-- 取得新增可附加物品 暂时仅限灵兽 rjy 2018.01.10
+function inventory_manager:inventory_attachable(attachable_info)
+    for i, v in pairs(attachable_info) do
+        self.m_sprite_list[#self.m_sprite_list + 1] = v
+    end
+    self:emit_event("add_sprite", attachable_info)
+end
+
+
+-----佩戴头盔
+function inventory_manager:inventory_equipped_head(wearable_info)
+    self.m_equipping_dic["head"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.HEAD)
+end
+
+----卸下头盔
+function inventory_manager:inventory_unequipped_head()
+    self.m_equipping_dic["head"]["unique"] = 0
+    self.m_equipping_dic["head"]["tmpl"] = 0
+    self.m_equipping_dic["head"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.HEAD)
+end
+
+----佩戴肩甲
+function inventory_manager:inventory_equipped_shoulder(wearable_info)
+    self.m_equipping_dic["shoulder"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.SHOULDER)
+end
+
+----卸下肩甲
+function inventory_manager:inventory_unequipped_shoulder()
+    self.m_equipping_dic["shoulder"]["unique"] = 0
+    self.m_equipping_dic["shoulder"]["tmpl"] = 0
+    self.m_equipping_dic["shoulder"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.SHOULDER)
+end
+
+----佩戴胸甲
+function inventory_manager:inventory_equipped_chest(wearable_info)
+    self.m_equipping_dic["chest"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.CHEST)
+end
+
+----卸下胸甲
+function inventory_manager:inventory_unequipped_chest()
+    self.m_equipping_dic["chest"]["unique"] = 0
+    self.m_equipping_dic["chest"]["tmpl"] = 0
+    self.m_equipping_dic["chest"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.CHEST)
+end
+
+----佩戴护腕
+function inventory_manager:inventory_equipped_wrist(wearable_info)
+    self.m_equipping_dic["wrist"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.WRIST)
+end
+
+----卸下护腕
+function inventory_manager:inventory_unequipped_wrist()
+    self.m_equipping_dic["wrist"]["unique"] = 0
+    self.m_equipping_dic["wrist"]["tmpl"] = 0
+    self.m_equipping_dic["wrist"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.WRIST)
+end
+
+---佩戴手套
+function inventory_manager:inventory_equipped_hands(wearable_info)
+    self.m_equipping_dic["hands"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.HANDS)
+end
+
+----卸下手套
+function inventory_manager:inventory_unequipped_hands()
+    self.m_equipping_dic["hands"]["unique"] = 0
+    self.m_equipping_dic["hands"]["tmpl"] = 0
+    self.m_equipping_dic["hands"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.HANDS)
+end
+
+----佩戴腰带
+function inventory_manager:inventory_equipped_waist(wearable_info)
+    self.m_equipping_dic["waist"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.WAIST)
+end
+
+----卸下腰带
+function inventory_manager:inventory_unequipped_waist()
+    self.m_equipping_dic["waist"]["unique"] = 0
+    self.m_equipping_dic["waist"]["tmpl"] = 0
+    self.m_equipping_dic["waist"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.WAIST)
+end
+
+----佩戴腿甲
+function inventory_manager:inventory_equipped_legs(wearable_info)
+    self.m_equipping_dic["legs"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.LEGS)
+end
+
+---卸下腿甲
+function inventory_manager:inventory_unequipped_legs()
+    self.m_equipping_dic["legs"]["unique"] = 0
+    self.m_equipping_dic["legs"]["tmpl"] = 0
+    self.m_equipping_dic["legs"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.LEGS)
+end
+
+----佩戴战靴
+function inventory_manager:inventory_equipped_feet(wearable_info)
+    self.m_equipping_dic["feet"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.FEET)
+end
+
+----卸下战靴
+function inventory_manager:inventory_unequipped_feet()
+    self.m_equipping_dic["feet"]["unique"] = 0
+    self.m_equipping_dic["feet"]["tmpl"] = 0
+    self.m_equipping_dic["feet"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.FEET)
+end
+
+----佩戴项链
+function inventory_manager:inventory_equipped_neck(wearable_info)
+    self.m_equipping_dic["neck"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.NECK)
+end
+
+----卸下项链
+function inventory_manager:inventory_unequipped_neck()
+    self.m_equipping_dic["neck"]["unique"] = 0
+    self.m_equipping_dic["neck"]["tmpl"] = 0
+    self.m_equipping_dic["neck"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.NECK)
+end
+
+-----佩戴披风
+function inventory_manager:inventory_equipped_back(wearable_info)
+    self.m_equipping_dic["back"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.BACK)
+end
+
+----卸下披风
+function inventory_manager:inventory_unequipped_back()
+    self.m_equipping_dic["back"]["unique"] = 0
+    self.m_equipping_dic["back"]["tmpl"] = 0
+    self.m_equipping_dic["back"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.BACK)
+end
+
+----佩戴戒指1
+function inventory_manager:inventory_equipped_finger1(wearable_info)
+    self.m_equipping_dic["finger1"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.FINGER1)
+end
+
+---卸下戒指1
+function inventory_manager:inventory_unequipped_finger1()
+    self.m_equipping_dic["finger1"]["unique"] = 0
+    self.m_equipping_dic["finger1"]["tmpl"] = 0
+    self.m_equipping_dic["back"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.FINGER1)
+end
+
+-----佩戴戒指2
+function inventory_manager:inventory_equipped_finger2(wearable_info)
+    self.m_equipping_dic["finger2"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.FINGER2)
+end
+
+-----卸下戒指2
+function inventory_manager:inventory_unequipped_finger2()
+    self.m_equipping_dic["finger2"]["unique"] = 0
+    self.m_equipping_dic["finger2"]["tmpl"] = 0
+    self.m_equipping_dic["finger2"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.FINGER2)
+end
+
+----佩戴配饰1
+function inventory_manager:inventory_equipped_accessory1(wearable_info)
+    self.m_equipping_dic["accessory1"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.ACCESSORY1)
+end
+
+----卸下配饰1
+function inventory_manager:inventory_unequipped_accessory1()
+    self.m_equipping_dic["accessory1"]["unique"] = 0
+    self.m_equipping_dic["accessory1"]["tmpl"] = 0
+    self.m_equipping_dic["accessory1"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.ACCESSORY1)
+end
+
+----佩戴配饰2
+function inventory_manager:inventory_equipped_accessory2(wearable_info)
+    self.m_equipping_dic["accessory2"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.ACCESSORY2)
+end
+
+---卸下配饰2
+function inventory_manager:inventory_unequipped_accessory2()
+    self.m_equipping_dic["accessory2"]["unique"] = 0
+    self.m_equipping_dic["accessory2"]["tmpl"] = 0
+    self.m_equipping_dic["accessory2"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.ACCESSORY2)
+end
+
+----佩戴主手武器
+function inventory_manager:inventory_equipped_mainhand_weapon(wearable_info)
+    self.m_equipping_dic["mainhand_weapon"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.MAINHAND_WEAPON)
+end
+
+---卸下主手武器
+function inventory_manager:inventory_unequipped_mainhand_weapon()
+    self.m_equipping_dic["mainhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["mainhand_weapon"]["tmpl"] = 0
+    self.m_equipping_dic["mainhand_weapon"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.MAINHAND_WEAPON)
+end
+
+----佩戴副手武器
+function inventory_manager:inventory_equipped_offhand_weapon(wearable_info)
+    self.m_equipping_dic["offhand_weapon"] = wearable_info
+    self:emit_event("equipped", wearable_info, enum.shared.WearableTarget.OFFHAND_WEAPON)
+end
+
+----卸下副手武器
+function inventory_manager:inventory_unequipped_offhand_weapon()
+    self.m_equipping_dic["offhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["offhand_weapon"]["tmpl"] = 0
+    self.m_equipping_dic["offhand_weapon"]["level"] = 0
+    self:emit_event("unequipped", enum.shared.WearableTarget.OFFHAND_WEAPON)
+end
+
+--------------------------------------------------------------------------------
+----灵兽
+--------------------------------------------------------------------------------
+-- 装备金系灵兽
+function inventory_manager:inventory_equipped_metal_sprite(attachable_info, args)
+    self.m_equipping_sprite_dict["metal_sprite"] = attachable_info
+    self:emit_event("equip_sprite", attachable_info, enum.shared.WearableTarget.METAL_SPRITE, args)
+end
+-- 卸下金系灵兽
+function inventory_manager:inventory_unequipped_metal_sprite(unequipped_type)
+    if unequipped_type == enum.spirit_beast.UnequippingType.NORMAL then
+        self.m_equipping_sprite_dict["metal_sprite"]["unique"] = 0
+        self.m_equipping_sprite_dict["metal_sprite"]["tmpl"] = 0
+    end
+    self:emit_event("unequip_sprite", enum.shared.WearableTarget.METAL_SPRITE, unequipped_type)
+end
+-- 金系灵兽出战
+function inventory_manager:inventory_attached_metal_sprite()
+    self:emit_event("attach_sprite", enum.shared.WearableTarget.METAL_SPRITE)
+end
+-- 金系灵兽装备皮肤
+function inventory_manager:inventory_skinned_metal_sprite(skin_id)
+    self:emit_event("change_sprite_skin", skin_id, enum.shared.WearableTarget.METAL_SPRITE)
+end
+-- 装备木系灵兽
+function inventory_manager:inventory_equipped_wood_sprite(attachable_info, args)
+    self.m_equipping_sprite_dict["wood_sprite"] = attachable_info
+    self:emit_event("equip_sprite", attachable_info, enum.shared.WearableTarget.WOOD_SPRITE, args)
+end
+-- 卸下木系灵兽
+function inventory_manager:inventory_unequipped_wood_sprite(unequipped_type)
+    if unequipped_type == enum.spirit_beast.UnequippingType.NORMAL then
+        self.m_equipping_sprite_dict["metal_sprite"]["unique"] = 0
+        self.m_equipping_sprite_dict["metal_sprite"]["tmpl"] = 0
+    end
+    self:emit_event("unequip_sprite", enum.shared.WearableTarget.WOOD_SPRITE, unequipped_type)
+end
+-- 木系灵兽出战
+function inventory_manager:inventory_attached_wood_sprite()
+    self:emit_event("attach_sprite", enum.shared.WearableTarget.WOOD_SPRITE)
+end
+-- 木系灵兽装备皮肤
+function inventory_manager:inventory_skinned_wood_sprite(skin_id)
+    self:emit_event("change_sprite_skin", skin_id, enum.shared.WearableTarget.WOOD_SPRITE)
+end
+-- 装备水系灵兽
+function inventory_manager:inventory_equipped_water_sprite(attachable_info, args)
+    self.m_equipping_sprite_dict["water_sprite"] = attachable_info
+    self:emit_event("equip_sprite", attachable_info, enum.shared.WearableTarget.WATER_SPRITE, args)
+end
+-- 水系灵兽出战
+function inventory_manager:inventory_attached_water_sprite()
+    self:emit_event("attach_sprite", enum.shared.WearableTarget.WATER_SPRITE)
+end
+-- 卸下水系灵兽
+function inventory_manager:inventory_unequipped_water_sprite(unequipped_type)
+    if unequipped_type == enum.spirit_beast.UnequippingType.NORMAL then
+        self.m_equipping_sprite_dict["metal_sprite"]["unique"] = 0
+        self.m_equipping_sprite_dict["metal_sprite"]["tmpl"] = 0
+    end
+    self:emit_event("unequip_sprite", enum.shared.WearableTarget.WATER_SPRITE, unequipped_type)
+end
+-- 水系灵兽装备皮肤
+function inventory_manager:inventory_skinned_water_sprite(skin_id)
+    self:emit_event("change_sprite_skin", skin_id, enum.shared.WearableTarget.WATER_SPRITE)
+end
+-- 装备火系灵兽
+function inventory_manager:inventory_equipped_fire_sprite(attachable_info, args)
+    self.m_equipping_sprite_dict["fire_sprite"] = attachable_info
+    self:emit_event("equip_sprite", attachable_info, enum.shared.WearableTarget.FIRE_SPRITE, args)
+end
+-- 卸下火系灵兽
+function inventory_manager:inventory_unequipped_fire_sprite(unequipped_type)
+    if unequipped_type == enum.spirit_beast.UnequippingType.NORMAL then
+        self.m_equipping_sprite_dict["metal_sprite"]["unique"] = 0
+        self.m_equipping_sprite_dict["metal_sprite"]["tmpl"] = 0
+    end
+    self:emit_event("unequip_sprite", enum.shared.WearableTarget.FIRE_SPRITE, unequipped_type)
+end
+-- 火系灵兽出战
+function inventory_manager:inventory_attached_fire_sprite()
+    self:emit_event("attach_sprite", enum.shared.WearableTarget.FIRE_SPRITE)
+end
+-- 火系灵兽装备皮肤
+function inventory_manager:inventory_skinned_fire_sprite(skin_id)
+    self:emit_event("change_sprite_skin", skin_id, enum.shared.WearableTarget.FIRE_SPRITE)
+end
+-- 解除灵兽出战
+function inventory_manager:inventory_unattached_sprite()
+    self:emit_event("unattached_sprite")
+end
+-- 分解
+function inventory_manager:inventory_inverted_sprites(sprite_unique_list, sprite_id_list)
+    self:emit_event("inverted_sprites", sprite_unique_list, sprite_id_list)
+end
+-- 融灵
+function inventory_manager:inventory_merged_sprites(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+    self:emit_event("merged_sprites", main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+end
+-- 升级
+function inventory_manager:inventory_upgraded_sprite(sprite_unique, sprite_tmpl, arg)
+    self:emit_event("upgrade_sprite", sprite_unique, sprite_tmpl, arg)
+end
+
+----快速穿装备 目前以装等为替换的准则 有些规则还没有完全确定，所以后续还要改动  temp
+function inventory_manager:quick_equipped(wearable_info)
+    if dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.HEAD then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["head"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["head"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        ---头盔
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["head"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.HEAD)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.SHOULDER then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["shoulder"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["shoulder"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["shoulder"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.SHOULDER)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.CHEST then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["chest"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["chest"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["chest"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.CHEST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.WRIST then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["wrist"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["wrist"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["wrist"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.WRIST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.HANDS then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["hands"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["hands"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["hands"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.HANDS)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.WAIST then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["waist"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["waist"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["waist"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.WAIST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.LEGS then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["legs"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["legs"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["legs"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.LEGS)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.FEET then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["feet"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["feet"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["feet"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.FEET)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.NECK then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["neck"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["neck"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["neck"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.NECK)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.BACK then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["back"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["back"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        if equip_level < item_level and can_equip == 1 then
+            --self.m_equipping_dic["back"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.BACK)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.FINGER then
+        ----获取装备栏装备的等级
+        local equip_id1 = self.m_equipping_dic["finger1"]["tmpl"]
+        local equip_level_label1 = 0
+        if equip_id1 ~= 0 then
+            equip_level_label1 = dbc.item[equip_id1].level_label
+        end
+        local equip_enhanced_level1 = self.m_equipping_dic["finger1"]["enhanced_level"]
+        local equip_level1 = equip_level_label1 + equip_enhanced_level1
+
+        local equip_id2 = self.m_equipping_dic["finger2"]["tmpl"]
+        local equip_level_label2 = 0
+        if equip_id2 ~= 0 then
+            equip_level_label2 = dbc.item[equip_id2].level_label
+        end
+        local equip_enhanced_level2 = self.m_equipping_dic["finger2"]["enhanced_level"]
+        local equip_level2 = equip_level_label2 + equip_enhanced_level2
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        -----戒指有两个特殊处理
+        if equip_level1 <= equip_level2 then
+            if equip_level1 < item_level and can_equip == 1 then
+                --self.m_equipping_dic["finger1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.FINGER1)
+            end
+        elseif equip_level2 < equip_level1 then
+            if equip_level2 < item_level and can_equip == 1 then
+                --self.m_equipping_dic["finger2"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.FINGER2)
+            end
+        elseif equip_level2 == equip_level1 then
+            if equip_level1 < item_level and can_equip == 1 then
+                --self.m_equipping_dic["finger1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.FINGER1)
+            end
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.ACCESSORY then
+        ----获取装备栏装备的等级
+        local equip_id1 = self.m_equipping_dic["accessory1"]["tmpl"]
+        local equip_level_label1 = 0
+        if equip_id1 ~= 0 then
+            equip_level_label1 = dbc.item[equip_id1].level_label
+        end
+        local equip_enhanced_level1 = self.m_equipping_dic["accessory1"]["enhanced_level"]
+        local equip_level1 = equip_level_label1 + equip_enhanced_level1
+
+        local equip_id2 = self.m_equipping_dic["accessory2"]["tmpl"]
+        local equip_level_label2 = 0
+        if equip_id2 ~= 0 then
+            equip_level_label2 = dbc.item[equip_id2].level_label
+        end
+        local equip_enhanced_level2 = self.m_equipping_dic["accessory2"]["enhanced_level"]
+        local equip_level2 = equip_level_label2 + equip_enhanced_level2
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        local can_equip = self:gain_equip_or_unequip(wearable_info['tmpl'], item_level)
+        -----配饰有2个特殊处理
+        if equip_level1 <= equip_level2 then
+            if equip_level1 < item_level and can_equip == 1 then
+                --self.m_equipping_dic["accessory1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.ACCESSORY1)
+            end
+        elseif equip_level2 < equip_level1 then
+            if equip_level2 < item_level and can_equip == 1 then
+                --self.m_equipping_dic["accessory2"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.ACCESSORY2)
+            end
+        elseif equip_level2 == equip_level1 then
+            if equip_level1 < wearable_info["level"] and can_equip == 1 then
+                --self.m_equipping_dic["accessory1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.ACCESSORY1)
+            end
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == enum.shared.WearableTarget.MAINHAND_WEAPON then
+        ----获取装备栏装备的等级
+        local equip_id = self.m_equipping_dic["mainhand_weapon"]["tmpl"]
+        local equip_level_label = 0
+        if equip_id ~= 0 then
+            equip_level_label = dbc.item[equip_id].level_label
+        end
+        local equip_enhanced_level = self.m_equipping_dic["mainhand_weapon"]["enhanced_level"]
+        local equip_level = equip_level_label + equip_enhanced_level
+        ----获取获得的装备的等级
+        local item_level_label = dbc.item[wearable_info['tmpl']].level_label
+        local item_enhanced_level = wearable_info['enhanced_level']
+        local item_level = item_level_label + item_enhanced_level
+        if equip_level < item_level then
+            --self.m_equipping_dic["mainhand_weapon"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, enum.shared.WearableTarget.MAINHAND_WEAPON)
+        end
+    end
+end
+
+----获取到装备的列表
+function inventory_manager:gain_equipment_list()
+    return self.m_equipment_list
+end
+
+----获取到非装备的列表
+function inventory_manager:gain_unequipment_list()
+    return self.m_unequipment_list
+end
+
+----获取到装备位的数据
+function inventory_manager:gain_equiping_dic()
+    return self.m_equipping_dic
+end
+
+
+----获取到灵兽列表
+function inventory_manager:gain_sprite_list()
+    return self.m_sprite_list
+end
+
+----获取到装备了的灵兽信息dictionary
+function inventory_manager:gain_equipping_sprite_dict()
+    return self.m_equipping_sprite_dict
+end
+
+----获取出战灵兽
+function inventory_manager:gain_out_sprite()
+    return self.m_out_sprite
+end
+
+
+function inventory_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function inventory_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+------穿装备时向服务器请求的方法
+function inventory_manager:put_on_equipment_request_server(equipment_type, unique, id, args)
+    if equipment_type == enum.shared.WearableTarget.HEAD then
+        self:base_call("inventory_equipping_head", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.SHOULDER then
+        self:base_call("inventory_equipping_shoulder", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.CHEST then
+        self:base_call("inventory_equipping_chest", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.WRIST then
+        self:base_call("inventory_equipping_wrist", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.HANDS then
+        self:base_call("inventory_equipping_hands", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.WAIST then
+        self:base_call("inventory_equipping_waist", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.LEGS then
+        self:base_call("inventory_equipping_legs", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.FEET then
+        self:base_call("inventory_equipping_feet", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.NECK then
+        self:base_call("inventory_equipping_neck", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.BACK then
+        self:base_call("inventory_equipping_back", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.FINGER1 then
+        self:base_call("inventory_equipping_finger1", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.FINGER2 then
+        self:base_call("inventory_equipping_finger2", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.ACCESSORY1 then
+        self:base_call("inventory_equipping_accessory1", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.ACCESSORY2 then
+        self:base_call("inventory_equipping_accessory2", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.MAINHAND_WEAPON then
+        self:base_call("inventory_equipping_mainhand_weapon", unique, id)
+    elseif equipment_type == enum.shared.WearableTarget.OFFHAND_WEAPON then
+        self:base_call("inventory_equipping_offhand_weapon", unique, id)
+
+        -- 以下是 rjy 加的灵兽相关
+    elseif equipment_type == enum.shared.WearableTarget.METAL_SPRITE then
+        self:base_call("inventory_equipping_metal_sprite", unique, id, args)
+    elseif equipment_type == enum.shared.WearableTarget.WOOD_SPRITE then
+        self:base_call("inventory_equipping_wood_sprite", unique, id, args)
+    elseif equipment_type == enum.shared.WearableTarget.WATER_SPRITE then
+        self:base_call("inventory_equipping_water_sprite", unique, id, args)
+    elseif equipment_type == enum.shared.WearableTarget.FIRE_SPRITE then
+        self:base_call("inventory_equipping_fire_sprite", unique, id, args)
+    end
+end
+---- 灵兽出战请求
+function inventory_manager:sprite_attach_request_server(sprite_type)
+    if sprite_type == enum.shared.WearableTarget.METAL_SPRITE then
+        self:base_call("inventory_attaching_metal_sprite")
+    elseif sprite_type == enum.shared.WearableTarget.WOOD_SPRITE then
+        self:base_call("inventory_attaching_wood_sprite")
+    elseif sprite_type == enum.shared.WearableTarget.WATER_SPRITE then
+        self:base_call("inventory_attaching_water_sprite")
+    elseif sprite_type == enum.shared.WearableTarget.FIRE_SPRITE then
+        self:base_call("inventory_attaching_fire_sprite")
+    end
+end
+---- 灵兽解除出战请求
+function inventory_manager:sprite_unattaching_request_server()
+    self:base_call("inventory_unattaching_sprite")
+end
+
+---- 灵兽分解请求
+function inventory_manager:sprite_inverting_request_server(sprite_unique_list, sprite_id_list)
+    self:base_call("inventory_inverting_sprites", sprite_unique_list, sprite_id_list)
+end
+---- 灵兽融合请求
+function inventory_manager:sprite_merging_request_server(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, args)
+    self:base_call("inventory_merging_sprites", main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, args)
+end
+
+---- 灵兽升级请求
+function inventory_manager:sprite_upgrading_request_server(unique, tmpl, arg)
+    self:base_call("inventory_upgrading_sprite", unique, tmpl, arg)
+end
+
+---- 灵兽请求卸下  [ unequipped_type 代表是当前什么操作下来卸下灵兽]
+function inventory_manager:sprite_unequipping_request_server(sprite_type, unequipped_type)
+    if sprite_type == enum.shared.WearableTarget.METAL_SPRITE then
+        self:base_call("inventory_unequipping_metal_sprite", unequipped_type)
+    elseif sprite_type == enum.shared.WearableTarget.WOOD_SPRITE then
+        self:base_call("inventory_unequipping_wood_sprite", unequipped_type)
+    elseif sprite_type == enum.shared.WearableTarget.WATER_SPRITE then
+        self:base_call("inventory_unequipping_water_sprite", unequipped_type)
+    elseif sprite_type == enum.shared.WearableTarget.FIRE_SPRITE then
+        self:base_call("inventory_unequipping_fire_sprite", unequipped_type)
+    end
+end
+
+
+---- TODO 灵兽换皮肤请求
+function inventory_manager:sprite_change_skin_request_server(sprite_type, skin_id)
+    if sprite_type == enum.shared.WearableTarget.METAL_SPRITE then
+        self:base_call("inventory_skinning_metal_sprite", skin_id)
+    elseif sprite_type == enum.shared.WearableTarget.WOOD_SPRITE then
+        self:base_call("inventory_skinning_wood_sprite", skin_id)
+    elseif sprite_type == enum.shared.WearableTarget.WATER_SPRITE then
+        self:base_call("inventory_skinning_water_sprite", skin_id)
+    elseif sprite_type == enum.shared.WearableTarget.FIRE_SPRITE then
+        self:base_call("inventory_skinning_fire_sprite", skin_id)
+    end
+end
+function inventory_manager:get_off_equipment_request_server(equipment_type)
+    if equipment_type == enum.shared.WearableTarget.HEAD then
+        self:base_call("inventory_unequipping_head")
+    elseif equipment_type == enum.shared.WearableTarget.SHOULDER then
+        self:base_call("inventory_unequipping_shoulder")
+    elseif equipment_type == enum.shared.WearableTarget.CHEST then
+        self:base_call("inventory_unequipping_chest")
+    elseif equipment_type == enum.shared.WearableTarget.WRIST then
+        self:base_call("inventory_unequipping_wrist")
+    elseif equipment_type == enum.shared.WearableTarget.HANDS then
+        self:base_call("inventory_unequipping_hands")
+    elseif equipment_type == enum.shared.WearableTarget.WAIST then
+        self:base_call("inventory_unequipping_waist")
+    elseif equipment_type == enum.shared.WearableTarget.LEGS then
+        self:base_call("inventory_unequipping_legs")
+    elseif equipment_type == enum.shared.WearableTarget.FEET then
+        self:base_call("inventory_unequipping_feet")
+    elseif equipment_type == enum.shared.WearableTarget.NECK then
+        self:base_call("inventory_unequipping_neck")
+    elseif equipment_type == enum.shared.WearableTarget.BACK then
+        self:base_call("inventory_unequipping_back")
+    elseif equipment_type == enum.shared.WearableTarget.FINGER1 then
+        self:base_call("inventory_unequipping_finger1")
+    elseif equipment_type == enum.shared.WearableTarget.FINGER2 then
+        self:base_call("inventory_unequipping_finger2")
+    elseif equipment_type == enum.shared.WearableTarget.ACCESSORY1 then
+        self:base_call("inventory_unequipping_accessory1")
+    elseif equipment_type == enum.shared.WearableTarget.ACCESSORY2 then
+        self:base_call("inventory_unequipping_accessory2")
+    elseif equipment_type == enum.shared.WearableTarget.MAINHAND_WEAPON then
+        self:base_call("inventory_unequipping_mainhand_weapon")
+    elseif equipment_type == enum.shared.WearableTarget.OFFHAND_WEAPON then
+        self:base_call("inventory_unequipping_offhand_weapon")
+    end
+end
+
+-------穿入参数为物品的id    物品的等级
+function inventory_manager:gain_equipment_quality(id, level)
+    local list = dbc.item[id].qualities
+    for i = 1, #list - 2, 2 do
+        if level >= list[i] then
+            if i == #list - 1 then
+                return list[i + 1]
+            end
+            if level < list[i + 2] then
+                return list[i + 1]
+            end
+        end
+    end
+    Debug.LogError("表中未索引到此品质装备，检查表结构" .. tostring(id) .. tostring(level))
+    return 999
+end
+
+----穿入的参数为物品的id  物品的等级
+function inventory_manager:gain_equip_or_unequip(id, level)
+    local level_list = dbc.item[id].levels
+    local major_list = dbc.item[id].majors
+    local player_level = self:gain_player_level()
+    local specialization = self.m_world:get_main_player():get_specialization()
+    --- 专精限制
+    local major_limit = false
+    if #major_list == 0 then
+        major_limit = true
+    else
+        for _, major in pairs(major_list) do
+            if specialization == major then
+                major_limit = true
+                break
+            end
+        end
+    end
+
+    if not major_limit then
+        return 0, enum.equipment.EquipWearLimit.Major
+    end
+    for i = 2, #level_list, 2 do
+        if level <= level_list[i] then
+            if player_level >= level_list[i - 1] then
+                return 1
+            else
+                return 0, enum.equipment.EquipWearLimit.Level
+            end
+        end
+    end
+    Debug.LogError("表中未索引到此装备是否可穿戴，检查表结构")
+    return 999
+end
+
+------根据装备等级获取装备名称  参数为装备等级
+function inventory_manager:gain_equipment_name(id, level)
+    local list = dbc.item[id].name
+    for i = #list - 1, 1, -2 do
+        if level >= tonumber(list[i]) then
+            return list[i + 1]
+        end
+    end
+    Debug.LogError("表中未索引到此名称装备，检查表结构" .. tostring(level))
+    return '不知名的装备'
+end
+
+----获取当前的主角的等级
+function inventory_manager:gain_player_level()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local player_level = role:get_attr("level")
+    return player_level
+end
+----根据装备槽名称获取装备槽类型
+function inventory_manager:get_equip_type(name)
+    if name == "accessory1" then
+        return enum.shared.WearableTarget.ACCESSORY1
+    elseif name == "chest" then
+        return enum.shared.WearableTarget.CHEST
+    elseif name == "offhand_weapon" then
+        --暂时无副手武器
+        --return enum.shared.WearableTarget.OFFHAND_WEAPON
+        return -1
+    elseif name == "finger1" then
+        return enum.shared.WearableTarget.FINGER1
+    elseif name == "legs" then
+        return enum.shared.WearableTarget.LEGS
+    elseif name == "mainhand_weapon" then
+        return enum.shared.WearableTarget.MAINHAND_WEAPON
+    elseif name == "finger2" then
+        return enum.shared.WearableTarget.FINGER2
+    elseif name == "waist" then
+        return enum.shared.WearableTarget.WAIST
+    elseif name == "accessory2" then
+        return enum.shared.WearableTarget.ACCESSORY2
+    elseif name == "feet" then
+        return enum.shared.WearableTarget.FEET
+    elseif name == "hands" then
+        return enum.shared.WearableTarget.HANDS
+    elseif name == "back" then
+        return enum.shared.WearableTarget.BACK
+    elseif name == "neck" then
+        return enum.shared.WearableTarget.NECK
+    elseif name == "wrist" then
+        return enum.shared.WearableTarget.WRIST
+    elseif name == "head" then
+        return enum.shared.WearableTarget.HEAD
+    elseif name == "shoulder" then
+        return enum.shared.WearableTarget.SHOULDER
+    end
+    return -1
+end
+
+function inventory_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return inventory_manager

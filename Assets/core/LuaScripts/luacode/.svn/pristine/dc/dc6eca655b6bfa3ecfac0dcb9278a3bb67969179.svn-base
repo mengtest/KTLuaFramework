@@ -1,0 +1,464 @@
+local View = require("system.view")
+local dungeon_join_view = class("dungeon_join_view", View)
+
+function dungeon_join_view:doInit(param)
+
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    ---滑动区域的列表
+    self.m_drag_area_list = {}
+    ---等级按钮的列表
+    self.m_level_btn_list = {}
+    ---当前滑到按钮的等级
+    self.m_curr_level = nil
+    ---滑动过程当中，即将要滑到的按钮的等级
+    self.m_target_level = nil
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ----要打开的难度的列表
+    self.m_open_list = {}
+    ---在lua中，如果下标出现1,2,4这种情况，那么列表的长度为4，所以在这里将传过来的表进行整理
+    for k, v in pairs(param) do
+        self.m_open_list[#self.m_open_list + 1] = v
+    end
+    --for k, v in pairs(param) do
+    --    self:local_log("当前的键%s，当前的难度%s", k, v["state"])
+    --end
+    self:load("ui/DungeonJoinSelect.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+
+        self.m_panel = go.transform:Find("dungeon_join_select").gameObject:GetComponent("DragSkill")
+
+        local drag_area_root = go.transform:Find("dungeon_join_select/bg_image").transform
+        -----页面公共的按钮
+        local close_btn = drag_area_root:Find("close_btn/bg_image"):GetComponent(UI.Button)
+        self.m_left_btn = drag_area_root:Find("change_btn_container/left_btn"):GetComponent(UI.Button)
+        self.m_right_btn = drag_area_root:Find("change_btn_container/right_btn"):GetComponent(UI.Button)
+        -----普通难度界面的信息
+        self.m_normal_area_image = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/normal_image")
+        self.m_drag_area_list[1] = self.normal_area_image
+        local normal_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/normal_image/show")
+        self.m_normal_level_bg = normal_show_root:Find("level_bg_image")
+        self.m_normal_condition_bg = normal_show_root:Find("condition_bg_image")
+        self.m_normal_level_text = normal_show_root:Find("level_bg_image/level_tip_text"):GetComponent(UI.Text)
+        self.m_normal_condition_tip_text = normal_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        self.m_normal_join_btn = normal_show_root:Find("join_btn"):GetComponent(UI.Button)
+        -----英雄难度界面的信息
+        self.m_hero_area_image = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/hero_image")
+        self.m_drag_area_list[2] = self.hero_area_image
+        local hero_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/hero_image/show").transform
+        self.m_hero_level_bg = hero_show_root:Find("level_bg_image")
+        self.m_hero_condition_bg = hero_show_root:Find("condition_bg_image")
+        self.m_hero_level_text = hero_show_root:Find("level_bg_image/level_tip_text"):GetComponent(UI.Text)
+        self.m_hero_condition_tip_text = hero_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        self.m_hero_join_btn = hero_show_root:Find("join_btn"):GetComponent(UI.Button)
+
+        -----史诗难度界面的信息
+        self.m_epic_area_image = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/epic_image")
+        self.m_drag_area_list[3] = self.epic_area_image
+        local epic_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/epic_image/show").transform
+        self.m_epic_level_bg = epic_show_root:Find("level_bg_image")
+        self.m_epic_condition_bg = epic_show_root:Find("condition_bg_image")
+        self.m_epic_level_text = epic_show_root:Find("level_bg_image/level_tip_text"):GetComponent(UI.Text)
+        self.m_epic_condition_tip_text = epic_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        self.m_epic_join_btn = epic_show_root:Find("join_btn"):GetComponent(UI.Button)
+
+        -----秘境难度界面的信息
+        self.m_fairyland_area_image = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/fairyland_image")
+        self.m_drag_area_list[4] = self.fairyland_area_image
+        local fairyland_show_root = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/container/fairyland_image/show").transform
+        self.m_fairyland_level_bg = fairyland_show_root:Find("level_bg_image")
+        self.m_fairyland_condition_bg = fairyland_show_root:Find("condition_bg_image")
+        self.m_fairyland_level_text = fairyland_show_root:Find("level_bg_image/level_tip_text"):GetComponent(UI.Text)
+        self.m_fairyland_condition_tip_text = fairyland_show_root:Find("condition_bg_image/condition_tip_text"):GetComponent(UI.Text)
+        self.m_fairyland_join_btn = fairyland_show_root:Find("join_btn"):GetComponent(UI.Button)
+        -----这里是一个秘境显示的节点
+        local fairy_land_show = fairyland_show_root:Find("fairyland_show").transform
+        local fairy_key_image = fairy_land_show:Find("key_image"):GetComponent(UI.Image)
+        local fairyland_no_join_tip = fairy_land_show:Find("nocondition_bg_image/Text"):GetComponent(UI.Text)
+        local fairy_land_name = fairy_land_show:Find("name_text"):GetComponent(UI.Text)
+        local fairy_land_word_text = fairy_land_show:Find("word_text"):GetComponent(UI.Text)
+        -----滑动条相关
+        self.m_scrollbar = go.transform:Find("dungeon_join_select/level_btn_bg_image/drag_area_scrollbar"):GetComponent(UI.Scrollbar)
+        self.m_selected_image = self.m_scrollbar.transform:Find("sliding_area/selected_image").transform
+        self.m_selected_normal_image = self.m_selected_image:Find("normal_image").transform
+        self.m_selected_hero_image = self.m_selected_image:Find("hero_image").transform
+        self.m_selected_epic_image = self.m_selected_image:Find("epic_image").transform
+        self.m_selected_fairyland_image = self.m_selected_image:Find("fairyland_image").transform
+        self.m_selected_level_text = self.m_selected_image:Find("Text").transform:GetComponent(UI.Text)
+        self.m_selected_right_image = self.m_selected_image:Find("right_image").transform
+        self.m_selected_left_image = self.m_selected_image:Find("left_image").transform
+        ----各难度的按钮
+        local level_btn_root = self.m_scrollbar.transform:Find("level_btn_container").transform
+        ----普通难度按钮
+        self.m_normal_btn_bg = level_btn_root:Find("normal").transform
+        self.m_normal = self.m_normal_btn_bg:Find("normal_btn").transform
+        self.m_normal_btn = self.m_normal_btn_bg:Find("normal_btn/Text"):GetComponent(UI.Button)
+        local normal_text = self.m_normal_btn_bg:Find("normal_btn/Text"):GetComponent(UI.Text)
+        -----英雄难度按钮
+        self.m_hero_btn_bg = level_btn_root:Find("hero").transform
+        self.m_hero = self.m_hero_btn_bg:Find("hero_btn").transform
+        self.m_hero_btn = self.m_hero_btn_bg:Find("hero_btn/Text"):GetComponent(UI.Button)
+        local hero_text = self.m_hero_btn_bg:Find("hero_btn/Text"):GetComponent(UI.Text)
+        -----史诗难度按钮
+        self.m_epic_btn_bg = level_btn_root:Find("epic").transform
+        self.m_epic = self.m_epic_btn_bg:Find("epic_btn").transform
+        self.m_epic_btn = self.m_epic_btn_bg:Find("epic_btn/Text"):GetComponent(UI.Button)
+        local epic_text = self.m_epic_btn_bg:Find("epic_btn/Text"):GetComponent(UI.Text)
+        -----秘境难度按钮
+        self.m_fairyland_btn_bg = level_btn_root:Find("fairyland").transform
+        self.m_fairyland = self.m_fairyland_btn_bg:Find("fairyland_btn").transform
+        self.m_fairyland_btn = self.m_fairyland_btn_bg:Find("fairyland_btn/Text"):GetComponent(UI.Button)
+        local fairyland_text = self.m_fairyland_btn_bg:Find("fairyland_btn/Text"):GetComponent(UI.Text)
+
+        --放在scrollrect下用KTbutton会出现拖动响应抬起的事件，这个日后需要考究      2017.10.21
+        --local btn_mask_area = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel/btn_mask")
+        --:GetComponent(KTButton)
+        --temp.onPointerDown = { "+=", function(evt)
+        --    self:do_on_pointer_down(evt)
+        --end }
+        --
+        --temp.onPointerUp = { "+=", function(evt)
+        --    self:do_on_pointer_up(evt)
+        --end }
+        local btn_mask_trsf = go.transform:Find("dungeon_join_select/bg_image/drag_area_panel")
+        local evtTrigger = btn_mask_trsf:GetComponent(UnityEngine.EventSystems.EventTrigger)
+
+        local test_func = function(base_evt_data)
+            self:do_on_pointer_up()
+        end
+
+        local entry = EventSystems.EventTrigger.Entry()
+        entry.eventID = EventSystems.EventTriggerType.PointerUp
+        entry.callback:AddListener(test_func)
+        evtTrigger.triggers:Add(entry)
+
+        ---------注册按钮事件
+        close_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_join")
+        end)
+
+        self:refresh_rect()
+        self.m_left_btn.gameObject:SetActive(false)
+        self.m_selected_left_image.gameObject:SetActive(false)
+
+        self.m_panel.onClick = DragSkill_OnPointerClickHandler()
+        self.m_panel.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_join")
+        end)
+
+        self.m_right_btn.onClick:AddListener(function()
+            self:to_tight_btn_callback()
+        end)
+
+        self.m_left_btn.onClick:AddListener(function()
+            self:to_left_btn_callback()
+        end)
+    end)
+end
+
+function dungeon_join_view:doUpdate()
+    if self.m_need_move then
+        --local temp = self.m_scrollbar.value - self.m_scroll_bar_target_value
+        --local test = Mathf.Abs(temp)
+        --local test2 = math.abs(temp)
+        --这里提及一下，如果lua当中的内置库可以实现的一些内容，那么就用lua的，并且调用unity中的接口的时候，我们要检查slua返回值是否有变化
+        if (math.abs(self.m_scrollbar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scrollbar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scrollbar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scrollbar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+-----按钮抬起时的回调
+function dungeon_join_view:do_on_pointer_up()
+    if #self.m_open_list == 4 then
+        if self.m_scrollbar.value <= 0.17 then
+            self.m_target_level = self.m_level_btn_list[1]["item"]
+            self.m_scroll_bar_target_value = 0
+        elseif self.m_scrollbar.value <= 0.48 then
+            self.m_target_level = self.m_level_btn_list[2]["item"]
+            self.m_scroll_bar_target_value = 0.33
+        elseif self.m_scrollbar.value <= 0.83 then
+            self.m_target_level = self.m_level_btn_list[3]["item"]
+            self.m_scroll_bar_target_value = 0.67
+        else
+            self.m_target_level = self.m_level_btn_list[4]["item"]
+            self.m_scroll_bar_target_value = 1
+        end
+    elseif #self.m_open_list == 3 then
+        if self.m_scrollbar.value <= 0.25 then
+            self.m_target_level = self.m_level_btn_list[1]["item"]
+            self.m_scroll_bar_target_value = 0
+        elseif self.m_scrollbar.value <= 0.75 then
+            self.m_target_level = self.m_level_btn_list[2]["item"]
+            self.m_scroll_bar_target_value = 0.5
+        else
+            self.m_target_level = self.m_level_btn_list[3]["item"]
+            self.m_scroll_bar_target_value = 1
+        end
+    elseif #self.m_open_list == 2 then
+        if self.m_scrollbar.value <= 0.5 then
+            self.m_target_level = self.m_level_btn_list[1]["item"]
+            self.m_scroll_bar_target_value = 0
+        else
+            self.m_target_level = self.m_level_btn_list[2]["item"]
+            self.m_scroll_bar_target_value = 1
+        end
+    elseif #self.m_open_list == 1 then
+        self.m_target_level = self.m_level_btn_list[1]["item"]
+        self.m_scroll_bar_target_value = 1
+    end
+    self:change_btn_to_big(self.m_target_level)
+    self.m_need_move = true
+    self.m_move_speed = 0
+end
+
+-----根据撞门的时候的关卡说拥有的难度来进行页面的刷新   目前页面没有进行优化，所以在暂时先这样写，日后看有没有优化的必要
+function dungeon_join_view:refresh_rect()
+    for k, v in pairs(self.m_open_list) do
+        if v["level"] == 1 then
+            local text = "普通"
+            self:add_btn_level_list(self.m_normal_btn_bg, self.m_normal_btn, self.m_selected_normal_image, self.m_normal, text)
+            self.m_normal_level_text.text = dbc.instances[v["ret_id"]].des_one
+            self.m_normal_condition_tip_text.text =  dbc.instances[v["ret_id"]].des_two
+            if self.m_normal_level_text.text == "" then
+                self.m_normal_level_bg.transform.gameObject:SetActive(false)
+            end
+            if self.m_normal_condition_tip_text.text == "" then
+                self.m_normal_condition_bg.transform.gameObject:SetActive(false)
+            end
+            self:init_area_and_btn(self.m_normal_area_image, self.m_normal_btn_bg, self.m_normal_btn, v, self.m_normal_join_btn)
+        elseif v["level"] == 2 then
+            local text = "英雄"
+            self:add_btn_level_list(self.m_hero_btn_bg, self.m_hero_btn, self.m_selected_hero_image, self.m_hero, text)
+            self.m_hero_level_text.text = dbc.instances[v["ret_id"]].des_one
+            self.m_hero_condition_tip_text.text =  dbc.instances[v["ret_id"]].des_two
+            if self.m_hero_level_text.text == "" then
+                self.m_hero_level_bg.transform.gameObject:SetActive(false)
+            end
+            if self.m_hero_condition_tip_text.text == "" then
+                self.m_hero_condition_bg.transform.gameObject:SetActive(false)
+            end
+            self:init_area_and_btn(self.m_hero_area_image, self.m_hero_btn_bg, self.m_hero_btn, v, self.m_hero_join_btn)
+        elseif v["level"] == 3 then
+            local text = "史诗"
+            self:add_btn_level_list(self.m_epic_btn_bg, self.m_epic_btn, self.m_selected_epic_image, self.m_epic, text)
+            self.m_epic_level_text.text = dbc.instances[v["ret_id"]].des_one
+            self.m_epic_condition_tip_text.text =  dbc.instances[v["ret_id"]].des_two
+            if self.m_epic_level_text.text == "" then
+                self.m_epic_level_bg.transform.gameObject:SetActive(false)
+            end
+            if self.m_epic_condition_tip_text.text == "" then
+                self.m_epic_condition_bg.transform.gameObject:SetActive(false)
+            end
+            self:init_area_and_btn(self.m_epic_area_image, self.m_epic_btn_bg, self.m_epic_btn, v, self.m_epic_join_btn)
+        elseif v["level"] == 4 then
+            local text = "秘境"
+            self:add_btn_level_list(self.m_fairyland_btn_bg, self.m_fairyland_btn, self.m_selected_fairyland_image, self.m_fairyland, text)
+            self.m_fairyland_level_text.text = dbc.instances[v["ret_id"]].des_one
+            self.m_fairyland_condition_tip_text.text =  dbc.instances[v["ret_id"]].des_two
+            if self.m_fairyland_level_text.text == "" then
+                self.m_fairyland_level_bg.transform.gameObject:SetActive(false)
+            end
+            if self.m_fairyland_condition_tip_text.text == "" then
+                self.m_fairyland_condition_bg.transform.gameObject:SetActive(false)
+            end
+            self:init_area_and_btn(self.m_fairyland_area_image, self.m_fairyland_btn_bg, self.m_fairyland_btn, v, self.m_fairyland_join_btn)
+        end
+    end
+    ----打开的时候将第一个难度的按钮置位当前的选中项
+    self.m_curr_level = self.m_level_btn_list[1]["item"]
+    self:change_btn_to_big(self.m_curr_level)
+    -----调整滑动区域的大小，用来调节背景的大小
+    local scrollbar_width = #self.m_level_btn_list * 125
+    self.m_scrollbar.transform:GetComponent(RectTransform).sizeDelta = Vector2(scrollbar_width, 90)
+end
+
+---处理点击了选择难度按钮之后的滑动条位置的显示
+function dungeon_join_view:handle_level_btn_click(press_btn)
+    if #self.m_open_list == 4 then
+        if press_btn == self.m_level_btn_list[1]["item"] then
+            self.m_scroll_bar_target_value = 0
+        elseif press_btn == self.m_level_btn_list[2]["item"] then
+            self.m_scroll_bar_target_value = 0.33
+        elseif press_btn == self.m_level_btn_list[3]["item"] then
+            self.m_scroll_bar_target_value = 0.66
+        elseif press_btn == self.m_level_btn_list[4]["item"] then
+            self.m_scroll_bar_target_value = 1
+        end
+    elseif #self.m_open_list == 3 then
+        if press_btn == self.m_level_btn_list[1]["item"] then
+            self.m_scroll_bar_target_value = 0
+        elseif press_btn == self.m_level_btn_list[2]["item"] then
+            self.m_scroll_bar_target_value = 0.5
+        elseif press_btn == self.m_level_btn_list[3]["item"] then
+            self.m_scroll_bar_target_value = 1
+        end
+    elseif #self.m_open_list == 2 then
+        if press_btn == self.m_level_btn_list[1]["item"] then
+            self.m_scroll_bar_target_value = 0
+        elseif press_btn == self.m_level_btn_list[2]["item"] then
+            self.m_scroll_bar_target_value = 1
+        end
+    end
+    self:change_btn_to_big(press_btn)
+    self.m_need_move = true
+end
+
+function dungeon_join_view:init_area_and_btn(drag_area, level_btn_parent, level_btn, v, join_btn)
+    drag_area.gameObject:SetActive(true)
+    level_btn_parent.gameObject:SetActive(true)
+    level_btn.onClick:AddListener(function()
+        --这里要做的事情是点击到的按钮变大，并且判断是否显示两边的箭头，同时还要确定滑动条的位置等
+        --对应的按钮的图片和文字要隐藏，同时滑动条的内置图片和文字显示
+        self:handle_level_btn_click(level_btn)
+    end)
+    if v["state"] == 1 then
+        join_btn.onClick:AddListener(function()
+            --获取到当前的难度，通知服务器，进入
+            self:send_join_id_toserver(v["ret_id"])
+            self:local_log(v["ret_id"])
+            self.m_ui_manager:DestroyUI("dungeon_join")
+        end)
+    else
+        join_btn.interactable = false
+    end
+end
+
+-----将选中难度的按钮变大
+function dungeon_join_view:change_btn_to_big(go)
+    for k, v in pairs(self.m_level_btn_list) do
+        if v["item"] == go then
+            v["parent"].transform:GetComponent(RectTransform).sizeDelta = Vector2(185, 86)
+            v["selected"].gameObject:SetActive(true)
+            v["show_level"].gameObject:SetActive(false)
+            self.m_curr_level = go
+            self.m_selected_level_text.text = v["text"]
+        else
+            v["parent"].transform:GetComponent(RectTransform).sizeDelta = Vector2(83, 86)
+            v["selected"].gameObject:SetActive(false)
+            v["show_level"].gameObject:SetActive(true)
+        end
+    end
+    self:on_border_handle()
+end
+
+----每次滑动一次做出相应的处理，判断是否滑到了边界
+function dungeon_join_view:on_border_handle()
+    for k, v in pairs(self.m_level_btn_list) do
+        if v["item"] == self.m_curr_level then
+            self.m_right_btn.gameObject:SetActive(true)
+            self.m_selected_right_image.gameObject:SetActive(true)
+            self.m_left_btn.gameObject:SetActive(true)
+            self.m_selected_left_image.gameObject:SetActive(true)
+            if #self.m_level_btn_list == 1 then
+                self.m_right_btn.gameObject:SetActive(false)
+                self.m_selected_right_image.gameObject:SetActive(false)
+                self.m_left_btn.gameObject:SetActive(false)
+                self.m_selected_left_image.gameObject:SetActive(false)
+            elseif k == 1 then
+                self.m_left_btn.gameObject:SetActive(false)
+                self.m_selected_left_image.gameObject:SetActive(false)
+            elseif k == #self.m_level_btn_list then
+                self.m_right_btn.gameObject:SetActive(false)
+                self.m_selected_right_image.gameObject:SetActive(false)
+            end
+            break
+        end
+    end
+end
+
+function dungeon_join_view:to_left_btn_callback()
+    for k, v in pairs(self.m_level_btn_list) do
+        if self.m_curr_level == v["item"] then
+            self.m_target_level = self.m_level_btn_list[k - 1]["item"]
+            if #self.m_open_list == 4 then
+                if k == 3 then
+                    self.m_scroll_bar_target_value = 0.33
+                elseif k == 4 then
+                    self.m_scroll_bar_target_value = 0.67
+                elseif k == 2 then
+                    self.m_scroll_bar_target_value = 0
+                end
+            end
+            if #self.m_open_list == 3 then
+                if k == 3 then
+                    self.m_scroll_bar_target_value = 0.5
+                elseif k == 2 then
+                    self.m_scroll_bar_target_value = 0
+                end
+            end
+            if #self.m_open_list == 2 then
+                if k == 1 then
+                    self.m_scroll_bar_target_value = 0
+                end
+            end
+            self:change_btn_to_big(self.m_target_level)
+            self.m_need_move = true
+            self.m_move_speed = 0
+            break
+        end
+    end
+end
+
+------向右滑动按钮的回调
+function dungeon_join_view:to_tight_btn_callback()
+    for k, v in pairs(self.m_level_btn_list) do
+        if self.m_curr_level == v["item"] then
+            self.m_target_level = self.m_level_btn_list[k + 1]["item"]
+            if #self.m_open_list == 4 then
+                if k == 1 then
+                    self.m_scroll_bar_target_value = 0.33
+                elseif k == 2 then
+                    self.m_scroll_bar_target_value = 0.67
+                elseif k == 3 then
+                    self.m_scroll_bar_target_value = 1
+                end
+            end
+            if #self.m_open_list == 3 then
+                if k == 1 then
+                    self.m_scroll_bar_target_value = 0.5
+                elseif k == 2 then
+                    self.m_scroll_bar_target_value = 1
+                end
+            end
+            if #self.m_open_list == 2 then
+                if k == 1 then
+                    self.m_scroll_bar_target_value = 1
+                end
+            end
+            self:change_btn_to_big(self.m_target_level)
+            self.m_need_move = true
+            self.m_move_speed = 0
+            break
+        end
+    end
+end
+
+----向m_btn_level_list当中添加存在的关卡按钮
+function dungeon_join_view:add_btn_level_list(parent, item, selected_item, show_level, text)
+    self.m_level_btn_list[#self.m_level_btn_list + 1] = { ["parent"] = parent, ["item"] = item, ["selected"] = selected_item, ["show_level"] = show_level, ["text"] = text }
+end
+
+----向服务器发送要进入的副本id
+function dungeon_join_view:send_join_id_toserver(ret_id)
+    self.m_dungeon_manager:base_call("req_enter_instance", ret_id)
+end
+
+function dungeon_join_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return dungeon_join_view

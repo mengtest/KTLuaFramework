@@ -1,0 +1,79 @@
+local View = require("system.view")
+local Quiz_window_view = class("Quiz_window_view", View)
+
+Quiz_window_view.Const = {}
+Quiz_window_view.Const.style1 = { ["exp_pos"] = Vector3(-349, -22, 0), ["money_pos"] = Vector3(-129, -22, 0), ["horizontal_layout_group_pos"] = Vector3(26, 30, 0) }
+Quiz_window_view.Const.style2 = { ["exp_pos"] = Vector3(-134, 60, 0), ["money_pos"] = Vector3(78, 60, 0), ["horizontal_layout_group_pos"] = Vector3(-450, 15, 0) }
+
+function Quiz_window_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Quiz"), function(go)
+        self:init_with_go(go, nil)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+    end)
+end
+
+function Quiz_window_view:on_prepared()
+    self:hide()
+    local frame = self:getFrame()
+    self:subscribe(frame:on_event("show"), function()
+        self:show()
+    end)
+    self:subscribe(frame:on_event("hide"), function()
+        self:hide()
+    end)
+    self:subscribe(frame:on_event("switch_answer_mode"), function(flag)
+        self:switch_answer_mode(flag)
+    end)
+    self:subscribe(frame:on_event("create_award_list"), function(money, exp, award_list)
+        self:create_award_list(money, exp, award_list)
+    end)
+    self:subscribe(frame:on_event("hide_award"), function()
+        self:show_or_hide_award(false)
+    end)
+end
+
+function Quiz_window_view:show()
+    self:getGO():SetActive(true)
+    app:get_ui_manager():CloseLowUIRootByName(app:get_ui_manager().UI_Depth.ALERT)
+end
+
+function Quiz_window_view:hide()
+    self:getGO():SetActive(false)
+end
+
+function Quiz_window_view:switch_answer_mode(flag)
+    --   utility.log:logError(utility.log.Mask.SJG_Quiz, "Quiz_window_view:switch_answer_mode(), flag = %s", tostring(flag))
+    self["img_next_GUIImage"].gameObject:SetActive(not flag)
+    self["btn_next_GUIButton"].gameObject:SetActive(not flag)
+    self["img_answer_pkg_GUIImage"].gameObject:SetActive(flag)
+end
+
+function Quiz_window_view:show_or_hide_award(flag)
+    self["award_gameObject"]:SetActive(flag)
+    self["text_quiz_GUIText"].gameObject:SetActive(not flag)
+end
+
+function Quiz_window_view:create_award_list(money, exp, award_list)
+    self:show_or_hide_award(true)
+    local frame = self:getFrame()
+    frame:set_exp_num(exp)
+    frame:set_money_num(money)
+
+    local count = utility.table:count(award_list)
+    if count <= 3 then
+        self["exp_gameObject"].transform.anchoredPosition3D = self.Const.style1["exp_pos"]
+        self["money_gameObject"].transform.anchoredPosition3D = self.Const.style1["money_pos"]
+        self["horizontal_layout_group_gameObject"].transform.anchoredPosition3D = self.Const.style1["horizontal_layout_group_pos"]
+    else
+        self["exp_gameObject"].transform.anchoredPosition3D = self.Const.style2["exp_pos"]
+        self["money_gameObject"].transform.anchoredPosition3D = self.Const.style2["money_pos"]
+        self["horizontal_layout_group_gameObject"].transform.anchoredPosition3D = self.Const.style2["horizontal_layout_group_pos"]
+    end
+
+    for i = 1, count do
+        award_list[i]["parent_node"] = self["horizontal_layout_group_gameObject"].transform
+        frame:create_child_frame(award_list[i], i)
+    end
+end
+
+return Quiz_window_view

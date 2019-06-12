@@ -1,0 +1,75 @@
+local View = require("system.view")
+local matching_list_item_view = class("matching_list_item_view", View)
+
+function matching_list_item_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("MatchingListItem"), function(go)
+        go.transform:GetComponent(RectTransform).anchorMin = Vector2(0, 1)
+        go.transform:GetComponent(RectTransform).anchorMax = Vector2(0, 1)
+        go.transform:GetComponent(RectTransform).pivot = Vector2(0, 1)
+        go.transform.anchoredPosition3D = Vector3.zero
+        go.transform.localScale = Vector3.one
+        local series = self.m_frame:gain_series()
+        local path = dbc.matching_rule_client[series].pic_name
+        self:change_sprite(path)
+        self.m_name_text = self["name_text_gameObject"]:GetComponent(UI.Text)
+        self:event_and_att_subscribe()
+        self:on_view_refresh()
+    end)
+end
+
+-- 注册事件属性
+function matching_list_item_view:event_and_att_subscribe()
+    self:subscribe(self.m_frame:on_event("item_down"), function()
+        self:on_item_down()
+    end)
+    self:subscribe(self.m_frame:on_event("item_sel_cancle"), function()
+        self:on_item_sel_cancle()
+    end)
+end
+
+-- 被点击之后的处理
+function matching_list_item_view:on_item_down()
+    self["sel_img_gameObject"]:SetActive(true)
+    self:getFrame("team_matching"):on_sub_item_down(self.m_frame)
+end
+
+-- 取消选中的处理
+function matching_list_item_view:on_item_sel_cancle()
+    self["sel_img_gameObject"]:SetActive(false)
+end
+
+-- 刷新数据
+function matching_list_item_view:on_view_refresh()
+    local id_list = self.m_frame:gain_id_list()
+    local name = dbc.instances[id_list[1]].name
+    self.m_name_text.text = name
+    local state_list = self.m_frame:gain_state_list()
+    local use_list = self.m_frame:gain_use_list()
+    for i, v in pairs(state_list) do
+        if v == 1 then
+            return
+        end
+    end
+    for i, v in pairs(use_list) do
+        if v == 1 then
+            return
+        end
+    end
+    self["lock_img_gameObject"]:SetActive(true)
+end
+
+-- 更改图片
+function matching_list_item_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self["item_btn_GUIButton"].gameObject:GetComponent(UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return matching_list_item_view

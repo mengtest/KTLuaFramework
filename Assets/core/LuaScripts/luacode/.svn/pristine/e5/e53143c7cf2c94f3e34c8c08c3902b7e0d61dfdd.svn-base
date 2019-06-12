@@ -1,0 +1,67 @@
+local Frame = require("system.frame")
+local talent = class("talent", Frame)
+
+-- 天赋id
+Attribute.decl(talent, "talent_id", -1)
+-- 是否锁定
+Attribute.decl(talent, "is_locked", true)
+-- 是否学习
+Attribute.decl(talent, "is_learned", false)
+-- 是否启用
+Attribute.decl(talent, "is_enabled", false)
+-- 为了获取图标
+Attribute.calc(talent, "client_cfg",
+function(self)
+    return dbc.spell_client[self:get_talent_id()]
+end,
+"talent_id")
+function talent:doInit(param)
+    ---- 设置天赋的一些属性
+    self:set_talent_id(param.id)
+    self:set_is_locked(param.is_locked)
+    self:set_is_learned(param.is_learned)
+    self:set_is_enabled(param.is_enabled)
+
+end
+
+function talent:get_group_num(talent_id)
+    local group_num = ""
+    for i, v in pairs(dbc.talent) do
+        if talent_id == nil then
+            if self:get_talent_id() == v["skill"] then
+                local slot_str = tostring(i)
+                group_num = string.sub(slot_str, -4, -3)
+                break
+            end
+        else
+            if talent_id == v["skill"] then
+                local slot_str = tostring(i)
+                group_num = string.sub(slot_str, -4, -3)
+                break
+            end
+        end
+    end
+    return tonumber(group_num)
+end
+
+function talent:get_talent_num(talent_id)
+    local talent_num = ""
+    for i, v in pairs(dbc.talent) do
+        if talent_id == nil then
+            if self:get_talent_id() == v["skill"] then
+                local slot_str = tostring(i)
+                talent_num = string.sub(slot_str, -2, -1)
+                break
+            end
+        else
+            if talent_id == v["skill"] then
+                local slot_str = tostring(i)
+                talent_num = string.sub(slot_str, -2, -1)
+                break
+            end
+        end
+    end
+    return tonumber(talent_num)
+end
+
+return talent

@@ -1,0 +1,123 @@
+---
+--- Created by wdd.
+--- DateTime: 2018/2/1 0001 9:51
+---
+
+
+local View = require("system.view")
+local SkillRoundWarningView = class("skill_round_warning_view", View)
+
+function SkillRoundWarningView:doInit(param)
+
+    self.m_skill_round_warning_bstart = false
+    self.m_skill_round_warning_time = nil
+    self.m_skill_round_warning_endtime = nil
+    self.m_skill_speed = nil
+    self.m_skill_waring_curradius = 0
+    self.projector = nil
+    self.projector_move = nil
+    local angle = param.angle
+    local casttime = param.casttime
+    local radius = param.radius
+    local viewgo = self:getGO()
+    local pos_type = param.skill_sing_pro_pos
+    local unit_view = param.unit_view -- 施法者
+    local target_pos = param.target_pos -- 施法者坐标
+    local client_cfg = param.client_cfg
+    ---- 根据目标类型设置位置
+    if(pos_type == enum.battle.SKILL_SING_PRO_POS.CUR_CENTER) then
+        if(param.target_unit~=nil) then
+            local target_unit = param.target_unit -- 受击者
+            local name = target_unit:getFrameName()
+            local target_view = self.m_mgr:getView(name)
+            local unit_go = target_view:getGO()
+            if(unit_go~=nil) then
+                viewgo.transform:SetParent(unit_go.transform)
+                viewgo.transform.localPosition = Vector3.zero
+            else
+                app:logError("圆形预警区域目标为空")
+            end
+        else
+            app:logError("圆形预警区域目标frame为空")
+        end
+
+    elseif (pos_type == enum.battle.SKILL_SING_PRO_POS.CUR_CENTER_POS) then
+        if(target_pos~=nil) then
+            viewgo.transform.position = target_pos
+        else
+            app:logError("圆形预警区域目标坐标点为空")
+        end
+    elseif (pos_type == enum.battle.SKILL_SING_PRO_POS.RELEASER_CENTER) then
+        local unit_go = unit_view:getGO()
+        if(unit_go~=nil) then
+            viewgo.transform:SetParent(unit_view:getGO().transform)
+            viewgo.transform.localPosition = Vector3.zero
+        else
+            app:logError("圆形预警区域施法者为空")
+        end
+    end
+    local res_path = "pro_specoalrect_area"
+    if not client_cfg then
+        if not client_cfg.skill_sing_pro_res_name then
+            res_path = client_cfg.skill_sing_pro_res_name
+        end
+    end
+    self:load(app:getAssetPathMgr().get_skill_projector(res_path), function(eft_go)
+        eft_go.name = "skill_round_item"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        self.m_skill_round_item = eft_go
+        self.projector =self.m_skill_round_item.transform:Find("projector"):GetComponent(Projector)
+        self.projector_move =self.m_skill_round_item.transform:Find("move_projector"):GetComponent(Projector)
+        self:start(radius, angle, casttime)
+    end)
+end
+
+function SkillRoundWarningView:Faild()
+    self.m_skill_round_warning_bstart = nil
+    local frame = self:getFrame()
+    frame:destroySelf()
+end
+
+
+function SkillRoundWarningView:doUpdate()
+    self:show_area_update()
+end
+
+-- 半径  角度 时间； 圆形角度暂时不需处理
+function SkillRoundWarningView:start(radius,angle,time)
+    -- 根据参数对投影做一个初始化
+    if(self.m_skill_round_item~=nil) then
+        if(self.projector == nil) then
+            self.projector = self.m_skill_round_item.transform:Find("projector"):GetComponent(Projector)
+        end
+        self.projector.orthographicSize = radius
+        if(self.projector_move == nil) then
+            self.projector_move = self.m_skill_round_item.transform:Find("move_projector"):GetComponent(Projector)
+        end
+        self.projector_move.orthographicSize = 0
+        self.projector.ignoreLayers = LayerMask.GetMask("TransparentFX", "Role")
+        self.projector_move.ignoreLayers = LayerMask.GetMask("TransparentFX", "Role")
+    end
+    self.m_skill_speed = radius/time
+    self.m_skill_round_warning_bstart = true
+end
+
+function SkillRoundWarningView:show_area_update()
+    if(self.m_skill_round_warning_bstart) then
+        if(self.m_skill_waring_curradius~=nil) then
+            self.m_skill_waring_curradius= self.m_skill_waring_curradius+self.m_skill_speed*Time.deltaTime
+            if(self.projector_move == nil) then
+                self.projector_move = self.m_skill_round_item.transform:Find("move_projector"):GetComponent(Projector)
+            end
+            self.projector_move.orthographicSize = self.m_skill_waring_curradius
+            -- 吟唱完毕
+            if(self.projector_move.orthographicSize>=self.projector.orthographicSize) then
+                self.m_skill_round_warning_bstart = nil
+                local frame = self:getFrame()
+                frame:destroySelf()
+            end
+        end
+    end
+end
+return SkillRoundWarningView

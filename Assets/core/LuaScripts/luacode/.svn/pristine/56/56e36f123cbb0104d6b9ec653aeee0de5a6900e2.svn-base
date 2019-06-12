@@ -1,0 +1,36 @@
+local Frame = require("system.frame")
+local big_map_world = class("big_map_world", Frame)
+
+Attribute.decl(big_map_world, "hgs_map_id", 0)
+Attribute.decl(big_map_world, "dtbj_map_id", 0)
+
+function big_map_world:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_big_map = self:getFrame("big_map")
+    self:set_hgs_map_id(1004)
+    self:set_dtbj_map_id(1005)
+end
+
+---- 点击花果山区域
+function big_map_world:on_hgs_map_btn()
+    self.m_big_map:emit_event("change_map", self:get_hgs_map_id())
+end
+
+---- 点击大唐边境区域
+function big_map_world:on_dtbj_map_btn()
+    self.m_big_map:emit_event("change_map", self:get_dtbj_map_id())
+end
+
+function big_map_world:on_cac_map_btn()
+    self:getFrame("float_hint_manager"):add_float("该区域暂未开放", self.m_ui_manager.UI_Depth.ALERT)
+end
+
+function big_map_world:on_xsl_map_btn()
+    self:getFrame("float_hint_manager"):add_float("该区域暂未开放", self.m_ui_manager.UI_Depth.ALERT)
+end
+
+function big_map_world:on_wxs_map_btn()
+    self:getFrame("float_hint_manager"):add_float("该区域暂未开放", self.m_ui_manager.UI_Depth.ALERT)
+end
+
+return big_map_world

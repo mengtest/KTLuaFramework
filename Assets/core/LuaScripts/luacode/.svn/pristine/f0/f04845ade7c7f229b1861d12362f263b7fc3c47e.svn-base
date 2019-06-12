@@ -1,0 +1,124 @@
+﻿
+local Quest_detail = require "subsystem.quest.quest_bar.quest_detail"
+
+
+local View = require("system.view")
+local Quest_bar_view = class("Quest_bar_view", View)
+
+
+function Quest_bar_view:doInit()
+	self:load("ui/sidebar/tab_quest.prefab", function (go)
+        local parent_node = self:getParent():getGO().transform:GetChild(0):Find("quest_bar")
+		self:init_with_go(go, parent_node)
+	end)
+	
+    self.m_main_player = self:getFrame("world"):get_main_player()
+	self.m_quest_manager = self:getFrame("quest_manager")
+	self.m_quest_list = {}
+end
+
+function Quest_bar_view:on_prepared()
+	Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+	Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:add_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+	Event_system:add_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_schdule))
+	
+	self.m_rect = self.m_go:GetComponent(RectTransform)
+	self.m_rect.sizeDelta = Vector2(0, 0)
+	self.m_quest_item_node = self.m_rect:Find("viewport/vertical_group_quest")
+	self.m_line_pref_go = self.m_rect:Find("viewport/vertical_group_quest/line").gameObject
+	
+	self:subscribe(self.m_frame:on_event("show"), function ()
+		self.m_go:SetActive(true)
+	end)
+	self:subscribe(self.m_frame:on_event("hide"), function ()
+		self.m_go:SetActive(false)
+	end)
+	self:refresh_all()
+end
+
+function Quest_bar_view:doDestroy()
+	Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+	Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+    Event_system:del_event_listener(EVENT_QUEST_ADD_NEW_QUEST, event_binder(self, self.add_new_quest))
+	Event_system:del_event_listener(EVENT_QUEST_UPDATE_QUEST, event_binder(self, self.refresh_schdule))
+end
+
+function Quest_bar_view:show()
+	self.m_go:SetActive(true)
+end
+
+function Quest_bar_view:hide()
+	self.m_go:SetActive(false)
+end
+
+function Quest_bar_view:refresh_all()
+	local quest_list = self.m_quest_manager:get_quest_list()
+	for quest_id, quest_data in pairs(quest_list) do
+        if quest_id ~= 911 then
+		    self:add_quest(quest_id, quest_data)
+        end
+	end
+end
+
+function Quest_bar_view:add_quest(quest_id, quest_data)
+    if self.m_quest_list[quest_id] then
+        self.m_quest_list[quest_id]:refresh_by_quest_data(quest_data)
+        return
+    end
+
+	local this = self
+	--self:load("ui/sidebar/item_quest/sidebar_quest_detail_item.prefab", function (go)
+    self:load("ui/sidebar/item_quest/sidebar_quest_item.prefab", function (go)
+		local data = dbc.quest[quest_id]
+		local quest_detail = Quest_detail:new(go)
+		quest_detail:set_parent(this.m_quest_item_node)
+		quest_detail:set_const_info(data)
+        --quest_detail:set_aim_info()
+        quest_detail:refresh_schdule(quest_data:get_cur_weights(), quest_data:get_aim_weights())
+		this.m_quest_list[quest_id] = quest_detail
+		--[[quest_detail:init_condition(data, quest_data)
+		local copy_line_go = Object.Instantiate(this.m_line_pref_go)
+		copy_line_go.transform.parent = this.m_quest_item_node
+		copy_line_go:SetActive(true)
+		quest_detail:link_with(copy_line_go)--]]
+	end)
+end
+
+function Quest_bar_view:del_quest(quest_id)
+    self.m_quest_list[quest_id]:destroy()
+    self.m_quest_list[quest_id] = nil
+    
+    local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 80, ["end_y"] = 180, ["duration"] = 3})
+    scroll_text:set_attr("msg", string.format("【%d】任务已完成", quest_id))
+end
+
+function Quest_bar_view:add_new_quest(quest_id)
+    local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 50, ["end_y"] = 150, ["duration"] = 3})
+    scroll_text:set_attr("msg", string.format("【%d】任务已接取", quest_id))
+end
+
+function Quest_bar_view:refresh_schdule(id)
+	--[[local quest = self.m_quest_list[id]
+	assert(quest, "quest_id = " .. id)
+    local quest_manager = self:getFrame("quest_manager")
+    local quest_data = quest_manager:get_quest_list()[id]
+    local quest_condition = quest_data:get_condition_dict()[index]
+    local fixed_param = quest_condition:get_fixed_param()
+	quest:refresh_condition(index, fixed_param)--]]
+    
+    local quest_data = self:getFrame("quest_manager"):get_quest_list()[id]
+    if not quest_data then return end
+    self.m_quest_list[id]:refresh_schdule(quest_data:get_cur_weights(), quest_data:get_aim_weights())
+end
+
+function Quest_bar_view:doUpdate()
+    for quest_id, quest_detail in pairs(self.m_quest_list) do
+        local quest_data = self.m_quest_manager:get_quest_list()[quest_id]
+        local dis_aim, dir_aim = quest_data:get_closest_aim_info()
+        local dir_self = self.m_main_player:get_dir()
+        quest_detail:refresh_aim_info(dis_aim, dir_aim, dir_self)
+    end
+end
+
+return Quest_bar_view

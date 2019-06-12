@@ -1,0 +1,9 @@
+local rows = {}
+rows[1] = {['id']=1001,['icon_path']=''}
+rows[2] = {['id']=1002,['icon_path']=''}
+
+local datas = {
+	[1001] = rows[1],
+	[1002] = rows[2],
+}
+return datas

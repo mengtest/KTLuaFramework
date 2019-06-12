@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local equipment_tips = class("equipment_tips", Frame)
+
+function equipment_tips:doInit()
+
+end
+
+return equipment_tips

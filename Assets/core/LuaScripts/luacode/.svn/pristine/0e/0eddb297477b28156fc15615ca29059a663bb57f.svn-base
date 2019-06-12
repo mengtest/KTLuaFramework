@@ -1,0 +1,38 @@
+local row_0 = {['talk_id']=1001,['npc_talk_str']='无间道A：挺利索的。'}
+local row_1 = {['talk_id']=1002,['npc_talk_str']='无间道B：我也读过警校。'}
+local row_2 = {['talk_id']=1003,['npc_talk_str']='无间道A：你们这些卧底真有意思，老在天台见面。'}
+local row_3 = {['talk_id']=1004,['npc_talk_str']='无间道B：我不像你，我光明正大。'}
+local row_4 = {['talk_id']=1005,['npc_talk_str']='无间道B：我要的东西呢？'}
+local row_5 = {['talk_id']=1006,['npc_talk_str']='无间道A：我要的你都未必有带来吧。'}
+local row_6 = {['talk_id']=1007,['npc_talk_str']='无间道B：哼，什么意思，你上来晒太阳的啊。'}
+local row_7 = {['talk_id']=1008,['npc_talk_str']='无间道A：给我个机会。 '}
+local row_8 = {['talk_id']=1009,['npc_talk_str']='无间道B：怎么给你机会。 '}
+local row_9 = {['talk_id']=1010,['npc_talk_str']='无间道A：我以前没得选择，现在我想做一个好人。 '}
+local row_10 = {['talk_id']=1011,['npc_talk_str']='无间道B：好，跟法官说，看他让不让你做好人。 '}
+local row_11 = {['talk_id']=1012,['npc_talk_str']='无间道A：那就是要我死。'}
+local row_12 = {['talk_id']=1013,['npc_talk_str']='无间道B：对不起，我是警察。'}
+local row_13 = {['talk_id']=1014,['npc_talk_str']='无间道A：谁知道。'}
+local row_14 = {['talk_id']=1015,['npc_talk_str']='无间道C：别动，警察。'}
+local row_15 = {['talk_id']=1016,['npc_talk_str']='无间道C：放下枪，放了刘警官再说。'}
+local row_16 = {['talk_id']=1017,['npc_talk_str']='无间道B：你上司是韩琛的卧底。'}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+	[1004] = row_3,
+	[1005] = row_4,
+	[1006] = row_5,
+	[1007] = row_6,
+	[1008] = row_7,
+	[1009] = row_8,
+	[1010] = row_9,
+	[1011] = row_10,
+	[1012] = row_11,
+	[1013] = row_12,
+	[1014] = row_13,
+	[1015] = row_14,
+	[1016] = row_15,
+	[1017] = row_16,
+}
+return datas

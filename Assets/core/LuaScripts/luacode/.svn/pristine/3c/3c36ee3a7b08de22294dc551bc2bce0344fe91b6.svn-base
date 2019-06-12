@@ -1,0 +1,59 @@
+local Frame = require("system.frame")
+local skill_ui_setting_list = class("skill_ui_setting_list", Frame)
+
+
+-- 配置技能事件
+Event.decl(skill_ui_setting_list,"set_skill")
+
+function skill_ui_setting_list:doInit(param)
+
+
+end
+
+function skill_ui_setting_list:on_loaded()
+
+    self.m_unit = self:getFrame("world"):get_main_player()
+    -- pacman  2017-09-12
+    -- 在没有角色技能管理系统之前，在此临时配置各职业的技能
+    local rclass = self.m_unit:get_rclass()
+
+    local skill_id_list = {}
+
+    if rclass == SharedEnum.RoleClass.DEMON_HUNTER then
+        -- 灵猴(战士)技能
+        skill_id_list = { 912001, 912002, 912003, 912004, 912005, 912006, 912007, --面板1 按钮x7
+            912008, 912009, 912010, 912001, 912001                              --面板1 按钮x5
+        }
+
+    elseif rclass == SharedEnum.RoleClass.MAGE then
+        -- 罗刹(法师)技能
+        skill_id_list = { 903001, 903002, 903003, 903004, 903005, 903006, 903007, --面板1 按钮x7
+            903008, 903001, 903001, 903001, 903001                              --面板1 按钮x5
+        }
+
+    elseif rclass == SharedEnum.RoleClass.PRIEST or rclass == 0 then
+        -- 镜童(法师)技能
+        skill_id_list = { 906001, 906002, 906003, 906004, 906005, 906006, 906002, --面板1 按钮x7
+            906007, 906001, 906002, 906003, 906003                              --面板1 按钮x5
+        }
+
+    else
+        app:logError("!!!!!!!! invalid role type", type)
+    end
+
+    -- 创建技能列表中的技能按钮
+    self.m_skill_btn_list = {}
+    local skill_num = 0
+    for i, v in ipairs(skill_id_list) do
+        skill_num = skill_num + 1
+        local skill_id = v
+        local skill_btn = self:createChild("skill_ui_setting_list_btn" .. i, "%subsystem/skill_system_ui/skill_ui_setting_list_btn", skill_id)
+        self.m_skill_btn_list[skill_num] = skill_btn
+    end
+end
+
+
+function skill_ui_setting_list:set_skill(skill_id)
+    self:emit_event("set_skill", skill_id)
+end
+return skill_ui_setting_list

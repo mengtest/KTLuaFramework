@@ -1,0 +1,237 @@
+
+local View = require("system.view")
+
+local Team_bar_view = class("Team_bar_view", View)
+
+Team_bar_view.HP_FG = {
+    [SharedEnum.RoleClass.WARRIOR] = "fg_green",
+    [SharedEnum.RoleClass.MAGE] = "fg_blue",--
+    [SharedEnum.RoleClass.PRIEST] = "fg_green",
+    [SharedEnum.RoleClass.HUNTER] = "fg_green",
+    [SharedEnum.RoleClass.DEMON_HUNTER] = "fg_yellow",--
+    [SharedEnum.RoleClass.ROGUE] = "fg_green",
+    [SharedEnum.RoleClass.PALADIN] = "fg_pink"--
+}
+
+Team_bar_view.HP_Light = {
+    [SharedEnum.RoleClass.WARRIOR] = "light_green",
+    [SharedEnum.RoleClass.MAGE] = "light_blue",--
+    [SharedEnum.RoleClass.PRIEST] = "light_green",
+    [SharedEnum.RoleClass.HUNTER] = "light_green",
+    [SharedEnum.RoleClass.DEMON_HUNTER] = "light_yellow",--
+    [SharedEnum.RoleClass.ROGUE] = "light_green",
+    [SharedEnum.RoleClass.PALADIN] = "light_pink"--
+}
+
+function Team_bar_view:local_log(...)
+    app:logError(string.format(...))
+end
+
+function Team_bar_view:doInit()
+    self.m_team_manager = self:getFrame("team_manager")
+    self.m_member_item_prefab = nil
+    self.m_member_item_dict = {}
+
+
+
+	self:load("ui/sidebar/tab_team.prefab", function (go)
+		local parent_node = self:getParent():getGO().transform:Find("border/border_mask/border_detail")
+		self:init_with_go(go, parent_node)
+	end)
+end
+
+function Team_bar_view:on_prepared()
+--    Event_system:add_event_listener(EVENT_TEAM_ADD_MEMBER, event_binder(self, self.add_member))
+--    Event_system:add_event_listener(EVENT_TEAM_DEL_MEMBER, event_binder(self, self.del_member))
+    Event_system:add_event_listener(EVENT_TEAM_STATUS_CHANGED, event_binder(self, self.on_state_changed))
+	
+--	self:subscribe(self.m_frame:on_event("show"), function ()
+--		self.m_go:SetActive(true)
+--	end)
+--	self:subscribe(self.m_frame:on_event("hide"), function ()
+--		self.m_go:SetActive(false)
+--	end)
+    self:subscribe(self.m_frame:on_event_attr_set("is_show", true), function (flag)
+        self.m_go:SetActive(flag)
+    end)
+	
+    self.m_rect = self.m_go:GetComponent(RectTransform)
+	self.m_rect.sizeDelta = Vector2(0, 0)
+	
+    self.m_tr = self.m_go.transform
+    self.m_member_item_node = self.m_tr:Find("grid")
+    self.m_member_item_prefab = self.m_member_item_node:Find("member_item").gameObject
+    self.m_member_item_empty_prefab = self.m_member_item_node:Find("member_item_empty").gameObject
+    self.m_member_item_prefab:SetActive(false)
+    self.m_member_item_empty_prefab:SetActive(false)
+
+    self:refresh_all()
+end
+
+function Team_bar_view:doDestroy()
+    Event_system:del_event_listener(EVENT_TEAM_ADD_MEMBER, event_binder(self, self.add_member))
+    Event_system:del_event_listener(EVENT_TEAM_DEL_MEMBER, event_binder(self, self.del_member))
+
+    self:unsubscribeAll()
+end
+
+function Team_bar_view:refresh_all()
+    local member_dict = self.m_team_manager:get_member_dict()
+    for db_id, param in pairs(member_dict) do
+        self:add_member(db_id, param.entity_id, param.name)
+        --if param.state == 1 then
+        if param.entity_id and param.entity_id ~= 0 and self:getFrame("world"):getUnit(param.entity_id) then
+            self:add_hp_monitor(db_id, param.entity_id)
+        else
+            self:del_monitor(db_id)
+        end
+    end
+end
+
+function Team_bar_view:on_state_changed(answer_code, db_id, entity_id, name)
+    if answer_code == SharedEnum.TeamCode.JOIN_TEAM then
+        self:add_member(db_id, entity_id, name)
+        if entity_id and entity_id ~= 0 and self:getFrame("world"):getUnit(entity_id) then
+            self:add_hp_monitor(db_id, entity_id)
+        else
+            self:del_monitor(db_id)
+        end
+        self:show_scroll_text(name, "加入队伍")
+    elseif answer_code == SharedEnum.TeamCode.LEAVE_TEAM then
+        self:del_member(db_id)
+        self:show_scroll_text(name, "离开队伍")
+    elseif answer_code == SharedEnum.TeamCode.REFUSE_TEAM then
+        
+    elseif answer_code == SharedEnum.TeamCode.LOGIN then
+        self:add_hp_monitor(db_id, entity_id)
+        self:show_scroll_text(name, "上线了")
+    elseif answer_code == SharedEnum.TeamCode.LOGOUT then
+        self:del_monitor(db_id, entity_id)
+        self:show_scroll_text(name, "下线了")
+    end
+    
+    if answer_code == SharedEnum.TeamCode.NO_EXISTS_INST then
+        self:show_scroll_text("nil", "不存在目标副本")
+    elseif answer_code == SharedEnum.TeamCode.MUST_BE_SINGLE then
+        self:show_scroll_text("nil", "单人副本")
+    elseif answer_code == SharedEnum.TeamCode.MUST_BE_IN_TEAM then
+        self:show_scroll_text("nil", "队伍副本")
+    elseif answer_code == SharedEnum.TeamCode.NO_UNLOCK_INST then
+        self:show_scroll_text("nil", "未解锁副本")
+    elseif answer_code == SharedEnum.TeamCode.NO_SELECT_DIFF then
+        self:show_scroll_text("nil", "只要队长才能选择难度")
+    elseif answer_code == SharedEnum.TeamCode.NO_IN_AREA then
+        self:show_scroll_text("nil", "未在指定区域")
+    elseif answer_code == SharedEnum.TeamCode.NO_IN_MAP then
+        self:show_scroll_text("nil", "未在指定地图")
+    elseif answer_code == SharedEnum.TeamCode.CHANGE_SPECIALIZATION then
+        self:show_scroll_text("nil", "请切换到指定专精")
+    elseif answer_code == SharedEnum.TeamCode.TEAM_COUNT_LESS then
+        self:show_scroll_text("nil", "队伍人数不足")
+    end
+end
+
+function Team_bar_view:show_scroll_text(name, msg)
+    local scroll_text = app:get_ui_manager():create_scroll_text({["offset_y"] = 100, ["end_y"] = 200, ["duration"] = 3})
+    scroll_text:set_attr("msg", string.format("【%s】%s", tostring(name), tostring(msg)))
+end
+
+function Team_bar_view:add_member(db_id, entity_id, name)
+    if self.m_member_item_dict[db_id] then
+        print("Team_bar_view:add_member \t the member is already existed, member db_id: " .. db_id)
+        return
+    end
+
+    local member_item_inst_tr = Object.Instantiate(self.m_member_item_prefab).transform
+    assert(db_id, "Team_bar_view:add_member, db_id is nil")
+    self.m_member_item_dict[db_id] = {}
+    self.m_member_item_dict[db_id]["func"] = {}
+    self.m_member_item_dict[db_id]["tr"] = member_item_inst_tr
+    member_item_inst_tr.gameObject:SetActive(true)
+    member_item_inst_tr.parent = self.m_member_item_node
+    member_item_inst_tr.localPosition = Vector3.zero
+    member_item_inst_tr.localScale = Vector3.one
+    member_item_inst_tr:Find("name"):GetComponent(UnityEngine.UI.Text).text = name
+--    member_item_inst_tr:Find("btn"):GetComponent(UnityEngine.UI.Button).onClick:AddListener(function ()
+--        self.m_frame:set_target(entity_id)
+--    end)
+end
+
+function Team_bar_view:del_member(db_id)
+    local member = self.m_member_item_dict[db_id]
+    if not member then
+        print("There is no member's db_id is: " .. db_id)
+        return
+    end
+
+    Object.Destroy(member["tr"].gameObject)
+    for _, func in ipairs(member["func"]) do
+        self:unsubscribe(func)
+    end
+    self.m_member_item_dict[db_id] = nil
+end
+
+function Team_bar_view:add_hp_monitor(db_id, entity_id)
+    local member_item_inst = self.m_member_item_dict[db_id]
+    if not member_item_inst then
+        app:logError("Team_bar_view:add_hp_monitor \t cannot found member_item_inst, db_id: ", db_id)
+    end
+    
+    member_item_inst["tr"]:Find("fg_hp").gameObject:SetActive(true)
+    member_item_inst["tr"]:Find("mask_logout").gameObject:SetActive(false)
+    member_item_inst["tr"]:Find("mask_dead").gameObject:SetActive(false)
+    
+    local world = self:getFrame("world")
+    local unit = world:getUnit(entity_id)
+    local func_hp = self:subscribe(unit:on_event_attr_set("hp", true), function (hp)
+        local hp_max = unit:get_hp_max()
+        local percent = hp / hp_max
+        member_item_inst["tr"]:Find("fg_hp"):GetComponent(UnityEngine.UI.Image).fillAmount = percent
+        local light_tr = member_item_inst["tr"]:Find("fg_hp/img_light")
+        local rect = light_tr:GetComponent(UnityEngine.RectTransform).rect
+        light_tr.localPosition = Vector3(rect.width * (percent - 1) + 7.5, 0, 0)
+    end)
+    
+    local icon_path = string.format("ui/icons/sidebar/%s.png", self.HP_FG[unit:get_rclass()])
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        member_item_inst["tr"]:Find("fg_hp"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+    local light_path = string.format("ui/icons/sidebar/%s.png", self.HP_Light[unit:get_rclass()])
+    self:subscribe(app:getResMgr():rxLoad(light_path), function (asset_ref)
+        local tex = asset_ref.asset
+        member_item_inst["tr"]:Find("fg_hp/img_light"):GetComponent(UnityEngine.UI.Image).sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+    
+    local func_dead = self:subscribe(unit:on_event_attr_set("dead", true), function (flag)
+        member_item_inst["tr"]:Find("fg_hp").gameObject:SetActive(not flag)
+        member_item_inst["tr"]:Find("mask_logout").gameObject:SetActive(false)
+        member_item_inst["tr"]:Find("mask_dead").gameObject:SetActive(flag)
+    end)
+    table.insert(member_item_inst["func"], func_hp)
+
+    member_item_inst["tr"]:Find("btn"):GetComponent(UnityEngine.UI.Button).onClick:AddListener(function ()
+        self.m_frame:set_target(entity_id)
+    end)
+end
+
+function Team_bar_view:del_monitor(db_id, entity_id)
+    self.m_member_item_dict[db_id]["tr"]:Find("fg_hp").gameObject:SetActive(false)
+    self.m_member_item_dict[db_id]["tr"]:Find("mask_logout").gameObject:SetActive(true)
+    self.m_member_item_dict[db_id]["tr"]:Find("mask_dead").gameObject:SetActive(false)
+    
+    for _, func in ipairs(self.m_member_item_dict[db_id]["func"]) do
+        self:unsubscribe(func)
+    end
+    self.m_member_item_dict[db_id]["func"] = {}
+    --self.m_member_item_dict[db_id]["tr"]:Find("btn"):GetComponent(UnityEngine.UI.Button).onClick:RemoveListener(self.m_member_item_dict[db_id]["btn_func"])
+    self.m_member_item_dict[db_id]["tr"]:Find("btn"):GetComponent(UnityEngine.UI.Button).onClick:RemoveAllListeners()
+end
+
+function Team_bar_view.refresh_hp(hp)
+    local hp_max = unit:get_hp_max()
+    member_item_inst_tr:GetComponent(UnityEngine.UI.Image).fillAmount = hp / hp_max
+end
+
+
+return Team_bar_view

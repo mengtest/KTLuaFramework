@@ -1,0 +1,101 @@
+local rows = {}
+rows[1] = {['tmpl']=0,['text']='text',['audio']=0,['anim']='anim',['another']=0}
+rows[2] = {['tmpl']=10001,['text']='听说大马猴偷跑到大圣园去了，也不知道他们怎样了。',['audio']=0,['anim']=' ',['another']=10002}
+rows[3] = {['tmpl']=10002,['text']='听说有一个好像回来了，但大马猴不知哪里了。',['audio']=0,['anim']='',['another']=0}
+rows[4] = {['tmpl']=10003,['text']='ZZZZzzzzz…',['audio']=0,['anim']='',['another']=0}
+rows[5] = {['tmpl']=10004,['text']='我们好多猴兄被抓了，我要去救它们！',['audio']=0,['anim']='',['another']=10005}
+rows[6] = {['tmpl']=10005,['text']='嘘！小声点，别被监神者听到了！',['audio']=0,['anim']='',['another']=0}
+rows[7] = {['tmpl']=10006,['text']='呼呼呼Zzzz,我~~是~~~齐天大神~~~~~',['audio']=0,['anim']='',['another']=0}
+rows[8] = {['tmpl']=10007,['text']='我现在就召集猴兵去工大监神者营地，就出同胞！',['audio']=0,['anim']='',['another']=10008}
+rows[9] = {['tmpl']=10008,['text']='不行！我们不能和监神者对抗，我们没法子去救被抓的猴儿们！',['audio']=0,['anim']='',['another']=0}
+rows[10] = {['tmpl']=10009,['text']='你要你找芭将军？他现在可在气头上呢，想去救猴子哪有这么简单',['audio']=0,['anim']='n_ca_linghou006_base_mood_03',['another']=10010}
+rows[11] = {['tmpl']=10010,['text']='哎！不过我刚看到笆将军垂头丧气的去了圣桃台，你可以去哪看看。',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0}
+rows[12] = {['tmpl']=10011,['text']='嗯？ 其实我也打算去救其他猴子的，奈何这事有点难办',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10012}
+rows[13] = {['tmpl']=10012,['text']='我们需要两块虎符才能调动猴军，另一块在崩将军那，他和流元帅都不想惹事。',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10013}
+rows[14] = {['tmpl']=10013,['text']='对了！崩将军嗜酒而且酒量小的吓人，你可以做点果酒让他喝，然后偷取虎符，就可以调猴军了！',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10014}
+rows[15] = {['tmpl']=10014,['text']='酿酒的原材料可以问问果园的猴老赖，但是在他手中拿果子可需要一点造化呦。想知道他在那先通过我的考验吧',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[16] = {['tmpl']=10015,['text']='你是为了酒果而来？想得到酒果也可以，帮我出去果园四害巴木巴巴、木巴巴巴、巴巴木巴、巴巴巴木，它们都在香果园和甜果园中。',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0}
+rows[17] = {['tmpl']=10016,['text']='干得不错，那没你什么事了，该忙啥忙啥去吧。',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10017}
+rows[18] = {['tmpl']=10017,['text']='酒果？我没说给你啊，只是说要帮帮我，啦啦啦。',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10018}
+rows[19] = {['tmpl']=10018,['text']='开玩笑啦孩子，后面的果园有采好的果子，去拿吧！',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[20] = {['tmpl']=10019,['text']='你已经拿到果酒了，现在快去找崩将军吧，他在一线天的营寨里',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10020}
+rows[21] = {['tmpl']=10020,['text']='去找他时最好沿路收集一些武器给他，这样事情会好办很多',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[22] = {['tmpl']=10021,['text']='你收集好了武器给我送过来了，真是辛苦了！',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10022}
+rows[23] = {['tmpl']=10022,['text']='嗯？还有笆将军送我的酒？！还是他懂我！',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=10023}
+rows[24] = {['tmpl']=10023,['text']='啊，好喝~~~~好~~~~~喝~~~~~呼呼呼Zzzz',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[25] = {['tmpl']=10024,['text']='你手持虎符，可是有什么重大的事情？',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10025}
+rows[26] = {['tmpl']=10025,['text']='正合我意！猴儿们听令！全猴出击！进攻监神者营地',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[27] = {['tmpl']=10026,['text']='你这是刚从山上下来吧！刚才大圣园出现大的动静，到底发生了什么事情？ ',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10036}
+rows[28] = {['tmpl']=10027,['text']='不要在浪费时间了，跟我们一起冲出刘家村吧！',['audio']=0,['anim']='',['another']=0}
+rows[29] = {['tmpl']=10028,['text']='这几天见过刘眉盈，你可以去旁边的阵营看看。',['audio']=0,['anim']='',['another']=0}
+rows[30] = {['tmpl']=10029,['text']='刘眉盈背个竹篮去东边树林采药。',['audio']=0,['anim']='',['another']=0}
+rows[31] = {['tmpl']=10030,['text']='我好想看到刘眉盈去东边的树林里去了',['audio']=0,['anim']='',['another']=0}
+rows[32] = {['tmpl']=10031,['text']='刘眉盈一直在照顾刘伯清的母亲刘婆婆，经常去树林',['audio']=0,['anim']='',['another']=0}
+rows[33] = {['tmpl']=10032,['text']='刘伯钦有段时间没回来了，我和刘婆婆分头在找，我一时不敢下去了，刘婆婆也应该回家了，帮我先照顾一下她。',['audio']=0,['anim']='',['another']=0}
+rows[34] = {['tmpl']=10033,['text']='屋内空无一人，仿佛听到屋外有狗叫。',['audio']=0,['anim']='',['another']=0}
+rows[35] = {['tmpl']=10034,['text']='感谢来救我，此地危险不宜久留，先回家里再说吧。',['audio']=0,['anim']='',['another']=0}
+rows[36] = {['tmpl']=10035,['text']='妖怪们报复刘伯钦，已经将他魂魄打散出肉身，最难的是找魂魄，法门寺貌似可以，但守寺人说我心存杂念不让我进去。',['audio']=0,['anim']='',['another']=0}
+rows[37] = {['tmpl']=10036,['text']='你是说监神者在抓猴子，竟然有这样的事情！',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0}
+rows[38] = {['tmpl']=10037,['text']='怎么会发生这样的事情，这件事得马上汇报流元帅',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=10038}
+rows[39] = {['tmpl']=10038,['text']='刻不容缓了，他现在就在水帘洞大厅，快去找他把！',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[40] = {['tmpl']=10039,['text']='我们猴族有自己酿酒的方式，看到旁边的水车了没有，那就是秘密所在',['audio']=0,['anim']='n_ca_linghou006_base_chat01',['another']=0}
+rows[41] = {['tmpl']=10040,['text']='你需要跳上水车到顶部去逐次往酒罐里面放酒果发酵，这个酿酒方式是我发明的，怎么样厉害吧！',['audio']=0,['anim']='n_ca_linghou006_base_chat02',['another']=0}
+rows[42] = {['tmpl']=10041,['text']='施主，我看你骨骼惊奇，就请饶了本院的武僧吧。寺内后院阿喏贩卖如来神掌，想学的快去找他吧',['audio']=0,['anim']='',['another']=0}
+rows[43] = {['tmpl']=10042,['text']='施主，想学我的如来神掌就需要通过我的三大关卡',['audio']=0,['anim']='',['another']=0}
+rows[44] = {['tmpl']=10043,['text']='施主，赶紧去吧，就30秒！',['audio']=0,['anim']='',['another']=0}
+rows[45] = {['tmpl']=10044,['text']='施主，快去找阿弥',['audio']=0,['anim']='',['another']=0}
+rows[46] = {['tmpl']=10045,['text']='施主，哥就是阿弥，让贫道给你施弥撒，你会受到阿拉的祝福的，巴扎黑！',['audio']=0,['anim']='',['another']=0}
+rows[47] = {['tmpl']=10046,['text']='不装死活不了命呀，还是生命重要，我不找月光宝盒了。但是我还是不能告诉你白淼淼在哪！',['audio']=0,['anim']='',['another']=0}
+rows[48] = {['tmpl']=10047,['text']='我也是受到的白淼淼要挟，说出她的位置她不会放过我，既然你这么厉害，那就帮我和我的兄弟们逃出她的魔掌吧，我相信不久她就会找上门来！',['audio']=0,['anim']='',['another']=0}
+
+local datas = {
+	[0] = rows[1],
+	[10001] = rows[2],
+	[10002] = rows[3],
+	[10003] = rows[4],
+	[10004] = rows[5],
+	[10005] = rows[6],
+	[10006] = rows[7],
+	[10007] = rows[8],
+	[10008] = rows[9],
+	[10009] = rows[10],
+	[10010] = rows[11],
+	[10011] = rows[12],
+	[10012] = rows[13],
+	[10013] = rows[14],
+	[10014] = rows[15],
+	[10015] = rows[16],
+	[10016] = rows[17],
+	[10017] = rows[18],
+	[10018] = rows[19],
+	[10019] = rows[20],
+	[10020] = rows[21],
+	[10021] = rows[22],
+	[10022] = rows[23],
+	[10023] = rows[24],
+	[10024] = rows[25],
+	[10025] = rows[26],
+	[10026] = rows[27],
+	[10027] = rows[28],
+	[10028] = rows[29],
+	[10029] = rows[30],
+	[10030] = rows[31],
+	[10031] = rows[32],
+	[10032] = rows[33],
+	[10033] = rows[34],
+	[10034] = rows[35],
+	[10035] = rows[36],
+	[10036] = rows[37],
+	[10037] = rows[38],
+	[10038] = rows[39],
+	[10039] = rows[40],
+	[10040] = rows[41],
+	[10041] = rows[42],
+	[10042] = rows[43],
+	[10043] = rows[44],
+	[10044] = rows[45],
+	[10045] = rows[46],
+	[10046] = rows[47],
+	[10047] = rows[48],
+}
+return datas

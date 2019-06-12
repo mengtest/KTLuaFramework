@@ -1,0 +1,99 @@
+local M = {}
+
+function M.doInit()
+
+end
+
+
+local function get_world()
+    if(M.m_world == nil) then
+        M.m_world = app:getFrameMgr():getFrame("world")
+    end
+    return M.m_world
+end
+
+local function get_player_controller()
+    if(M.playerController == nil) then
+        M.playerController = app:getFrameMgr():getFrame("player_controller")
+    end
+    return M.playerController
+end
+
+
+
+-- 检测一些奇怪的buff
+function M.check_special_buff(skill_id, combat, stack_num)
+    local func = M["buff_" .. tostring(skill_id)]
+    if (func ~= nil) then
+        func(combat:get_id(), stack_num)
+    end
+end
+
+
+-- 燃烧buff
+function M.buff_903007(entity_id, stack_num)
+    if(stack_num > 0) then
+            M.m_unit = get_world():getUnit(entity_id)
+            M.m_unit:emit_event("run_function","add_material_to_SkinnedMeshRenderer",
+            "sfx/skill/res/material/ygd/Yyy_aranshao.mat","body")
+    else
+        M.m_unit = get_world():getUnit(entity_id)
+        M.m_unit:emit_event("run_function","remove_material_to_SkinnedMeshRenderer",
+        "Yyy_aranshao","body")
+    end
+end 
+
+
+-- 恶魔尖刺buff
+function M.buff_912017(entity_id, stack_num)
+    if(stack_num > 0) then
+            M.m_unit = get_world():getUnit(entity_id)
+            M.m_unit:emit_event("run_function","add_material_to_SkinnedMeshRenderer",
+            "sfx/skill/res/material/lbl/emojianci.mat","")
+    else
+        M.m_unit = get_world():getUnit(entity_id)
+        M.m_unit:emit_event("run_function","remove_material_to_SkinnedMeshRenderer",
+        "emojianci","")
+    end
+end   
+
+-- 热烈迸发buff
+function M.buff_903013(entity_id, stack_num)
+    if (stack_num == 2) then
+        --if (M.m_last_entity_id ~= entity_id) then
+        --    M.m_unit = M.m_world:getUnit(entity_id)
+        --end
+        --if(M.m_unit:get_is_main_player() == true) then
+        --    get_player_controller():change_skill_btn_skill_data(903001,903003)
+        --    get_player_controller():change_skill_btn_state(903003,true,true)
+        --    get_player_controller():change_skill_btn_state(903005,true,true)
+        --    app:getFrameMgr():getFrame("player_hp_bar"):check_special_spell(stack_num)
+        --end
+
+    else
+        if (M.m_last_entity_id ~= entity_id) then
+           M.m_unit = get_world():getUnit(entity_id)
+        end
+        if(M.m_unit:get_is_main_player() == true) then
+           get_player_controller():change_skill_btn_state(903003,true,false)
+           get_player_controller():change_skill_btn_state(903005,true,false)
+           get_player_controller():change_skill_btn_skill_data(903003,903001)
+           app:getFrameMgr():getFrame("player_hp_bar"):check_special_spell(stack_num)
+        end
+    end
+end
+
+-- 疾影buff
+function M.buff_913007(entity_id, stack_num)
+    if(stack_num > 0) then
+        M.m_unit = get_world():getUnit(entity_id)
+        M.m_unit:emit_event("run_function","add_material_to_SkinnedMeshRenderer",
+        "sfx/skill/res/material/lbl/jiying_caizhi.mat","body")
+    else
+        M.m_unit = get_world():getUnit(entity_id)
+        M.m_unit:emit_event("run_function","remove_material_to_SkinnedMeshRenderer",
+        "jiying_caizhi","body")
+    end
+end 
+
+return M

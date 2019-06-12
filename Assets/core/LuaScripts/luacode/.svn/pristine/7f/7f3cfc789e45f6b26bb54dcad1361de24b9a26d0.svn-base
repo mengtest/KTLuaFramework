@@ -1,0 +1,114 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/24 10:19
+---
+local View = require("system.view")
+local trace_quest_item_view = class("trace_quest_item_view", View)
+
+function trace_quest_item_view:doInit()
+    self.m_frame = self:getFrame()
+    self.m_prefab_go = nil
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Trace_quest_item"), function(go)
+        self.m_prefab_go = go
+        local parent_node = self:getParent():getGO().transform:GetChild(0):Find("panel/vertical_layout_group")
+        go.transform:SetParent(parent_node)
+        local size_delta = self["trace_quest_item_gameObject"].transform.sizeDelta
+        go.transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+
+        self["txt_title_GUIText"].gameObject:GetComponent(UnityEngine.UI.Outline).effectColor = self.m_frame.m_outline_color
+
+        local path = "ui_renwu_gengxin"
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset(path), go.transform)
+
+        self:hide()
+
+        --加载成功后刷一下追踪列表
+        self:getFrame("trace_quest_bar"):refresh_all()
+    end)
+
+    self:subscribe(self.m_frame:on_event("show"), function()
+        self:show()
+    end)
+    self:subscribe(self.m_frame:on_event("hide"), function()
+        self:hide()
+    end)
+    self:subscribe(self.m_frame:on_event("play_particle"), function()
+        self:play_sfx()
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_aim_info"), function(dir_aim, dir_self)
+        self:refresh_aim_info(dir_aim, dir_self)
+    end)
+end
+
+function trace_quest_item_view:show()
+    if self.m_prefab_go == nil then
+        return
+    end
+    self.m_prefab_go:SetActive(true)
+end
+
+function trace_quest_item_view:hide()
+    if self.m_prefab_go == nil then
+        return
+    end
+    self.m_prefab_go:SetActive(false)
+end
+
+--更新任务目标区域的方向和距离
+function trace_quest_item_view:refresh_aim_info(dir_aim, dir_self)
+    if not dir_aim then
+        return
+    end
+    if self["arrow_aim_gameObject"] then
+        self["arrow_aim_gameObject"].transform.localEulerAngles = Vector3(0, 0, math.deg(math.atan2(dir_aim.z, dir_aim.x)) - 90)
+    end
+    if self["arrow_self_gameObject"] then
+        self["arrow_self_gameObject"].transform.localEulerAngles = Vector3(0, 0, -dir_self)
+    end
+end
+
+--播放特效
+function trace_quest_item_view:play_sfx()
+    if self["particle"] then
+        self["particle"].gameObject:SetActive(true)
+        self["particle"]:Play()
+        slua_timer.addDelayEvent(1, function()
+            self["particle"].gameObject:SetActive(false)
+        end)
+    end
+end
+
+--加载特效
+function trace_quest_item_view:load_sfx(path, parent)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (type == nil) then
+            return
+        end
+        self["particle"] = component
+    end)
+end
+
+function trace_quest_item_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return trace_quest_item_view

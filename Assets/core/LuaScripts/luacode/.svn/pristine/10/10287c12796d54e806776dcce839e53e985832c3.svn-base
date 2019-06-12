@@ -1,0 +1,41 @@
+function REQUIRE_BASE(...)
+	local base = (...):match("^(.+)[%./][^%./]+")
+	return function(path)
+		if path and base then path = base.."/"..path end
+		return require(path)
+	end
+end
+
+local require_relative = REQUIRE_BASE(...)
+
+table.unpack = table.unpack or unpack
+
+
+
+--导入工具类
+require_relative("util.all")
+Util_math	= require("common.util.util_math")
+Util_string	= require("common.util.util_string")
+Util_table	= require("common.util.util_table")
+
+--导入枚举类
+require("common.Enum.enum_counter")
+require("common.Enum.enum_ui")
+Enum_Battle = require("common.Enum.enum_battle")
+Enum_Scene = require("common.Enum.Enum_Scene")
+SharedEnum      = require("shared_enum")
+
+
+Attribute           = require_relative("attribute")
+Event               = require_relative("event")
+Event_system        = require("event.event_system")
+Sound_manager       = require("subsystem.sound_manager")
+Player              = require_relative("player.player")
+Remote              = require_relative("server.remote")
+TableLoader         = require_relative("table_loader")
+get_customer_bone   = require("subsystem.customer_bone")
+
+
+
+Event_system:init()
+Sound_manager:init()

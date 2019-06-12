@@ -1,0 +1,38 @@
+
+local Frame = require("system.frame")
+
+local Giver = class("Giver", Frame)
+
+
+-- 原型id
+Attribute.decl(Giver, "tmpl", nil)
+-- 坐标
+Attribute.decl(Giver, "pos", function() return Vector3(0, 0, 0) end)
+-- 方向
+Attribute.decl(Giver, "dir", function() return 0 end)
+
+local ATT_MAP = {
+    tmpl = "tmpl",
+    pos = "pos",
+    dir = "dir",
+}
+
+
+function Giver:doInit(param)
+    self.m_cfg = dbc.giver[param.giver:get_tmpl()]
+    
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(param.giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+    
+    
+    
+end
+
+function Giver:get_cfg()
+    return self.m_cfg
+end
+
+return Giver

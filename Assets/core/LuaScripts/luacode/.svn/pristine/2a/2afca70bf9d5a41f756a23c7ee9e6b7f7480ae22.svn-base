@@ -1,0 +1,23 @@
+local luaseri = require "seri"
+
+local Protocol = class("Protocol")
+
+function Protocol:initialize()
+end
+
+function Protocol:packRequest(name, param)
+	return luaseri.pack(name, param)
+end
+
+function Protocol:parseResponse(str)
+	assert(type(str) == "string")
+	return luaseri.unpack(str)
+end
+
+function Protocol:processMsg(msg, handler, ...)
+	local name, param = luaseri.unpack(msg)
+	local h = assert(handler[name])
+	h(param, ...)
+end
+
+return Protocol

@@ -1,0 +1,18 @@
+class = require 'common.util.middleclass'
+
+local TableLoader = require 'common.table_loader'
+dbc = TableLoader.loadAll()
+
+local json = require 'system.collector.json'
+function dump(tbl, label)
+	local content = json.encode(tbl)
+	print(label or '', content)
+	return content
+end
+
+local dsl = require 'system.package.package_dsl'
+require 'system.package.game_packages'
+
+function collect_main_assets()
+	--return package_collector.collect_main_assets()
+end

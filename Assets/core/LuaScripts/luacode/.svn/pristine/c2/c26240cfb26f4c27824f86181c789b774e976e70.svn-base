@@ -1,0 +1,354 @@
+local View = require("system.view")
+local backpack_equipment_main_view = class("backpack_equipment_main_view", View)
+
+function backpack_equipment_main_view:doInit(param)
+
+
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    -- 是否需要移动
+    self.m_need_move = false
+    -- 移动速度
+    self.m_move_speed = 0
+    -- 移动时间
+    self.m_move_time = 0.2
+    -- 滑动条的值
+    self.m_scroll_bar_target_value = 0
+    -- 滑动目标按钮
+    self.m_target_btn = nil
+    -- 当前选中的按钮
+    self.m_cur_btn = nil
+    -- 每次打开背包界面刷新按钮回调的标记
+    self.m_refresh_stamp = false
+    self.m_btn_list = {}
+    -- 记录时装面板界面
+    self.m_fashion_dress_view = nil
+    -- 记录开始滑动时select_bg的位置
+    self.m_select_bg_start_x = -105
+
+    -- 时装信息面板开关标识，默认打开
+    self.m_info_area_is_open = true
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("EquipmentBackpack"), function(go)
+        -----ke   20.17.12.15   temp
+        local pro = loading_temp_pro
+        --Debug.LogError("EquipmentBackpack"..tostring(pro))
+        loading_temp_pro = pro + 0.1
+        --Debug.LogError("EquipmentBackpack..."..tostring(loading_temp_pro))
+
+
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local return_btn = go.transform:Find("equipment_bg/return_btn"):GetComponent(UI.Button)
+        local down_bg = go.transform:Find("equipment_bg/down_bg").transform
+        self.m_scroll_bar = down_bg:Find("scrollbar"):GetComponent(UI.Scrollbar)
+        self.m_drag_area_container = go.transform:Find("equipment_bg/drag_panel").gameObject:GetComponent("DragSkill")
+        -- 控制tips关闭的UI，当响应到此物体点击事件时将tip隐藏，无需隐藏，并不影响
+        self.m_tips_drag_skill_panel = self.m_drag_area_container.transform:Find("drag_area_container/backpack_container/tips_drag_skill_panel").gameObject:GetComponent("DragSkill")
+
+        -- 这里是背包的挂点
+        local backpack_parent = self.m_drag_area_container.transform:Find("drag_area_container/backpack_container/backpack_parent").transform
+
+        -- 装备挂点
+        local equipment = self.m_drag_area_container.transform:Find("drag_area_container/backpack_container/equipment").transform
+
+        -- tips挂点
+        local equipment_tips = self.m_drag_area_container.transform:Find("drag_area_container/backpack_container/equipment_tips").transform
+
+        -- 任务属性面板的挂点
+        local role_info_panel = self.m_drag_area_container.transform:Find("drag_area_container/attribute_container").transform
+
+        -- 这是试衣间时装挂点
+        local warehouse_parent = self.m_drag_area_container.transform:Find("drag_area_container/warehouse_container/warehouse_bg/warehouse_parent").transform
+        -- 这是用于套装属性面板的挂点
+        local fashion_info_parent = self.m_drag_area_container.transform:Find("drag_area_container/warehouse_container/warehouse_bg/fashionable_info_area/fashion_info_parent")
+        local fashion_info_area = self.m_drag_area_container.transform:Find("drag_area_container/warehouse_container/warehouse_bg/fashionable_info_area")--:GetComponent(UnityEngine.RectTransform)
+        -- 控制时装信息面板开闭的按钮
+        local info_area_btn = self.m_drag_area_container.transform:Find("drag_area_container/warehouse_container/warehouse_bg/fashionable_info_area/open_info_show_btn"):GetComponent(UI.Button)
+        -- 获取信息面板开闭按钮的显示为开或关的icon
+        local close_icon = info_area_btn.transform:Find("close_icon").gameObject
+        local open_icon = info_area_btn.transform:Find("open_icon").gameObject
+        -- 这是用于挂载预览右侧预览的角色模型面板的挂点
+        local model_show_parent = self.m_drag_area_container.transform:Find("drag_area_container/warehouse_container/warehouse_bg/model_parent").transform
+
+        -- 获取装备页面上部和下部的高度，为了计算tips可显示的最大高度
+        local up_bg_height = self.m_drag_area_container.transform:Find("drag_area_container/backpack_container/up_bg").gameObject:GetComponent(UnityEngine.RectTransform).rect.height
+        local tips_max_height = self.m_drag_area_container.gameObject:GetComponent(UnityEngine.RectTransform).rect.height - up_bg_height
+
+        -- 注册控制tips关闭的UI身上的DragSkill组件的点击事件
+        self.m_tips_drag_skill_panel.onClick = DragSkill_OnPointerClickHandler()
+        self.m_tips_drag_skill_panel.onClick:AddListener(function()
+            self:hide_tips()
+        end)
+
+        -- 属性
+        self.m_attribute_root = down_bg:Find("btn_container/attribute").transform
+        self.m_attribute_image = self.m_attribute_root:Find("attribute_image").transform
+        self.m_attribute_text_btn = self.m_attribute_image:Find("attribute_text_btn"):GetComponent(UI.Button)
+        self.m_attribute_selected = self.m_attribute_root:Find("selected").transform
+        local attribute_target_pos_x = 58
+        self:add_btn_list(self.m_attribute_root, self.m_attribute_image, self.m_attribute_text_btn, self.m_attribute_selected, attribute_target_pos_x)
+
+        -- 背包
+        self.m_backpack_root = down_bg:Find("btn_container/backpack").transform
+        self.m_backpack_image = self.m_backpack_root:Find("backpack_image").transform
+        self.m_backpack_text_btn = self.m_backpack_image:Find("backpack_text_btn"):GetComponent(UI.Button)
+        self.m_backpack_selected = self.m_backpack_root:Find("selected").transform
+        local backpack_target_pos_x = -105
+        self:add_btn_list(self.m_backpack_root, self.m_backpack_image, self.m_backpack_text_btn, self.m_backpack_selected, backpack_target_pos_x)
+        self.m_btn_selected_bg = self.m_backpack_root.transform:Find("selected_bg").transform
+        -- 仓库
+        self.m_warehouse_root = down_bg:Find("btn_container/warehouse").transform
+        self.m_warehouse_image = self.m_warehouse_root:Find("warehouse_image").transform
+        self.m_warehouse_text_btn = self.m_warehouse_image:Find("warehouse_text_btn"):GetComponent(UI.Button)
+        self.m_warehouse_selected = self.m_warehouse_root:Find("selected").transform
+        local warehouse_target_pos_x = 171
+        self:add_btn_list(self.m_warehouse_root, self.m_warehouse_image, self.m_warehouse_text_btn, self.m_warehouse_selected, warehouse_target_pos_x)
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function()
+            self.m_need_move = false
+            self.m_select_bg_start_x = self.m_btn_selected_bg.localPosition.x
+        end)
+
+        self.m_drag_area_container.onDrag = DragSkill_OnDragHandler()
+        self.m_drag_area_container.onDrag:AddListener(function()
+            self:on_drag_select_bg_move()
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function()
+            self:end_drag_callback()
+        end)
+
+        self.m_attribute_text_btn.onClick:AddListener(function()
+            self:hide_tips()
+            self.m_scroll_bar_target_value = 0.5
+            self:click_btn_callback(self.m_attribute_text_btn)
+        end)
+
+        self.m_backpack_text_btn.onClick:AddListener(function()
+            self.m_scroll_bar_target_value = 0
+            self:click_btn_callback(self.m_backpack_text_btn)
+        end)
+
+        self.m_warehouse_text_btn.onClick:AddListener(function()
+            self:hide_tips()
+            self.m_scroll_bar_target_value = 1
+            self:click_btn_callback(self.m_warehouse_text_btn)
+        end)
+
+        return_btn.onClick:AddListener(function()
+            self:hide_tips()
+            self.m_mgr:getView("backpack_equipment_main"):getGO():SetActive(false)
+            --self.m_frame:emit_event("hide_view")
+            self.m_refresh_stamp = true
+        end)
+
+        info_area_btn.onClick:AddListener(function()
+            self:fashion_info_hide_show(self.m_info_area_is_open, fashion_info_area)
+            close_icon:SetActive(self.m_info_area_is_open)
+            open_icon:SetActive(not self.m_info_area_is_open)
+            self.m_info_area_is_open = not self.m_info_area_is_open
+        end)
+
+        self.m_scroll_bar_target_value = 0
+        self.m_target_btn = self.m_backpack_text_btn
+        self:click_btn_callback(self.m_target_btn)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "backpack_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = backpack_parent.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            -- 装备
+            if string.find(name, "equipment_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                local parent_transform = equipment.transform
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            -- 装备tips
+            if string.find(name, "equipment_tips_parent") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = equipment_tips.transform
+                view_go:AddComponent(UnityEngine.RectTransform)
+                --view_go:GetComponent(UnityEngine.RectTransform).pivot = Vector2(0.5, 0.5)
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            -- 人物属性面板
+            if string.find(name, "ui_character_info") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = role_info_panel.transform
+                view_go:AddComponent(UnityEngine.RectTransform)
+                --view_go:GetComponent(UnityEngine.RectTransform).pivot = Vector2(0.5, 0.5)
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            -- 试衣间时装面板
+            if string.find(name, "fashionable_dress_list") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                self.m_fashion_dress_view = view
+                local parent_transform = warehouse_parent.transform
+                view_go:AddComponent(UnityEngine.RectTransform)
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            -- 时装信息面板
+            if string.find(name, "fashionable_dress_info_show") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                -- 选择创建挂点以及设置位置和大小
+                local parent_transform = fashion_info_parent.transform
+                view_go:AddComponent(RectTransform)
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "fashion_select_model") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                local parent_transform = model_show_parent.transform
+                view_go:AddComponent(RectTransform)
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+        self.m_mgr:getView("backpack_equipment_main"):getGO():SetActive(false)
+        self.m_frame:get_param(tips_max_height)
+        self.m_frame:on_loaded()
+        -- fashion_info_area.gameObject:SetActive(false)
+    end)
+end
+
+function backpack_equipment_main_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        -- 在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+    -- 除第一次外每次打开背包界面都刷新一次按钮点击回调，目的是重置摄像机设置并刷新时装界面模型、场景
+    if self.m_refresh_stamp and self.m_mgr:getView("backpack_equipment_main"):getGO().activeSelf then
+        self:click_btn_callback(self.m_cur_btn)
+        self.m_refresh_stamp = false
+    end
+    self:on_drag_select_bg_move()
+end
+
+function backpack_equipment_main_view:on_drag_select_bg_move()
+    if self.m_scroll_bar then
+        local target_distance = self.m_scroll_bar.value - self.m_scroll_bar_target_value
+        local pos = self.m_btn_selected_bg.localPosition
+        self.m_btn_selected_bg.localPosition = Vector3(self.m_select_bg_start_x + 150 * target_distance, pos.y, pos.z)
+    end
+end
+
+------结束拖拽的回调
+function backpack_equipment_main_view:end_drag_callback()
+    if self.m_scroll_bar.value <= 0.25 then
+        self.m_scroll_bar_target_value = 0
+        self.m_target_btn = self.m_backpack_text_btn
+    elseif self.m_scroll_bar.value <= 0.75 then
+        self.m_scroll_bar_target_value = 0.5
+        self.m_target_btn = self.m_attribute_text_btn
+    else
+        self.m_scroll_bar_target_value = 1
+        self.m_target_btn = self.m_warehouse_text_btn
+    end
+    self:click_btn_callback(self.m_target_btn)
+end
+
+-- 确定了目标位置的回调
+function backpack_equipment_main_view:click_btn_callback(press_btn)
+    self:change_btn_to_big(press_btn)
+    self.m_need_move = true
+    self.m_move_speed = 0
+    if press_btn == self.m_warehouse_text_btn then
+        if self.m_cur_btn ~= self.m_warehouse_text_btn or self.m_refresh_stamp then
+            self.m_fashion_dress_view:select_default_card()
+            self.m_frame:emit_event("warehouse_select")
+        end
+    end
+    self.m_cur_btn = press_btn
+end
+
+-- 按钮变大
+function backpack_equipment_main_view:change_btn_to_big(press_btn)
+    for k, v in pairs(self.m_btn_list) do
+        if v["btn_and_text"] == press_btn then
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(200, 95)
+            v["selected_show"].transform.gameObject:SetActive(true)
+            v["btn_no_selected"].transform.gameObject:SetActive(false)
+            -- Debug.LogError("add_btn_list" .. tostring(v["target"]))
+            -- self:btn_selected_bg_move(v["target"])
+            self.m_select_bg_start_x = v["target"]
+        else
+            v["root"].transform:GetComponent(RectTransform).sizeDelta = Vector2(100, 90)
+            v["selected_show"].transform.gameObject:SetActive(false)
+            v["btn_no_selected"].transform.gameObject:SetActive(true)
+        end
+    end
+end
+
+-- 向按钮列表中添加内容
+function backpack_equipment_main_view:add_btn_list(root, btn_no_selected, btn_and_text, selected_show, target)
+    self.m_btn_list[#self.m_btn_list + 1] = { ["root"] = root, ["btn_no_selected"] = btn_no_selected, ["btn_and_text"] = btn_and_text, ["selected_show"] = selected_show, ["target"] = target }
+end
+
+function backpack_equipment_main_view:btn_selected_bg_move(target)
+    local move_dis = math.abs(target - self.m_select_bg_start_x)
+    local time = 0.6
+    if move_dis > 0 then
+        time = math.abs(target - self.m_btn_selected_bg.gameObject.transform.localPosition.x) / move_dis * 0.1
+    end
+    ShortcutExtensions.DOLocalMoveX(self.m_btn_selected_bg.gameObject.transform, target, time, false)
+end
+
+-- 将接收tips隐藏事件的panel显示，提供给tip那边调用
+function backpack_equipment_main_view:show_tips_drag_skill_panel()
+    self.m_tips_drag_skill_panel.gameObject:SetActive(true)
+end
+
+-- 隐藏tips的命令，在点击空白处时会调用，切换页面、关闭背包时都会用到
+function backpack_equipment_main_view:hide_tips()
+    -- 抛出通知tips隐藏的事件
+    self.m_frame:need_hide_tips()
+    self.m_tips_drag_skill_panel.gameObject:SetActive(false)
+end
+
+-- 控制套装属性面板显示和隐藏 传入的参数是当前是否已显示的标识，要控制的RectTransform
+function backpack_equipment_main_view:fashion_info_hide_show(whether_show, ctrl_rect)
+    if whether_show then
+        ShortcutExtensions.DOLocalMoveX(ctrl_rect, 1600, 0.5, true)
+    else
+        ShortcutExtensions.DOLocalMoveX(ctrl_rect, 800, 0.5, true)
+    end
+end
+
+return backpack_equipment_main_view

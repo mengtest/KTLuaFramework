@@ -1,0 +1,138 @@
+local TcpConnection = require "network.tcp_connection"
+local luaseri = require "seri"
+
+local Session = class("Session")
+
+function Session:initialize(protocol)
+	self.m_conn = nil
+	self.m_cb 	= nil
+	self.m_protocol = protocol
+
+	local function login(resp)
+		if not self.m_cb then return end
+		if resp.ret then
+			self.m_cb("login_result", true, resp.uid, resp.ip, resp.port, resp.code)
+		else
+			self.m_cb("login_result", false, resp.error)
+		end
+	end
+
+	local function join(resp)
+		if not self.m_cb then return end
+		if resp.ret then
+			local data = luaseri.unpack(resp.data)
+			self.m_cb("join_result", true, data, resp.time)
+		else
+			self.m_cb("join_result", false, resp.error)
+		end
+	end
+
+	local function remote_call(resp)
+		if not self.m_cb then return end
+		if resp.ret then
+			local result = luaseri.unpack(resp.result)
+			local patch  = luaseri.unpack(resp.patch)
+			self.m_cb("remote_call_result", resp.id, result, patch)
+		else
+			print("RemoteCallResp error: ", resp.id)
+			print(resp.error)
+		end
+	end
+
+	local function push_notify(resp)
+		if not self.m_cb then return end
+		local param = luaseri.unpack(resp.param)
+		self.m_cb("push_notify", resp.name, param)
+	end
+
+	local function heartbeat(resp)
+	end
+
+	self.m_handler = {
+		login 		= login,
+		join 		= join,
+		remote_call = remote_call,
+		push_notify = push_notify,
+		heartbeat 	= heartbeat,
+	}
+end
+
+function Session:setScriptHandler(sh)
+	self.m_cb = sh
+end
+
+function Session:update()
+	if self.m_conn then
+		self.m_conn:update()
+	end
+end
+
+function Session:isConnected()
+	return self.m_conn and self.m_conn:isConnected()
+end
+
+function Session:onConnectionEvent(conn, event, param)
+	if self.m_conn ~= conn then return end
+	if not self.m_cb then return end
+
+	if event == "connect" then
+		self.m_cb("connect")
+	elseif event == "disconnect" then
+		self.m_cb("disconnect")
+	elseif event == "data" then
+		self.m_protocol:processMsg(param, self.m_handler)
+	end
+end
+
+function Session:connect(ip, port)
+	self:disconnect()
+	assert(self.m_conn == nil)
+
+	self.m_conn = TcpConnection:new(function(...)
+		return self:onConnectionEvent(...)
+	end)
+	local ok, err = self.m_conn:connect(ip, port)
+	if ok then return true end
+
+	self.m_conn = nil
+	return false, err
+end
+
+function Session:disconnect()
+	if self.m_conn then
+		self.m_conn:disconnect()
+		self.m_conn = nil
+	end
+end
+
+function Session:login(user_id, token, type, version, wid, udid)
+	local msg = self.m_protocol:packRequest("login", {
+		userid 	= user_id,
+		token 	= token,
+		type 	= type,
+		wid 	= wid,
+		version = version,
+		udid 	= udid,
+	})
+	self.m_conn:sendMsg(msg)
+end
+
+function Session:join(uid, code, udid)
+	local msg = self.m_protocol:packRequest("join", {
+		uid 	= uid,
+		code 	= code,
+		udid 	= udid,
+	})
+	self.m_conn:sendMsg(msg)
+end
+
+function Session:callRemote(id, method, param)
+	local msg = self.m_protocol:packRequest("remote_call", {
+		id 		= id,
+		method 	= method,
+		param 	= luaseri.pack(param),
+	})
+	self.m_conn:sendMsg(msg)
+end
+
+return Session

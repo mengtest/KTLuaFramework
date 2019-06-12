@@ -1,0 +1,9 @@
+local rows = {}
+rows[1] = {['id']=1,['pic_name']='ui/Icons/dungeon/pipeizudui/tu_1.png',['click_pic_name']='ui/Icons/dungeon/pipeizudui/tu_1_clicked.png'}
+rows[2] = {['id']=2,['pic_name']='ui/Icons/dungeon/pipeizudui/tu_3.png',['click_pic_name']='ui/Icons/dungeon/pipeizudui/tu_3_clicked.png'}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+}
+return datas

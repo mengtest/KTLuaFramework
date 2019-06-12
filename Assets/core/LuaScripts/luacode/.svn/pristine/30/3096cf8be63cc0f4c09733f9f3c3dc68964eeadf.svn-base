@@ -1,0 +1,208 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/10/27 10:00
+local View = require("system.view")
+local skill_show_view = class("skill_show_view", View)
+
+function skill_show_view : doInit(param)
+    local frame = self:getFrame()
+    self.m_curr_skill_data_list = {}
+    self.ui_manager = app:get_ui_manager()
+    self.isShow = false
+    self.m_skill_ui_manager = self:getFrame("skill_ui_manager")
+    -------还可以升级几次，这是一个数字
+    self.m_is_level = nil
+    self:load("ui/Skill_show_hint.prefab", function(go)
+
+        --详细界面
+        self.m_hint = go.transform:Find("skill_show_hint_bg/skill_show_detail").gameObject
+        --缩略界面
+        self.m_hin = go.transform:Find("skill_show_hint_bg/skill_show_breviary").gameObject
+        --当前技能未解锁状态下的信息显示
+        self.m_detail_unhint = go.transform:Find("skill_show_hint_bg/skill_show_undeblocking").gameObject
+        --当前未解锁技能名字
+        self.m_detail_unhint_name = go.transform:Find("skill_show_hint_bg/skill_show_undeblocking/skill_show_text/skill_name").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        --可升级绿色箭头
+        self.m_upgrade = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_upgrade").gameObject:GetComponent(UnityEngine.UI.Image)
+        --显示详细信息界面的按钮
+        self.m_up = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_up_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+        --显示详细信息界面的按钮
+        self.m_up_one = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_up").gameObject:GetComponent(UnityEngine.UI.Button)
+        --隐藏详细信息界面的按钮
+        self.m_down = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_btn/skill_show_down_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        --缩略信息__名字
+        self.m_breviary_name = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_name").gameObject:GetComponent(UnityEngine.UI.Text)
+        --缩略信息__等级
+        self.m_breviary_level = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_name/skill_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        --缩略信息__伤害
+        self.m_breviary_demage = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_magic_demage").gameObject:GetComponent(UnityEngine.UI.Text)
+        --缩略信息__显示
+        self.m_breviary_hint = go.transform:Find("skill_show_hint_bg/skill_show_breviary/skill_show_text/skill_hint_breviary").gameObject:GetComponent(UnityEngine.UI.Text)
+
+        --详细信息__名字
+        self.m_detail_name = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_name").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__等级
+        self.m_detail_level = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_name/skill_level").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__伤害
+        self.m_detail_demage = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_magic_demage").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__技能法力消耗
+        self.m_detail_base_point = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_base_consume/skill_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__施法时间
+        self.m_detail_cast_time = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_conjure_time/skill_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__射程
+        self.m_detail_cast_dist = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_range/skill_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__冷却时间
+        self.m_detail_cooldown_time = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_text/skill_cooldown_time/skill_value").gameObject:GetComponent(UnityEngine.UI.Text)
+        --详细信息__显示
+        self.m_detail_hint = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_hint_bg/skill_show_text").gameObject:GetComponent(UnityEngine.UI.Text)
+        self.up_level_btn = go.transform:Find("skill_show_hint_bg/skill_show_detail/skill_show_btn/skill_show_upgrade_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        self:refresh_show_data(self:getFrame("skill_ui_list"):get_curr_selected_skill())
+
+
+        self:subscribe(frame:on_event("refrsh_data_list"), function(data)
+            self.m_curr_skill_data_list = data
+            self:refresh_show_data(data)
+        end)
+
+        ------当最大等级提升时作出的处理
+        self:subscribe(frame:on_event("refrsh_max_level"), function(max_level)
+            self.m_curr_skill_data_list["max_level"] = max_level
+            if self.m_curr_skill_data_list["curr_level"] < self.m_curr_skill_data_list["max_level"] then
+                self.up_level_btn.gameObject:SetActive(true)
+                self.m_upgrade.gameObject:SetActive(true)
+            end
+        end)
+
+        self:subscribe(self.m_skill_ui_manager:on_event("skill_curr_level_up"), function(skill_id)
+            self:refresh_show_level(skill_id)
+        end)
+
+        --显示按钮的监听事件
+        self.m_up.onClick:AddListener(function()
+            --技能信息界面显示
+            self.isShow = true
+            self.m_hint:SetActive(true)
+            self.m_hin:SetActive(false)
+        end)
+        --显示按钮的监听事件
+        self.m_up_one.onClick:AddListener(function()
+            --技能信息界面显示
+            self.isShow = true
+            self.m_hint:SetActive(true)
+            self.m_hin:SetActive(false)
+        end)
+        --隐藏按钮的监听事件
+        self.m_down.onClick:AddListener(function()
+            self.isShow = false
+            self.m_hint:SetActive(false)
+            self.m_hin:SetActive(true)
+        end)
+        ----处理升级
+        self.up_level_btn.onClick:AddListener(function()
+            self.m_skill_ui_manager:req_master_learn(self.m_curr_skill_data_list["id"])
+        end)
+    end)
+end
+
+-----升级之后做的判断，是否可以继续升级
+function skill_show_view:refresh_show_level(skill_id)
+
+    if skill_id == self.m_curr_skill_data_list["id"] then
+        self.m_curr_skill_data_list["curr_level"] = self.m_curr_skill_data_list["curr_level"] + 1
+        --缩略信息__等级
+        self.m_breviary_level.text = self.m_curr_skill_data_list["curr_level"]
+        --详细信息__等级
+        self.m_detail_level.text = self.m_curr_skill_data_list["curr_level"]
+        --self.m_detail_name.text = tostring(self.m_curr_skill_data_list["id"].name .. "Lv." .. self.m_detail_level.text)
+        local result = self.m_curr_skill_data_list["max_level"] - self.m_curr_skill_data_list["curr_level"]
+        --是否显示升级按钮
+        if result <= 0 then
+            self.up_level_btn.gameObject:SetActive(false)
+            self.m_upgrade.gameObject:SetActive(false)
+        end
+    end
+end
+
+-----点击技能之后的处理
+function skill_show_view:refresh_show_data(data)
+
+    local id = data["id"]
+    local curr_level = data["curr_level"]
+    local max_level = data["max_level"]
+    local state = data["state"]
+    ------初始化列表
+    self.m_curr_skill_data_list["id"] = id
+    self.m_curr_skill_data_list["curr_level"] = curr_level
+    self.m_curr_skill_data_list["max_level"] = max_level
+    self.m_curr_skill_data_list["state"] = state
+
+    if curr_level < max_level then
+        self.up_level_btn.gameObject:SetActive(true)
+        self.m_upgrade.gameObject:SetActive(true)
+    else
+        self.up_level_btn.gameObject:SetActive(false)
+        self.m_upgrade.gameObject:SetActive(false)
+    end
+
+    --未解锁技能名字
+    self.m_detail_unhint_name.text = dbc.spell_ui[id].name
+    --缩略信息__名字
+    self.m_breviary_name.text = dbc.spell_ui[id].name
+    --缩略信息__显示
+    self.m_breviary_hint.text = dbc.spell_ui[id].breviary_explain_skill
+    --缩略信息__等级
+    self.m_breviary_level.text = curr_level
+    --详细信息__名字
+    self.m_detail_name.text = dbc.spell_ui[id].name
+    --详细信息__显示
+    self.m_detail_hint.text = dbc.spell_ui[id].detail_explain_skill
+    --详细信息__等级
+    self.m_detail_level.text = curr_level
+    --详细信息__技能法力消耗
+    self.m_detail_base_point.text = tostring( (dbc.spell[id].cost_num) / 100 .. "%" .. "基础技能法力消耗")
+    --详细信息__施法时间
+    self.m_detail_cast_time.text = tostring(dbc.spell[id].cast_time .. "秒施法时间")
+    --详细信息__射程
+    self.m_detail_cast_dist.text = tostring(dbc.spell[id].cast_dist .. "码射程")
+    --详细信息__冷却时间
+    self.m_detail_cooldown_time.text = tostring(dbc.spell[id].cooldown .. "秒冷却")
+
+    --伤害类型
+    if dbc.spell[id].damage_class == 0 then
+        self.m_detail_demage.text = ""
+        self.m_breviary_demage.text = ""
+    elseif dbc.spell[id].damage_class == 1 then
+        self.m_detail_demage.text = "魔法伤害"
+        self.m_breviary_demage.text = "魔法伤害"
+    elseif dbc.spell[id].damage_class == 2 then
+        self.m_breviary_demage.text = "近战伤害"
+        self.m_detail_demage.text = "近战伤害"
+    elseif dbc.spell[id].damage_class == 3 then
+        self.m_detail_demage.text = "远程伤害"
+        self.m_breviary_demage.text = "远程伤害"
+    end
+
+
+    if state == 0 then
+        self.m_hint:SetActive(false)
+        self.m_hin:SetActive(false)
+        self.m_detail_unhint:SetActive(true)
+    elseif state == 1 then
+        if self.isShow == false then
+            self.m_hint:SetActive(false)
+            self.m_hin:SetActive(true)
+            self.m_detail_unhint:SetActive(false)
+        else
+            self.m_hint:SetActive(true)
+            self.m_hin:SetActive(false)
+            self.m_detail_unhint:SetActive(false)
+        end
+    end
+
+end
+
+
+return skill_show_view

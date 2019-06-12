@@ -1,0 +1,76 @@
+﻿local ObserverHost = require "system.observer_host"
+
+local BpModelMgr = class("BpModelMgr")
+
+BpModelMgr:include(ObserverHost)
+
+function BpModelMgr:initialize()
+
+end
+
+function BpModelMgr:destroy()
+	self:unsubscribeAll()
+end
+
+function BpModelMgr:update()
+
+end
+
+-- 通过人物id获取模型Prefab路径
+function BpModelMgr:get_prefab_path_by_id(id)
+    local m = dbc.model_path[id]  
+    assert(m~=nil,"没有找到prefab:id="..tostring(id))
+    return BpModelMgr:get_prefab_path(m.prefab_name)
+end
+
+-- 通过name获取Prefab
+function BpModelMgr:get_prefab_path(name)
+	return string.format("actors/prefab/%s.prefab", name)
+end
+
+-- 加载表现型特效 生带来死带去
+function BpModelMgr:load_appearance_sfx(id, go)
+    local m = dbc.model_path[id]
+    local sfx = m.appearance_sfx
+    local sfx_mount = m.appearance_sfx_mount
+    if(sfx == nil or #sfx < 1) then
+        return 
+    end
+   
+    local index = 1
+    repeat
+        BpModelMgr:load_sfx(sfx[index],sfx_mount[index],go)
+        index = index + 1
+    until (index > #sfx)
+
+end
+
+function BpModelMgr:load_sfx(sfx_path,sfx_mount_path,go)
+    -- 加载特效
+   BpModelMgr:subscribe(app:get_res_mgr():rxLoad(sfx_path), function(asset)     
+           if asset then 
+                local prefab = asset             
+                local gameObject = Object.Instantiate(prefab)
+                if(sfx_mount_path == nil) then
+                    sfx_mount_path = ""
+                end
+                gameObject.transform.parent = go:GetComponent(KTBoneManager):GetBoneByName(sfx_mount_path)
+                gameObject.transform.localPosition = prefab.transform.localPosition
+                gameObject.transform.localEulerAngles = prefab.transform.localEulerAngles
+                gameObject.transform.localScale = prefab.transform.localScale
+            end
+    end)
+end
+
+function BpModelMgr:get_animation_path_by_id(model_id, anim_name)
+    local data = dbc.model_path[model_id]
+    local m = string.format("models/Role/%s/animation/%s.anim", dbc.model_path[model_id].model_path, anim_name)
+    return m
+end
+
+function BpModelMgr:get_animation_path_by_id2(parent_path, anim_name)
+    local m = string.format("models/Role/%s/animation/%s.anim", parent_path, anim_name)
+    return m
+end
+
+return BpModelMgr

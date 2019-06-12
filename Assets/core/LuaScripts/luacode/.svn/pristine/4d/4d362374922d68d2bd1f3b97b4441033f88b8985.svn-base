@@ -1,0 +1,144 @@
+local sect_talent_btn_view = {}
+
+function sect_talent_btn_view:doInit()
+    local frame = self:getFrame()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("SectTalentBtn"), function(go)
+
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go.transform.sizeDelta = Vector2(1600, 900)
+        -- 显示
+        self:subscribe(frame:on_event("show"), function()
+            self:show()
+        end)
+        -- 隐藏
+        self:subscribe(frame:on_event("hide"), function()
+            self:hide()
+        end )
+
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            -- 弹窗中的同组天赋
+            if string.find(name, "sect_talent_btn_in_window") then
+                local view = self.m_mgr:getView(name)
+                local view_go = view:getGO()
+                --选择创建挂点以及设置位置和大小
+                view_go.transform.parent = self["window_gameObject"].transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+
+        self:subscribe(frame:on_event_talent_id_set(true), function(id)
+            local icon_path = nil
+            if assert(dbc.spell_client[id], "spell_client表找不到天赋  id:" .. id) then
+                icon_path = dbc.spell_client[id].icon
+            end
+            frame:set_talent_name(dbc.spell_ui[id].name)
+            self:change_sprite(icon_path)
+
+            -- 一级按钮刷新弹窗技能
+            if not string.find(frame:getFrameName(), "sect_talent_btn_in_window") then
+                local child_list = frame:getChildList()
+                for i, v in pairs(child_list) do
+                    if id == v:get_talent_id() then
+                        v:set_same_as_parent(true)
+                    else
+                        v:set_same_as_parent(false)
+                    end
+                end
+
+            else
+                if frame:getParent():get_talent_id() == id then
+                    frame:set_same_as_parent(true)
+                else
+                    frame:set_same_as_parent(false)
+                end
+            end
+        end)
+
+        -- 弹窗
+        self:subscribe(frame:on_event_window_show_set(true), function(val)
+            if val then
+                self["window_gameObject"]:SetActive(true)
+            else
+                self["window_gameObject"]:SetActive(false)
+            end
+
+        end)
+        -- 是否和激活的天赋相同
+        self:subscribe(frame:on_event_same_as_parent_set(true), function(val)
+            if val then
+                self["selected_gameObject"]:SetActive(true)
+            else
+                self["selected_gameObject"]:SetActive(false)
+            end
+
+        end)
+
+
+        -- 是否是推荐
+        self:subscribe(frame:on_event_recommend_set(true), function(val)
+            if val then
+                self["recommend_gameObject"]:SetActive(true)
+            else
+                self["recommend_gameObject"]:SetActive(false)
+            end
+
+        end)
+
+
+        -- 按钮是否能点击（也就是这个位置是否可以更换）[非弹窗中技能]
+        self:subscribe(frame:on_event_can_btn_click_set(true), function(val)
+            if string.find(frame:getFrameName(), "main_sect_talent_btn") then
+                -- 核心天赋
+                if val then
+                    self["talent_btn_GUIButton"].enabled = true
+                    self["tip_gameObject"]:SetActive(true)
+                else
+                    self["talent_btn_GUIButton"].enabled = false
+                    self["tip_gameObject"]:SetActive(false)
+                end
+            else
+                -- 次级天赋
+                if val then
+                    self["talent_btn_GUIButton"].enabled = true
+                    self["tip_gameObject"]:SetActive(true)
+                else
+                    self["talent_btn_GUIButton"].enabled = true
+                    self["tip_gameObject"]:SetActive(false)
+                end
+            end
+        end)
+
+
+        -- 给不是弹窗的按钮创建弹窗中的按钮     好绕啊。。。。。
+        if not string.find(frame:getFrameName(), "sect_talent_btn_in_window") then
+            frame:create_btn_in_window()
+        end
+
+    end)
+end
+
+function sect_talent_btn_view:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self["icon_GUIImage"].sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+---- 显示自己
+function sect_talent_btn_view:show()
+    self:getGO():SetActive(true)
+end
+---- 隐藏自己
+function sect_talent_btn_view:hide()
+    self:getGO():SetActive(false)
+end
+
+return sect_talent_btn_view

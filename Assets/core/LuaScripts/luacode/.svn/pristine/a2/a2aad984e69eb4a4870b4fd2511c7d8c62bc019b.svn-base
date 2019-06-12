@@ -1,0 +1,43 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+
+function big_map:doInit(param)
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_owner = self:getFrame("world"):get_main_player()
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function (pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function (dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    self:init()
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded()
+    for i = 1, 3 do
+        self:createChild("boss_icon" .. i,"%subsystem.map.big_map.big_map_boss", {["id"] = i, ["state"] = i % 2, ["pos"] = Vector3(100 * i,100 * i,100 * i)})
+    end
+end
+
+return big_map

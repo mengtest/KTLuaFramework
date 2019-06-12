@@ -1,0 +1,312 @@
+-- 服务器和客户端公用的枚举定义
+-- 本文件内容使用脚本从服务器代码中导出
+-- 不要直接修改本文件 以免修改被覆盖
+
+local M = {}
+
+M.TeamCode = {
+    SUCCESS = 0, -- 操作成功
+    PARAM_ERROR = 2, -- 参数错误
+    LEVEL_UP = 3, -- 小队人数已满，应该升级队伍至团队
+    TEAM_FULL = 4, -- 队伍人数已满
+    TEAM_NO_EXISTS = 5, -- 队伍不存在
+    IN_THE_TEAM = 6, -- 已经在队伍里
+    JOIN_TEAM = 7, -- xxx加入队伍
+    LEAVE_TEAM = 8, -- xxx离开队伍
+    REFUSE_TEAM = 9, -- xxx拒绝加入队伍
+    LOGIN = 10, -- xxx登陆游戏
+    LOGOUT = 11, -- xxx登出游戏
+    LEAVE_TEAM_SUCCESS = 12, -- 离队成功
+    NO_EXISTS_INST = 101, -- 不存在目标副本
+    MUST_BE_SINGLE = 102, -- 单人副本
+    MUST_BE_IN_TEAM = 103, -- 队伍副本
+    NO_UNLOCK_INST = 104, -- 未解锁副本
+    NO_SELECT_DIFF = 105, -- 只要队长才能选择难度
+    NO_IN_AREA = 106, -- 未在指定区域
+    NO_IN_MAP = 107, -- 未在指定地图
+    CHANGE_SPECIALIZATION = 108, -- 请切换到指定专精
+}
+
+M.QuestCond = {
+    NONE = 0,
+    NPC = 1, -- 交互指定单位 (no parameters)
+    POSITION = 2, -- 到达指定区域 (no parameters)
+    CREATURE = 3, -- 击杀指定单位 stats[0]=qty
+    TREASURE = 4, -- 采集指定单位 stats[0]=qty
+    ITEM = 5, -- 收集指定物品 stats[0]=qty
+    LEVEL = 6, -- 超过指定等级 (no parameters)
+    SKILL = 7, -- 释放指定技能 stats[0]=qty
+}
+
+M.TreasureEntity = {
+    TYPE_NATIVE = 0, -- 原生功能
+}
+
+M.TreasureMethod = {
+    FUNC_NONE = 0, -- 无方法调用
+    FUNC_GEN_WITHDRAW = 1, -- 采集发生器
+}
+
+M.TreasureResult = {
+    TOUCHED_SUCCESS = 0,
+    TOUCHED_FAILURE = 1,
+}
+
+M.TreasureStatus = {
+    DISCOVERABLE_DEPEND = 0, -- 任务依赖
+    DISCOVERABLE_ALWAYS = 1, -- 总是显示
+}
+
+M.RoleAction = {
+    MOTION_JUMP = 0, -- 跳跃
+    MOTION_TREASURE_BGN = 1, -- 采集开始
+    MOTION_TREASURE_END = 2, -- 采集结束
+}
+
+-- 玩家职业 
+M.RoleClass = {
+    WARRIOR = 0, -- 战士
+    MAGE = 1, -- 法师
+    DRUID = 2, -- 德鲁伊
+    HUNTER = 3, -- 猎人
+    PRIEST = 4, -- 牧师
+    ROGUE = 5, -- 盗贼
+    DEMON_HUNTER = 6, -- 恶魔猎手
+}
+
+-- 天赋专精 
+M.TalentSpecialization = {
+    WARRIOR_ARMS = 0, -- 武器战
+    WARRIOR_PROTECTION = 1, -- 防御战
+    MAGE_FIRE = 2, -- 火法
+    MAGE_FROST = 3, -- 冰法
+    DRUID_BEAR = 4, -- 熊德
+    DRUID_RESTORATION = 5, -- 奶德
+    HUNTER_BEASTMASTER = 6, -- 兽王猎
+    HUNTER_MARKSMAN = 7, -- 射击猎
+    PRIEST_HOLY = 8, -- 神圣牧
+    PRIEST_SHADOW = 9, -- 暗影牧
+    ROGUE_COMBAT = 10, -- 战斗贼
+    ROGUE_SUBTLETY = 11, -- 敏锐贼
+    DEMON_HUNTER_HAVOC = 12, -- 浩劫
+    DEMON_HUNTER_VENGEANCE = 13, -- 复仇
+}
+
+-- 技能释放结果 
+M.SpellCastResult = {
+    OK = 0,
+    CASTING = 1,
+    SKILL_INVALID = 2,
+    TARGET_INVALID = 3,
+    COST_LIMIT = 4,
+    DISTANCE_LIMIT = 5,
+    TARGET_LIMIT = 6,
+    COOLDOWN_LIMIT = 7,
+    CASTER_STATE_LIMIT = 8,
+}
+
+-- 消耗类型 
+M.SpellCostType = {
+    NONE = 0, -- 无
+    MANA = 1, -- 法力值
+    PAIN = 2, -- 痛苦值
+    FURY = 3, -- 恶魔值
+}
+
+M.SpellDamageClass = {
+    NONE = 0,
+    MAGIC = 1,
+    MELEE = 2,
+    RANGED = 3,
+}
+
+-- 伤害类型 
+M.SpellDamageType = {
+    PHYSICAL = 0,
+    MAGICAL = 1,
+}
+
+-- 技能效果目标 
+M.SpellEffectTarget = {
+    NONE = 0, -- 无
+    CASTER = 1, -- 施法者
+    CASTER_AREA = 2, -- 施法者区域
+    CASTER_AREA_ENEMY = 3, -- 施法者区域敌对
+    CASTER_AREA_ALLY = 4, -- 施法者区域友好
+    CASTER_AREA_PARTY = 5, -- 施法者区域组队
+    CASTER_AREA_RAID = 6, -- 施法者区域团队
+    CASTER_CONE_ENEMY = 7, -- 施法者锥形区域敌对
+    TARGET = 8, -- 当前目标
+    TARGET_ENEMY = 9, -- 当前目标敌对
+    TARGET_ALLY = 10, -- 当前目标友好
+    TARGET_PARTY = 11, -- 当前目标组队
+    TARGET_RAID = 12, -- 当前目标团队
+    TARGET_AREA = 13, -- 当前目标区域
+    TARGET_AREA_ENEMY = 14, -- 当前目标区域敌对
+    TARGET_AREA_ALLY = 15, -- 当前目标区域友好
+    TARGET_AREA_PARTY = 16, -- 当前目标区域组队
+    TARGET_AREA_RAID = 17, -- 当前目标区域团队
+    DEST_AREA = 18, -- 目标点区域
+    DEST_AREA_ENEMY = 19, -- 目标点区域敌对
+    DEST_AREA_ALLY = 20, -- 目标点区域友好
+    DEST_AREA_PARTY = 21, -- 目标点区域组队
+    DEST_AREA_RAID = 22, -- 目标点区域团队
+}
+
+-- 命中结果 
+M.SpellHitOutcome = {
+    DODGE = 0,
+    PARRY = 1,
+    CRIT = 2,
+    NORMAL = 3,
+}
+
+M.SpellMissInfo = {
+    NONE = 0,
+    MISS = 1,
+    RESIST = 2,
+    DODGE = 3,
+    PARRY = 4,
+    BLOCK = 5,
+    EVADE = 6,
+    IMMUNE = 7,
+}
+
+M.SpellModOp = {
+    CAST_DIST = 0,
+    CAST_TIME = 1,
+    COOLDOWN = 2,
+    GLOBAL_COOLDOWN = 3,
+    COST = 4,
+}
+
+M.SpellModType = {
+    FLAT = 0,
+    PCT = 1,
+    NUM = 2,
+}
+
+-- 技能数值类型 
+M.SpellPointType = {
+    WEAPON_DAMAGE = 0,
+    ATTACK_POWER = 1,
+    SPELL_POWER = 2,
+}
+
+M.SpellSchool = {
+    NORMAL = 0,
+    HOLY = 1,
+    FIRE = 2,
+    NATURE = 3,
+    FROST = 4,
+    SHADOW = 5,
+    ARCANE = 6,
+}
+
+-- 特殊移动效果类型 
+M.SpellSpecialMoveType = {
+    TELEPORT = 0, -- 闪现
+    JUMP = 1, -- 跳跃
+}
+
+M.AuraInterruptFlag = {
+    NONE = 0,
+    DEAD = 1,
+}
+
+M.AuraTriggerFlag = {
+    NONE = 0,
+    KILL = 1,
+    BE_KILL = 2,
+    HIT = 4,
+    BE_HIT = 8,
+    ENTER_COMBAT = 16,
+    LEAVE_COMBAT = 32,
+}
+
+M.AuraTriggerHitFlag = {
+    NONE = 0,
+    NORMAL = 1,
+    CRITICAL = 2,
+    DODGE = 4,
+    PARRY = 8,
+    BLOCK = 16,
+}
+
+-- 属性修改类型 
+M.StatModType = {
+    BASE_VAL = 0, -- 基础值
+    BASE_PCT_EXCLUDE_CREATE = 1, -- 排除角色初始值的基础值百分比
+    BASE_PCT = 2, -- 排除角色初始值的基础值百分比
+    TOTAL_VAL = 3, -- 最终值
+    TOTAL_PCT = 4, -- 最终值百分比
+    MIN = 0,
+    MAX = 4,
+    NUM = 5,
+}
+
+-- 属性类型 
+M.StatType = {
+    STRENGTH = 0, -- 力量
+    INTELLECT = 1, -- 智力
+    AGILITY = 2, -- 敏捷
+    STAMINA = 3, -- 耐力
+    CRIT_VALUE = 4, -- 暴击值
+    HASTE_VALUE = 5, -- 急速值
+    MASTERY_VALUE = 6, -- 精通值
+    VERSATILITY_VALUE = 7, -- 全能值
+    LEECH_VALUE = 8, -- 吸血值
+    SPEED_VALUE = 9, -- 加速值
+    DODGE_VALUE = 10, -- 闪避值
+    EVADE_VALUE = 11, -- 躲闪值
+    PARRY_VALUE = 12, -- 招架值
+    BLOCK_VALUE = 13, -- 格挡值
+    DODGE_RAW = 14, -- 闪避率未衰减
+    PARRY_RAW = 15, -- 招架率未衰减
+    BLOCK_RAW = 16, -- 格挡率未衰减
+    CRIT = 17, -- 暴击值
+    HASTE = 18, -- 急速值
+    MASTERY = 19, -- 精通值
+    VERSATILITY = 20, -- 全能值
+    LEECH = 21, -- 吸血值
+    SPEED = 22, -- 加速值
+    DODGE = 23, -- 闪避值
+    EVADE = 24, -- 躲闪值
+    PARRY = 25, -- 招架值
+    BLOCK = 26, -- 格挡值
+    ENEMY_DODGE = 27, -- 目标闪避率
+    ENEMY_PARRY = 28, -- 目标招架率
+    ENEMY_BLOCK = 29, -- 目标格挡率
+    ENEMY_CRIT = 30, -- 被暴击率
+    DAMAGE_BONUS = 31, -- 伤害加成
+    ATTACKER_DAMAGE_BONUS = 32, -- 被攻击伤害加成
+    CRIT_DAMAGE_BONUS = 33, -- 暴击伤害加成
+    ATTACKER_CRIT_DAMAGE_BONUS = 34, -- 被暴击伤害加成
+    ARMOR = 35, -- 护甲值
+    DAMAGE_BLOCK = 36, -- 格挡减免
+    DAMAGE_RESIST = 37, -- 伤害减免
+    ENEMY_DAMAGE_RESIST = 38, -- 目标伤害减免
+    HEALTH_MAX = 39, -- 血量
+    MANA_MAX = 40, -- 法力
+    MANA_REGAIN = 41, -- 法力恢复
+    ATTACK_POWER = 42, -- 攻击强度
+    SPELL_POWER = 43, -- 法术强度
+    DAMAGE_MIN = 44, -- 最小伤害
+    DAMAGE_MAX = 45, -- 最大伤害
+    PAIN_MAX = 46, -- 痛苦值
+    FURY_MAX = 47, -- 恶魔值
+    ATTACK_INTERVAL = 48, -- 攻击频率
+    GLOBAL_COOLDOWN = 49, -- 公共CD
+    MIN = 0,
+    MAX = 47,
+    NUM = 48,
+}
+
+M.StateFlag = {
+    DEAD = 1, -- 死亡
+    INVINCIBLE = 2, -- 无敌
+    TIE = 4, -- 定身
+    SPOR = 8, -- 昏睡
+}
+
+return M

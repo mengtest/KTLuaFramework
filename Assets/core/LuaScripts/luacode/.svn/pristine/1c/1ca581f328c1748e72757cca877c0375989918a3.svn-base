@@ -1,0 +1,56 @@
+--[[
+	返回所有资源的打包信息.
+
+	TODO:
+	- 有的值就是资源的路径.
+	- 有的是一行的数据能得到一个路径.
+	- 我们应该得到一个名称到资源的映射.
+	- 每一条对应多种资源.
+
+	- 编辑器模式下能够检测
+	- 注册资源的规则很简单
+--]]
+
+--[[
+	结构:
+	local function xxx_converter(row)
+		-- 将一行数据转换成一个资源或者一个资源列表.
+	end
+
+	--- 表的一条能描述清楚的.	
+	def_table(table_name, {
+		{colume, converter},	--! 没有converter就直接使用该资源.
+		{colume, converter},
+		{colume, converter},
+	}, build_as_full_package)
+
+	--- 通过枚举文件能描述清楚的.
+	def_glob('path', build_as_full)
+
+		
+--]]
+
+
+local M = {}
+
+--------------------------------------------------------
+-- 表里面引用的资源, 和table_def.rb匹配.
+--
+-- role
+-- map: res_client map_pic_path :load_map_type
+
+
+
+
+
+---	拒绝的格式是写死的, 值是固定的几个值
+
+-- map_creature
+-- map_gate
+-- sound group name
+-- specialization 
+-- abiotic model_id anim sfx sound_id
+
+
+return M
+

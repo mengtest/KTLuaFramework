@@ -1,0 +1,50 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/12 19:40
+---
+local View = require("system.view")
+local team_buff_item_view = class("team_buff_item_view", View)
+
+function team_buff_item_view:doInit()
+    self.m_frame = self:getFrame()
+    self.m_buff_data = self.m_frame:get_buff()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamBuffItem"), function(go)
+        go.transform.localScale = Vector3.one
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        go.transform.localPosition = Vector3.zero
+
+        if self.m_frame:get_buff():get_stack_num() > 1 then
+            self["stack_GUIText"].gameObject:SetActive(true)
+            self.m_frame:set_stack(self.m_frame:get_buff():get_stack_num())
+        end
+
+        self:load_icon(app:getAssetPathMgr().get_buff_icon(self.m_buff_data:get_buff_id()))
+
+        self:subscribe(self.m_buff_data:on_event_attr_set("cur_remaining", true), function(val)
+            self.m_frame:set_remain_time(utility.math:get_integer_part(val))
+            self["cool_down_GUIImage"].fillAmount = 1 - self.m_buff_data:get_cur_remain_percent()
+            if val == 0 then
+                self.m_frame:destroySelf()
+            end
+        end)
+    end)
+end
+
+function team_buff_item_view:load_icon(path)
+    if path == nil then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("team_buff_item_view ----> 路径错误， path：" .. path)
+        else
+            self["icon_GUIImage"].sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+return team_buff_item_view

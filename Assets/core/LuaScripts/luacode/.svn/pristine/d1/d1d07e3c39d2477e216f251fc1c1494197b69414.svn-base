@@ -1,0 +1,35 @@
+local Frame = require("system.frame")
+local quest_ui_list_item = class("quest_ui_list_item_view", Frame)
+
+Event.decl(quest_ui_list_item, "item_sel_cancle")
+Event.decl(quest_ui_list_item, "cancle_interest")
+Event.decl(quest_ui_list_item, "refresh")
+
+function quest_ui_list_item:doInit(param)
+    self.m_data = param[2]
+end
+
+-- 点击quest_item 回调
+function quest_ui_list_item:on_item_btn()
+    self:emit_event("item_dowm")
+end
+
+function quest_ui_list_item:on_item_cancle_interest()
+    self:emit_event("cancle_interest")
+    self.m_data:set_interest(false)
+end
+
+function quest_ui_list_item:on_item_sel_cancle()
+    self:emit_event("item_sel_cancle")
+end
+
+function quest_ui_list_item:gain_quest_data()
+    return self.m_data
+end
+
+function quest_ui_list_item:refresh_view(data)
+    self.m_data = data[2]
+    self:emit_event("refresh", data)
+end
+
+return quest_ui_list_item

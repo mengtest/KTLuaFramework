@@ -1,0 +1,53 @@
+local M = {}
+---- rjy 2018.01.05
+---- 为了防止策划今后要给宠物加各式各样的动作，定义这么一个枚举   若是今后只有一个跑  确定下来以后就可以删掉
+-- 灵兽动画状态机名称
+M.SpiritBeastAnimStateName = {
+    IDLE1 = "Idle1", -- 跑
+}
+
+M.SpiritBeastAnimParamName = {
+    RUN = "run", -- 跑
+}
+
+-- 灵兽属性
+M.SpiritBeastProperty = {
+    GOLD = enum.shared.WearableTarget.METAL_SPRITE, -- 18
+    WOOD = enum.shared.WearableTarget.WOOD_SPRITE, -- 19
+    WATER = enum.shared.WearableTarget.WATER_SPRITE, -- 20
+    FIRE = enum.shared.WearableTarget.FIRE_SPRITE -- 21
+}
+-- 灵兽属性描述
+M.SpiritBeastPropertyDes = {
+    GOLD = "金",
+    WOOD = "木",
+    WATER = "水",
+    FIRE = "火"
+}
+
+-- 灵兽卸下时是因为什么原因卸下
+M.UnequippingType = {
+    NORMAL = 0,
+    UPGRADE = 1,
+    MERGE = 2
+}
+
+-- 灵兽奖励
+M.UpgradeBonuses = {
+    M110 = "耐力",
+    M111 = "护甲",
+    M112 = "攻速",
+    M113 = "最小伤害",
+    M114 = "最大伤害",
+    M120 = "暴击",
+    M121 = "急速",
+    M122 = "精通",
+    M123 = "闪躲",
+    M124 = "招架",
+    M125 = "格挡",
+    M130 = "吸血",
+    M131 = "加速",
+    M132 = "闪避"
+
+}
+return M

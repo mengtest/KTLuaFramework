@@ -1,0 +1,412 @@
+
+local HFSM = require("common.util.HFSM.HFSM")
+local HFSM_event = require("common.util.HFSM.HFSM_event")
+local State_with_event_map = require("common.util.HFSM.State_with_event_map")
+local Delegate2 = require("common.util.HFSM.Delegate2")
+local Exhibition = class("Exhibition")
+
+
+-- 状态切换的触发条件类型
+Exhibition.Trigger_Type = {
+    Down = 1,           -- 鼠标按下
+    Up = 2,             -- 鼠标抬起
+    Click = 3,          -- 鼠标点击
+    Slip = 4,           -- 滑动
+    Anim_Finish = 5,    -- 动画播放完毕
+    Time_Over = 6,      -- 状态停留时间超过指定值
+    Arrive = 7,         -- 抵达指定地点
+}
+
+-- 当前状态的行为类型
+Exhibition.Behavior = {
+    Play_Anim = 1,      -- 仅播放动画
+    Falling_Down = 2,   -- 坠落
+    Move = 3,           -- 移动
+--    Follow_Anyway = 4,  -- 跟随触摸位置(无条件跟随)
+--    Follow_Vertical = 5,-- 跟随触摸位置(垂直正向跟随)
+    Rotate = 4,         -- 旋转
+    Follow = 5,         -- 跟随
+}
+
+--Exhibition.Follow_Mode = {
+--    Anyway = 1,         -- 无条件跟随
+--    Up = 2,             -- 正向跟随
+--    Vertical_Up = 3,    -- 垂直正向跟随
+--}
+
+Exhibition.Face_Mode = {
+    Forward = 1,          -- 面向屏幕方向
+    Backward = 2,         -- 背向屏幕方向
+}
+
+function Exhibition:initialize(go, exhibition_id)
+    self.m_go = go
+    self.m_tr = go.transform
+    self.m_animator = go:GetComponent(UnityEngine.Animator)
+    self.m_center_pos = self.m_tr.position
+    self.m_hfsm = HFSM:new()
+    self.m_cur_state = nil
+    self.m_func_rotate = nil
+    self.m_btn_mask = nil
+    
+    self:init_hfsm(exhibition_id)
+end
+
+function Exhibition:init_hfsm(exhibition_id)
+    local this = self
+    
+    local rotate_state = State_with_event_map:new()
+    local func_rotate = function ()
+        local delta_x = rotate_state.start_pos.x - Input.mousePosition.x
+        this.m_tr.eulerAngles = Vector3(rotate_state.start_euler.x, rotate_state.start_euler.y + delta_x, rotate_state.start_euler.z)
+    end
+    rotate_state:add_event_action("action_enable_rotate", function ()
+        if this.m_func_rotate then
+            return
+        end
+        rotate_state:add_event_action("action_mouse_button_down", function (self, evt)
+            rotate_state.start_pos = evt.obj
+            rotate_state.start_euler = this.m_tr.eulerAngles
+            this.m_func_rotate = func_rotate
+        end)
+        rotate_state:add_event_action("action_mouse_button_up", function ()
+            this.m_func_rotate = nil
+        end)
+    end)
+    rotate_state:add_event_action("action_disable_rotate", function ()
+        this.m_func_rotate = nil
+        rotate_state:del_action("action_mouse_button_down")
+        rotate_state:del_action("action_mouse_button_up")
+    end)
+    self.m_hfsm:add_state("state_rotate", rotate_state)
+    
+    local empty_state = State_with_event_map:new()
+    empty_state.on_start:add(function ()
+        this.m_animator:SetInteger("main_act", 12)
+        local first_anim_name = dbc.exhibition[exhibition_id].anim_name
+        this.m_animator:Play(first_anim_name, -1, 0)
+        this.m_animator:Update(0)
+        this.m_hfsm:post("action_disable_rotate")
+        this.m_tr.position = this.m_center_pos
+        this.m_tr.eulerAngles = Vector3(0, 0, 0)
+    end)
+    local trigger_param = {["duration"] = {0, 0}}
+    self.m_hfsm:add_state_in("state_empty", empty_state, "state_rotate")
+    self:create_state_in(empty_state, exhibition_id, self.Trigger_Type.Time_Over, trigger_param)
+end
+
+function Exhibition:destroy()
+    Object.Destroy(self.m_go)
+end
+
+function Exhibition:start()
+    self.m_hfsm:init("state_empty")
+    self.m_go:SetActive(true)
+end
+
+function Exhibition:stop()
+    self.m_go:SetActive(false)
+end
+
+function Exhibition:start_rotate(is_clockwise)
+    if not self.m_cur_state.data.is_rotatable then
+        return
+    end
+    local rot_speed = 360 / 6
+    rot_speed = is_clockwise and rot_speed or -rot_speed
+    self.m_func_rotate = function (self)
+        self.m_tr:Rotate(Vector3.up, rot_speed * Time.deltaTime)
+    end
+end
+
+function Exhibition:stop_rotate()
+    self.m_func_rotate = nil
+end
+
+function Exhibition:on_pointer_down(evt)
+    local evt = HFSM_event:new()
+    evt.msg = "action_mouse_button_down"
+    evt.obj = Input.mousePosition
+    self.m_hfsm:post_event(evt)
+end
+
+function Exhibition:on_pointer_up(evt)
+    local evt = HFSM_event:new()
+    evt.msg = "action_mouse_button_up"
+    evt.obj = Input.mousePosition
+    self.m_hfsm:post_event(evt)
+end
+
+function Exhibition:create_state_in(for_state, trigger_id, trigger_type, trigger_param)
+    local cur_state_name = self:get_state_name(trigger_id)
+    local cur_state = self.m_hfsm:get_state_by_name(cur_state_name)
+    if cur_state then
+        -- 退出状态
+        self:register_trigger_event(for_state, trigger_type, trigger_id, trigger_param)
+    else
+        -- 进入状态
+        self:register_trigger_event(for_state, trigger_type, trigger_id, trigger_param)
+        
+        cur_state = State_with_event_map:new()
+        cur_state.on_update = Delegate2:new()
+        self.m_hfsm:add_state_in(cur_state_name, cur_state, "state_rotate")
+        local data = dbc.exhibition[trigger_id]
+        cur_state.data = {}
+        cur_state.data.anim_name = data.anim_name
+        --cur_state.data.is_rotatable = data.is_rotatable
+        cur_state.data.behavior = data.behavior
+        cur_state.data.behavior_param = data.behavior_param
+        local this = self
+        cur_state.on_start:add(function ()
+            this.m_animator:CrossFade(data.anim_name, data.transition_duration)
+            this.m_cur_state = cur_state
+            if data.is_rotatable then
+                this.m_hfsm:post("action_enable_rotate")
+            else
+                this.m_hfsm:post("action_disable_rotate")
+            end
+            app:logDebug("state start: " .. cur_state:get_name())
+        end)
+        if data.is_show_cam_anim then
+            local anim_cam = self.m_tr:GetComponentInChildren(Camera)
+            if anim_cam then
+                cur_state.on_start:add(function ()
+                    anim_cam.enabled = true
+                end)
+                cur_state.on_over:add(function ()
+                    anim_cam.enabled = false
+                end)
+            end
+        end
+        self:register_state_behavior(cur_state)
+        local trigger_pack_list = utility.string:parse_to_list(data.trigger_info)
+        for _, trigger_pack in pairs(trigger_pack_list) do
+            for cur_trigger_type, info in pairs(trigger_pack) do
+                local cur_trigger_id = info["trigger_id"]
+                local cur_trigger_param = info["trigger_param"]
+                self:create_state_in(cur_state, cur_trigger_id, cur_trigger_type, cur_trigger_param)
+            end
+        end
+    end
+end
+
+-- 注册状态行为
+function Exhibition:register_state_behavior(state)
+    local this = self
+    local func_update = nil
+    local behavior = state.data.behavior
+    if behavior == self.Behavior.Play_Anim then
+        local param = utility.string:parse_to_list(state.data.behavior_param ~= "" and state.data.behavior_param or "[1,1]")
+        func_update = function ()
+            local asi = this.m_animator:GetCurrentAnimatorStateInfo(0)
+            if asi:IsName(state.data.anim_name) and asi.normalizedTime >= state.deadline then
+                this.m_hfsm:post("action_anim_finish")
+                state.on_update:remove(func_update)
+            end
+        end
+        state.on_start:add(function ()
+            state.deadline = math.random(param[1], param[2]) - 0.02
+            state.on_update:add(func_update)
+        end)
+        state.on_over:add(function ()
+            state.on_update:remove(func_update)
+        end)
+    elseif behavior == self.Behavior.Falling_Down then
+        local gravity = tonumber(state.data.behavior_param ~= "" and state.data.behavior_param or 10)
+        func_update = function ()
+            local delta_time = Time.deltaTime
+            state.cur_time = state.cur_time + delta_time
+            if state.cur_time >= state.duration then
+                this.m_tr.position = state.end_pos
+                this.m_hfsm:post("action_arrive")
+                state.on_update:remove(func_update)
+            else
+                this.m_tr.position = state.start_pos + 0.5 * state.gravity_vec * state.cur_time * state.cur_time
+            end
+        end
+        state.on_start:add(function ()
+            state.start_pos = this.m_tr.position
+            state.end_pos = utility.math:get_projection_3d(state.start_pos, this.m_center_pos, Vector3.up)
+            state.gravity_vec = gravity * (state.end_pos - state.start_pos).normalized
+            state.cur_time = 0
+            state.duration = math.sqrt(2 * math.abs(state.start_pos.y - state.end_pos.y) / gravity)
+            state.on_update:add(func_update)
+        end)
+        state.on_over:add(function ()
+            state.on_update:remove(func_update)
+        end)
+    elseif behavior == self.Behavior.Move then
+        local velocity = tonumber(state.data.behavior_param ~= "" and state.data.behavior_param or 0.5)
+        func_update = function ()
+            local delta_time = Time.deltaTime
+            state.duration = state.duration - delta_time
+            if state.duration <= 0 then
+                this.m_tr.position = this.m_center_pos
+                this.m_hfsm:post("action_arrive")
+                state.on_update:remove(func_update)
+            else
+                this.m_tr.position = this.m_tr.position + state.velocity * delta_time
+            end
+        end
+        state.on_start:add(function ()
+            local vec = this.m_center_pos - this.m_tr.position
+            state.velocity = vec.normalized * velocity
+            state.duration = vec.magnitude / velocity
+            this.m_tr.forward = state.velocity
+            state.on_update:add(func_update)
+        end)
+        state.on_over:add(function ()
+            state.on_update:remove(func_update)
+        end)
+    elseif behavior == self.Behavior.Rotate then
+        local param = utility.string:parse_to_list(state.data.behavior_param ~= "" and state.data.behavior_param or '[1,1]')
+        local qua = Quaternion.Euler(0, 180 * (param[1] - 1), 0)
+        local tween = nil
+        state.on_start:add(function ()
+            tween = ShortcutExtensions.DORotateQuaternion(this.m_tr, qua, param[2])
+        end)
+        state.on_over:add(function ()
+            TweenExtensions.Complete(tween)
+        end)
+    elseif behavior == self.Behavior.Follow then
+        local limit = utility.string:parse_to_dict(state.data.behavior_param ~= "" and state.data.behavior_param or '{"x":[-10,10],"y":[-10,10]}')
+        local limit_xl = this.m_center_pos.x + limit.x[1]
+        local limit_xr = this.m_center_pos.x + limit.x[2]
+        local limit_yd = this.m_center_pos.y + limit.y[1]
+        local limit_yt = this.m_center_pos.y + limit.y[2]
+        func_update = function ()
+            if Input.GetMouseButton(0) then
+                local camera = UnityEngine.Camera.main
+                local ray = camera:ScreenPointToRay(Input.mousePosition)
+                local temp_pos = utility.math:get_intersection_3d(ray.origin, ray.direction, this.m_center_pos, Vector3.forward)
+                temp_pos.x = utility.math:clamp(temp_pos.x, limit_xl, limit_xr)
+                temp_pos.y = utility.math:clamp(temp_pos.y, limit_yd, limit_yt)
+                this.m_tr.position = temp_pos
+            end
+        end
+        state.on_update:add(func_update)
+    end
+end
+
+-- 注册状态触发响应
+function Exhibition:register_trigger_event(state, trigger_type, trigger_id, trigger_param)
+    local this = self
+    if trigger_type == self.Trigger_Type.Down then
+        self:register_down_event(this, state, trigger_id, trigger_param)
+    elseif trigger_type == self.Trigger_Type.Up then
+        self:register_up_event(this, state, trigger_id, trigger_param)
+    elseif trigger_type == self.Trigger_Type.Click then
+        self:register_click_event(this, state, trigger_id, trigger_param)
+    elseif trigger_type == self.Trigger_Type.Slip then
+        --暂不实现
+        --self:register_slip_event()
+    elseif trigger_type == self.Trigger_Type.Anim_Finish then
+        self:register_anim_event(this, state, trigger_id, trigger_param)
+    elseif trigger_type == self.Trigger_Type.Time_Over then
+        self:register_time_event(this, state, trigger_id, trigger_param)
+    elseif trigger_type == self.Trigger_Type.Arrive then
+        self:register_arrive_event(this, state, trigger_id, trigger_param)
+    end
+end
+
+function Exhibition:register_down_event(this, state, trigger_id, trigger_param)
+    local trigger_state_name = this:get_state_name(trigger_id)
+    state:add_event_action("action_mouse_button_down", function (self, evt)
+        local is_clicked = false
+        local bone_name = trigger_param.bone_name
+        if bone_name and bone_name ~= "" then
+            local radius = trigger_param.radius
+            -- 获取bone位置
+            -- 判断是否在范围内
+        else
+            is_clicked = true
+        end
+        if is_clicked then
+            this.m_hfsm:post(trigger_state_name)
+        end
+    end)
+    
+    state:add_event(trigger_state_name, trigger_state_name)
+end
+
+function Exhibition:register_up_event(this, state, trigger_id, trigger_param)
+    local trigger_state_name = this:get_state_name(trigger_id)
+    state:add_event_action("action_mouse_button_up", function (self, evt)
+        local is_clicked = false
+        local bone_name = trigger_param.bone_name
+        if bone_name and bone_name ~= "" then
+            local radius = trigger_param.radius
+            -- 获取bone位置
+            -- 判断是否在范围内
+        else
+            is_clicked = true
+        end
+        if is_clicked then
+            this.m_hfsm:post(trigger_state_name)
+        end
+    end)
+    
+    state:add_event(trigger_state_name, trigger_state_name)
+end
+
+function Exhibition:register_click_event(this, state, trigger_id)
+    state:add_event_action("action_mouse_button_click", function (self, evt)
+        this.m_hfsm:post(this:get_state_name(trigger_id))
+    end)
+end
+
+function Exhibition:register_slip_event()
+
+end
+
+function Exhibition:register_anim_event(this, state, trigger_id)
+    local trigger_state_name = this:get_state_name(trigger_id)
+    state:add_event_action("action_anim_finish", function (self, evt)
+        this.m_hfsm:post(trigger_state_name)
+    end)
+    
+    state:add_event(trigger_state_name, trigger_state_name)
+end
+
+function Exhibition:register_time_event(this, state, trigger_id, trigger_param)
+    local duration = trigger_param.duration
+    if not duration then
+        duration = {3, 3}
+        app:logError(string.format("Time_Over 类型的触发条件未在\"trigger_param\"内填入有效的 duration 字段, trigger_id = %s", tostring(trigger_id)))
+    end
+    local trigger_state_name = this:get_state_name(trigger_id)
+    local random_duration = utility.math:random_float(duration[1], duration[2])
+    local func = function ()
+        this.m_hfsm:post(trigger_state_name)
+    end
+    state.on_start:add(function ()
+        slua_timer.addTimerEvent(slua_timer.EVENT_LIST.Exhibition_Tip, random_duration, 0, func)
+    end)
+    state.on_over:add(function ()
+        slua_timer.removeTimerEvent(slua_timer.EVENT_LIST.Exhibition_Tip)
+    end)
+    state:add_event(trigger_state_name, trigger_state_name)
+end
+
+function Exhibition:register_arrive_event(this, state, trigger_id)
+    local trigger_state_name = this:get_state_name(trigger_id)
+    state:add_event_action("action_arrive", function (self, evt)
+        this.m_hfsm:post(trigger_state_name)
+    end)
+    state:add_event(trigger_state_name, trigger_state_name)
+end
+
+function Exhibition:update()
+    if self.m_func_rotate then
+        self:m_func_rotate()
+    end
+    if self.m_cur_state then
+        self.m_cur_state.on_update:call()
+    end
+end
+
+function Exhibition:get_state_name(id)
+    return id and "state_" .. tostring(id) or id
+end
+
+return Exhibition

@@ -1,0 +1,443 @@
+local M = class("SKILL_QUEUE")
+
+function M:init()
+    self.m_skill_queue = {}
+
+
+    -- -- 解释：通过previous_skill来判断目标状态已经不准确了 因为spell_start时候会覆盖previous_id  start之后的流程判断相当于都是在获取自身
+    -- self.m_singing_skill = {}
+    -- self.m_channel_skill = {}
+end
+
+
+function M:add_skill_object(cast_id, spell_id, target_id, target_pos, dir, cast_time, spell_client_id,state)
+    local new_skill_object = self.m_skill_queue[cast_id]
+
+    new_skill_object =
+        {
+            cast_id = cast_id,
+            spell_id = spell_id,
+            target_id = target_id,
+            target_pos = target_pos,
+            dir = dir,
+            cast_time = cast_time,
+            spell_client_id = spell_client_id,            
+            hit_outcome = SharedEnum.SpellHitOutcome.NORMAL,
+            damage = 0,
+            is_buff = 0,
+            attacker_id = -1,
+            hit_targets = {},
+            miss_targets = {},
+            state = state,
+            remaining_hp = 0,
+            is_singing = false, -- 吟唱
+            is_channel = false, -- 引导
+        }
+    
+        -- 取消技能 用在客户端主动打断某些技能时
+        new_skill_object.skill_cancel = function()           
+            --Debug.LogError(new_skill_object.spell_id .."  技能cancel")
+            -- new_skill_object.state = Enum_Unit.Skill_Object_State.FAILED
+            -- new_skill_object.is_singing = false
+            -- new_skill_object.is_channel = false
+            M.remove_skill_object(self, cast_id)
+        end
+
+        -- 删除技能 当生命周期结束
+        new_skill_object.skill_destroySelf = function()
+            M.remove_skill_object(self, cast_id)
+        end
+
+        -- 吟唱开关
+        new_skill_object.skill_sing = function(val)
+            new_skill_object.is_singing = val
+        end
+
+        -- 引导开关
+        new_skill_object.skill_channel = function(val)
+            new_skill_object.is_channel = val
+        end
+
+    self.m_skill_queue[cast_id] = new_skill_object
+
+    return self.m_skill_queue[cast_id]
+end
+
+function M:remove_skill_object(cast_id)
+    -- Debug.LogError("remove_skill_object --> "..cast_id)
+
+    --暂时还不能删除会有各种问题，所以设置为finish
+    -- self.m_skill_queue[cast_id] = nil
+    local skill_queue = self:get_skill_object(cast_id)
+    if(skill_queue ~= nil) then
+        self.m_skill_queue[cast_id].state = Enum_Unit.Skill_Object_State.FINISH
+    end
+end
+
+function M:get_skill_object(cast_id)
+    return self.m_skill_queue[cast_id]
+end
+
+-- 获取当前技能 这个id是在即将add时候赋值的
+function M:get_current_skill_object()
+    return self.m_skill_queue[self.m_current_cast_id]
+end
+
+-- 获取上一个技能 这个id是在start开始的时候赋值的 如果获取为空(当前为finish) 说明上一个技能已经结束了他的生命周期
+function M:get_previous_skill_object()
+    return self.m_skill_queue[self.m_previous_cast_id]
+end
+
+
+
+------------------- ↓↓↓  一些local方法  ↓↓↓ -------------------
+-- 技能释放失败
+local function use_skill_failed(unit, cast_id, spell_id, reason, type)
+    local t = ""
+    if(type == 1) then
+        t = "不让 "..unit:get_id().." 施法！！ "
+    else
+        t = unit:get_id().." 施法失败！！ "
+    end
+
+    local reason_str = ""
+
+    if(reason == SharedEnum.SpellCastResult.CASTING) then
+        reason_str = "其他技能释放中"
+    elseif(reason == SharedEnum.SpellCastResult.SPELL_INVALID) then
+        reason_str = "技能无效"
+    elseif(reason == SharedEnum.SpellCastResult.TARGET_INVALID) then
+        reason_str = "目标无效"
+    elseif(reason == SharedEnum.SpellCastResult.COST_LIMIT) then
+        reason_str = "消耗不足"
+    elseif(reason == SharedEnum.SpellCastResult.DISTANCE_LIMIT) then
+        reason_str = "距离限制"
+    elseif(reason == SharedEnum.SpellCastResult.TARGET_LIMIT) then
+        reason_str = "目标限制"
+    elseif(reason == SharedEnum.SpellCastResult.COOLDOWN_LIMIT) then
+        reason_str = "CD限制"
+    elseif(reason == SharedEnum.SpellCastResult.CASTER_STATE_LIMIT) then
+        reason_str = "释放者状态限制"
+    else
+        reason_str = tostring(reason)
+    end
+
+    Debug.LogError(t.." reason = "..reason_str.." cast_id = "..cast_id.." spell_id = "..spell_id)
+
+end
+
+
+-- 根据专精去找普攻的client_id
+local function get_atk_spell_client_id(unit)
+    local specialization = unit:get_specialization()
+    local atk_client_id = 1
+    
+    if (specialization ~= nil) then
+        atk_client_id = model_mgr.GetAtkAnim(specialization, true)
+    else
+        -- 主角以外的怪物
+        atk_client_id = model_mgr.GetAtkAnim(unit:getCfg().model_id, false)
+    end
+    
+    return atk_client_id
+end
+
+-- 多个spell_client时随机一个
+local function random_spell_client_id(table, ori)
+    if (#table > 0) then
+        local max = #table + 1
+        local rand = math.random(max)
+        if (rand == 1) then
+            return ori
+        else
+            return table[rand - 1]
+        end
+    else
+        return ori
+    end
+end
+
+-- 一些特殊的情况下需要在queue中直接掉血
+local function change_hp(unit,attacker_id, spell_id, hit_outcome, damage, is_buff, health)
+    unit:emit_event("popup_text", attacker_id, spell_id, hit_outcome, damage, is_buff)
+    --unit:set_hp(health)
+end
+
+------ ↓↓↓ go ↓↓↓ ------
+
+-- 普通攻击的 go 处理
+local function handle_atk_go(skill_queue_object,previous_skill_object)
+    -- Debug.LogError("处理普攻")
+    -- Debug.LogError(skill_queue_object.spell_id)
+    -- if(previous_skill_object ~= nil) then     Debug.LogError(previous_skill_object.state) end
+
+    if(previous_skill_object == nil or previous_skill_object.state == Enum_Unit.Skill_Object_State.FINISH) then return false end
+
+    if(skill_queue_object.spell_id == 1
+    and previous_skill_object.state < Enum_Unit.Skill_Object_State.FINISH) then
+        skill_queue_object.state = Enum_Unit.Skill_Object_State.SKIP
+        return true
+    end
+    return false
+end
+
+-- 那些吟唱中插入的技能的 go 处理
+local function handle_insert_go(skill_queue_object, unit)
+    if(skill_queue_object.state == Enum_Unit.Skill_Object_State.INSERT) then
+         unit:emit_event("instant_skill", skill_queue_object.spell_id, skill_queue_object.spell_client_id)
+        return true
+    end
+    return false
+end
+
+-- 那些引导技能中插入的技能的 go 处理
+local function handle_channel_go(previous_skill_object,spell_id)
+    if (previous_skill_object ~= nil   
+        and  previous_skill_object.is_channel == true
+        and  previous_skill_object.spell_id == spell_id) then 
+        return true
+    end
+
+    return false
+end
+
+------ ↑↑↑ go ↑↑↑ ------
+
+
+------ ↓↓↓ be_hit ↓↓↓ ------
+
+-- buff be_hit 处理
+local function handle_buff_be_hit(unit, attacker_id, spell_id, hit_outcome, damage, is_buff, cast_id, health)
+    --因为buff的延迟掉血还没有处理好 所以buff先直接掉血
+    if(is_buff == 1) then
+        change_hp(unit, attacker_id, spell_id, hit_outcome, damage, is_buff,health)
+        return true
+    end
+
+    return false
+end
+
+-- 那些吟唱中插入的技能的 be_hit 处理
+local function handle_insert_be_hit(attacker, skill_queue_object,unit,spell_id, hit_outcome, damage, is_buff, health)
+    if(skill_queue_object.state == Enum_Unit.Skill_Object_State.INSERT) then  
+        -- FIXME:因为还没想到办法处理两个动画事件 所以只能瞬间掉血
+        attacker:on_animation_event({
+            stringParameter = Enum_Battle.Anim_Evt_Type.STRIKE,
+            intParameter = 0
+        },skill_queue_object)
+        change_hp(unit,attacker:get_id(), spell_id, hit_outcome, damage, is_buff, health)
+
+        --skill_queue_object.skill_destroySelf() .STRIKE理应会触发destroySelf
+        return true
+    end
+    return false
+end
+
+-- 引导技能的 be_hit 处理
+local function handle_channel_be_hit(attacker,previous_skill_object,skill_queue_object,unit,spell_id, hit_outcome, damage, is_buff, health)
+    -- 引导技能
+    if (previous_skill_object ~= nil   
+        and  previous_skill_object.is_channel == true
+        and  previous_skill_object.spell_id == spell_id) then          
+            attacker:on_animation_event({
+            stringParameter = Enum_Battle.Anim_Evt_Type.STRIKE,
+            intParameter = 0
+        },skill_queue_object)
+        change_hp(unit,attacker:get_id(), spell_id, hit_outcome, damage, is_buff, health)
+        --skill_queue_object.skill_destroySelf() .STRIKE理应会触发destroySelf
+        return true
+    end
+    return false
+end
+
+-- 普通攻击的 be_hit 处理
+local function handle_atk_be_hit(skill_queue_object,unit,attacker,hit_outcome,damage,is_buff,health)
+    if(skill_queue_object.spell_id == 1 and skill_queue_object.state == Enum_Unit.Skill_Object_State.SKIP) then
+        change_hp(unit,attacker:get_id(), skill_queue_object.spell_id, hit_outcome, damage, is_buff, health)
+        skill_queue_object.skill_destroySelf()
+        return true 
+    end
+
+    return false
+end
+
+local function set_be_hit_value(skill_queue_object,health,hit_outcome,damage,is_buff,attacker_id)
+    skill_queue_object.remaining_hp = health
+    skill_queue_object.state = Enum_Unit.Skill_Object_State.BEHIT
+    skill_queue_object.hit_outcome = hit_outcome
+    skill_queue_object.damage = damage
+    skill_queue_object.is_buff = is_buff
+    skill_queue_object.attacker_id = attacker_id
+end
+
+------ ↑↑↑ be_hit ↑↑↑ ------
+
+------------------- ↑↑↑  一些local方法  ↑↑↑ -------------------
+
+
+
+
+
+
+
+
+
+-------------------- 战斗协议处理 ---------------------------------
+
+function M:cast_prepare(unit, client_cast_id, server_cast_id)
+    --Debug.LogError(unit:get_id().." 要施法！！  client_cast_id = "..client_cast_id.." server_cast_id = "..server_cast_id)
+    --unit:start_skill_cd(spell_id)
+end
+
+function M:cast_failed(unit, cast_id, spell_id, reason)
+    use_skill_failed(unit, cast_id, spell_id, reason, 1)
+    unit:stop_skill_cd(spell_id)
+end
+
+-- 技能开始
+function M:spell_start(unit, cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    -- start为一个技能的正式开始 先获取一下当前技能 标记为上一个技能
+    local previous_skill_object = self:get_current_skill_object()
+    
+    if(previous_skill_object ~= nil) then self.m_previous_cast_id = previous_skill_object.cast_id end
+
+    local spell_data = dbc.spell[spell_id]
+    -- 默认spell_client_id 就是 spell_id 但是会有随机
+    local spell_client_id = spell_id
+    
+    -- 根据专精去找普攻的client_id
+    if (spell_id == 1) then
+        spell_client_id = get_atk_spell_client_id(unit)
+    end
+    
+    local spell_client_data = dbc.spell_client[spell_client_id]
+    
+    if (spell_data == nil or spell_client_data == nil) then
+        Debug.LogError("spell_start 找不到技能数据.." .. spell_id)
+        return
+    end
+    
+    -- 在这里随机spell_client并且缓存起来
+    spell_client_id = random_spell_client_id(spell_client_data.random,spell_client_id)
+    
+    local state = Enum_Unit.Skill_Object_State.START
+
+    if(previous_skill_object ~= nil) then
+        if(previous_skill_object.is_singing == true) then
+             --FIXME:可能只是个临时做法  想不到更好的方式 待优化
+             --上一个技能还在吟唱状态 不去触发spell_start
+             --依然需要加入队列中 才能帮助后续协议查找技能信息 但是标记为Insert  
+             state = Enum_Unit.Skill_Object_State.INSERT       
+        else
+            self.m_current_cast_id = cast_id
+        end
+    else
+        self.m_current_cast_id = cast_id
+    end
+
+     local skill_queue_object = self:add_skill_object(cast_id, spell_id, target_id, target_pos, dir, cast_time, spell_client_id,state)
+    
+    
+     if(state == Enum_Unit.Skill_Object_State.START) then
+        unit:spell_start(skill_queue_object)
+     end
+
+end
+
+-- 技能释放
+function M:spell_go(unit, cast_id, spell_id, hit_targets, miss_targets)
+    local skill_queue_object = self:get_skill_object(cast_id)
+    
+    if (skill_queue_object == nil) then
+        Debug.LogError("spell_go failed because skill_queue_object = nil ---> " .. spell_id)
+        return
+    end
+
+    skill_queue_object.hit_targets = hit_targets
+    skill_queue_object.miss_targets = miss_targets  
+
+    -- if(unit:get_is_main_player() == true and spell_id ~= 1) then
+    --     Debug.LogError("spell_go :"..cast_id.."  "..skill_queue_object.spell_client_id)
+    -- end
+
+    -- 如果是个吟唱时插入的技能
+    if(handle_insert_go(skill_queue_object, unit) == true) then return end
+
+    local current_skill_object = self:get_current_skill_object()
+
+    -- 如果是个引导技能的spell_go  引导技能没有spell_start 所有后续的伤害也是通过当前技能获取
+    if(handle_channel_go(current_skill_object,spell_id) == true) then return end
+
+    -- 如果发现是个普攻
+    if(handle_atk_go(skill_queue_object,self:get_previous_skill_object()) == true) then return end
+
+    skill_queue_object.state = Enum_Unit.Skill_Object_State.GO
+
+    unit:spell_go(skill_queue_object, Enum_Battle.Sing_Finish.FINISH)
+end
+
+-- 技能失败
+function M:spell_failure(unit, cast_id, spell_id, reason)
+    local skill_queue_object = self:get_skill_object(cast_id)
+    
+    if (skill_queue_object == nil) then
+        Debug.LogError("spell_go failed because skill_queue_object = nil ---> " .. spell_id)
+        return
+    end
+
+    if(state == Enum_Unit.Skill_Object_State.INSERT) then
+        return 
+    end
+
+    unit:spell_go(skill_queue_object, Enum_Battle.Sing_Finish.CANCEL)
+
+    use_skill_failed(unit, cast_id, spell_id, reason, 2)
+end
+
+
+
+
+-- 命中
+function M:be_hit(unit, attacker_id, spell_id, hit_outcome, damage, is_buff, cast_id, health)
+    -- -- buff
+    if (handle_buff_be_hit(unit, attacker_id, spell_id, hit_outcome, damage, is_buff,health) == true) then return end
+
+    local world = unit:getFrame("world")
+    local attacker = world:getUnit(attacker_id)
+    if (attacker == nil) then return end
+
+    local skill_queue_object = attacker:get_skill_queue():get_skill_object(cast_id)
+
+    if (skill_queue_object == nil) then
+        -- 1、be_hit消息慢于打击点 所以此时直接播放掉血就可以了
+        -- 2、未知bug
+        change_hp(unit,attacker_id, spell_id, hit_outcome, damage, is_buff, health)
+        return
+    end
+
+
+
+    -- 普通攻击处理
+    if(handle_atk_be_hit(skill_queue_object,unit,attacker,hit_outcome,damage,is_buff,health) == true) then return end
+
+    -- 如果这个be_hit是一个吟唱中插入的技能造成的
+    if (handle_insert_be_hit(attacker, skill_queue_object,unit, spell_id, hit_outcome, damage, is_buff, health) == true) then return end
+
+    local previous_skill_object = attacker:get_skill_queue():get_current_skill_object()
+
+    -- 引导类技能的后续be_hit
+    if (handle_channel_be_hit(attacker, previous_skill_object,skill_queue_object,unit, spell_id, hit_outcome, damage, is_buff, health) == true) then return end
+
+    set_be_hit_value(skill_queue_object,health,hit_outcome,damage,is_buff,attacker_id)
+
+    slua_timer.addDelayEvent(5, function()
+        if(skill_queue_object ~= nil and skill_queue_object.state ~= Enum_Unit.Skill_Object_State.FINISH) then
+            change_hp(unit,attacker_id, spell_id, hit_outcome, damage, is_buff, health)
+            skill_queue_object.skill_destroySelf()
+        end
+    end)
+end
+
+
+
+return M

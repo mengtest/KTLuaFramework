@@ -1,0 +1,549 @@
+local rows = {}
+rows[1] = {['prop']=0,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[2] = {['prop']=10,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[3] = {['prop']=11,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[4] = {['prop']=12,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[5] = {['prop']=13,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[6] = {['prop']=14,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[7] = {['prop']=20,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[8] = {['prop']=21,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[9] = {['prop']=22,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[10] = {['prop']=23,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[11] = {['prop']=24,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[12] = {['prop']=25,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[13] = {['prop']=28,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[14] = {['prop']=30,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[15] = {['prop']=31,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[16] = {['prop']=32,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[17] = {['prop']=39,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[18] = {['prop']=10000,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[19] = {['prop']=11000,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[20] = {['prop']=11100,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[21] = {['prop']=12000,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[22] = {['prop']=12100,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[23] = {['prop']=12200,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[24] = {['prop']=12300,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[25] = {['prop']=12400,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[26] = {['prop']=12500,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[27] = {['prop']=12800,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[28] = {['prop']=12900,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[29] = {['prop']=13000,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[30] = {['prop']=13100,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[31] = {['prop']=13200,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[32] = {['prop']=13900,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[33] = {['prop']=10001,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[34] = {['prop']=11001,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[35] = {['prop']=11101,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[36] = {['prop']=12001,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[37] = {['prop']=12101,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[38] = {['prop']=12201,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[39] = {['prop']=12301,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[40] = {['prop']=12401,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[41] = {['prop']=12501,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[42] = {['prop']=12801,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[43] = {['prop']=12901,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[44] = {['prop']=13001,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[45] = {['prop']=13101,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[46] = {['prop']=13201,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[47] = {['prop']=13901,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[48] = {['prop']=10002,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[49] = {['prop']=11002,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[50] = {['prop']=11102,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[51] = {['prop']=12002,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[52] = {['prop']=12102,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[53] = {['prop']=12202,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[54] = {['prop']=12302,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[55] = {['prop']=12402,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[56] = {['prop']=12502,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[57] = {['prop']=12802,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[58] = {['prop']=12902,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[59] = {['prop']=13002,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[60] = {['prop']=13102,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[61] = {['prop']=13202,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[62] = {['prop']=13902,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[63] = {['prop']=10003,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[64] = {['prop']=11003,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[65] = {['prop']=11103,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[66] = {['prop']=12003,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[67] = {['prop']=12103,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[68] = {['prop']=12203,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[69] = {['prop']=12303,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[70] = {['prop']=12403,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[71] = {['prop']=12503,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[72] = {['prop']=12803,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[73] = {['prop']=12903,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[74] = {['prop']=13003,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[75] = {['prop']=13103,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[76] = {['prop']=13203,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[77] = {['prop']=13903,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[78] = {['prop']=10004,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[79] = {['prop']=11104,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[80] = {['prop']=11104,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[81] = {['prop']=12004,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[82] = {['prop']=12104,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[83] = {['prop']=12204,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[84] = {['prop']=12304,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[85] = {['prop']=12404,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[86] = {['prop']=12504,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[87] = {['prop']=12804,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[88] = {['prop']=12904,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[89] = {['prop']=13004,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[90] = {['prop']=13104,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[91] = {['prop']=13204,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[92] = {['prop']=13904,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[93] = {['prop']=11005,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[94] = {['prop']=11005,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[95] = {['prop']=11105,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[96] = {['prop']=12005,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[97] = {['prop']=12105,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[98] = {['prop']=12205,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[99] = {['prop']=12305,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[100] = {['prop']=12405,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[101] = {['prop']=12505,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[102] = {['prop']=12805,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[103] = {['prop']=12905,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[104] = {['prop']=13005,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[105] = {['prop']=13105,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[106] = {['prop']=13205,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[107] = {['prop']=13905,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[108] = {['prop']=10006,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[109] = {['prop']=11006,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[110] = {['prop']=11106,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[111] = {['prop']=12006,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[112] = {['prop']=12106,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[113] = {['prop']=12206,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[114] = {['prop']=12306,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[115] = {['prop']=12406,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[116] = {['prop']=12506,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[117] = {['prop']=12806,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[118] = {['prop']=12906,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[119] = {['prop']=13006,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[120] = {['prop']=13106,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[121] = {['prop']=13206,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[122] = {['prop']=13906,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[123] = {['prop']=10007,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[124] = {['prop']=11007,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[125] = {['prop']=11107,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[126] = {['prop']=12007,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[127] = {['prop']=12107,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[128] = {['prop']=12207,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[129] = {['prop']=12307,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[130] = {['prop']=12407,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[131] = {['prop']=12507,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[132] = {['prop']=12807,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[133] = {['prop']=12907,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[134] = {['prop']=13007,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[135] = {['prop']=13107,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[136] = {['prop']=13207,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[137] = {['prop']=13907,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[138] = {['prop']=10008,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[139] = {['prop']=11008,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[140] = {['prop']=11108,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[141] = {['prop']=12008,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[142] = {['prop']=12108,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[143] = {['prop']=12208,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[144] = {['prop']=12308,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[145] = {['prop']=12408,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[146] = {['prop']=12508,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[147] = {['prop']=12808,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[148] = {['prop']=12908,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[149] = {['prop']=13008,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[150] = {['prop']=13108,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[151] = {['prop']=13208,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[152] = {['prop']=13908,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[153] = {['prop']=10009,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[154] = {['prop']=11009,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[155] = {['prop']=11109,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[156] = {['prop']=12009,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[157] = {['prop']=12109,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[158] = {['prop']=12209,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[159] = {['prop']=12309,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[160] = {['prop']=12409,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[161] = {['prop']=12509,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[162] = {['prop']=12809,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[163] = {['prop']=12909,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[164] = {['prop']=13009,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[165] = {['prop']=13109,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[166] = {['prop']=13209,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[167] = {['prop']=13909,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[168] = {['prop']=10010,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[169] = {['prop']=11010,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[170] = {['prop']=11110,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[171] = {['prop']=12010,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[172] = {['prop']=12110,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[173] = {['prop']=12210,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[174] = {['prop']=12310,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[175] = {['prop']=12410,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[176] = {['prop']=12510,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[177] = {['prop']=12810,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[178] = {['prop']=12910,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[179] = {['prop']=13010,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[180] = {['prop']=13110,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[181] = {['prop']=13210,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[182] = {['prop']=13910,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[183] = {['prop']=10012,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[184] = {['prop']=11012,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[185] = {['prop']=11112,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[186] = {['prop']=12012,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[187] = {['prop']=12112,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[188] = {['prop']=12212,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[189] = {['prop']=12312,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[190] = {['prop']=12412,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[191] = {['prop']=12512,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[192] = {['prop']=12812,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[193] = {['prop']=12912,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[194] = {['prop']=13012,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[195] = {['prop']=13112,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[196] = {['prop']=13212,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[197] = {['prop']=13912,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[198] = {['prop']=10014,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[199] = {['prop']=11014,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[200] = {['prop']=11114,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[201] = {['prop']=12014,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[202] = {['prop']=12114,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[203] = {['prop']=12214,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[204] = {['prop']=12314,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[205] = {['prop']=12414,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[206] = {['prop']=12514,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[207] = {['prop']=12814,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[208] = {['prop']=12914,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[209] = {['prop']=13014,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[210] = {['prop']=13114,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[211] = {['prop']=13214,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[212] = {['prop']=13914,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[213] = {['prop']=10015,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[214] = {['prop']=11015,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[215] = {['prop']=11115,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[216] = {['prop']=12015,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[217] = {['prop']=12115,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[218] = {['prop']=12215,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[219] = {['prop']=12315,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[220] = {['prop']=12415,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[221] = {['prop']=12515,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[222] = {['prop']=12815,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[223] = {['prop']=12915,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[224] = {['prop']=13015,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[225] = {['prop']=13115,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[226] = {['prop']=13215,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[227] = {['prop']=13915,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[228] = {['prop']=10016,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[229] = {['prop']=11016,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[230] = {['prop']=11116,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[231] = {['prop']=12016,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[232] = {['prop']=12116,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[233] = {['prop']=12216,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[234] = {['prop']=12316,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[235] = {['prop']=12416,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[236] = {['prop']=12516,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[237] = {['prop']=12816,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[238] = {['prop']=12916,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[239] = {['prop']=13016,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[240] = {['prop']=13216,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[241] = {['prop']=13116,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[242] = {['prop']=13916,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[243] = {['prop']=10017,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[244] = {['prop']=11017,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[245] = {['prop']=11117,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[246] = {['prop']=12017,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[247] = {['prop']=12117,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[248] = {['prop']=12217,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[249] = {['prop']=12317,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[250] = {['prop']=12417,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[251] = {['prop']=12517,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[252] = {['prop']=12817,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[253] = {['prop']=12917,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[254] = {['prop']=13017,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[255] = {['prop']=13117,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[256] = {['prop']=13217,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[257] = {['prop']=13917,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[258] = {['prop']=21303,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[259] = {['prop']=21403,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[260] = {['prop']=21304,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[261] = {['prop']=21404,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[262] = {['prop']=21305,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[263] = {['prop']=21405,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[264] = {['prop']=21306,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[265] = {['prop']=21406,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[266] = {['prop']=21307,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[267] = {['prop']=21407,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[268] = {['prop']=21308,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[269] = {['prop']=21408,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[270] = {['prop']=21312,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[271] = {['prop']=21412,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[272] = {['prop']=21313,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+rows[273] = {['prop']=21413,['param1']=0.0,['param2']=0.0,['param3']=0.0,['coeff']=0.0}
+
+local datas = {
+	[0] = rows[1],
+	[10] = rows[2],
+	[11] = rows[3],
+	[12] = rows[4],
+	[13] = rows[5],
+	[14] = rows[6],
+	[20] = rows[7],
+	[21] = rows[8],
+	[22] = rows[9],
+	[23] = rows[10],
+	[24] = rows[11],
+	[25] = rows[12],
+	[28] = rows[13],
+	[30] = rows[14],
+	[31] = rows[15],
+	[32] = rows[16],
+	[39] = rows[17],
+	[10000] = rows[18],
+	[11000] = rows[19],
+	[11100] = rows[20],
+	[12000] = rows[21],
+	[12100] = rows[22],
+	[12200] = rows[23],
+	[12300] = rows[24],
+	[12400] = rows[25],
+	[12500] = rows[26],
+	[12800] = rows[27],
+	[12900] = rows[28],
+	[13000] = rows[29],
+	[13100] = rows[30],
+	[13200] = rows[31],
+	[13900] = rows[32],
+	[10001] = rows[33],
+	[11001] = rows[34],
+	[11101] = rows[35],
+	[12001] = rows[36],
+	[12101] = rows[37],
+	[12201] = rows[38],
+	[12301] = rows[39],
+	[12401] = rows[40],
+	[12501] = rows[41],
+	[12801] = rows[42],
+	[12901] = rows[43],
+	[13001] = rows[44],
+	[13101] = rows[45],
+	[13201] = rows[46],
+	[13901] = rows[47],
+	[10002] = rows[48],
+	[11002] = rows[49],
+	[11102] = rows[50],
+	[12002] = rows[51],
+	[12102] = rows[52],
+	[12202] = rows[53],
+	[12302] = rows[54],
+	[12402] = rows[55],
+	[12502] = rows[56],
+	[12802] = rows[57],
+	[12902] = rows[58],
+	[13002] = rows[59],
+	[13102] = rows[60],
+	[13202] = rows[61],
+	[13902] = rows[62],
+	[10003] = rows[63],
+	[11003] = rows[64],
+	[11103] = rows[65],
+	[12003] = rows[66],
+	[12103] = rows[67],
+	[12203] = rows[68],
+	[12303] = rows[69],
+	[12403] = rows[70],
+	[12503] = rows[71],
+	[12803] = rows[72],
+	[12903] = rows[73],
+	[13003] = rows[74],
+	[13103] = rows[75],
+	[13203] = rows[76],
+	[13903] = rows[77],
+	[10004] = rows[78],
+	[11104] = rows[80],
+	[12004] = rows[81],
+	[12104] = rows[82],
+	[12204] = rows[83],
+	[12304] = rows[84],
+	[12404] = rows[85],
+	[12504] = rows[86],
+	[12804] = rows[87],
+	[12904] = rows[88],
+	[13004] = rows[89],
+	[13104] = rows[90],
+	[13204] = rows[91],
+	[13904] = rows[92],
+	[11005] = rows[94],
+	[11105] = rows[95],
+	[12005] = rows[96],
+	[12105] = rows[97],
+	[12205] = rows[98],
+	[12305] = rows[99],
+	[12405] = rows[100],
+	[12505] = rows[101],
+	[12805] = rows[102],
+	[12905] = rows[103],
+	[13005] = rows[104],
+	[13105] = rows[105],
+	[13205] = rows[106],
+	[13905] = rows[107],
+	[10006] = rows[108],
+	[11006] = rows[109],
+	[11106] = rows[110],
+	[12006] = rows[111],
+	[12106] = rows[112],
+	[12206] = rows[113],
+	[12306] = rows[114],
+	[12406] = rows[115],
+	[12506] = rows[116],
+	[12806] = rows[117],
+	[12906] = rows[118],
+	[13006] = rows[119],
+	[13106] = rows[120],
+	[13206] = rows[121],
+	[13906] = rows[122],
+	[10007] = rows[123],
+	[11007] = rows[124],
+	[11107] = rows[125],
+	[12007] = rows[126],
+	[12107] = rows[127],
+	[12207] = rows[128],
+	[12307] = rows[129],
+	[12407] = rows[130],
+	[12507] = rows[131],
+	[12807] = rows[132],
+	[12907] = rows[133],
+	[13007] = rows[134],
+	[13107] = rows[135],
+	[13207] = rows[136],
+	[13907] = rows[137],
+	[10008] = rows[138],
+	[11008] = rows[139],
+	[11108] = rows[140],
+	[12008] = rows[141],
+	[12108] = rows[142],
+	[12208] = rows[143],
+	[12308] = rows[144],
+	[12408] = rows[145],
+	[12508] = rows[146],
+	[12808] = rows[147],
+	[12908] = rows[148],
+	[13008] = rows[149],
+	[13108] = rows[150],
+	[13208] = rows[151],
+	[13908] = rows[152],
+	[10009] = rows[153],
+	[11009] = rows[154],
+	[11109] = rows[155],
+	[12009] = rows[156],
+	[12109] = rows[157],
+	[12209] = rows[158],
+	[12309] = rows[159],
+	[12409] = rows[160],
+	[12509] = rows[161],
+	[12809] = rows[162],
+	[12909] = rows[163],
+	[13009] = rows[164],
+	[13109] = rows[165],
+	[13209] = rows[166],
+	[13909] = rows[167],
+	[10010] = rows[168],
+	[11010] = rows[169],
+	[11110] = rows[170],
+	[12010] = rows[171],
+	[12110] = rows[172],
+	[12210] = rows[173],
+	[12310] = rows[174],
+	[12410] = rows[175],
+	[12510] = rows[176],
+	[12810] = rows[177],
+	[12910] = rows[178],
+	[13010] = rows[179],
+	[13110] = rows[180],
+	[13210] = rows[181],
+	[13910] = rows[182],
+	[10012] = rows[183],
+	[11012] = rows[184],
+	[11112] = rows[185],
+	[12012] = rows[186],
+	[12112] = rows[187],
+	[12212] = rows[188],
+	[12312] = rows[189],
+	[12412] = rows[190],
+	[12512] = rows[191],
+	[12812] = rows[192],
+	[12912] = rows[193],
+	[13012] = rows[194],
+	[13112] = rows[195],
+	[13212] = rows[196],
+	[13912] = rows[197],
+	[10014] = rows[198],
+	[11014] = rows[199],
+	[11114] = rows[200],
+	[12014] = rows[201],
+	[12114] = rows[202],
+	[12214] = rows[203],
+	[12314] = rows[204],
+	[12414] = rows[205],
+	[12514] = rows[206],
+	[12814] = rows[207],
+	[12914] = rows[208],
+	[13014] = rows[209],
+	[13114] = rows[210],
+	[13214] = rows[211],
+	[13914] = rows[212],
+	[10015] = rows[213],
+	[11015] = rows[214],
+	[11115] = rows[215],
+	[12015] = rows[216],
+	[12115] = rows[217],
+	[12215] = rows[218],
+	[12315] = rows[219],
+	[12415] = rows[220],
+	[12515] = rows[221],
+	[12815] = rows[222],
+	[12915] = rows[223],
+	[13015] = rows[224],
+	[13115] = rows[225],
+	[13215] = rows[226],
+	[13915] = rows[227],
+	[10016] = rows[228],
+	[11016] = rows[229],
+	[11116] = rows[230],
+	[12016] = rows[231],
+	[12116] = rows[232],
+	[12216] = rows[233],
+	[12316] = rows[234],
+	[12416] = rows[235],
+	[12516] = rows[236],
+	[12816] = rows[237],
+	[12916] = rows[238],
+	[13016] = rows[239],
+	[13216] = rows[240],
+	[13116] = rows[241],
+	[13916] = rows[242],
+	[10017] = rows[243],
+	[11017] = rows[244],
+	[11117] = rows[245],
+	[12017] = rows[246],
+	[12117] = rows[247],
+	[12217] = rows[248],
+	[12317] = rows[249],
+	[12417] = rows[250],
+	[12517] = rows[251],
+	[12817] = rows[252],
+	[12917] = rows[253],
+	[13017] = rows[254],
+	[13117] = rows[255],
+	[13217] = rows[256],
+	[13917] = rows[257],
+	[21303] = rows[258],
+	[21403] = rows[259],
+	[21304] = rows[260],
+	[21404] = rows[261],
+	[21305] = rows[262],
+	[21405] = rows[263],
+	[21306] = rows[264],
+	[21406] = rows[265],
+	[21307] = rows[266],
+	[21407] = rows[267],
+	[21308] = rows[268],
+	[21408] = rows[269],
+	[21312] = rows[270],
+	[21412] = rows[271],
+	[21313] = rows[272],
+	[21413] = rows[273],
+}
+return datas

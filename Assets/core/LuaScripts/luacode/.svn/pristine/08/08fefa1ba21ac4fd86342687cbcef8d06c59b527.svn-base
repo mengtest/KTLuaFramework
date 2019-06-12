@@ -1,0 +1,41 @@
+---
+--- Created by PC.
+--- DateTime: 2018/1/27 14:02
+---
+local View = require("system.view")
+local equipment_item_view = class("equipment_item_view", View)
+
+function equipment_item_view:doInit()
+    self.m_frame = self:getFrame()
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Equip_item"), function(go)
+        self:getGO().transform:SetParent(self.m_frame.m_parent_node)
+        local size_delta = self["equip_item_gameObject"].transform.sizeDelta
+        self:getGO().transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+        go.transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+
+        self:refresh_quality_path(self.m_frame.m_quality_path)
+        self:refresh_equip_path(self.m_frame.m_equip_path)
+        self:refresh_equip_level(self.m_frame.m_level)
+    end)
+end
+
+function equipment_item_view:refresh_quality_path(quality_path)
+    self:subscribe(app:getResMgr():rxLoad(quality_path), function(asset)
+        local tex = asset
+        self["quality_icon_gameObject"].transform:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+end
+
+function equipment_item_view:refresh_equip_path(equip_path)
+    self:subscribe(app:getResMgr():rxLoad(equip_path), function(asset)
+        local tex = asset
+        self["equip_icon_gameObject"].transform:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+end
+
+function equipment_item_view:refresh_equip_level(level)
+    self.m_frame:set_level(level)
+end
+
+return equipment_item_view

@@ -1,0 +1,50 @@
+-- 为了展示效果 临时添加的功能 并不规范也缺乏考量
+local ObserverHost = require "system.observer_host"
+
+local CacheMgr = class("CacheMgr")
+
+CacheMgr:include(ObserverHost)
+
+CacheMgr.SkillCacheList = {}
+
+CacheMgr.Container = nil
+
+
+function CacheMgr:init()
+    local new_go = GameObject("CacheMgr")
+    CacheMgr.Container = new_go.transform
+
+    -- test
+    app:getResMgr():rxLoad("models/Role/pc/linghou/lh_mskillcast_01.anim")
+    app:getResMgr():rxLoad("models/Role/pc/linghou/lh_mskillcast_02.anim")
+    app:getResMgr():rxLoad("models/Role/pc/linghou/emjc_mskillcast.anim")
+    app:getResMgr():rxLoad("models/Role/pc/linghou/yhzd_mskillcast.anim")
+end
+
+function CacheMgr.GetSkillCache(path)
+    local go = CacheMgr.SkillCacheList[path]
+
+    if(go~= nil) then
+        go:SetActive(true)
+    end
+
+   return go
+end
+
+function CacheMgr.GiveBackSkillCache(path,go)
+    return CacheMgr.SkillCacheList[path]
+end
+
+function CacheMgr.AddSkillCache(path)
+    self:subscribe(app:get_res_mgr():rxLoad(path), function(asset_ref)
+        local go = asset_ref.asset 
+        go.transform:SetParent(CacheMgr.Container) 
+        go:SetActive(false)
+    end)	
+end
+
+function CacheMgr.RemoveSkillCache()
+	
+end
+
+return CacheMgr

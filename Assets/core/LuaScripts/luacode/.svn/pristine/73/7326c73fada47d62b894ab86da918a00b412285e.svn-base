@@ -1,0 +1,58 @@
+local View = require("system.view")
+local quest_ui_show_view = class("quest_ui_show_view", View)
+
+function quest_ui_show_view:doInit(param)
+
+    self:load("ui/QuestShow.prefab", function(go)
+        local frame = self:getFrame()
+        local ui_manager = app:get_ui_manager()
+        go.transform.localPosition = Vector3.one
+        go.transform.localScale = Vector3.one
+
+        -- 不会用 outlet 的
+        self.m_give_up_btn = go.transform:Find("quest_show/give_up_btn"):GetComponent(UI.Button)
+        self.m_quest_finished_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_finished_icon"):GetComponent(UI.Image)
+        self.m_quest_accepted_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_accepted_icon"):GetComponent(UI.Image)
+        self.m_quest_failed_icon = go.transform:Find("quest_show/quest_name_column/quest_stat/quest_failed_icon"):GetComponent(UI.Image)
+        ----还有一个奖励图标
+        --self.m_reward_goods = go.transform:Find("quest_show/quest_detail_column/quest_reward/goods")
+
+
+        -- 状态图标
+        self:subscribe(frame:on_event_quest_stat_set(true), function(stat)
+            if stat == "已接取" then
+                self.m_quest_accepted_icon.gameObject:SetActive(true)
+                self.m_quest_finished_icon.gameObject:SetActive(false)
+                self.m_quest_failed_icon.gameObject:SetActive(false)
+            elseif stat == "失败" then
+                self.m_quest_accepted_icon.gameObject:SetActive(false)
+                self.m_quest_finished_icon.gameObject:SetActive(false)
+                self.m_quest_failed_icon.gameObject:SetActive(true)
+            elseif stat == "已完成" then
+                self.m_quest_accepted_icon.gameObject:SetActive(false)
+                self.m_quest_finished_icon.gameObject:SetActive(true)
+                self.m_quest_failed_icon.gameObject:SetActive(false)
+            end
+        end)
+        ---- 是否有奖励[临时这么搞]
+        --self:subscribe(frame:on_event_quest_id_set(false), function(quest_id)
+        --    print("quest_id")
+        --    if #dbc.quest[quest_id].goods == 0 then
+        --        self.m_reward_goods.gameObject:SetActive(false)
+        --    else
+        --        self.m_reward_goods.gameObject:SetActive(true)
+        --    end
+        --end)
+
+        -- 放弃按钮
+        self.m_give_up_btn.onClick:AddListener(function()
+            ui_manager:CreateUI("quest_ui_give_up", "%subsystem.quest.quest_ui.quest_ui_give_up", frame:get_quest_id(), ui_manager.UI_Depth.ALERT)
+        end)
+
+    end)
+end
+
+
+
+
+return quest_ui_show_view

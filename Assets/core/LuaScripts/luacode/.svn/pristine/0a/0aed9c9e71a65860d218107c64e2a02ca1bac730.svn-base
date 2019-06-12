@@ -1,0 +1,61 @@
+local Frame = require("system.frame")
+local matching_list_item = class("matching_list_item", Frame)
+
+Event.decl(matching_list_item, "item_down")
+Event.decl(matching_list_item, "item_sel_cancle")
+Event.decl(matching_list_item, "refresh_view")
+
+function matching_list_item:doInit(param)
+    self:set_is_add_rect_trans(true)
+    self.m_id_list = param[2]["id"]
+    self.m_state_list = param[2]["state"]
+    self.m_use_list = param[2]["use"]
+    --for i, v in pairs(self.m_use_list) do
+    --    Debug.LogError(tostring(v))
+    --end
+    self.m_series = param[1]
+    self.m_matching_manager = self:getFrame("matching_manager")
+end
+
+function matching_list_item:on_item_btn()
+    local is_matching = self.m_matching_manager:gain_matching_state()
+    if is_matching == 1 then
+        return
+    end
+    self:emit_event("item_down", nil)
+end
+
+function matching_list_item:refresh_data(param)
+    self.m_series = param[1]
+    self.m_id_list = param[2]["id"]
+    self.m_state_list = param[2]["state"]
+    self.m_use_list = param[2]["use"]
+    self:emit_event("refresh_view")
+end
+
+-- 取消选中
+function matching_list_item:on_item_sel_cancle()
+    self:emit_event("item_sel_cancle")
+end
+
+-- 获取self.m_id_list
+function matching_list_item:gain_id_list()
+   return self.m_id_list
+end
+
+-- 获取self.m_state_list
+function matching_list_item:gain_state_list()
+    return self.m_state_list
+end
+
+-- 获取self.m_use_list
+function matching_list_item:gain_use_list()
+    return self.m_use_list
+end
+
+-- 获取self.m_series
+function matching_list_item:gain_series()
+    return self.m_series
+end
+
+return matching_list_item

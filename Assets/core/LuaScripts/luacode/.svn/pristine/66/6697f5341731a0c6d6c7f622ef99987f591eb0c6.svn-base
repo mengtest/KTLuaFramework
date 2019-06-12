@@ -1,0 +1,22 @@
+---
+--- Created by 7.
+--- DateTime: 2018/1/3 12:31
+---
+
+local ClassA=require("frame.kbe.TestClassA")
+local ClassB=class("ClassB",ClassA)
+
+Attribute.decl(ClassA,"attrB",6)
+
+--function ClassB:initialize()
+--    ClassB.super.initialize(self)
+--  -- 不能写成ClassB.super:initialize(a,b)的形式，否则属性出错
+--  --  Attribute.init(self)  子类不需要有这句，只要父类里使用过这句就可以了
+--end
+
+function ClassB:doInit()
+    ClassB.super:doInit()
+    print("初始化classB")
+end
+
+return ClassB

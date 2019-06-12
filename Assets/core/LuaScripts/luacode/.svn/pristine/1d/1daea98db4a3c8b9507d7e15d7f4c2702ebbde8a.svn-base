@@ -1,0 +1,26 @@
+
+local Util_log = {}
+
+-- 将个人的mask标签添加于此处，并设值为false上传至服务器。
+Util_log.Mask = {
+    Global = true,
+    SJG_Quest = false,
+    SJG_Exhibition = false
+}
+
+function Util_log:log(mask, ...)
+    if not mask then return end
+    Debug.Log(...)
+end
+
+function Util_log:logWarning(mask, ...)
+    if not mask then return end
+    Debug.LogWarning(...)
+end
+
+function Util_log:logError(mask, ...)
+    if not mask then return end
+    Debug.LogError(...)
+end
+
+return Util_log

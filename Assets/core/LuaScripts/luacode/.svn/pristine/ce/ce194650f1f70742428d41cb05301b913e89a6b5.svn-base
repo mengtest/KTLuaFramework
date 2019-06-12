@@ -1,0 +1,926 @@
+local AsyncAction = require "system.async_action"
+local Unit = require "frame.unit"
+local PlayerControllerView = {}
+
+
+-- 以下参数会在doInit时重置
+local SHOW_SKILL_DRAG_ICON_DIST = 100
+local NPC_INTERACT_DIST = 5
+local TOUCH_JUMP_TIME = 0.5
+
+
+function PlayerControllerView:actionMoveWithPath(role, path)
+    assert(#path >= 2)
+    
+    local action = AsyncAction:new()
+    action:onRun(
+        function()
+            for i = 2, #path do
+                role:set_pos(path[i - 1])
+                role:navMoveTo(path[i])
+                self:sendMove(path[i - 1], path[i])
+                while role:get_action() do
+                    coroutine.yield()
+                end
+            end
+        end
+    )
+    return action
+end
+
+function PlayerControllerView:actionPursueTarget(role, target, dist)
+    local function calc_dist(from, to)
+        return Vector3.ProjectOnPlane(to - from, Vector3.up).magnitude
+    end
+    local function is_target_dead_or_close_enough()
+        return target:is_dead() or calc_dist(role:get_pos(), target:get_pos()) <= dist
+    end
+    
+    local action = AsyncAction:new()
+    action:onPrecondition(
+        function()
+            return not is_target_dead_or_close_enough()
+        end
+    )
+    action:onRun(
+        function()
+            local last_path_target
+            local move_with_path
+            
+            while true do
+                if last_path_target == nil or calc_dist(last_path_target, target:get_pos()) > 0.1 then
+                    last_path_target = target:get_pos()
+                    
+                    local path = self:findPath(role:get_pos(), target:get_pos())
+                    if not path then
+                        return
+                    end
+                    
+                    move_with_path = self:actionMoveWithPath(role, path)
+                    move_with_path:start()
+                end
+                
+                local start = Time.time
+                while Time.time - start < 0.2 do
+                    move_with_path:update()
+                    coroutine.yield()
+                end
+            end
+        end
+    )
+    return action
+end
+
+function PlayerControllerView:actionAttackTarget(role, target)
+    local action = AsyncAction:new()
+    
+    local pursue
+    
+    action:onPrecondition(
+        function()
+            return not target:is_dead()
+        end
+    )
+    action:onExit(
+        function()
+            if pursue then
+                pursue:close()
+            end
+        end
+    )
+    action:onRun(
+        function()
+            while true do
+                pursue = self:actionPursueTarget(role, target, role:get_attack_range())
+                pursue:coExecAndWait()
+                
+                role:tryAttackTarget(target)
+                self:getFrame():emit_event_skill(1001, target_id, Vector3.zero, 0)
+                while role:get_action() do
+                    coroutine.yield()
+                end
+                
+                local start = Time.time
+                while Time.time - start < 0.2 do
+                    coroutine.yield()
+                end
+            end
+        end
+    )
+    return action
+end
+
+function PlayerControllerView:doInit(unit)
+    
+    -- 读取/重置参数
+    local setting = Resources.Load("settings/PlayerControllSetting")
+    SHOW_SKILL_DRAG_ICON_DIST = setting.ShowSkillDragIconDist
+    NPC_INTERACT_DIST = setting.NpcInteractDist
+    TOUCH_JUMP_TIME = setting.TouchJumpTime
+    local ui_manager = app:get_ui_manager()
+    self.ui_camera = app:get_ui_manager():GetUICamera()
+    
+    self.m_unit = unit
+    -- instance of class unit
+    self.m_world_view = self:getView("world")
+    self.m_action = nil
+    self.thumb_view_list = {}
+    self:subscribe(
+        self:getFrame():on_event("reset"),
+        function()
+            self:reset()
+        end
+    )
+    self.m_cam = self:getView("world"):getCamera()
+    self.m_sync_with_camera = false
+    -- 角色朝向是否要与相机角度同步
+    self.m_raw_joystick_angle = 0
+    -- 摇杆输入原始角度，[-180, 180]，0度向上
+    self.m_joystcik_angle_8d = 0
+    -- 原始角度转换为8向，[-180, 180]，0度向上；用于计算移动的方向
+    self.m_swipe_start_on_jstk = false
+    
+    self.m_is_swipe_over_cancel_area = false
+    -- 技能按钮swipe是否位于技能取消区域
+    self.m_touch_joystick_start_time = 0
+    -- 开始按下摇杆的时间
+    self.m_is_show = false -- 是否显示小队头像
+    
+    -- 加载prefab
+    self:load(
+        "UI/PlayerController.prefab",
+        function(go)
+            
+            --playerController 界面需要根据策划需求进行修改，鉴于现在界面较为复杂以及面临的ui结构修改，
+            --单独增加一个脚本来关联所有ui元素 而不再随意使用Find方法  clz - 2017年10月31日
+            self.m_ui_asset = go:GetComponent(PlayerControllerUIAsset)
+            
+            local frame = self:getFrame()
+            --------------------------------
+            ui_manager:AdaptResolution(frame:getFrameName(), go)
+            
+            self:subscribe(
+                frame:on_event_interact_btn_name_set(),
+                function(val)
+                    self.interact_name = val
+                    self.m_interact_btn_durtion_start = false
+                    self["interact_btn_time_GUISlider"].value = 0
+                    self["interact_btn_GUIButton"].enabled = true
+                    if (val == nil) then
+                        self["interact_btn_GUIButton"].gameObject:SetActive(false)
+                    else
+                        self["interact_btn_GUIButton"].gameObject:SetActive(true)
+                    end
+                end
+            )
+            self:subscribe(frame:on_event("switch_interact_btn"), function(flag)
+                self["interact_GUIButton"].gameObject:SetActive(flag)
+            end)
+            
+            self:subscribe(
+                frame:on_event_interact_btn_time_set(),
+                -- 这里做一个约定 小于等于0时当做停止loading计时器
+                function(val)
+                    if (val <= 0) then
+                        self.m_interact_btn_durtion_start = false
+                        self["interact_btn_GUIButton"].enabled = true
+                        self["interact_btn_time_GUISlider"].gameObject:SetActive(false)
+                    else
+                        self.m_interact_btn_durtion_max = val
+                        self.m_interact_btn_durtion = self.m_interact_btn_durtion_max
+                        self.m_interact_btn_durtion_start = true
+                        self["interact_btn_GUIButton"].enabled = false
+                        self["interact_btn_time_GUISlider"].gameObject:SetActive(true)
+                    end
+                end
+            )
+            -- 获取控件对象
+            local go_trsf = go.transform
+            self.m_left_joystick_area = self.m_ui_asset.LeftJoystickArea
+            self.m_right_joystick_area = self.m_ui_asset.RightJoystickArea
+            self.m_cancel_area = self.m_ui_asset.CancelSlot
+            self.m_drag_skill_trsf = self.m_ui_asset.DragSkillIcon
+            self.m_joystick = self.m_ui_asset.JoyStick:GetComponent(ETCJoystick)
+            
+            local battle_panel = self.m_ui_asset.BattlePanel
+            
+            local move_panel = self.m_ui_asset.MovePanel
+            
+            
+            
+            self:subscribe(frame:on_event_is_show_move_panel_set(), function(val)
+                move_panel:SetActive(val)
+            end)
+            
+            self:subscribe(frame:on_event_is_show_battle_panel_set(), function(val)
+                battle_panel:SetActive(val)
+            end)
+            
+            -- 头像列表   myself
+            local teamMember_count = self.m_ui_asset.TeamMember.childCount
+            
+            self.m_member_go_list = {}
+            for i = 1, teamMember_count do
+                self.m_ui_asset.TeamMember:GetChild(i - 1).gameObject:SetActive(false)
+                table.insert(self.m_member_go_list, self.m_ui_asset.TeamMember:GetChild(i - 1))
+            end
+            
+            
+            
+            -- 技能按钮相关 ↓↓↓
+            -- 普通技能列表
+            self.m_skillpos_list_trsf = {}
+            
+            -- 主技能按钮
+            table.insert(self.m_skillpos_list_trsf, self.m_ui_asset.MainSkill)
+            
+            -- 常规技能按钮
+            local first_layer_count = self.m_ui_asset.MainLayer.childCount
+            local second_layer_count = self.m_ui_asset.SecondLayer.childCount
+            
+            for i = 1, first_layer_count do
+                table.insert(self.m_skillpos_list_trsf, self.m_ui_asset.MainLayer:GetChild(i - 1))
+            end
+            for i = 1, second_layer_count do
+                table.insert(self.m_skillpos_list_trsf, self.m_ui_asset.SecondLayer:GetChild(i - 1))
+            end
+            
+            --好厉害技能列表
+            --self.m_ui_asset.SpecialLayer
+            frame:create_skill_btn_list(self.m_skillpos_list_trsf, self.m_ui_asset.SpecialSkillContainer)
+            -- 技能按钮相关 ↑↑↑
+            
+            
+            -- pacman 2017-07-18 临时 团队治疗列表
+            self.m_team_parent_trsf = go.transform:Find("Group")
+            self.m_team_column_template_go = go.transform:Find("Group/Column").gameObject
+            self.m_team_column_template_go:SetActive(false)
+            self.m_team_member_btn_tempalte_go = self.m_team_column_template_go.transform:Find("Btn").gameObject
+            self.m_team_member_btn_tempalte_go:SetActive(false)
+            
+            self.m_team_go_list = {}
+            for i = 1, 1 do
+                local team_column_go = Object.Instantiate(self.m_team_column_template_go)
+                team_column_go:SetActive(true)
+                team_column_go.transform:SetParent(self.m_team_parent_trsf)
+                self.m_team_go_list[i] = team_column_go
+            end
+            -----------------------------------------------------
+            --------------------------------
+            -- 切换目标处理
+            self:subscribe(
+                self.m_unit:on_event_target_set(true),
+                function(target_unit)
+                    -- print("!!!!!!!!!!!!", target_unit and target_unit:get_name() or target_unit)
+                    -- self.m_unit:emit_event("target_id_set", target_unit and target_unit:get_id() or 0)
+                    local new_team = nil
+                    -- 切换队伍目标列表
+                    if target_unit == nil then
+                        -- print("!!!!!!!!!!! no target")
+                        new_team = self.m_unit:get_team()
+                    elseif target_unit:get_team() == nil then
+                        -- print("!!!!!!!!!!! target not in team")
+                        new_team = self.m_unit:get_team()
+                    else
+                        -- print("!!!!!!!!!!! target is in team")
+                        new_team = target_unit:get_team()
+                    end
+                    
+                    if self.m_target_team ~= new_team then
+                        -- print("!!!!!!!!!! new team found")
+                        -- 注销
+                        self.m_subscription_list = self.m_subscription_list or {}
+                        for i = 1, #self.m_subscription_list do
+                            self:unsubscribe(self.m_subscription_list[i])
+                        end
+                        self.m_subscription_list = {}
+                        
+                        -- 新注册
+                        self.m_target_team = new_team
+                    end
+                end
+            )
+            self.m_ui_sfx_list = {}
+            
+            --buff的ui特效 待整合 默认绑定在玩家坐标上
+            self:subscribe(self.m_unit:on_event_add_buff(), function(added_list)
+                for i, v in ipairs(added_list) do
+                    local skill_client_cfg = dbc.spell_buff_client[v:get_buff_id()]
+                    local path = skill_client_cfg.ui_sfx_path
+                    local depth = ui_manager:GetDepth(ui_manager:GetDepthName(frame:getFrameName()))
+                    if (path == nil or #path == 0) then
+                        return
+                    end
+                    self:load(path, function(go)
+                        self.m_ui_sfx_list[path] = go
+                        go.transform:SetParent(self.m_ui_asset.RolePoint)
+                        go.transform.localPosition = Vector3(0, 0, 0)
+                        go.transform.localRotation = Vector3(0, 0, 0)
+                        go.transform.localScale = Vector3.one
+                        local ps = go:GetComponentsInChildren(ParticleSystem)
+                        if (ps ~= nil) then
+                            for info in foreach(ps) do
+                                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                                info:GetComponent(Renderer).sortingOrder = depth + 1
+                                info:Play()
+                            end
+                        
+                        end
+                    end)
+                end
+            end)
+            
+            
+            self:subscribe(self.m_unit:on_event_remove_buff(), function(remove_list)
+                for i, v in ipairs(remove_list) do
+                    local skill_client_cfg = dbc.spell_buff_client[v:get_spell_id() * 10 + v:get_stack_num()]
+                    local path = skill_client_cfg.ui_sfx_path
+                    
+                    if (self.m_ui_sfx_list[path] ~= nil) then
+                        Object.Destroy(self.m_ui_sfx_list[path])
+                        self.m_ui_sfx_list[path] = nil
+                    end
+                end
+            end)
+            
+            ------------------
+            -- 注册ETC手势事件
+            -- On_SwipeStart fullscreen
+            PlayerControllerView.on_etc_swipe_start_wrapper = function(gesture)
+                self:on_etc_swipe_start(gesture)
+            end
+            EasyTouch.On_SwipeStart_EventAdd(PlayerControllerView.on_etc_swipe_start_wrapper)
+            
+            -- On_SwipeEnd fullscreen
+            PlayerControllerView.on_etc_swipe_end_wrapper = function(gesture)
+                self:on_etc_swipe_end(gesture)
+            end
+            EasyTouch.On_SwipeEnd_EventAdd(PlayerControllerView.on_etc_swipe_end_wrapper)
+            
+            -- On_TouchStart fullscreen
+            EasyTouch.On_TouchStart_EventAdd(
+                function(gesture)
+                    -- 在这里捕捉开始于摇杆区域且并没有点到其他按钮的touch
+                    -- print("&&&&&&&&&&& etc touch start")
+                    if gesture.isOverGui and gesture.pickedUIElement.name == "Thumb" then
+                        -- print("&&&&&&&&&&& on JoyStick")
+                        self.m_touch_joystick_start_time = Time.unscaledTime
+                    -- 重置按下时间
+                    end
+                end
+            )
+            -- ETCJoystick touchup
+            self.m_joystick.onTouchUp = ETCJoystick_OnTouchUpHandler()
+            self.m_joystick.onTouchUp:AddListener(
+                function()
+                    -- print("&&&&&&&&&&& touch up on joystick")
+                    -- print("&&&&&&&&&&& touch last ", Time.unscaledTime - self.m_touch_joystick_start_time)
+                    -- print(Time.unscaledTime)
+                    local touch_duration = Time.unscaledTime - self.m_touch_joystick_start_time
+                    if touch_duration < TOUCH_JUMP_TIME then
+                        self:getFrame():handle_jump()
+                    else
+                        end
+                end
+            )
+            -- On_SimpleTap
+            EasyTouch.On_SimpleTap_EventAdd(
+                function(gesture)
+                    self:on_etc_simple_tap(gesture)
+                end
+            )
+            ------------------
+            -- 切换技能按钮图层
+            -- 按下
+            self.m_ui_asset.ChangeLayer.onDown = ETCButton_OnDownHandler()
+            self.m_ui_asset.ChangeLayer.onDown:AddListener(
+                function()
+                    -- print("-------------change_skill_layer_btn.onDown")
+                    self:getFrame():handle_change_skill_layer(2)
+                end
+            )
+            -- 抬起
+            self.m_ui_asset.ChangeLayer.onUp = ETCButton_OnUPHandler()
+            self.m_ui_asset.ChangeLayer.onUp:AddListener(
+                function()
+                    -- print("-------------change_skill_layer_btn.onUp")
+                    self:getFrame():handle_change_skill_layer(1)
+                end
+            )
+            -- 切换目标按钮
+            self.m_ui_asset.SwitchTarget.onDown = ETCButton_OnDownHandler()
+            self.m_ui_asset.SwitchTarget.onDown:AddListener(
+                function()
+                    -- print("-----switch target down-------")
+                    self:getFrame():handle_switch_target()
+                end
+            )
+            -- 跳跃按钮
+            self.m_ui_asset.Jump.onDown = ETCButton_OnDownHandler()
+            self.m_ui_asset.Jump.onDown:AddListener(
+                function()
+                    -- print("--------Main down-------")
+                    self:getFrame():handle_jump()
+                end
+            )
+            -- 技能图层
+            self:subscribe(
+                self:getFrame():on_event_show_skill_layer(false),
+                function(value)
+                    if value == 1 then
+                        self.m_ui_asset.MainLayer.gameObject:SetActive(true)
+                        self.m_ui_asset.SecondLayer.gameObject:SetActive(false)
+                    else
+                        self.m_ui_asset.MainLayer.gameObject:SetActive(false)
+                        self.m_ui_asset.SecondLayer.gameObject:SetActive(true)
+                    end
+                end
+            )
+            ------------------
+            -- 显示小队头像
+            self:subscribe(
+                self:getFrame():on_event_show_team_thumbs_set(false),
+                function(value)
+                    -- print("!!!!!!!!!!!! show thumbs", value)
+                    self.m_is_show = value
+                    self.thumb_view_list = self:getFrame():get_team_member_list()
+                    self.m_ui_asset.TeamMember.gameObject:SetActive(value)--这里显示小队的view
+                    for i = 1, #self.m_member_go_list do
+                        self.m_member_go_list[i].gameObject:SetActive(false)
+                    end
+                    for i = 1, #self.thumb_view_list do
+                        if self.thumb_view_list[i][3] == 1 then
+                            self.m_member_go_list[i].gameObject:SetActive(value)
+                        end
+                    end
+                    -------------------在这里判断是否为当前选择的技能按钮
+                    local btn = nil
+                    --print("btn的值为>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",btn)
+                    --这里处理不好 先注销掉
+                    -- for k, v in pairs(self.m_main_skill_btn_list) do
+                    --     if v ~= btn then
+                    --         -- 显示小队头像，其余技能按钮淡化
+                    --         local cavnas_group = v:GetComponent(CanvasGroup)
+                    --         if cavnas_group then
+                    --             if value then
+                    --                 cavnas_group.alpha = 0.3
+                    --                 -- 隐藏小队头像，其余按钮恢复正常
+                    --             else
+                    --                 cavnas_group.alpha = 1
+                    --             end
+                    --         end
+                    --     end
+                    -- end
+                    --找到对应的按钮，将当前选中的按钮的阿尔法值设为1
+                    local cur_skill_btn = self.m_skillpos_list_trsf[self.m_curr_skill_num].transform:Find("skill_btn_" .. self.m_curr_skill_num)
+                    cur_skill_btn:Find("SkillBtn(Clone)"):GetComponent(CanvasGroup).alpha = 1
+                end)
+            
+            -----在拖动按钮时监听的事件
+            self:subscribe(
+                self:getFrame():on_event("team_member_change"),
+                function()
+                    
+                    --print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<这里响应了拖动按钮过程当中的事件>>>>>>>>>>>>>>>>")
+                    self.thumb_view_list = self:getFrame():get_team_member_list()
+                    
+                    self.m_ui_asset.TeamMember.gameObject:SetActive(self.m_is_show)--这里显示小队的view
+                    
+                    for i = 1, #self.m_member_go_list do
+                        self.m_member_go_list[i].gameObject:SetActive(false)
+                        print("...................................", i)
+                    end
+                    
+                    for i = 1, #self.thumb_view_list do
+                        if self.thumb_view_list[i][3] == 1 then
+                            self.m_member_go_list[i].gameObject:SetActive(self.m_is_show)
+                        else
+                            ---队内离线就设为false
+                            self.m_member_go_list[i].gameObject:SetActive(false)
+                        end
+                    end
+                end)
+            
+            
+            
+            -- npc互动
+            self.npc_layer = go.transform:Find("NpcAction").gameObject
+            
+            
+            -- 技能读条 --
+            self:handle_skill_progress_bar(go)
+            
+            
+            -- 检查是否小队头像控件
+            frame:create_team_Thumb_list(self.m_member_go_list)
+            
+            frame:on_loaded()
+        end
+)
+end
+
+function PlayerControllerView:on_skill_btn_down(skill_controll_btn_view)
+    assert(skill_controll_btn_view:is_res_loaded())
+    -- rjy 2017.10.28 技能消耗
+    local skill_btn_frame = skill_controll_btn_view:getFrame()
+    if not skill_btn_frame:get_have_enough_mana() then
+        self:getFrame("ui_main"):creat_hint_item("法力不足")
+        Sound_manager:play(Sound_manager:create(100103))
+    --print("按钮按下 ！！！！！！！！！！！！！！！施法的时候法力值不足了 ")
+    elseif not skill_btn_frame:get_is_target_in_range() then
+        self:getFrame("ui_main"):creat_hint_item("目标距离太远")
+        Sound_manager:play(Sound_manager:create(100103))
+    else
+        
+        local skill_data = skill_controll_btn_view:getFrame():get_skill_data()
+        local skill_id = skill_data:get_id()
+        
+        -- 是否允许释放技能
+        local unit = self.m_unit
+        -- 角色死亡？
+        -----记录当前按钮的标志位
+        local frame = self:getFrame()
+        local skill_btn_list = frame:get_skill_btn_list()
+        self.m_curr_skill_num = nil
+        for i = 1, #skill_btn_list do
+            if skill_btn_list[i] == skill_controll_btn_view:getFrame() then
+                self.m_curr_skill_num = i
+                print(self.m_curr_skill_num)
+                break
+            end
+        end
+        -- 记录按下的按钮  原来注释着
+        --self.m_cur_btn = skill_controll_btn_view.getFrame():GetComponentInChildren(ETCButton)
+        -- 显示技能取消区域
+        self.m_cancel_area.gameObject:SetActive(true)
+        
+        -- 技能拖拽图标显示为当前按钮所代表的技能
+        local drag_skill_trsf = self.m_drag_skill_trsf
+        local btn_image = skill_controll_btn_view:get_icon()
+        -- 这里要根据ui按钮的结构方式做调整
+        local drag_image = drag_skill_trsf:GetComponent(UI.Image)
+        
+        if drag_image.overrideSprite ~= btn_image.sprite then
+            drag_image.overrideSprite = btn_image.sprite
+        --drag_skill_trsf.sizeDelta = skill_btn_trsf.sizeDelta
+        end
+        -- drag_image.gameObject:SetActive(true)
+        -- 后继处理
+        frame:on_skill_btn_down(skill_data)
+    
+    end
+end
+
+function PlayerControllerView:on_skill_btn_swipe(gesture, skill_controll_btn_view)
+    -- rjy 2017.10.28 技能消耗
+    local skill_btn_frame = skill_controll_btn_view:getFrame()
+    if not skill_btn_frame:get_have_enough_mana() then
+        
+        elseif not skill_btn_frame:get_is_target_in_range() then
+        
+        else
+            
+            local frame = self:getFrame()
+            local drag_skill_trsf = self.m_drag_skill_trsf
+            local cancel_area_trsf = self.m_cancel_area
+            
+            -- 检查是否显示技能拖拽图标   SHOW_SKILL_DRAG_ICON_DIST
+            if Vector2.Distance(gesture.position, cancel_area_trsf.position) < SHOW_SKILL_DRAG_ICON_DIST then
+                drag_skill_trsf.gameObject:SetActive(true)
+            --------------------------------------todo    拖拽技能的显示
+            --print(gesture.position)
+            --print(drag_skill_trsf.position)
+            --drag_skill_trsf.position = Vector3(gesture.position.x, gesture.position.y, 0)
+            else
+                drag_skill_trsf.gameObject:SetActive(false)
+            end
+            
+            -- 检查是否拖拽到了技能回收区域
+            local is_over_cancel_area = RectTransformUtility.RectangleContainsScreenPoint(self.m_cancel_area, gesture.position, self.ui_camera)
+            
+            if is_over_cancel_area then
+                if not self.m_is_swipe_over_cancel_area then
+                    self.m_is_swipe_over_cancel_area = true
+                    frame:on_skill_btn_swipe_into_cancel_area()
+                end
+            else
+                if self.m_is_swipe_over_cancel_area then
+                    self.m_is_swipe_over_cancel_area = false
+                    frame:on_skill_btn_swipe_out_cancel_area()
+                end
+            end
+            
+            self:getFrame():on_skill_btn_swipe(gesture)
+    end
+end
+
+function PlayerControllerView:on_skill_btn_up(skill_controll_btn_view)
+    -- rjy 2017.10.28 技能消耗
+    local skill_btn_frame = skill_controll_btn_view:getFrame()
+    if not skill_btn_frame:get_have_enough_mana() then
+        
+        elseif not skill_btn_frame:get_is_target_in_range() then
+        
+        else
+            --self.m_cur_btn = nil      -- 当前技能按钮清零
+            self.m_cancel_area.gameObject:SetActive(false)-- 隐藏技能取消区域
+            self.m_drag_skill_trsf.gameObject:SetActive(false)-- 隐藏技能拖拽图标
+            
+            -- 判断是否是在技能取消区域放开按钮
+            local is_in_cancel_area = self:is_any_finger_in_rect(self.m_cancel_area)
+            -- print("!!!!!!!!!!!!!!!! is_in_cancel_area")
+            local is_in_skilltarget = self:finger_is_or_which_rect()
+            
+            -- 后继处理
+            self:getFrame():on_skill_btn_up(is_in_cancel_area, is_in_skilltarget)
+    end
+end
+
+function PlayerControllerView:is_any_finger_in_rect(rect)
+    local is_in = false
+    
+    for i = 0, 10 do
+        local finger = EasyTouch.instance:GetFinger(i)
+        if finger ~= nil then
+            is_in = RectTransformUtility.RectangleContainsScreenPoint(rect, finger.position, self.ui_camera)
+            if is_in then
+                break
+            end
+        end
+    end
+    
+    return is_in
+end
+
+function PlayerControllerView:finger_is_or_which_rect()
+    local is_in_num = nil
+    local is_in = false
+    for i = 0, 10 do
+        local finger = EasyTouch.instance:GetFinger(i)
+        if finger ~= nil then
+            if #self.thumb_view_list >= 1 then
+                for j = 1, #self.thumb_view_list do
+                    is_in = RectTransformUtility.RectangleContainsScreenPoint(self.m_member_go_list[j].transform, finger.position, self.ui_camera)
+                    --print("开始了这个循环>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    if is_in then
+                        is_in_num = j
+                        --print("选择的目标是>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",j)
+                        return is_in_num
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+function PlayerControllerView:doUpdate()
+    if self.m_unit:is_dead() then
+        return
+    end
+    
+    -- 临时代码 从键盘测试第二技能面板功能
+    if Input.GetKeyDown("left shift") then
+        self:getFrame():handle_change_skill_layer(2)
+    end
+    if Input.GetKeyUp("left shift") then
+        self:getFrame():handle_change_skill_layer(1)
+    end
+    ----------------------------
+    local frame = self:getFrame()
+    
+    -- 角色的移动与朝向
+    -- 虚拟摇杆输入角度
+    local axis_x = ETCInput.GetAxis("Horizontal")
+    local axis_y = ETCInput.GetAxis("Vertical")
+    frame:handle_input(Vector3(axis_x, axis_y, 0))
+    
+    -- 朝向
+    if self.m_sync_with_camera == true then
+        self.m_unit:set_target_dir(self.m_cam:get_euler_angle().y)
+    end
+    
+    --[[
+    local evs = EventSystems.EventSystem.current
+    if Input.GetMouseButtonDown(0) and not evs:IsPointerOverGameObject() then
+    local mpos = Input.mousePosition
+    local uv = self.m_world_view:pickGameObjectFromScreenPos(mpos)
+    local role = uv and uv:getFrame()
+    if role then
+    self.m_unit:set_target(role)
+    if role ~= self.m_unit then
+    self.m_action = self:actionAttackTarget(self.m_unit, role)
+    end
+    else
+    local pos = self.m_world_view:pickFromScreenPos(mpos)
+    if pos then
+    local path = self.m_world_view:findPath(self.m_unit:get_pos(), pos)
+    if path then
+    self.m_action = self:actionMoveWithPath(self.m_unit, path)
+    end
+    end
+    end
+    end
+    ]]
+    if self.m_action then
+        if not self.m_action:update() then
+            self.m_action = nil
+        end
+    end
+    
+    if (self.m_ui_asset ~= nil) then
+        self.m_ui_asset.RolePoint.position = self.m_cam:worldToUIScreenPoint(self.m_unit:get_pos())
+    end
+    -------------------------
+    -- 判断玩家与npc距离
+    local npc = frame:get_npc()
+    local unit = self.m_unit
+    if npc ~= nil and self.npc_layer ~= nil then
+        if Vector3.Distance(npc:get_pos(), unit:get_pos()) < NPC_INTERACT_DIST then
+            self.npc_layer:SetActive(true)
+        else
+            self.npc_layer:SetActive(false)
+        end
+    end
+    
+    self:interact_btn_durtion(Time.deltaTime)
+    self:update_skill_progress()
+
+end
+
+function PlayerControllerView:doDestroy()
+    -- print("PlayerControllerView:doDestroy")
+    EasyTouch.On_SwipeStart_EventDel(PlayerControllerView.on_etc_swipe_start_wrapper)
+    EasyTouch.On_SwipeEnd_EventDel(PlayerControllerView.on_etc_swipe_start_wrapper)
+end
+
+function PlayerControllerView:reset()
+    if self.m_action then
+        self.m_action:close()
+        self.m_action = nil
+    end
+    
+    self.m_unit:set_action(nil)
+end
+
+function PlayerControllerView:findPath(from, to)
+    return self.m_world_view:findPath(from, to)
+end
+
+function PlayerControllerView:sendMove(from, to)
+    self:getFrame():emit_event_move(from, to)
+end
+
+function PlayerControllerView:on_etc_swipe_start(gesture)
+    -- print("************PlayerControllerView:on_etc_swipe_start")
+    -- print("************ isOverGui", gesture.isOverGui)
+    -- 排除pinch
+    -- if etc_util.is_all_fingers_not_over_gui(gesture) then
+    -- 	print("--- and pinching")
+    -- 	return
+    -- end
+    -- 排除overGui
+    if gesture.isOverGui then
+        if RectTransformUtility.RectangleContainsScreenPoint(self.m_left_joystick_area, gesture.startPosition, self.ui_camera) then
+            self.m_swipe_start_on_jstk = true
+            self.m_cam:set_is_swiping_start_over_func_area(true)
+        -- print("<<<<<<<<< swipe start over left area")
+        end
+        return
+    end
+    
+    -- pacman 2017-11-08 某些操作模式下不开启此功能
+    if self:getFrame():get_is_sync_dir_enabled() then
+        if RectTransformUtility.RectangleContainsScreenPoint(self.m_right_joystick_area, gesture.startPosition, self.ui_camera) then
+            -- print(">>>>>>>>>>> swipe start over right area")
+            -- print("self.m_sync_with_camera")
+            self.m_sync_with_camera = true
+            self.m_cam:set_is_swiping_start_over_func_area(true)
+        else
+            -- print("^^^^^^^^^^^^ swipe start over up area")
+            self.m_sync_with_camera = false
+            self.m_cam:set_is_swiping_start_over_func_area(false)
+        end
+    end
+end
+
+function PlayerControllerView:on_etc_swipe_end(gesture)
+    if self.m_swipe_start_on_jstk then
+        self.m_swipe_start_on_jstk = false
+    end
+    
+    -- pacman 2017-11-08 某些操作模式下不开启此功能
+    if self:getFrame():get_is_sync_dir_enabled() then
+        if RectTransformUtility.RectangleContainsScreenPoint(self.m_right_joystick_area, gesture.startPosition, self.ui_camera) then
+            self.m_sync_with_camera = false
+        end
+    end
+end
+
+function PlayerControllerView:on_etc_simple_tap(gesture)
+    if gesture.isOverGui then
+        return
+    end
+    
+    -- 拾取目标
+    local uv = self.m_world_view:pickGameObjectFromScreenPos(gesture.position)
+    
+    local frame = uv and uv:getFrame()
+    
+    if frame and frame ~= self.m_unit then
+        if (frame:getType() == "unit") and frame:get_selectable() == 1 then
+            self.m_unit:set_target(frame)
+        elseif (frame:getType() == "interact_obj") then
+            
+            elseif frame:getType() == "giver" then
+            frame:on_selected()
+            --frame:emit_event("be_choosed")
+            end
+    else
+        self.m_unit:set_target(frame)
+    end
+end
+
+--function PlayerControllerView:show_skill_indicator(is_show)
+--    print("!!!!!!!!!!!!!!!!!!!!!")
+--    self.m_unit:show_skill_indicator(is_show, 1002)
+--end
+function PlayerControllerView:is_gesture_start_over_func_area(gesture)
+    local ret = false
+    for i = 1, gesture.touchCount do
+        local finger = EasyTouch.instance:GetFinger(i - 1)
+        -- print("**********", finger.startPosition)
+        if
+            RectTransformUtility.RectangleContainsScreenPoint(self.m_right_joystick_area, finger.startPosition, self.ui_camera) or
+            RectTransformUtility.RectangleContainsScreenPoint(self.m_left_joystick_area, finger.startPosition, self.ui_camera)
+        then
+            ret = true
+        end
+    end
+    return ret
+end
+
+function PlayerControllerView:interact_btn_durtion(delta)
+    if (self.m_interact_btn_durtion_start ~= nil and self.m_interact_btn_durtion_start == true) then
+        if (self.m_interact_btn_durtion > 0) then
+            if (self.m_interact_btn_durtion > 0) then
+                self["interact_btn_time_text_GUIText"].text = " <color=#f8f5f4>" .. self.interact_name .. " " .. Util_math:GetPreciseDecimal(self.m_interact_btn_durtion, 1) .. "</color>"
+            else
+                self["interact_btn_time_text_GUIText"].text = "<color=#f8f5f4>" .. self.interact_name .. " 0.0</color>"
+            end
+            self["interact_btn_time_GUISlider"].value = (self.m_interact_btn_durtion_max - self.m_interact_btn_durtion) / self.m_interact_btn_durtion_max
+            if (self:getFrame():get_cur_interact_discoverable() ~= SharedEnum.TreasureStatus.DISCOVERABLE_ALWAYS) then
+                self:getFrame():on_interact_finish(false)
+            end
+        else
+            self.m_interact_btn_durtion_start = false
+            self["interact_btn_GUIButton"].enabled = true
+            self["interact_btn_time_GUISlider"].gameObject:SetActive(false)
+            self:getFrame():on_interact_finish(true)
+        end
+        
+        self.m_interact_btn_durtion = self.m_interact_btn_durtion - delta
+    
+    
+    end
+end
+
+
+
+function PlayerControllerView:handle_skill_progress_bar(go)
+    self.m_skill_prog_container_go = go.transform:Find("Skill/SkillProgress").gameObject
+    self.m_skill_prog_slider = go.transform:Find("Skill/SkillProgress/Slider").gameObject:GetComponent(UI.Slider)
+    self.m_skill_prog_label = go.transform:Find("Skill/SkillProgress/Slider/label").gameObject:GetComponent(UI.Text)
+    
+    -- pacman 2017-09-26 时间仓促，这些代码草率了。有待优化
+    -- 开始吟唱
+    self:subscribe(self.m_unit:on_event_skill_sing(), function()
+        self.m_is_in_skill_progress = true
+        self.m_skill_prog_container_go:SetActive(true)
+        self.m_skill_prog_end_time = self.m_unit:get_skill_sing_end_time()
+        self.m_skill_prog_start_time = self.m_unit:get_skill_sing_start_time()
+        self.m_skill_prog_duration = self.m_unit:get_skill_sing_end_time() - self.m_unit:get_skill_sing_start_time()
+    end)
+    
+    -- 结束隐藏
+    self:subscribe(self.m_unit:on_event_skill_sing_stop(), function()
+        self.m_is_in_skill_progress = false
+        self.m_skill_prog_container_go:SetActive(false)
+    end)
+
+end
+
+
+function PlayerControllerView:update_skill_progress()
+    if self.m_is_in_skill_progress then
+        local server_time = app:get_server_time()
+        local time_remain = self.m_skill_prog_end_time - server_time
+        self.m_skill_prog_slider.value = time_remain / self.m_skill_prog_duration
+        self.m_skill_prog_label.text = string.format("%.1f/%.1f", time_remain, self.m_skill_prog_duration)
+    end
+
+
+end
+
+
+return PlayerControllerView

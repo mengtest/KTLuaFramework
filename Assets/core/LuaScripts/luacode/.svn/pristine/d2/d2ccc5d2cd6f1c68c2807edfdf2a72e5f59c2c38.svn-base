@@ -1,0 +1,290 @@
+local WorldView = { }
+
+local anim_event_util = require "common.util.event_anima"
+
+function WorldView:doInit()
+    self.m_cam = self:getFrame():getCamera()
+
+    self:subscribe(self:getFrame():on_event_attr_set("map_id", true), function(new,old)
+        self:loadMap(new,old)
+    end )
+
+    self:subscribe(self:getFrame():on_event("camera_animation"), function(id)
+        self:do_camera_animation(id)
+    end)
+
+    self:subscribe(self:getFrame():on_event("create_new_vhcl"), function(unit)
+        self:create_new_vhcl(unit)
+    end)
+
+    self:subscribe(self:getFrame():on_event("vhcl_travel_obejct"), function(person_unit)
+        self:vhcl_travel_obejct(person_unit)
+    end)
+
+
+    self.is_map_id=0
+
+    self.vhecl_handle = nil
+end
+-- 播放镜头动画
+function WorldView:do_camera_animation(animation_id)
+    self.m_is_over = false
+    self.m_ui_go = self.m_mgr:getView("ui_manager"):getGO()
+    self.m_ani_camera = self:getFrame():getAnimationCamera()
+    self.m_ani_camera:SetActive(true)
+    self.m_camera_component = self.m_ani_camera:GetComponent(UnityEngine.Camera)
+    self.m_animator_component = self.m_ani_camera:GetComponent(UnityEngine.Animator)
+    -- 隐藏ui_manager
+    self.m_ui_go:SetActive(false)
+    self.m_animator_component:SetTrigger(dbc.camera_animation_client[animation_id].animation_name)
+    self.m_camera_animator_name = dbc.camera_animation_client[animation_id].animation_name
+end
+
+function WorldView:vhcl_travel_obejct(person_unit)
+    if person_unit  then
+        local person_unit_view = self.m_mgr:getView(person_unit:getFrameName())
+        local worldTrans = self:getGO().transform
+        if  self.vhecl_handle then
+            person_unit_view:getGO().transform:SetParent(self.vhecl_handle.transform)
+        else
+            local worldTrans = self:getGO().transform
+            if worldTrans:Find("stone_table") then 
+                self.vhecl_handle = worldTrans:Find("stone_table").gameObject
+            else
+                self.vhecl_handle = GameObject("stone_table")
+                self.vhecl_handle.transform:SetParent(worldTrans)
+            end
+            person_unit_view:getGO().transform:SetParent(self.vhecl_handle.transform)
+        end
+    end
+end
+
+function WorldView:create_new_vhcl(vhcl_unit)
+    if vhcl_unit then
+        local unit_view = self.m_mgr:getView(vhcl_unit:getFrameName())
+        self.vhcl_view = unit_view
+        local worldTrans = self:getGO().transform
+        --后边抽象一个函数来判断公共载具的类型和名字
+        if worldTrans:Find("stone_table") then 
+            self.vhecl_handle = worldTrans:Find("stone_table").gameObject
+        else
+            self.vhecl_handle = GameObject("stone_table")
+        end
+        local vhecl_handle_tra = self.vhecl_handle.transform
+        vhecl_handle_tra:SetParent(worldTrans)
+        vhecl_handle_tra.position = unit_view:getGO().transform.position
+    end
+end
+
+
+function WorldView:loadMap(map_id,old_map_id)
+    print("WorldView:loadMap", map_id)
+    local map_scene = nil
+    local load_map_type = nil
+    if map_id then
+        local info = dbc.map[map_id]
+        if info then
+            map_scene = info.res_client
+            load_map_type = info.load_map_type
+        end
+    end
+
+    if (map_id ~= 0) then
+        local path = app:getAssetPathMgr().get_map_asset(map_id)
+    end
+
+
+    local world = self:getFrame()
+    world:on_start_load_map()
+    self:loadMapScene(map_scene, load_map_type, old_map_id)
+end
+
+
+function WorldView:unloadScene(name)
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByName(name)
+    if s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function WorldView:unloadMapScene(old_map_id)
+
+    if self.m_map_scene then
+        local info = dbc.map[old_map_id]
+        if info then
+            -- 如果上个地图是个流地图 需要先卸载掉
+            if(info.load_map_type == 1) then
+                KTMapStreamManager.GetInstance():CreateStreams(self.m_map_scene, nil)
+                return
+            end
+        end
+
+        self:unloadScene(self.m_map_scene)
+        self.m_map_scene = nil
+    end
+end
+
+-----1为流式   0为非流式   ke  2017.12.6
+function WorldView:loadMapScene(name, map_type ,old_map_id)
+    --位面相關判斷
+    local map_id=self:getFrame():get_map_id()
+    if(map_id~=nil and map_id~=0) then
+        local type_id = dbc.map[map_id].type
+        if(type_id == 2 or self.is_map_id==2) then
+            self.is_map_id=type_id
+            self.m_ui_main_view=self:getView("ui_main")
+            self.m_sfx_plane = self.m_ui_main_view:plane_sfx()
+            self.m_level_plane_sfx=nil
+            self:load_sfx(app:getAssetPathMgr().get_sfx_asset("jingtou_lianyi"), self.m_sfx_plane,"m_level_plane_sfx" )
+            return
+        end
+    end
+    local world = self:getFrame()
+    world:set_map_loaded(false)
+    self:unloadMapScene(old_map_id)
+
+
+    self.m_map_scene = name
+    if map_type == 1 then
+        self.m_map_scene = name .. "_game"  --fan
+    end
+
+    if name then
+        local path = string.format("scenes/%s.unity", name)
+        if map_type == 1 then
+            path = string.format("scenes/%s.unity", name .. "/" .. self.m_map_scene)
+        end
+        print("!!!!!!!!!!!!!", path)
+
+
+        self:loadScene(path, function()
+            -- pacman 2018-02-06 加载完游戏场景，尝试获取MainLight
+            local main_light = GameObject.FindWithTag("MainLight")
+            self.m_main_light = main_light
+            --by lijunfeng 2018/3/3
+            local data=dbc.map[map_id]
+
+            world:set_map_loaded(true) --by lijunfeng 2018/3/3 区域pic加载完毕才算加载完成
+             if data.area_pic_path then
+                 self:subscribe(app:getResMgr():rxLoad(data.area_pic_path), function(asset)
+                     self:getFrame():set_area_pic(asset)
+                     print("加载完区域映射图")
+                    
+                 end)
+             else
+                 print("没有区域映射图")
+                 world:set_map_loaded(true)
+             end
+
+            -- todo pacman 2018-01-26 临时处理一下巨灵神的资源预加载
+            -- 日后替换成对应的预加载机制
+            if name == "hgs_jsz1_0" then
+                app:get_model_mgr().PreloadJulinshen()
+            end
+
+            -- 天气文件
+            app:getResMgr():get_weather_config(name)
+
+            -- 后处理文件
+            app:getResMgr():get_ktpp_config(name)
+
+            if map_type == 1 then
+                local unit = world:get_main_player()
+                local unit_view = app:getView(unit:getFrameName())
+                local go = unit_view:getGO()
+                KTMapStreamManager.GetInstance():CreateStreams(self.m_map_scene, go.transform)
+            else
+                if self.m_map_scene ~= name then
+                    self:unloadScene(name)
+                end
+            end
+        end )
+    end
+end
+
+function WorldView:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3(2.5,2,1)
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.ALERT)
+        self.m_level_plane_sfx=go
+        if cache=="m_level_plane_sfx" then
+            self.m_level_plane_sfx:SetActive(true)
+            slua_timer.addDelayEvent(1, function()
+                self.m_level_plane_sfx:SetActive(false)
+            end)
+        end
+    end)
+end
+function WorldView:doDestroy()
+    self:unloadMapScene()
+end
+
+function WorldView:doUpdate()
+    self.m_cam:update()
+    -- 2017.12.15 相机动画
+    if self.m_animator_component ~= nil then
+        --print("相机动画", self.m_animator_component:GetCurrentAnimatorStateInfo(0):IsName(self.m_camera_animator_name))
+        --print("相机动画", self.m_animator_component:GetCurrentAnimatorStateInfo(0).normalizedTime)
+
+        if self.m_animator_component:GetCurrentAnimatorStateInfo(0):IsName(self.m_camera_animator_name) and self.m_animator_component:GetCurrentAnimatorStateInfo(0).normalizedTime > 0.98 and not self.m_is_over then
+            -- 播放完
+            self.m_ani_camera:SetActive(false)
+            -- 显示ui_manager
+            self.m_ui_go:SetActive(true)
+            self.m_is_over = true
+        end
+    end
+
+    if self.vhecl_handle ~= nil then
+        if self.vhcl_view  ~= nil and self.vhcl_view:getGO() ~= nil then
+            self.vhecl_handle.transform.position = self.vhcl_view:getGO().transform.position
+            --self.vhecl_handle.transform.position = Vector3.SmoothDamp(self.vhecl_handle.transform.position,
+            --self.vhcl_view:getGO().transform.position,Vector3.zero, 0.15)
+        end
+    end
+end
+
+function WorldView:pickGameObjectFromScreenPos(pos)
+    local go = self.m_cam:pickRoleLayerFromScreenPos(pos)
+    if go then
+        --app:logError("go.name = " .. tostring(go.name))
+    else
+        --app:logError("null go")
+    end
+    return self:getViewMgr():getViewFromGO(go)
+end
+
+
+function WorldView:pickFromScreenPos(pos)
+    return self.m_cam:pickFromScreenPos(pos)
+end
+
+function WorldView:findPath(from, to)
+    local path = AI.NavMeshPath()
+    if AI.NavMesh.CalculatePath(from, to, -1, path) then
+        local ret = { }
+        for wp in foreach(path.corners) do
+            table.insert(ret, wp)
+        end
+        return ret
+    end
+end
+
+function WorldView:trackUnit(unit)
+    self.m_cam:trackUnit(unit)
+end
+
+function WorldView:getCamera()
+    return self.m_cam
+end
+
+function WorldView:getMainLight()
+    return self.m_main_light
+end
+
+return WorldView

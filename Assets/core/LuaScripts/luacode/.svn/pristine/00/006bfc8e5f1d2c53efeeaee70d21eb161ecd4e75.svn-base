@@ -1,0 +1,77 @@
+--[[
+	* arg source 描述一个参数的值是如何获得的, 这样我们就可以枚举出所有可能的值.
+	* arg source 是一个table, 对外的接口是 eval(self)
+--]]
+local U = require 'common.util.underscore'
+
+local M = {}
+
+local function eval_dbc( info )
+	local tbl = assert(dbc[info.table_name], info.table_name)
+	
+	local value_set = {}
+	for id, row in pairs(tbl) do
+		local value = row[info.colume]
+		if value and value ~= '' then
+			value_set[value] = true
+		end
+	end
+
+	return U.keys(value_set)
+end
+
+function M.dbc_value( table_name, colume )
+	return {
+		table_name = table_name,
+		colume = colume,
+		eval = eval_dbc,
+	}	
+end
+
+local function eval_range( info )
+	return U.range(info.min, info.max):value()
+end
+
+function M.range( min, max )
+	return {
+		min = min,
+		max = max,
+		eval = eval_range,
+	}
+end
+
+local function eval_enum( info )
+	return U.copy(info.values)
+end
+
+function M.enum( ... )
+	return {
+		values = {...},
+		eval = eval_enum,
+	}
+end
+
+local function eval_table_keys( info )
+	return U.keys(info.tbl)
+end
+
+function M.table_keys(tbl)
+	return {
+		tbl = tbl,
+		eval = eval_table_keys
+	}
+end
+
+local function eval_glob( info )
+	return U.copy(U.to_array(KTPackageLuaHelper.Glob(info.root_dir, info.pattern)))
+end
+
+function M.glob(root_dir, pattern)
+	return {
+		root_dir = root_dir,
+		pattern = pattern,
+		eval = eval_glob
+	}
+end
+
+return M

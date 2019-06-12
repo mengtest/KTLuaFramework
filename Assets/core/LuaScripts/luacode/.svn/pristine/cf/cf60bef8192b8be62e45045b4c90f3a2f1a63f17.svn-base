@@ -1,0 +1,216 @@
+--[[
+	* 让打包工具知道客户端可能用到的哪些资源.
+	* 并且定义了资源是如何分组打包的.
+--]]
+local AP = require 'system.asset_paths'
+local arg_sources = require 'system.collector.arg_sources'
+local U = require 'common.util.underscore'
+-----------------------------
+--- Init
+---
+local Collector = require 'system.collector.package_collector'
+local def_arg = Collector.def_arg
+local def_builder = Collector.def_builder
+local def_package = Collector.def_package
+local def_full_package = Collector.def_full_package
+local dbc_value = arg_sources.dbc_value
+local range = arg_sources.range
+local enum = arg_sources.enum
+local table_keys = arg_sources.table_keys
+local glob = arg_sources.glob
+
+Collector.set_builders(AP)
+
+local function def_fixed_package_common(fn_name)
+	local arg_name = string.format('%s_args', fn_name)
+	local params_name = string.format('%s_params', fn_name)
+	def_arg(arg_name, table_keys(AP[params_name]))	
+	def_builder(fn_name, arg_name)
+end
+
+local function def_fixed_package(fn_name)
+	def_fixed_package_common(fn_name)
+	def_package(fn_name, fn_name)
+end
+
+local function def_fixed_full_package(fn_name)
+	def_fixed_package_common(fn_name)
+	def_full_package(fn_name, fn_name)
+end
+
+def_arg('map_name', dbc_value('map', 'res_client'))
+def_arg('ui_view_name', glob('Assets/ui', '*.prefab'))      -- ui_view名称
+def_arg('sound_id', dbc_value('sound', 'id'))                   -- 音效编号
+def_arg('sfx_name', dbc_value('asset_sfx', 'name'))             -- 特效名称
+def_arg('spell_client_id', dbc_value('spell_client', 'id'))		-- 技能id
+def_arg('buff_id',  dbc_value('spell_buff_client', 'id'))		-- buffid
+def_arg('treasure_id', dbc_value('treasure', 'tmpl'))			-- 采集物id
+def_arg('object_id', dbc_value('abiotic', 'id'))				-- 物件id
+def_arg('model_path', dbc_value('model_path', 'model_path'))	-- model_path
+def_arg('model_id', dbc_value('model_path', 'id'))	-- model_path
+def_arg('map_id', dbc_value('map', 'id'))				        -- 地图id
+def_arg('sing_anim_a', dbc_value('spell_client', 'sing_anim_a'))
+def_arg('sing_anim_b', dbc_value('spell_client', 'sing_anim_b'))
+def_arg('instant_anim', dbc_value('spell_client', 'instant_anim'))
+def_arg('channel_anim', dbc_value('spell_client', 'channel_anim'))
+def_arg('move_anim', dbc_value('spell_client', 'move_anim'))
+def_arg('specialization_id', dbc_value('specialization', 'id'))
+def_arg('skill_cd_bar_params', range(1, 5))
+def_arg('s2c_anim_name', dbc_value('s2c_anim', 'anima_name'))	-- model_path
+
+def_builder('get_weather_config', 'map_name')
+def_builder('get_weather_file', 'map_name')
+def_builder('get_ktpp_config', 'map_name')
+
+def_builder('get_ui_view_asset', 'ui_view_name')        -- 获取ui_view资源
+def_builder('get_sound_asset', 'sound_id')              -- 获取音效资源
+def_builder('get_skill_icon_asset', 'spell_client_id')         -- 技能图标
+def_builder('get_skill_cd_icon_asset', 'spell_client_id')      -- 技能cd图标
+
+def_builder('get_skill_specialization_bg_asset', 'spell_client_id')      -- 技能进度条-专精定制背景
+def_builder('get_skill_specialization_fill_asset', 'spell_client_id')      -- 技能进度条-专精定制填充
+def_builder('get_skill_specialization_bright_asset', 'spell_client_id')      -- 技能进度条-专精定制高亮
+def_builder('get_skill_specialization_interrupt_asset', 'spell_client_id')      -- 技能进度条-专精定制打断
+def_builder('get_skill_indicateareas_effect_path_asset', 'spell_client_id')      -- 3d指示区域特效
+
+def_builder('get_skill_base_sfx', 'spell_client_id')			-- 技能特效
+def_builder('get_instant_sfx', 'spell_client_id')
+def_builder('get_buff_base_sfx', 'buff_id')				-- buff特效
+def_builder('get_buff_icon', 'buff_id')
+def_builder('get_treasure_base', 'treasure_id')			-- 采集
+def_builder('get_object_base', 'object_id')				-- 物件
+def_builder('get_map_asset', 'map_id')				    -- 地图场景
+def_builder('get_map_streamer_scenes', 'map_id')
+def_builder('get_map_streamer_resources', 'map_id')
+
+def_builder('get_s2c_anim', 'model_path','s2c_anim_name')   -- s2c_anim表记录的角色动画
+def_builder('get_s2c_anim_upperbody', 'model_path','s2c_anim_name')   -- s2c_anim的上半身版本
+def_builder('get_sing_anim_a', 'model_path','sing_anim_a')
+def_builder('get_sing_anim_a_upperbody', 'model_path','sing_anim_a')
+def_builder('get_sing_anim_b', 'model_path','sing_anim_b')
+def_builder('get_sing_anim_b_upperbody', 'model_path','sing_anim_b')
+def_builder('get_instant_anim', 'model_path','instant_anim')
+def_builder('get_instant_anim_upperbody', 'model_path','instant_anim')
+def_builder('get_channel_anim', 'model_path','channel_anim')
+def_builder('get_channel_anim_upperbody', 'model_path','channel_anim')
+def_builder('get_move_anim', 'model_path','move_anim')
+def_builder('get_move_anim_upperbody', 'model_path','move_anim')
+def_builder('get_model_prefab_name', 'model_id')
+def_builder('get_role_animator', 'specialization_id')
+def_builder('get_role_weapon', 'specialization_id')
+def_builder('get_role_weapon_sfx', 'specialization_id')
+def_builder('get_role_weapon_blade', 'specialization_id')
+
+
+-----------------------------
+--- Packages
+---
+def_full_package('weathers', 'get_weather_config', 'get_weather_file', 'get_ktpp_config')
+def_full_package('skill_icon', 'get_skill_icon_asset')     -- 技能图标资源包
+def_full_package('skill_cd_icon', 'get_skill_cd_icon_asset')     -- 技能cd图标资源包
+def_full_package('skill_specialization_custom',         		-- 技能专精定制
+				'get_skill_specialization_bg_asset',
+				'get_skill_specialization_fill_asset',
+				'get_skill_specialization_bright_asset',
+				'get_skill_specialization_interrupt_asset')    
+def_full_package('role_weapon','get_role_weapon', 
+							   'get_role_weapon_sfx',
+							   'get_role_weapon_blade')
+
+def_package('ui_view', 'get_ui_view_asset')   -- ui_view包
+def_package('sound', 'get_sound_asset')     -- 音效包
+def_package('skill_sfx','get_skill_base_sfx', 'get_instant_sfx') -- 技能特效
+def_package('buff_sfx','get_buff_base_sfx', 'get_buff_icon') -- buff特效
+def_package('treasure','get_treasure_base') -- 采集
+def_package('object','get_object_base') -- 物件
+def_package('map','get_map_asset', 'get_map_streamer_scenes')       -- 地图
+def_package('map_streamer_resources', 'get_map_streamer_resources')
+
+def_package('s2c_anim','get_s2c_anim')
+def_package('s2c_anim_upperbody','get_s2c_anim_upperbody')
+def_package('sing_anim_a','get_sing_anim_a')
+def_package('sing_anim_a_upperbody','get_sing_anim_a_upperbody')
+def_package('sing_anim_b','get_sing_anim_b')
+def_package('sing_anim_b_upperbody','get_sing_anim_b_upperbody')
+def_package('instant_anim','get_instant_anim')
+def_package('instant_anim_upperbody','get_instant_anim_upperbody')
+def_package('channel_anim','get_channel_anim')
+def_package('channel_anim_upperbody','get_channel_anim_upperbody')
+def_package('move_anim','get_move_anim')
+def_package('move_anim_upperbody','get_move_anim_upperbody')
+
+def_package('model_prefabs', 'get_model_prefab_name')
+
+def_package('skill_indicateareas_effect','get_skill_indicateareas_effect_path_asset')
+
+def_package('role_animator','get_role_animator')
+
+
+
+-----------------------------
+--- Fixed Packages
+---
+def_fixed_package('get_skill_projector')  -- 技能投影 lua_table
+def_fixed_full_package('get_ui_main_view_resource')
+def_fixed_full_package('get_ui_main_view_scene')
+def_fixed_full_package('get_team_bar_view_resource')
+def_fixed_full_package('get_team_skilltarget_control_view_resource')
+def_fixed_full_package('get_mini_map_manager_resource')
+def_fixed_full_package('get_skill_ui_setting_view_resource')
+def_fixed_full_package('get_spirit_handbook_card_view_resource')
+def_fixed_full_package('get_spirit_merge_btn_view_resource')
+def_fixed_full_package('get_backpack_item_view_resource')
+def_fixed_full_package('get_player_controller_view_resource')
+def_fixed_package('get_sfx_asset')
+def_fixed_full_package('get_weather_resource')
+def_fixed_full_package('get_sidebar_view_resource')
+def_fixed_full_package('get_unit_view_resource')
+def_fixed_full_package('get_create_role_view_resource')
+def_fixed_full_package('get_create_role_view_scene')
+def_fixed_full_package('get_world_resource')
+def_fixed_full_package('get_head_overlay_item_view')
+def_fixed_full_package('get_skill_cd_bar', 'get_skill_cd_bar_fill')
+def_fixed_full_package('top_hint_resource')
+
+-----------------------------
+--- 把一张表里面所有资源打到一个包里面.
+---
+local function def_table_full_package(table_name, id, ...)
+	local id_name = table_name .. '_' .. id
+	if not Collector.is_arg_defined(id_name) then
+		def_arg(id_name, dbc_value(table_name, id))
+	end
+
+	local columes = {...}
+	local fns = U.map(columes, function( colume )
+		local get_name = string.format('get_%s_%s', table_name, colume)
+		def_builder(get_name, id_name)	
+		return get_name
+	end)
+	def_full_package(table_name .. '_full', unpack(fns))	
+end
+
+def_table_full_package('vocation', 'id', 
+	'btn_icon_normal', 'btn_icon_pressed', 'img_presentation')
+def_table_full_package('equip_quality_client', 'quality',
+	'backpack_icon',
+	'equip_big_icon', 
+	'equip_small_icon', 
+	'equip_middle_icon', 
+	'spirit_quality_icon')
+def_table_full_package('map', 'id', 
+	'map_pic_path')
+def_table_full_package('item', 'tmpl',
+	'equip_path',
+	'bag_icon')
+
+def_table_full_package('fashion_dress', 'id',
+	'card_icon_path')
+
+def_table_full_package('sprite', 'tmpl',
+	'icon',
+	'handbook_icon')
+def_table_full_package('specialization', 'id',
+	'weapon')
+
+Collector.check_all_defined()

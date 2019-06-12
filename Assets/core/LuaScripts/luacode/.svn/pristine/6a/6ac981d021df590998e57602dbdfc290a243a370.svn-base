@@ -1,0 +1,133 @@
+-- 特殊移动处理器
+-- 为什么定义这个脚本：随着特殊运动曲线的逐渐增多（弹道、灵魂碎片、位移技能、特殊表现技能逐渐增多），
+-- 已经不能单一的依靠弹道来描述所有的东西
+-- 但是弹道的表可以沿用，在里面继续定义曲线类型和参数、让各个模块去调用，然后让此脚本去完成运动，并执行回调事件
+-- 2017年12月9日 clz
+
+local M = {}
+
+Event.decl(M, "move2pos")
+Event.decl(M, "move2dir")
+Attribute.decl(M, "target_pos", function()
+    return Vector3(0, 0, 0)
+end)
+function M:doInit(param)
+    self.m_go = param.go -- 参与移动的物体(GameObject)
+    self.m_callBack = param.callBack -- 到达目的地之后的回调参数
+    self.m_start_pos = param.start_pos -- 起始位置    
+    self.m_move_id = param.move_id -- 移动数据id --> projectile_type.xlsx
+    self.m_move_speed = param.move_speed -- 平均移动速度 阶段性的加减速取决于弹道
+
+    if (self.m_go == nil) then
+        -- 没有go是不合理的，你移动啥？
+        self:destroySelf()
+        return
+    end
+end
+
+-- 移动到指定位置 需要指明目标地点
+function M:move2pos(target_pos, accelerated_speed)
+    self.m_accelerated_speed = accelerated_speed  -- 加速度
+    self.m_start_time = Time.time -- 开始时间
+    self.m_target_pos = target_pos -- 目标位置
+    self:emit_event("move2pos")
+end
+
+-- 沿着指定方向移动 需要指明移动方向和移动时间
+function M:move2dir(target_dir, move_time)
+    self.m_start_time = Time.time -- 开始时间
+    self.m_target_dir = target_dir -- 移动方向
+    self.m_move_time = move_time -- 运动时间
+    self:emit_event("move2dir")
+end
+
+function M:get_move_go()
+    return self.m_go
+end
+
+function M:get_start_time()
+    return self.m_start_time
+end
+
+function M:get_start_pos()
+    return self.m_start_pos
+end
+
+function M:get_target_pos()
+    return self.m_target_pos
+end
+
+-- 考虑到目标可能会移动
+function M:update_target_pos(pos)
+    self.m_target_pos = pos
+end
+
+
+function M:get_move_speed()
+    if (self.m_accelerated_speed ~= nil) then
+        self.m_move_speed = (Time.time - self:get_start_time()) * self.m_accelerated_speed + self.m_move_speed
+        --app:logError(self.m_move_speed)
+    end
+    return self.m_move_speed
+end
+
+function M:get_target_dir()
+    return self.m_target_dir
+end
+
+function M:get_move_time()
+    return self.m_move_time
+end
+
+function M:finish()
+    if (self.m_callBack ~= nil) then
+        self.m_callBack()
+    end
+
+    self:destroySelf()
+end
+
+
+-- 特殊运动
+function M:special_show_start(type)
+    self.m_start_time = Time.time
+    self.m_anima_time = 1.0
+    self.m_point_count = 50
+
+    self:subscribe(self:on_event_target_pos_set(), function(val)
+        self:init_custom_curve(type, self.m_start_pos, val)
+    end)
+
+end
+
+function M:special_show_update()
+    self:custom_curve()
+end
+
+
+function M:init_custom_curve(type, start_pos, target_pos)
+    self.m_curve_point = {}
+
+    local user_data = KTBezier.getLinePoint(start_pos, target_pos, self.m_point_count, dbc.projectile_type[type].custom)
+
+    for info in foreach(user_data) do
+        table.insert(self.m_curve_point, info)
+    end
+end
+
+function M:custom_curve()
+    local ttt = Time.time - self.m_start_time
+
+    local percent = ttt / self.m_anima_time
+
+    local index = math.ceil(self.m_point_count * percent)
+
+    if (index <= self.m_point_count) then
+        self.m_go.transform.position = self.m_curve_point[index]
+    else
+        self:finish()
+    end
+end
+
+
+return M

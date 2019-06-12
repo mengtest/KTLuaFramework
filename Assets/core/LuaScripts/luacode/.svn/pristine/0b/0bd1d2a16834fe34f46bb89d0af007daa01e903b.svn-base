@@ -1,0 +1,164 @@
+
+local Frame = require("system.frame")
+local Giver = class("Giver", Frame)
+
+Attribute.decl(Giver, "tmpl", nil)                                      -- 原型id
+Attribute.decl(Giver, "pos", function() return Vector3(0, 0, 0) end)    -- 坐标
+Attribute.decl(Giver, "dir", function() return 0 end)                   -- 方向
+Attribute.decl(Giver, "top_state", Enum_Quest.Quest_State.Invalid)      -- 头顶提示状态
+
+local ATT_MAP = {
+    tmpl = "tmpl",
+    pos = "pos",
+    dir = "dir",
+}
+
+function Giver:doInit(param)
+    for k, v in pairs(ATT_MAP) do
+        self:subscribe(param.giver:on_event_attr_set(k, true), function(val)
+            self:set_attr(v, val)
+        end)
+    end
+    self.m_giver = param.giver
+    self.m_id = param.giver:get_id()
+    self.m_cfg = dbc.giver[param.giver:get_tmpl()]
+    self.m_is_close_enough = true -- 是否达到触发距离
+    self.m_is_valid = true -- 是否处于可交互状态（若已经在其它交互状态中，则为不可交互状态）
+    self.m_cur_quest_id = nil
+    self.m_cc = nil
+    self.m_token_ticket = nil
+    
+    self:subscribe(param.giver:on_event("dialog_bgn"), function (token_ticket)
+        self.m_token_ticket = token_ticket
+    end)
+    
+    
+    self:on_part_of_state_changed(nil, Enum_Quest.Quest_State.Invalid)
+end
+
+function Giver:doDestroy()
+    
+end
+
+function Giver:get_cfg()
+    return self.m_cfg
+end
+
+function Giver:on_selected()
+    if not self.m_is_close_enough or not self.m_is_valid then
+        return
+    end
+    
+    local this = self
+    local cur_quest_state = self:get_top_state()
+    if cur_quest_state == Enum_Quest.Quest_State.Invalid then
+        app:logError("与当前NPC相关联的任务目前处于 ‘无任务状态’")
+    elseif cur_quest_state == Enum_Quest.Quest_State.Unlocked then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已解锁状态’")
+        local interact_data = dbc.interact[dbc.quest[self.m_cur_quest_id].begin_params[1]]
+        local bubble_id = interact_data.action_tp == Enum_Scene.Interact_Action_Tp.Pop_Bubble and tonumber(interact_data.action_param) or -1
+        app:logError("bubble_id = " .. tostring(bubble_id))
+        local bubble = self:set_bubble(bubble_id)
+        
+        self.m_giver:cell_call("dialog_new")
+        self.m_is_valid = false
+        bubble:on_complete(function ()
+            this.m_is_valid = true
+            
+            local ui_manager = app:get_ui_manager()
+            local confirm_win = ui_manager:CreateUI("confirm_win","confirm_win",ui_main,ui_manager.UI_Depth.HIGH)
+            local msg = string.format("是否要接收任务【%d】?", self.m_cur_quest_id)
+            confirm_win:set_msg(msg)
+    
+            confirm_win.on_ensure = function ()
+                this.m_giver:cell_call("dialog_end", this.m_token_ticket or -1)
+            end
+            confirm_win.on_cancel = function ()
+                
+            end
+        end)
+    elseif cur_quest_state == Enum_Quest.Quest_State.Reveived then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已接取锁状态’")
+    elseif cur_quest_state == Enum_Quest.Quest_State.Finished then
+        app:logError("与当前NPC相关联的任务目前处于 ‘已完成状态’, self.m_cur_quest_id: " .. tostring(self.m_cur_quest_id))
+        --self:req_deliver_quest()
+        local interact_data = dbc.interact[dbc.quest[self.m_cur_quest_id].giver_interact]
+        local bubble_id = interact_data.action_tp == Enum_Scene.Interact_Action_Tp.Pop_Bubble and tonumber(interact_data.action_param) or -1
+        app:logError("bubble_id = " .. tostring(bubble_id))
+        local bubble = self:set_bubble(bubble_id)
+        
+        self.m_giver:cell_call("dialog_new")
+        self.m_is_valid = false
+        bubble:on_complete(function ()
+            this.m_is_valid = true
+            this.m_giver:cell_call("dialog_end", this.m_token_ticket or -1)
+            
+            local ui_manager = app:get_ui_manager()
+            local confirm_win = ui_manager:CreateUI("confirm_win","confirm_win",ui_main,ui_manager.UI_Depth.HIGH)
+            local msg = string.format("是否要交付任务【%d】?", self.m_cur_quest_id)
+            confirm_win:set_msg(msg)
+    
+            confirm_win.on_ensure = function ()
+                this:req_deliver_quest()
+            end
+            confirm_win.on_cancel = function ()
+                
+            end
+        end)
+    end
+end
+
+function Giver:set_is_close_enough(flag)
+    app:logError(string.format("Giver:set_is_close_enough(%s)", tostring(flag)))
+    self.m_is_close_enough = flag
+end
+
+-- 请求交付任务
+function Giver:req_deliver_quest()
+    app:logError("self.m_id = " .. tostring(self.m_id) .. ", self.m_cur_quest_id = " .. self.m_cur_quest_id)
+	local kbesdk = app:getKBESDK()
+	kbesdk:entity_cell_call(self.m_id, "quest_done", self.m_cur_quest_id)
+end
+
+function Giver:on_part_of_state_changed(quest_id, quest_state)
+    local primary_quest_id, primary_quest_state = self:get_primary_state(quest_id, quest_state)
+    self.m_cur_quest_id = primary_quest_id
+    self:set_attr("top_state", primary_quest_state)
+end
+
+--TODO:: 多状态下的休闲显示规则
+function Giver:get_primary_state(cur_quest_id, cur_state)
+    local quest_state_dict = self:getFrame("quest_manager"):get_npc_dependently_quest_state(self:get_tmpl(), nil) or {}
+    local primary_quest_id, primary_quest_state = nil, Enum_Quest.Quest_State.Invalid
+    if cur_state == Enum_Quest.Quest_State.Invalid then
+        for quest_id, quest_state in pairs(quest_state_dict) do
+            primary_quest_id = quest_id
+            primary_quest_state = quest_state
+            break
+        end
+    elseif cur_state == Enum_Quest.Quest_State.Unlocked then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Reveived then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    elseif cur_state == Enum_Quest.Quest_State.Finished then
+        primary_quest_id = cur_quest_id
+        primary_quest_state = cur_state
+    end
+    return primary_quest_id, primary_quest_state
+end
+
+function Giver:get_cc()
+    return self.m_cc
+end
+
+function Giver:set_cc(cc)
+    self.m_cc = cc
+end
+
+function Giver:set_bubble(dialog_id)
+    return self:getFrame("head_overlay"):creat_bubble_item(dialog_id, self.m_id)
+end
+
+return Giver

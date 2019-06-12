@@ -1,0 +1,39 @@
+local Frame = require("system.frame")
+local quick_matching_main = class("quick_matching_main", Frame)
+
+Event.decl(quick_matching_main, "show_random")
+Event.decl(quick_matching_main, "show_designated")
+
+function quick_matching_main:doInit(param)
+    self.m_random_panel_frame = nil
+    self.m_designated_panel_frame = nil
+end
+
+function quick_matching_main:on_loaded(view)
+    ---创建随机匹配面板
+    self.m_random_panel_frame = self:createChild("random_matching","team/team_quick_matching/random_matching", view)
+    ----创建指定副本匹配面板
+    self.m_designated_panel_frame = self:createChild("designated_matching","team/team_quick_matching/designated_matching", view)
+end
+
+----随机本面板
+function quick_matching_main:on_random_btn()
+    self:emit_event("show_random")
+end
+
+----指定副本面板
+function quick_matching_main:on_designated_btn()
+    self:emit_event("show_designated")
+end
+
+----团队副本面板
+function quick_matching_main:on_team_btn()
+
+end
+
+-----关闭面板
+function quick_matching_main:on_return_btn()
+    self:destroySelf()
+end
+
+return quick_matching_main

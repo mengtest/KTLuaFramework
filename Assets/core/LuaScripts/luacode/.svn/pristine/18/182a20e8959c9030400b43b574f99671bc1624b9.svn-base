@@ -1,0 +1,28 @@
+
+local Util_log = {}
+
+-- 将个人的mask标签添加于此处，并设值为false上传至服务器。
+Util_log.Mask = {
+    Global = true,
+    SJG_Temp = false,
+    SJG_Quest = false,
+    SJG_Map = false,
+    SJG_Look = false,
+}
+
+function Util_log:log(mask, format_str, ...)
+    if not mask then return end
+    Debug.Log(string.format(format_str, ...))
+end
+
+function Util_log:logWarning(mask, format_str, ...)
+    if not mask then return end
+    Debug.LogWarning(string.format(format_str, ...))
+end
+
+function Util_log:logError(mask, format_str, ...)
+    if not mask then return end
+    Debug.LogError(string.format(format_str, ...))
+end
+
+return Util_log

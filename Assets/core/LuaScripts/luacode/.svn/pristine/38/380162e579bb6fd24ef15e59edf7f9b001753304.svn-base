@@ -1,0 +1,64 @@
+local View = require("system.view")
+local backpack_sub_list_view = class("backpack_sub_list_view", View)
+
+function backpack_sub_list_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("BackpackEquip"), function(loaded_go)
+        self.m_parent_node = self:getParent():getGO().transform:GetChild(0):Find("backpack/scroll_view/viewport/content")
+        self.m_res_loaded = true
+        self.m_template_go = loaded_go.transform:Find("backpack/scroll_view/viewport/content/obj").gameObject
+        local go = self:on_init(param)
+        go.transform.localPosition = Vector3(-15, 50, 0)
+        go.transform.localScale = Vector3.one
+        if param[5] == 1 then
+            go.gameObject:SetActive(false)
+        else
+            go.gameObject:SetActive(true)
+        end
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            -- 选择创建挂点以及设置位置和大小
+            local parent_transform = go.transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+        self:subscribe(self.m_frame:on_event("show_go"), function()
+            go.gameObject:SetActive(true)
+        end)
+        self:subscribe(self.m_frame:on_event("hide_go"), function()
+            go.gameObject:SetActive(false)
+        end)
+        self:subscribe(self.m_frame:on_event("des_go"), function()
+            self.m_frame:destroySelf()
+        end)
+
+        self.m_frame:on_loaded()
+    end)
+end
+
+-- 通过传入的参数来设置对应的父物体  重置对应的名字
+function backpack_sub_list_view:on_init(list)
+    local go = Object.Instantiate(self.m_template_go)
+    local parent = nil
+    if list[2] == 1 then
+        parent = self.m_parent_node.transform:Find("weapon").gameObject
+        go.name = "weapon"..list[3]
+    elseif list[2] == 2 then
+        parent = self.m_parent_node.transform:Find("armor").gameObject
+        go.name = "armor"..list[3]
+    elseif list[2] == 3 then
+        parent = self.m_parent_node.transform:Find("ring").gameObject
+        go.name = "ring"..list[3]
+    end
+    assert(parent ~= nil)
+    self:init_with_go(go, parent)
+    return go
+end
+
+return backpack_sub_list_view

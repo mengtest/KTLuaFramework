@@ -1,0 +1,15 @@
+-- todo 重构特效类frame
+local AutoDesotroySfx = {}
+
+Attribute.decl(AutoDesotroySfx, "pos", function() return Vector3(0, 0, 0) end)
+Attribute.decl(AutoDesotroySfx, "euler", function() return Vector3(0, 0, 0) end)
+
+function AutoDesotroySfx:doInit(param)
+    self.m_sfx_path = param.sfx_path
+end
+
+function AutoDesotroySfx:get_sfx_path()
+    return self.m_sfx_path
+end
+
+return AutoDesotroySfx

@@ -1,0 +1,28 @@
+﻿
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_enter_area = class("Quest_condition_enter_area", Quest_condition_base)
+
+function Quest_condition_enter_area:on_initialize(quest_id, index, quest_manager)
+    --local data_list = Util_string:split_to_num_arr(self.m_aim_param, ",")
+    self.m_map_id = self.m_aim_param[1]
+    self.m_trigger_id = self.m_aim_param[2]
+    self.m_quest_id = quest_id
+    self.m_index = index
+    self.m_quest_manager = quest_manager
+    self.m_quest_manager:add_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+end
+
+function Quest_condition_enter_area:on_judge()
+	return true
+end
+
+function Quest_condition_enter_area:set_cur_param(cur_param)
+    -- 目前进入区域，只接受服务器的“任务状态更新”消息，而不接受任何额外数据，故目前“cur_param”无用
+    self.m_quest_manager:del_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+end
+
+function Quest_condition_enter_area:get_fixed_param()
+    return "area"
+end
+
+return Quest_condition_enter_area

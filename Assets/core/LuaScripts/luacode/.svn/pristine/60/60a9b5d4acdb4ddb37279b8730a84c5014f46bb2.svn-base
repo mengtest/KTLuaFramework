@@ -1,0 +1,18 @@
+local M = {}
+
+function M:doInit()
+
+end
+
+function M:on_buy_btn()
+    app:getKBESDK():entity_cell_call(app:getKBESDK():get_player_id(),"treasure_touch_bgn",id)   
+end
+
+function M:on_close_btn()
+    local ui_manager = app:get_ui_manager()
+    ui_manager:HideView("ui_shop")
+end
+
+
+
+return M

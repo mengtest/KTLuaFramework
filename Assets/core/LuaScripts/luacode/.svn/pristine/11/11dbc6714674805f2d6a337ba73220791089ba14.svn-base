@@ -1,0 +1,219 @@
+local Frame = require("system.frame")
+local spirit_main = class("spirit_main", Frame)
+
+-- 灵蕴值
+Attribute.decl(spirit_main, "inspiration", 100)
+-- outlet 事件 ↓↓↓↓
+Event.decl(spirit_main, "on_return_btn")
+Event.decl(spirit_main, "on_spirit_down_btn")
+Event.decl(spirit_main, "on_property_down_btn")
+Event.decl(spirit_main, "on_bag_down_btn")
+-- outlet 事件 ↑↑↑↑
+Event.decl(spirit_main, "show")
+Event.decl(spirit_main, "hide")
+Event.decl(spirit_main, "change_slot")
+Event.decl(spirit_main, "sprite_equipped")
+Event.decl(spirit_main, "sprite_invert")
+Event.decl(spirit_main, "sprite_merge")
+Event.decl(spirit_main, "show_which_return_btn")
+-- 返回按钮类型
+spirit_main.Return_Btn_Type = {
+    CLOSE = 1,
+    RETURN = 2
+}
+
+function spirit_main:doInit()
+    -- 融合出来的新灵兽
+    self.m_merged_new_spirit_data = nil
+    self.m_attch_spirit_slot = 0
+    self.m_slot_frame_list = {}
+    -- 右侧的子界面们
+    self.m_right_child_frame_list = {}
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self.m_equipped_spirit_list = self.m_inventory_mgr:gain_equipping_sprite_dict()
+
+    self:set_inspiration(self.m_inventory_mgr:get_inspiration())
+
+end
+
+function spirit_main:on_loaded()
+    -- 创建最左侧 金木水火槽位 frame
+    for i = 18, 21 do
+        self.m_slot_frame_list[i] = self:createChild("spirit_slot" .. i, "spirit_beast.spirit_slot")
+    end
+    self.m_selected_frame = self.m_slot_frame_list[enum.spirit_beast.SpiritBeastProperty.GOLD]
+    self.m_selected_frame:set_is_selected(true)
+    for i, v in pairs(self.m_equipped_spirit_list) do
+        for slot_id, slot_frame in pairs(self.m_slot_frame_list) do
+            if slot_id == dbc.sprite[v.tmpl].slot then
+                slot_frame:set_spirit_data(v)
+            end
+        end
+    end
+
+    -- 创建右侧可选择列表
+    self.m_spirit_list = self:createChild("spirit_list", "spirit_beast.spirit_list")
+    table.insert(self.m_right_child_frame_list, self.m_spirit_list)
+    -- 模型展示区域
+    self:createChild("spirit_model_show", "spirit_beast.spirit_model_show", self.m_selected_frame)
+    -- 创建右侧信息界面
+    self.m_spirit_info = self:createChild("spirit_info", "spirit_beast.spirit_info", self.m_selected_frame:get_spirit_data())
+    table.insert(self.m_right_child_frame_list, self.m_spirit_info)
+    -- 创建右侧强化
+    self.m_spirit_strengthen = self:createChild("spirit_strengthen", "spirit_beast.spirit_strengthen", self.m_selected_frame:get_spirit_data())
+    table.insert(self.m_right_child_frame_list, self.m_spirit_strengthen)
+    -- 图鉴
+    self.m_spirit_handbook = self:createChild("spirit_handbook", "spirit_beast.spirit_handbook.spirit_handbook")
+    -- 总览/综合属性
+    self.m_spirit_property = self:createChild("spirit_property", "spirit_beast.spirit_property.spirit_property")
+    -- 总览/综合属性 技能列表
+    self.m_spirit_property = self:createChild("spirit_property_skill_list", "spirit_beast.spirit_property.spirit_property_skill_list")
+
+
+
+    -- 灵蕴值
+    self:subscribe(self.m_inventory_mgr:on_event_inspiration_set(true), function(inspiration)
+        self:set_inspiration(inspiration)
+    end)
+    -- 获取灵兽出战
+    self:subscribe(self.m_inventory_mgr:on_event("attach_sprite"), function(val)
+        self.m_attch_spirit_slot = val
+    end)
+    -- 获取解除灵兽出战
+    -- TODO 解除出战也需要一个标志，是因为什么解除的  如果是因为升级什么的解除的 那么就要再出战回去
+    self:subscribe(self.m_inventory_mgr:on_event("unattached_sprite"), function(args)
+        --if args == enum.spirit_beast.UnequippingType.UPGRADE or args == enum.spirit_beast.UnequippingType.MERGE
+        --
+        --else
+        --    self.m_attch_spirit_slot = 0
+        --end
+    end)
+    -- 装备灵兽
+    self:subscribe(self.m_inventory_mgr:on_event("equip_sprite"), function(spirit_data, slot, args)
+        for i, v in pairs(self.m_slot_frame_list) do
+            if i == slot then
+                v:set_spirit_data(spirit_data)
+            end
+        end
+        -- 因为升级或者升星来装备灵兽，如果之前出战，现在也要出战
+        if args == enum.spirit_beast.UnequippingType.UPGRADE or args == enum.spirit_beast.UnequippingType.MERGE then
+            if self.m_attch_spirit_slot == slot then
+                self.m_inventory_mgr:sprite_attach_request_server(slot)
+            end
+        end
+        self:emit_event("sprite_equipped", spirit_data, args)
+    end)
+
+    -- 灵兽卸下  分为直接卸下 升级卸下  融灵卸下-->写在了merge中
+    self:subscribe(self.m_inventory_mgr:on_event("unequip_sprite"), function(slot, type)
+        if type == enum.spirit_beast.UnequippingType.NORMAL then
+            -- 普通卸下
+        elseif type == enum.spirit_beast.UnequippingType.UPGRADE then
+            -- 升级卸下
+            for i, v in pairs(self.m_slot_frame_list) do
+                if i == slot then
+                    local unique = v:get_spirit_data().unique
+                    local tmpl = v:get_spirit_data().tmpl
+                    self.m_inventory_mgr:sprite_upgrading_request_server(unique, tmpl, type)
+                end
+            end
+        end
+    end)
+
+    -- 灵兽分解成功
+    self:subscribe(self.m_inventory_mgr:on_event("inverted_sprites"), function(sprite_unique_list, sprite_id_list)
+        self:set_inspiration(self:get_inspiration() + self:getFrame("spirit_list"):get_inspiration_achieved())
+        self:getFrame("spirit_list"):set_inspiration_achieved(0)
+        self:emit_event("sprite_invert", sprite_unique_list, sprite_id_list)
+    end)
+    -- 灵兽升级成功  升级完成要装备
+    self:subscribe(self.m_inventory_mgr:on_event("upgrade_sprite"), function(sprite_unique, sprite_tmpl, arg)
+        for slot_id, slot_frame in pairs(self.m_slot_frame_list) do
+            if slot_id == dbc.sprite[sprite_tmpl].slot then
+                self:set_inspiration(self:get_inspiration() - self:getFrame("spirit_upgrade"):get_inspiration_cost())
+                self.m_inventory_mgr:put_on_equipment_request_server(slot_id, sprite_unique, sprite_tmpl, arg)
+            end
+        end
+    end)
+    -- 灵兽融灵成功 融灵完成要装备新的灵兽
+    self:subscribe(self.m_inventory_mgr:on_event("merged_sprites"), function(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+        if self.m_merged_new_spirit_data.unique == new_sprite_unique then
+            for slot_id, slot_frame in pairs(self.m_slot_frame_list) do
+                if slot_id == dbc.sprite[new_sprite_id].slot then
+                    -- 融合成功自动装备
+                    self.m_inventory_mgr:put_on_equipment_request_server(slot_id, new_sprite_unique, new_sprite_id, arg)
+                    self:emit_event("sprite_merge", main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+                    self.m_merged_new_spirit_data = nil
+                end
+            end
+        end
+    end)
+    -- 新增 现在只有融合的新增 2018.01.30
+    self:subscribe(self.m_inventory_mgr:on_event("add_sprite"), function(data_list)
+        for i, data in ipairs(data_list) do
+            self.m_merged_new_spirit_data = data
+        end
+    end)
+end
+
+-- 关闭界面
+function spirit_main:on_return_btn()
+    self:emit_event("on_return_btn")
+end
+-- 返回 ←_←是模型    →_→是信息
+function spirit_main:on_return_to_default()
+    for i, v in ipairs(self.m_right_child_frame_list) do
+        if v ~= self.m_spirit_info then
+            v:hide()
+        else
+            -- 这个true表示强制打开信息界面
+            v:show(true)
+        end
+    end
+    self:show_close_btn_or_return_btn(self.Return_Btn_Type.CLOSE)
+end
+function spirit_main:on_spirit_down_btn()
+    self:emit_event("on_spirit_down_btn")
+end
+function spirit_main:on_property_down_btn()
+    self:emit_event("on_property_down_btn")
+end
+function spirit_main:on_bag_down_btn()
+    self:emit_event("on_bag_down_btn")
+end
+function spirit_main:get_selected_slot()
+    return self.m_selected_frame
+end
+function spirit_main:change_selected_slot(child)
+    if child == self.m_selected_frame then
+        return
+    else
+        --self.m_selected_frame:emit_event("unselected")
+        self.m_selected_frame:set_is_selected(false)
+    end
+    for k, v in pairs(self.m_slot_frame_list) do
+        if v == child then
+            self.m_selected_frame = child
+            --child:emit_event("selected")
+            child:set_is_selected(true)
+            break
+        end
+    end
+    self:emit_event("change_slot", self.m_selected_frame:get_spirit_data(), self.m_selected_frame:get_slot_id())
+end
+function spirit_main:show()
+    self:emit_event("show")
+end
+function spirit_main:hide()
+    self:emit_event("hide")
+end
+
+function spirit_main:show_close_btn_or_return_btn(type)
+    self:emit_event("show_which_return_btn", type)
+end
+-- 获取槽位frame列表
+function spirit_main:get_slot_list()
+    return self.m_slot_frame_list
+end
+
+return spirit_main

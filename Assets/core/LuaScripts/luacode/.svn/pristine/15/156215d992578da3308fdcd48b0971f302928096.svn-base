@@ -1,0 +1,43 @@
+
+local trigger_cls_list = {
+--    [1] = require "",
+--    [2] = require "",
+--    [3] = require ""
+}
+
+local Trigger_manager = class("Trigger_manager")
+
+function Trigger_manager:initialize()
+    self:init()
+end
+
+function Trigger_manager:init()
+    self.m_trigger_list = {}
+    self.m_cur_index = 0
+end
+
+-- 创建新的Trigger
+-- trigger_cls_index[int]:trigger_cls_list的下标
+-- return Trigger的实例id
+function Trigger_manager:create_trigger(trigger_cls_index)
+    local trigger_cls = trigger_cls_list[trigger_cls_index]
+    assert(trigger_cls, "not found the trigger_cls_index:" .. tostring(trigger_cls_index))
+    local trigger_inst = trigger_cls:new()
+    self.m_cur_index = self.m_cur_index + 1
+    self.m_trigger_list[self.m_cur_index] = trigger_inst
+    return self.m_cur_index
+end
+
+-- 删除指定的Trigger
+-- trigger_inst_id[int]:Trigger的实例id
+function Trigger_manager:destroy_trigger(trigger_inst_id)
+    local trigger_inst = self.m_trigger_list[trigger_inst_id]
+    if trigger_inst then
+        trigger_inst:destroy()
+        self.m_trigger_list[trigger_inst_id] = nil
+    end
+end
+
+
+
+return Trigger_manager

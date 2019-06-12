@@ -1,0 +1,15 @@
+
+local Quest_condition_base = require("subsystem.quest.condition.quest_condition_base")
+local Quest_condition_enter_talk = class("Quest_condition_enter_talk", Quest_condition_base)
+
+function Quest_condition_enter_talk:on_initialize(...)
+	self.m_is_pass = false
+	self.m_collection_count = 0
+	
+end
+
+--function Quest_condition_enter_talk:on_judge()
+--	return self.m_is_pass
+--end
+
+return Quest_condition_enter_talk

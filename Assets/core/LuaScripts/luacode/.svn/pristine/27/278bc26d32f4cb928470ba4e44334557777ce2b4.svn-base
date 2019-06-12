@@ -1,0 +1,7 @@
+local dungeon_confirm_progress = {}
+
+function dungeon_confirm_progress:doInit(param)
+
+end
+
+return dungeon_confirm_progress

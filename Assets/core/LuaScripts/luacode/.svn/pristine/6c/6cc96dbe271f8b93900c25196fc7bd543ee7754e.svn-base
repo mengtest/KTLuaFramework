@@ -1,0 +1,40 @@
+--npc的交互行为状态机
+local require_relative = REQUIRE_BASE(...)
+local M = class("InteractStateMachine")
+
+-- 兼namespace
+M.Normal = require_relative("interact_normal_state")-- 默认状态
+M.Enter = require_relative("interact_enter_state")-- 开始进入交互状态
+M.Talking = require_relative("interact_talking_state")-- 已经进入交互状态
+M.Exit = require_relative("interact_exit_state")-- 开始离开交互状态
+
+M.Interact_Gaze=
+{
+	Normal=1,
+	Enter=2,
+	Talking=3,
+	Exit=4
+}
+
+function M:initialize(giver)
+	self.m_state_list={}
+    self.m_state_list[M.Interact_Gaze.Normal] = M.Normal(self, giver)
+    self.m_state_list[M.Interact_Gaze.Enter] = M.Enter(self, giver)
+    self.m_state_list[M.Interact_Gaze.Talking] = M.Talking(self, giver)
+    self.m_state_list[M.Interact_Gaze.Exit] = M.Exit(self, giver)  
+	self.m_cur_state=self.m_state_list[M.Interact_Gaze.Normal]
+end
+
+function M:change_state(state_name)
+    if self.m_cur_state ~= nil then
+        self.m_cur_state:change_state(state_name)
+    end
+end
+
+function M:update()
+	if self.m_cur_state ~= nil then
+        self.m_cur_state:update()
+    end
+end
+
+return M

@@ -1,0 +1,32 @@
+
+local Frame = require("system.frame")
+local Team_bar = class("Team_bar", Frame)
+
+Event.decl(Team_bar, "show")
+Event.decl(Team_bar, "hide")
+Attribute.decl(Team_bar, "is_show", false)
+
+function Team_bar:doInit(param)
+	
+	self:set_is_dont_create_go_automatic(true)
+end
+
+function Team_bar:show()
+	--self:emit_event("show", nil)
+    self:set_attr("is_show", true)
+end
+
+function Team_bar:hide()
+	--self:emit_event("hide", nil)
+    self:set_attr("is_show", false)
+end
+
+function Team_bar:set_target(id)
+    local world = self:getFrame("world")
+    local unit_own = world:get_main_player()
+    local unit_tar = world:getUnit(id)
+    unit_own:set_target(unit_tar)
+end
+
+
+return Team_bar

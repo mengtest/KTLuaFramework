@@ -1,0 +1,205 @@
+local rows = {}
+rows[1] = {['id']=1,['xp']=3000,['xp_quest']=80,['xp_creature']=80,['zd']=5.0}
+rows[2] = {['id']=2,['xp']=3000,['xp_quest']=170,['xp_creature']=170,['zd']=5.0}
+rows[3] = {['id']=3,['xp']=3000,['xp_quest']=250,['xp_creature']=250,['zd']=5.0}
+rows[4] = {['id']=4,['xp']=3000,['xp_quest']=360,['xp_creature']=360,['zd']=5.0}
+rows[5] = {['id']=5,['xp']=3000,['xp_quest']=450,['xp_creature']=450,['zd']=5.0}
+rows[6] = {['id']=6,['xp']=3000,['xp_quest']=550,['xp_creature']=550,['zd']=5.0}
+rows[7] = {['id']=7,['xp']=4500,['xp_quest']=625,['xp_creature']=625,['zd']=5.0}
+rows[8] = {['id']=8,['xp']=4500,['xp_quest']=700,['xp_creature']=700,['zd']=6.0}
+rows[9] = {['id']=9,['xp']=4500,['xp_quest']=775,['xp_creature']=775,['zd']=6.0}
+rows[10] = {['id']=10,['xp']=1500,['xp_quest']=850,['xp_creature']=850,['zd']=6.0}
+rows[11] = {['id']=11,['xp']=1500,['xp_quest']=875,['xp_creature']=875,['zd']=6.0}
+rows[12] = {['id']=12,['xp']=1500,['xp_quest']=900,['xp_creature']=900,['zd']=6.0}
+rows[13] = {['id']=13,['xp']=1500,['xp_quest']=900,['xp_creature']=900,['zd']=6.0}
+rows[14] = {['id']=14,['xp']=1500,['xp_quest']=975,['xp_creature']=975,['zd']=6.0}
+rows[15] = {['id']=15,['xp']=1500,['xp_quest']=1050,['xp_creature']=1050,['zd']=7.0}
+rows[16] = {['id']=16,['xp']=1500,['xp_quest']=1150,['xp_creature']=1150,['zd']=7.0}
+rows[17] = {['id']=17,['xp']=1500,['xp_quest']=1250,['xp_creature']=1250,['zd']=7.0}
+rows[18] = {['id']=18,['xp']=1500,['xp_quest']=1350,['xp_creature']=1350,['zd']=7.0}
+rows[19] = {['id']=19,['xp']=1500,['xp_quest']=1450,['xp_creature']=1450,['zd']=7.0}
+rows[20] = {['id']=20,['xp']=1500,['xp_quest']=1550,['xp_creature']=1550,['zd']=7.0}
+rows[21] = {['id']=21,['xp']=1500,['xp_quest']=1650,['xp_creature']=1650,['zd']=7.0}
+rows[22] = {['id']=22,['xp']=1500,['xp_quest']=1750,['xp_creature']=1750,['zd']=8.0}
+rows[23] = {['id']=23,['xp']=1500,['xp_quest']=1850,['xp_creature']=1850,['zd']=8.0}
+rows[24] = {['id']=24,['xp']=1500,['xp_quest']=1950,['xp_creature']=1950,['zd']=8.0}
+rows[25] = {['id']=25,['xp']=1500,['xp_quest']=2000,['xp_creature']=2000,['zd']=8.0}
+rows[26] = {['id']=26,['xp']=1500,['xp_quest']=2100,['xp_creature']=2100,['zd']=8.0}
+rows[27] = {['id']=27,['xp']=1500,['xp_quest']=2200,['xp_creature']=2200,['zd']=8.0}
+rows[28] = {['id']=28,['xp']=1500,['xp_quest']=2300,['xp_creature']=2300,['zd']=8.0}
+rows[29] = {['id']=29,['xp']=1500,['xp_quest']=2350,['xp_creature']=2350,['zd']=9.0}
+rows[30] = {['id']=30,['xp']=1500,['xp_quest']=2450,['xp_creature']=2450,['zd']=9.0}
+rows[31] = {['id']=31,['xp']=1500,['xp_quest']=2500,['xp_creature']=2500,['zd']=9.0}
+rows[32] = {['id']=32,['xp']=1500,['xp_quest']=2550,['xp_creature']=2550,['zd']=9.0}
+rows[33] = {['id']=33,['xp']=1500,['xp_quest']=2650,['xp_creature']=2650,['zd']=9.0}
+rows[34] = {['id']=34,['xp']=1500,['xp_quest']=2700,['xp_creature']=2700,['zd']=9.0}
+rows[35] = {['id']=35,['xp']=1500,['xp_quest']=2750,['xp_creature']=2750,['zd']=9.0}
+rows[36] = {['id']=36,['xp']=1500,['xp_quest']=2800,['xp_creature']=2800,['zd']=10.0}
+rows[37] = {['id']=37,['xp']=1500,['xp_quest']=2850,['xp_creature']=2850,['zd']=10.0}
+rows[38] = {['id']=38,['xp']=1500,['xp_quest']=2850,['xp_creature']=2850,['zd']=10.0}
+rows[39] = {['id']=39,['xp']=1500,['xp_quest']=3000,['xp_creature']=3000,['zd']=10.0}
+rows[40] = {['id']=40,['xp']=1500,['xp_quest']=3150,['xp_creature']=3150,['zd']=10.0}
+rows[41] = {['id']=41,['xp']=1500,['xp_quest']=3300,['xp_creature']=3300,['zd']=10.0}
+rows[42] = {['id']=42,['xp']=1500,['xp_quest']=3450,['xp_creature']=3450,['zd']=10.0}
+rows[43] = {['id']=43,['xp']=1500,['xp_quest']=3600,['xp_creature']=3600,['zd']=11.0}
+rows[44] = {['id']=44,['xp']=1500,['xp_quest']=3750,['xp_creature']=3750,['zd']=11.0}
+rows[45] = {['id']=45,['xp']=1500,['xp_quest']=3900,['xp_creature']=3900,['zd']=11.0}
+rows[46] = {['id']=46,['xp']=1500,['xp_quest']=4050,['xp_creature']=4050,['zd']=11.0}
+rows[47] = {['id']=47,['xp']=1500,['xp_quest']=4200,['xp_creature']=4200,['zd']=11.0}
+rows[48] = {['id']=48,['xp']=1500,['xp_quest']=4400,['xp_creature']=4400,['zd']=11.0}
+rows[49] = {['id']=49,['xp']=1500,['xp_quest']=4550,['xp_creature']=4550,['zd']=11.0}
+rows[50] = {['id']=50,['xp']=1500,['xp_quest']=4700,['xp_creature']=4700,['zd']=12.0}
+rows[51] = {['id']=51,['xp']=1500,['xp_quest']=4900,['xp_creature']=4900,['zd']=12.0}
+rows[52] = {['id']=52,['xp']=1500,['xp_quest']=5100,['xp_creature']=5100,['zd']=12.0}
+rows[53] = {['id']=53,['xp']=1500,['xp_quest']=5250,['xp_creature']=5250,['zd']=12.0}
+rows[54] = {['id']=54,['xp']=1500,['xp_quest']=5450,['xp_creature']=5450,['zd']=12.0}
+rows[55] = {['id']=55,['xp']=1500,['xp_quest']=5650,['xp_creature']=5650,['zd']=12.0}
+rows[56] = {['id']=56,['xp']=1500,['xp_quest']=5800,['xp_creature']=5800,['zd']=12.0}
+rows[57] = {['id']=57,['xp']=1500,['xp_quest']=6000,['xp_creature']=6000,['zd']=13.0}
+rows[58] = {['id']=58,['xp']=1500,['xp_quest']=6200,['xp_creature']=6200,['zd']=13.0}
+rows[59] = {['id']=59,['xp']=1500,['xp_quest']=6400,['xp_creature']=6400,['zd']=13.0}
+rows[60] = {['id']=60,['xp']=1500,['xp_quest']=6600,['xp_creature']=6600,['zd']=13.0}
+rows[61] = {['id']=61,['xp']=1500,['xp_quest']=9800,['xp_creature']=9800,['zd']=13.0}
+rows[62] = {['id']=62,['xp']=1500,['xp_quest']=10050,['xp_creature']=10050,['zd']=13.0}
+rows[63] = {['id']=63,['xp']=1500,['xp_quest']=10400,['xp_creature']=10400,['zd']=13.0}
+rows[64] = {['id']=64,['xp']=1500,['xp_quest']=10750,['xp_creature']=10750,['zd']=14.0}
+rows[65] = {['id']=65,['xp']=1500,['xp_quest']=11000,['xp_creature']=11000,['zd']=14.0}
+rows[66] = {['id']=66,['xp']=1500,['xp_quest']=11300,['xp_creature']=11300,['zd']=14.0}
+rows[67] = {['id']=67,['xp']=1500,['xp_quest']=11650,['xp_creature']=11650,['zd']=14.0}
+rows[68] = {['id']=68,['xp']=1500,['xp_quest']=12000,['xp_creature']=12000,['zd']=14.0}
+rows[69] = {['id']=69,['xp']=1500,['xp_quest']=12300,['xp_creature']=12300,['zd']=14.0}
+rows[70] = {['id']=70,['xp']=1500,['xp_quest']=12650,['xp_creature']=12650,['zd']=14.0}
+rows[71] = {['id']=71,['xp']=1500,['xp_quest']=13000,['xp_creature']=13000,['zd']=15.0}
+rows[72] = {['id']=72,['xp']=1500,['xp_quest']=13350,['xp_creature']=13350,['zd']=15.0}
+rows[73] = {['id']=73,['xp']=1500,['xp_quest']=13700,['xp_creature']=13700,['zd']=15.0}
+rows[74] = {['id']=74,['xp']=1500,['xp_quest']=14050,['xp_creature']=14050,['zd']=15.0}
+rows[75] = {['id']=75,['xp']=1500,['xp_quest']=14400,['xp_creature']=14400,['zd']=15.0}
+rows[76] = {['id']=76,['xp']=1500,['xp_quest']=14750,['xp_creature']=14750,['zd']=15.0}
+rows[77] = {['id']=77,['xp']=1500,['xp_quest']=15100,['xp_creature']=15100,['zd']=15.0}
+rows[78] = {['id']=78,['xp']=1500,['xp_quest']=15450,['xp_creature']=15450,['zd']=16.0}
+rows[79] = {['id']=79,['xp']=1500,['xp_quest']=15800,['xp_creature']=15800,['zd']=16.0}
+rows[80] = {['id']=80,['xp']=1500,['xp_quest']=16150,['xp_creature']=16150,['zd']=16.0}
+rows[81] = {['id']=81,['xp']=1500,['xp_quest']=16500,['xp_creature']=16500,['zd']=16.0}
+rows[82] = {['id']=82,['xp']=1500,['xp_quest']=16850,['xp_creature']=16850,['zd']=16.0}
+rows[83] = {['id']=83,['xp']=1500,['xp_quest']=17200,['xp_creature']=17200,['zd']=16.0}
+rows[84] = {['id']=84,['xp']=1500,['xp_quest']=17550,['xp_creature']=17550,['zd']=16.0}
+rows[85] = {['id']=85,['xp']=1500,['xp_quest']=17900,['xp_creature']=17900,['zd']=17.0}
+rows[86] = {['id']=86,['xp']=1500,['xp_quest']=18250,['xp_creature']=18250,['zd']=17.0}
+rows[87] = {['id']=87,['xp']=1500,['xp_quest']=18600,['xp_creature']=18600,['zd']=17.0}
+rows[88] = {['id']=88,['xp']=1500,['xp_quest']=18950,['xp_creature']=18950,['zd']=17.0}
+rows[89] = {['id']=89,['xp']=1500,['xp_quest']=19300,['xp_creature']=19300,['zd']=17.0}
+rows[90] = {['id']=90,['xp']=1500,['xp_quest']=19650,['xp_creature']=19650,['zd']=17.0}
+rows[91] = {['id']=91,['xp']=1500,['xp_quest']=20000,['xp_creature']=20000,['zd']=17.0}
+rows[92] = {['id']=92,['xp']=1500,['xp_quest']=20350,['xp_creature']=20350,['zd']=18.0}
+rows[93] = {['id']=93,['xp']=1500,['xp_quest']=20700,['xp_creature']=20700,['zd']=18.0}
+rows[94] = {['id']=94,['xp']=1500,['xp_quest']=21050,['xp_creature']=21050,['zd']=18.0}
+rows[95] = {['id']=95,['xp']=1500,['xp_quest']=21400,['xp_creature']=21400,['zd']=18.0}
+rows[96] = {['id']=96,['xp']=1500,['xp_quest']=21750,['xp_creature']=21750,['zd']=18.0}
+rows[97] = {['id']=97,['xp']=1500,['xp_quest']=22100,['xp_creature']=22100,['zd']=18.0}
+rows[98] = {['id']=98,['xp']=1500,['xp_quest']=22450,['xp_creature']=22450,['zd']=18.0}
+rows[99] = {['id']=99,['xp']=1500,['xp_quest']=22800,['xp_creature']=22800,['zd']=19.0}
+rows[100] = {['id']=100,['xp']=1500,['xp_quest']=23150,['xp_creature']=23150,['zd']=19.0}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+	[6] = rows[6],
+	[7] = rows[7],
+	[8] = rows[8],
+	[9] = rows[9],
+	[10] = rows[10],
+	[11] = rows[11],
+	[12] = rows[12],
+	[13] = rows[13],
+	[14] = rows[14],
+	[15] = rows[15],
+	[16] = rows[16],
+	[17] = rows[17],
+	[18] = rows[18],
+	[19] = rows[19],
+	[20] = rows[20],
+	[21] = rows[21],
+	[22] = rows[22],
+	[23] = rows[23],
+	[24] = rows[24],
+	[25] = rows[25],
+	[26] = rows[26],
+	[27] = rows[27],
+	[28] = rows[28],
+	[29] = rows[29],
+	[30] = rows[30],
+	[31] = rows[31],
+	[32] = rows[32],
+	[33] = rows[33],
+	[34] = rows[34],
+	[35] = rows[35],
+	[36] = rows[36],
+	[37] = rows[37],
+	[38] = rows[38],
+	[39] = rows[39],
+	[40] = rows[40],
+	[41] = rows[41],
+	[42] = rows[42],
+	[43] = rows[43],
+	[44] = rows[44],
+	[45] = rows[45],
+	[46] = rows[46],
+	[47] = rows[47],
+	[48] = rows[48],
+	[49] = rows[49],
+	[50] = rows[50],
+	[51] = rows[51],
+	[52] = rows[52],
+	[53] = rows[53],
+	[54] = rows[54],
+	[55] = rows[55],
+	[56] = rows[56],
+	[57] = rows[57],
+	[58] = rows[58],
+	[59] = rows[59],
+	[60] = rows[60],
+	[61] = rows[61],
+	[62] = rows[62],
+	[63] = rows[63],
+	[64] = rows[64],
+	[65] = rows[65],
+	[66] = rows[66],
+	[67] = rows[67],
+	[68] = rows[68],
+	[69] = rows[69],
+	[70] = rows[70],
+	[71] = rows[71],
+	[72] = rows[72],
+	[73] = rows[73],
+	[74] = rows[74],
+	[75] = rows[75],
+	[76] = rows[76],
+	[77] = rows[77],
+	[78] = rows[78],
+	[79] = rows[79],
+	[80] = rows[80],
+	[81] = rows[81],
+	[82] = rows[82],
+	[83] = rows[83],
+	[84] = rows[84],
+	[85] = rows[85],
+	[86] = rows[86],
+	[87] = rows[87],
+	[88] = rows[88],
+	[89] = rows[89],
+	[90] = rows[90],
+	[91] = rows[91],
+	[92] = rows[92],
+	[93] = rows[93],
+	[94] = rows[94],
+	[95] = rows[95],
+	[96] = rows[96],
+	[97] = rows[97],
+	[98] = rows[98],
+	[99] = rows[99],
+	[100] = rows[100],
+}
+return datas

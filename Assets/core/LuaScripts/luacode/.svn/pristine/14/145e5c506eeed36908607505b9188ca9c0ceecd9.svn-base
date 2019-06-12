@@ -1,0 +1,19 @@
+local M = {}
+
+Attribute.decl(M, "pos", nil)
+
+function M:doInit()
+
+end
+
+
+function M:doShow(pos)
+    self:set_attr_and_event("pos",pos)
+end
+
+function M:doHide()
+    self:set_attr_and_event("pos",nil)
+end
+
+
+return M

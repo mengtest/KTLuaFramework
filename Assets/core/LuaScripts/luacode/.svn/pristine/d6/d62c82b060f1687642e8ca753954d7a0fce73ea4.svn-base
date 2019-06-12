@@ -1,0 +1,30 @@
+local Frame = require("system.frame")
+local spirit_skill_btn = class("spirit_skill_btn", Frame)
+
+Attribute.decl(spirit_skill_btn, "tmpl", -1)
+Attribute.decl(spirit_skill_btn, "name", "")
+Attribute.decl(spirit_skill_btn, "level", "")
+
+function spirit_skill_btn:doInit(skill_data)
+    self:set_is_add_rect_trans(true)
+    local tmpl = skill_data.tmpl
+    local name = dbc.spell[tmpl].name
+    local level = tostring(skill_data.stat) .. "/" .. tostring(skill_data.level)
+    self:set_tmpl(tmpl)
+    self:set_name(name)
+    self:set_level(level)
+end
+
+function spirit_skill_btn:show()
+    self:emit_event("show")
+end
+function spirit_skill_btn:hide()
+    self:emit_event("hide")
+end
+
+function spirit_skill_btn:on_skill_btn()
+
+end
+
+
+return spirit_skill_btn

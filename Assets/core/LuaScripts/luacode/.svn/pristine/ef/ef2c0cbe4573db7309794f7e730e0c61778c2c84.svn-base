@@ -1,0 +1,35 @@
+local M = {}
+
+-- 单位类型
+M.UnitType = {
+    NPC = 1, -- NPC
+    NORMAL_CREATURE = 2, -- 普通怪
+    ELITE_CREATURE = 3, -- 精英怪
+    BOSS = 4, -- BOSS
+    BIGBOSS = 5, -- 巨型BOSS
+
+    DROPITEM = 11, -- 掉落物 将来或许不再配置在Creature表,也就不需要这个枚举
+}
+
+
+M.BoneName = {
+    bottom = "bottom",               -- 默认的特效挂点，位于模型底部中心
+    top = "top",                  -- 默认的顶部挂点，播放血条，ui
+    chest = "chest",                -- 默认用于胸部，位置在胸部前方，播放受创或挂BUFF等
+    head = "head",                 -- 默认用于头部，位置在额部,用于类似金翅冠或其他效果
+    back = "back",                 -- 默认用于背部，位置在胸部后背,用于翅膀时装效果
+    waist_1 = "waist_1",              -- 默认用于腰部，位置在腰部,用于外挂时装效果
+    weapon_hand_l_1 = "weapon_hand_l_1",      -- 默认用于左手
+    weapon_hand_r_1 = "weapon_hand_r_1",      -- 默认用于右手
+    shoulder_l_1 = "shoulder_l_1",         -- 默认用于左部肩膀
+    shoulder_r_1 = "shoulder_r_1",         -- 默认用于右部肩膀
+    arm_up_l_1 = "arm_up_l_1",           -- 默认用于左上臂
+    arm_up_r_1 = "arm_up_r_1",           -- 默认用于右上臂
+    arm_down_l_1 = "arm_down_l_1",         -- 默认用于左下臂
+    arm_down_r_1 = "arm_down_r_1",         -- 默认用于右下臂
+    weapon_spine_1 = "weapon_spine_1",       -- 默认用于背部左边 / 左手武器的回收对应腰部挂点
+    weapon_spine_2 = "weapon_spine_2",       -- 默认用于背部右边 / 右手武器的回收对应腰部挂点
+    camera = "camera",               -- 默认用于游戏内过场动画
+}
+
+return M

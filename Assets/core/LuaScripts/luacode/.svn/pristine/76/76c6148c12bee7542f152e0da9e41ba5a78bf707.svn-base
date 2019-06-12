@@ -1,0 +1,236 @@
+local ResMgr = class("ResMgr")
+
+function ResMgr:initialize()
+	self.m_asset_mgr = KTGame.instance.resourceManager
+end
+
+function ResMgr:update()
+end
+
+function ResMgr:load(path)
+	local co = coroutine.running()
+	local ret
+
+	self.m_asset_mgr:LoadAsset(path, function(asset)
+		assert(asset)
+		if co then
+			if coroutine.status(co) == "normal" then
+				ret = { asset }
+			else
+				coroutine.resume(co, asset)
+			end
+		end
+    end)
+
+	if ret then
+		return unpack(ret)
+	elseif co then
+		return coroutine.yield()
+	end
+end
+
+--! TODO: Put In Command Utils Lib
+local function basename(str)
+	local ret = string.gsub(str, '.*/(.*)', '%1')
+	return ret
+end
+
+local function noext( str )
+	local ret = string.gsub(str, '(.*)%..*', '%1')
+	return ret
+end
+
+local function basename_noext( str )
+	local ret = string.gsub(str, '.*/(.*)%..*', '%1')
+	return ret
+end
+
+function ResMgr:loadScene(path)
+	local co = coroutine.running()
+
+	self.m_asset_mgr:LoadScene(path, SceneManagement.LoadSceneMode.Additive, function()
+		local scene_name = basename_noext(path)
+		-- self:RestoreRenderSettings(scene_name)
+		
+		if co then
+			coroutine.resume(co, true)
+		end
+    end)
+
+	if co then
+		return coroutine.yield()
+	end
+end
+
+function ResMgr:load_sprite(local_path, cb)
+    --local icon_path = string.format("ui/icons/%s", local_path)
+    local icon_path = local_path
+    self.m_asset_mgr:LoadAsset(icon_path, function(asset)
+        if asset then
+            local tex = asset
+            cb(Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5)))
+        end
+    end)
+end
+
+function ResMgr:loadAndInstantiate(path)
+	local prefab = self:load(path)
+	if prefab then
+		return self:instantiate(prefab)
+	end
+end
+
+function ResMgr:instantiate(prefab)
+	return Object.Instantiate(prefab)
+end
+
+function ResMgr:rxLoad(path)
+	return rx.Observable.create(function(observer)
+		local unsubscribed = false
+
+		self.m_asset_mgr:LoadAsset(path, function(asset)
+			if unsubscribed then
+				return
+			end
+
+			if asset then
+				observer:onNext(asset)
+				observer:onCompleted()
+			else
+				observer:onError(string.format("ResMgr:rxLoad failed %s", path))
+			end
+	    end)
+
+	    return rx.Subscription.create(function() unsubscribed = true end)
+	end)
+end
+
+function ResMgr:rxLoadInstantiate(path)
+	return self:rxLoad(path)
+		:map(function(prefab) return Object.Instantiate(prefab) end)
+end
+
+function ResMgr:rxLoadScene(path)
+	return rx.Observable.create(function(observer)
+		local unsubscribed = false
+		self.m_asset_mgr:LoadScene(path, SceneManagement.LoadSceneMode.Additive, function()
+			if unsubscribed then
+				return
+			end
+
+			local scene_name = basename_noext(path)
+			-- 环境光、天空盒
+			self:RestoreRenderSettings(scene_name)						 
+        	-- 开启天气系统
+			self:LoadAllWeatherSystemSettings()
+			observer:onNext()
+			observer:onCompleted()
+	    end)
+	    
+	    return rx.Subscription.create(function() unsubscribed = true end)
+	end)
+end
+
+function ResMgr:exist(path)
+	return self.m_asset_mgr:Exist(path)
+end
+
+
+function ResMgr:get_weather_file( scene_name )
+	return app:getAssetPathMgr().get_weather_file(scene_name)
+end
+
+function ResMgr:RestoreRenderSettings(scene_name)
+	--! TODO:
+	--! 这个文件应该是同时加载的, 我期望的应该是和Scene同时请求加载, 并且当Scene和这个资源都加载完成后执行操作. 类似于有个Join操作.
+	print(self:get_weather_file(scene_name).."=======================")
+	self.m_asset_mgr:LoadAsset(self:get_weather_file(scene_name), function(asset)
+		if asset then
+			local settings = Slua.As(asset, KTRenderSettings)
+            if settings then
+                settings:Restore()
+            end
+		end
+    end)
+end
+
+
+function ResMgr:get_weather_config(scene_name)
+	--! TODO: FIXME:
+	if not self.m_default_weather_config then
+		self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_weather_resource('default_config'), function(default)
+			self.m_default_weather_config = default
+		end)
+	end
+
+	local camera = UnityEngine.Camera.main
+	self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_weather_config(scene_name), function(asset)
+		local weather = asset
+
+		if(weather == nil) then 
+			weather = self.m_default_weather_config 
+		end
+		
+		if(weather ~= nil) then 
+			camera.gameObject:GetComponent(KTCameraMaker).ssSettings = Slua.As(weather, KTSkySphereSettings)
+		end
+	end)
+end
+
+function ResMgr:get_ktpp_config(scene_name)
+	local camera = UnityEngine.Camera.main
+	
+	self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_ktpp_config(scene_name), function(asset)
+		if asset then 
+			camera.gameObject:GetComponent(KTCameraMaker).ppSettings = Slua.As(asset, KTPPSettings)
+		end
+	end)
+end
+
+--[[weather system]]--
+function ResMgr:LoadPrecipitationSettings()
+	self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_weather_resource('precipitation_settings'), function(asset)
+		if asset then
+			local settings = Slua.As(asset, KTPrecipitationSettings)
+			settings.curCamera = Camera.main
+            if settings then
+           		KTWeatherSystem.instance:UpdatePrecipitationSettings(settings)  
+            end
+		end
+    end)
+end
+
+function ResMgr:LoadSimpleWindSettings()
+	self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_weather_resource('simple_wind_settings'), function(asset)
+		if asset then
+			local settings = Slua.As(asset, KTSimpleWindSettings)
+            if settings then
+           		KTWeatherSystem.instance:UpdateSimpleWindSettings(settings)  
+            end
+		end
+    end)
+end
+
+
+function ResMgr:LoadWetLandSettings()
+	self.m_asset_mgr:LoadAsset(app:getAssetPathMgr().get_weather_resource('wetland_settings'), function(asset)
+		if asset then
+			local settings = Slua.As(asset, KTWetLandSettings)
+            if settings then
+           		KTWeatherSystem.instance:UpdateWetLandSettings(settings)  
+            end
+		end
+    end)
+end
+
+function ResMgr:LoadAllWeatherSystemSettings()
+	self:LoadPrecipitationSettings()
+	-- 根据需求雨天默认关闭 2017年12月28日
+	KTWeatherSystem.instance:HidePrecipitation()
+	 
+	self:LoadSimpleWindSettings()
+	self:LoadWetLandSettings()
+end
+--]]
+
+return ResMgr

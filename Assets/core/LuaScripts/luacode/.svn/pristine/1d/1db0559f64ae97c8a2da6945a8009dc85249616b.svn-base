@@ -1,0 +1,39 @@
+local Frame = require("system.frame")
+local spirit_strengthen = class("spirit_strengthen", Frame)
+
+Event.decl(spirit_strengthen, "show")
+Event.decl(spirit_strengthen, "hide")
+Event.decl(spirit_strengthen, "on_upgrade_layer")
+Event.decl(spirit_strengthen, "on_merge_layer")
+
+function spirit_strengthen:doInit(data)
+    self.m_spirit_data = data
+    self:subscribe(self:getFrame("spirit_info"):on_event("strengthen"), function()
+        self:show()
+    end )
+end
+
+function spirit_strengthen:on_loaded()
+    -- 升级界面
+    self:createChild("spirit_upgrade", "spirit_beast.spirit_upgrade",self.m_spirit_data)
+    -- 融灵界面
+    self:createChild("spirit_merge", "spirit_beast.spirit_merge",self.m_spirit_data)
+end
+
+-- 升级分页
+function spirit_strengthen:on_upgrade_layer()
+    self:emit_event("on_upgrade_layer")
+end
+-- 融灵分页
+function spirit_strengthen:on_merge_layer()
+    self:emit_event("on_merge_layer")
+end
+-- 显示
+function spirit_strengthen:show()
+    self:emit_event("show")
+end
+-- 隐藏
+function spirit_strengthen:hide()
+    self:emit_event("hide")
+end
+return spirit_strengthen

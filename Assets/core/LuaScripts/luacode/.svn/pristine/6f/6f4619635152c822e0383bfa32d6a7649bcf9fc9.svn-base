@@ -1,0 +1,224 @@
+
+local LookAtTarget = require("view.component.look_at_target")
+local Trigger_component = require("frame.component.trigger_component")
+local Interact_component = require("frame.component.interact_component")
+
+local view = require("system.view")
+local Giver_view = class("Giver_view", view)
+
+function Giver_view:doInit()
+    self.m_top_hint = nil
+    self.m_cc = nil
+    self.m_anim_ctrller = nil
+	self.m_aim_dir = Vector3(0, 0, 1)
+
+    local giver = self:getFrame()
+    local model_id = giver:get_model_id()
+    local model_path = app:get_model_mgr().GetPrefabPathById(model_id)
+    self:load(model_path, function (go)
+		go.transform.position = Vector3.zero
+        go.layer = LayerMask.NameToLayer("Role")
+        app:get_model_mgr().LoadAppearanceSfx(model_id, go)
+
+        -- pacman 2018-03-02 调整了LookAtTarget的使用方式
+        self.m_look_at_target_cmp = self:AddViewComponent(LookAtTarget, go)
+
+        local m_go = self:getGO()
+        local m_tr = m_go.transform
+        m_go.layer = LayerMask.NameToLayer("Role")
+        self.m_anim_ctrller = m_go:GetComponentInChildren(UnityEngine.Animator)
+        local m_cc = m_go:AddComponent(CharacterController)
+        local ori_cc = go:GetComponent(CharacterController)
+        m_cc.slopeLimit = ori_cc.slopeLimit
+        m_cc.stepOffset = ori_cc.stepOffset
+        m_cc.skinWidth = ori_cc.skinWidth
+        m_cc.minMoveDistance = ori_cc.minMoveDistance
+        m_cc.center = ori_cc.center
+        m_cc.radius = ori_cc.radius
+        m_cc.height = ori_cc.height
+        self:getFrame():set_cc(m_cc)
+        Object.Destroy(ori_cc)
+
+        self:subscribe(giver:on_event_attr_set("pos", true), function (pos)
+            m_tr.position = pos
+        end)
+        self:subscribe(giver:on_event_attr_set("dir", true), function (dir)
+            m_tr.rotation = Quaternion.AngleAxis(dir, Vector3.up)
+        end)
+    end)
+
+    -- TODO:: delete, temp quiz
+    local this = self
+    self.m_quiz_interact = nil
+    self:subscribe(self:getFrame():on_event_attr_set("quiz", true), function (quiz_id)
+        print("对话Giver_view")
+        if quiz_id > 0 then
+            if self.m_quiz_interact then
+                -- do nothing
+            else
+                self.m_quiz_interact = Trigger_component:new()
+                local trigger_go = GameObject("Trigger_Quiz")
+                trigger_go.transform.parent = self:getGO().transform
+                trigger_go.transform.localPosition = Vector3.zero
+                self.m_quiz_interact:set_go(trigger_go)
+                self.m_quiz_interact.on_trigger_enter:add(function ()
+                    this:getFrame("quiz_manager"):start_quiz(this:getFrame(), this:getFrame():get_attr("quiz"))
+                end)
+                self.m_quiz_interact:start()
+            end
+        else
+            if self.m_quiz_interact then
+                self.m_quiz_interact:destroy()
+                self.m_quiz_interact = nil
+            else
+                -- do nothing
+            end
+        end
+    end)
+end
+
+function Giver_view:on_prepared()
+	--Debug.LogError(string.format("self:getGO().name = %s", tostring(self:getGO().transform.childCount)))
+    print("创建了giver_view",self:getFrame():get_model_id())
+    local this = self
+
+    -- by lijunfeng 2018/20 暂时注释，方便测试
+    --self:subscribe(self:getFrame():on_event_attr_set("top_state", true), function (val)
+    --    if not val then return end
+    --    self:switch_top_hint(val)
+    --end)
+
+    self:subscribe(self:getFrame():on_event_attr_set("top_state", true), function (val)
+        if not val then return end
+        self:on_top_state_change(val)
+    end)
+
+    self:subscribe(self:getFrame():on_event("get_anim_ctrller"), function (cb)
+        cb(self.m_anim_ctrller)
+    end)
+
+	self:subscribe(self:getFrame():on_event("set_look_at_position"), function (pos)
+		self:set_look_at_position(pos)
+	end)
+	self:subscribe(self:getFrame():on_event("clear_look_at_position"), function ()
+		self:clear_look_at_position()
+	end)
+	self:subscribe(self:getFrame():on_event("set_face_forward"), function (dir, min, max)
+		self:set_face_forward(dir, min, max)
+	end)
+end
+
+function Giver_view:on_interact_changed(interact_id, pc)
+    local giver = self:getFrame()
+    if giver.m_interact_cmp then
+        giver.m_interact_cmp:refresh(interact_id, event_binder(giver, giver.on_selected))
+    else
+        if interact_id <= 0 then
+            return
+        end
+        giver.m_interact_cmp = Interact_component:new(interact_id, pc, event_binder(giver, giver.on_selected))
+        local go = GameObject("Trigger_Interact_" .. interact_id)
+        local tr = go.transform
+        tr.parent = self:getGO().transform
+        tr.localPosition = Vector3.zero
+        giver.m_interact_cmp:set_go(go)
+		giver.m_interact_cmp:set_host(giver)
+    end
+end
+
+function Giver_view:on_top_state_change(curr_state)
+    if curr_state==enum.quest.Quest_Npc_State.None then
+        --删除当前状态
+    elseif curr_state==enum.quest.Quest_Npc_State.Yellow_Exclamation then
+        local interact_id=self:getFrame():get_cur_interact_id()
+
+    elseif curr_state == enum.quest.Quest_Npc_State.Blue_Question then
+    elseif curr_state == enum.quest.Quest_Npc_State.Yellow_Question then
+    end
+end
+
+function Giver_view:switch_top_hint(cur_state)
+    if cur_state == enum.quest.Quest_State.Invalid then
+        -- Do not load anything,just skip it.
+        self:on_model_loaded(cur_state, nil)
+        self:on_interact_changed(0, nil)
+    elseif cur_state == enum.quest.Quest_State.Unlocked then
+        -- pacman 2018-02-24 替换加载零碎资源的接口
+        self:load(app:getAssetPathMgr().get_sfx_asset("giver_top_hint_unlocked"), function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+        local pc = self:getFrame("player_controller")
+        local receive_interact_id = self:getFrame():get_receive_interact_id()
+        utility.log:logError(utility.log.Mask.SJG_Quest, string.format("receive_interact_id = %d", receive_interact_id))
+        --self:on_interact_changed(receive_interact_id, pc)
+        self:on_interact_changed(1, pc)
+    elseif cur_state == enum.quest.Quest_State.Received then
+        self:load(app:getAssetPathMgr().get_sfx_asset("giver_top_hint_received"), function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+        self:on_interact_changed(0, nil)
+    elseif cur_state == enum.quest.Quest_State.Finished then
+        self:load(app:getAssetPathMgr().get_sfx_asset("giver_top_hint_finished"), function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+        local pc = self:getFrame("player_controller")
+        local give_interact_id = self:getFrame():get_give_interact_id()
+        utility.log:logError(utility.log.Mask.SJG_Quest, string.format("give_interact_id = %d", give_interact_id))
+        --self:on_interact_changed(give_interact_id, pc)
+        self:on_interact_changed(3, pc)
+    elseif cur_state == enum.quest.Quest_State.Interact then
+        self:load(app:getAssetPathMgr().get_sfx_asset("giver_top_hint_interact"), function (go)
+            self:on_model_loaded(cur_state, go)
+        end)
+        local pc = self:getFrame("player_controller")
+        local interact_id = self:getFrame():get_interact_id()
+        --self:on_interact_changed(interact_id, pc)
+        self:on_interact_changed(2, pc)
+    end
+end
+
+function Giver_view:on_model_loaded(cur_state, go)
+    if cur_state == self:getFrame():get_top_state() then
+        if self.m_top_hint then
+            Object.Destroy(self.m_top_hint)
+        end
+        self.m_top_hint = go
+        self:reset_parent(go)
+    else
+        Object.Destroy(go)
+    end
+end
+
+function Giver_view:reset_parent(go)
+    if not go then return end
+    go:SetActive(true)
+    local tr = go.transform
+    local tr_parent = self:getGO().transform
+    tr.parent = tr_parent
+    tr.localPosition = Vector3.zero
+end
+
+function Giver_view:set_look_at_position(pos)
+    self.m_look_at_target_cmp:set_look_at_position(pos)
+end
+
+function Giver_view:clear_look_at_position()
+    self.m_look_at_target_cmp:clear_look_at_position()
+end
+
+function Giver_view:set_face_forward(dir, min, max)
+    local projectile_dir = Vector3.Clone(dir)
+    projectile_dir.y = 0
+    local random_coef = utility.math:random_float(min, max)
+    projectile_dir = Vector3.Slerp(self:getGO().transform.forward, projectile_dir, random_coef)
+    self.m_aim_dir = projectile_dir
+end
+
+function Giver_view:doUpdate()
+    local go = self:getGO()
+    if not go then return end
+    local tr = go.transform
+    tr.forward = Vector3.RotateTowards(tr.forward, self.m_aim_dir, 0.268, 0)
+end
+
+return Giver_view

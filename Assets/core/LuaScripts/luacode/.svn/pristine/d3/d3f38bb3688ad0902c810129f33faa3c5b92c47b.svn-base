@@ -1,0 +1,104 @@
+-- 角色行为状态 着地移动
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateMove", UnitActStateBase)
+
+local y_gravity_offset = nil
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.bp.bp_unit"
+end
+
+function M:enter()
+    -- print("UnitActStateMove:enter")
+    UnitActStateBase.enter(self)
+
+    self.m_unit:set_main_act(enum.battle.Unit_Main_Act.MOVE)
+end
+
+function M:exit()
+    -- print("UnitActStateMove:exit")
+    UnitActStateBase.exit(self)
+end
+
+function M:update()
+    --print(">>>>>>>>>>>>>>>>>UnitActStateMove:update")
+    UnitActStateBase.update(self)
+    local cc = self.m_unit:get_cc()
+    if cc == nil then
+        return
+    end
+
+    local delta_time = Time.deltaTime
+
+    -------------------
+    -- 检查状态切换 --
+
+    -- 起跳
+    if self.m_unit:get_to_jump() then
+        -- print("----------- to jumpe~")
+        self.m_unit:set_to_jump(false)
+        self.m_unit:set_gravity_speed(Unit.START_JUMP_SPEED)
+        -- print(">>>>>>>>>>>>>>>", self.m_unit:get_gravity_speed())
+        self.m_fsm:change_state(enum.battle.Unit_Main_Act.JUMP)
+        return
+    end
+
+
+    -- 跌落  先给主角加上  怪物加上会有问题
+     if not cc.isGrounded and self.m_unit:get_is_main_player()==true then
+        if (y_gravity_offset == nil) then
+            y_gravity_offset = self.m_unit:get_pos().y
+        elseif (self.m_unit:get_pos().y - y_gravity_offset > Unit.FALL_DISTANCE) then
+            y_gravity_offset = nil
+            self.m_fsm:change_state(enum.battle.Unit_Main_Act.JUMP)
+            return
+            --[[else
+                Debug.LogError(self.m_unit:get_pos().y - y_gravity_offset)]]--
+        end
+    end
+
+    --------------------
+    -- 方位计算---
+    --------------------
+    -- 同步朝向
+    self.m_unit:update_dir()
+
+    -- 移动处理 ---
+    local move_state = self.m_unit:get_move_state()
+    if move_state ~= Unit.MOVE_STATE.IDLE then
+
+        -- pacman 2017-11-09 原先这里是根据move_state计算出move_dir，实际移动速度
+        -- 现在move_dir/实际移动速度等已经在这之前计算好了，以便支持不同的操作方式
+        local move_speed_xz = self.m_unit:get_actural_move_speed()
+        local move_dir = self.m_unit:get_move_dir()
+
+        -- 重力速度
+        -- 不用关心是否着地，都设置gravity_speed，以便在起伏的地形上移动
+        -- 因为本状态下，角色处于着地状态，所以gravity_speed设为 -Unit.GRAVITY，即每次都是重新开始下落
+        -- self.m_unit:set_gravity_speed(-Unit.GRAVITY * delta_time)    --这个变化幅度值太小了
+        self.m_unit:set_gravity_speed(-Unit.GRAVITY)
+
+        -- 位移
+        local movespeed = Quaternion.AngleAxis(move_dir, Vector3.up) * Vector3.forward * move_speed_xz
+        movespeed.y = self.m_unit:get_gravity_speed()
+        local movement = movespeed * delta_time
+        cc:Move(movement)
+        self.m_unit:set_pos(cc.transform.position)
+    end
+
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+return M

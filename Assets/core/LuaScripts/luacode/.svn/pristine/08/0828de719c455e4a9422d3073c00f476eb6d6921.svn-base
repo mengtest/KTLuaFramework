@@ -1,0 +1,502 @@
+local Frame = require("system.frame")
+local inventory_manager = class("inventory_manager", Frame)
+
+-----增加了新的装备
+Event.decl(inventory_manager, "add_equipment")
+----增加了新的物品（非装备）
+Event.decl(inventory_manager, "add_unequipment")
+Event.decl(inventory_manager, "equipped")
+Event.decl(inventory_manager, "unequipped")
+Event.decl(inventory_manager, "quick_equipment")
+
+function inventory_manager:doInit(param)
+    -----装备的表
+    self.m_equipment_list = {}
+    -----可叠加物品的表（非装备）
+    self.m_unequipment_list = {}
+    -----装备栏格位数据
+    self.m_equipping_dic = {}
+
+    self:base_call("inventory_list")
+end
+
+function inventory_manager:init()
+    self:local_log("inventory_manager  初始化")
+end
+
+function inventory_manager:inventory_all(countable_info, wearable_info, equipped_inventory)
+    for i, v in pairs(countable_info) do
+        self:local_log("countable_info..i>>" .. tostring(i))
+        self:local_log("countable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("countable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("countable_info..qty>>" .. tostring(v["qty"]))
+    end
+
+    for i, v in pairs(countable_info) do
+        self.m_unequipment_list[i] = v
+    end
+
+    for i, v in pairs(wearable_info) do
+        self:local_log("wearable_info..i>>" .. tostring(i))
+        self:local_log("wearable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("wearable_info..lvl>>" .. tostring(v["lvl"]))
+    end
+
+    for i, v in pairs(wearable_info) do
+        self.m_equipment_list[i] = v
+    end
+
+    for i, v in pairs(equipped_inventory) do
+        self:local_log("equipped_inventory..key>>" .. tostring(i))
+        self:local_log("equipped_inventory..wearable_info..unique>>" .. tostring(v["unique"]))
+        self:local_log("equipped_inventory..wearable_info..tmpl>>" .. tostring(v["tmpl"]))
+        self:local_log("wearable_info..tmpl>>" .. tostring(v["lvl"]))
+    end
+
+    for i, v in pairs(equipped_inventory) do
+        self.m_equipping_dic[i] = v
+    end
+end
+
+function inventory_manager:inventory_countables(countable_info)
+    for i, v in pairs(countable_info) do
+        self.m_unequipment_list[#self.m_unequipment_list + 1] = v
+    end
+    self:emit_event("add_unequipment", countable_info)
+end
+
+function inventory_manager:inventory_wearables(wearable_info)
+    for i, v in pairs(wearable_info) do
+        self.m_equipment_list[#self.m_equipment_list + 1] = v
+        self:quick_equipped(v)
+    end
+    self:emit_event("add_equipment", wearable_info)
+end
+
+-----佩戴头盔
+function inventory_manager:inventory_equipped_head(wearable_info)
+    self.m_equipping_dic["head"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.HEAD)
+end
+
+----卸下头盔
+function inventory_manager:inventory_unequipped_head()
+    self.m_equipping_dic["head"]["unique"] = 0
+    self.m_equipping_dic["head"]["tmpl"] = 0
+    self.m_equipping_dic["head"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.HEAD)
+end
+
+----佩戴肩甲
+function inventory_manager:inventory_equipped_shoulder(wearable_info)
+    self.m_equipping_dic["shoulder"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.SHOULDER)
+end
+
+----卸下肩甲
+function inventory_manager:inventory_unequipped_shoulder()
+    self.m_equipping_dic["shoulder"]["unique"] = 0
+    self.m_equipping_dic["shoulder"]["tmpl"] = 0
+    self.m_equipping_dic["shoulder"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.SHOULDER)
+end
+
+----佩戴胸甲
+function inventory_manager:inventory_equipped_chest(wearable_info)
+    self.m_equipping_dic["chest"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.CHEST)
+end
+
+----卸下胸甲
+function inventory_manager:inventory_unequipped_chest()
+    self.m_equipping_dic["chest"]["unique"] = 0
+    self.m_equipping_dic["chest"]["tmpl"] = 0
+    self.m_equipping_dic["chest"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.CHEST)
+end
+
+----佩戴护腕
+function inventory_manager:inventory_equipped_wrist(wearable_info)
+    self.m_equipping_dic["wrist"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.WRIST)
+end
+
+----卸下护腕
+function inventory_manager:inventory_unequipped_wrist()
+    self.m_equipping_dic["wrist"]["unique"] = 0
+    self.m_equipping_dic["wrist"]["tmpl"] = 0
+    self.m_equipping_dic["wrist"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.WRIST)
+end
+
+---佩戴手套
+function inventory_manager:inventory_equipped_hands(wearable_info)
+    self.m_equipping_dic["hands"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.HANDS)
+end
+
+----卸下手套
+function inventory_manager:inventory_unequipped_hands()
+    self.m_equipping_dic["hands"]["unique"] = 0
+    self.m_equipping_dic["hands"]["tmpl"] = 0
+    self.m_equipping_dic["hands"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.HANDS)
+end
+
+----佩戴腰带
+function inventory_manager:inventory_equipped_waist(wearable_info)
+    self.m_equipping_dic["waist"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.WAIST)
+end
+
+----卸下腰带
+function inventory_manager:inventory_unequipped_waist()
+    self.m_equipping_dic["waist"]["unique"] = 0
+    self.m_equipping_dic["waist"]["tmpl"] = 0
+    self.m_equipping_dic["waist"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.WAIST)
+end
+
+----佩戴腿甲
+function inventory_manager:inventory_equipped_legs(wearable_info)
+    self.m_equipping_dic["legs"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.LEGS)
+end
+
+---卸下腿甲
+function inventory_manager:inventory_unequipped_legs()
+    self.m_equipping_dic["legs"]["unique"] = 0
+    self.m_equipping_dic["legs"]["tmpl"] = 0
+    self.m_equipping_dic["legs"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.LEGS)
+end
+
+----佩戴战靴
+function inventory_manager:inventory_equipped_feet(wearable_info)
+    self.m_equipping_dic["feet"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.FEET)
+end
+
+----卸下战靴
+function inventory_manager:inventory_unequipped_feet()
+    self.m_equipping_dic["feet"]["unique"] = 0
+    self.m_equipping_dic["feet"]["tmpl"] = 0
+    self.m_equipping_dic["feet"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.FEET)
+end
+
+----佩戴项链
+function inventory_manager:inventory_equipped_neck(wearable_info)
+    self.m_equipping_dic["neck"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.NECK)
+end
+
+----卸下项链
+function inventory_manager:inventory_unequipped_neck()
+    self.m_equipping_dic["neck"]["unique"] = 0
+    self.m_equipping_dic["neck"]["tmpl"] = 0
+    self.m_equipping_dic["neck"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.NECK)
+end
+
+-----佩戴披风
+function inventory_manager:inventory_equipped_back(wearable_info)
+    self.m_equipping_dic["back"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.BACK)
+end
+
+----卸下披风
+function inventory_manager:inventory_unequipped_back()
+    self.m_equipping_dic["back"]["unique"] = 0
+    self.m_equipping_dic["back"]["tmpl"] = 0
+    self.m_equipping_dic["back"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.BACK)
+end
+
+----佩戴戒指1
+function inventory_manager:inventory_equipped_finger1(wearable_info)
+    self.m_equipping_dic["finger1"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.FINGER1)
+end
+
+---卸下戒指1
+function inventory_manager:inventory_unequipped_finger1()
+    self.m_equipping_dic["finger1"]["unique"] = 0
+    self.m_equipping_dic["finger1"]["tmpl"] = 0
+    self.m_equipping_dic["back"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.FINGER1)
+end
+
+-----佩戴戒指2
+function inventory_manager:inventory_equipped_finger2(wearable_info)
+    self.m_equipping_dic["finger2"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.FINGER2)
+end
+
+-----卸下戒指2
+function inventory_manager:inventory_unequipped_finger2()
+    self.m_equipping_dic["finger2"]["unique"] = 0
+    self.m_equipping_dic["finger2"]["tmpl"] = 0
+    self.m_equipping_dic["finger2"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.FINGER2)
+end
+
+----佩戴配饰1
+function inventory_manager:inventory_equipped_accessory1(wearable_info)
+    self.m_equipping_dic["accessory1"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.ACCESSORY1)
+end
+
+----卸下配饰1
+function inventory_manager:inventory_unequipped_accessory1()
+    self.m_equipping_dic["accessory1"]["unique"] = 0
+    self.m_equipping_dic["accessory1"]["tmpl"] = 0
+    self.m_equipping_dic["accessory1"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.ACCESSORY1)
+end
+
+----佩戴配饰2
+function inventory_manager:inventory_equipped_accessory2(wearable_info)
+    self.m_equipping_dic["accessory2"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.ACCESSORY2)
+end
+
+---卸下配饰2
+function inventory_manager:inventory_unequipped_accessory2()
+    self.m_equipping_dic["accessory2"]["unique"] = 0
+    self.m_equipping_dic["accessory2"]["tmpl"] = 0
+    self.m_equipping_dic["accessory2"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.ACCESSORY2)
+end
+
+----佩戴主手武器
+function inventory_manager:inventory_equipped_mainhand_weapon(wearable_info)
+    self.m_equipping_dic["mainhand_weapon"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.MAINHAND_WEAPON)
+end
+
+---卸下主手武器
+function inventory_manager:inventory_unequipped_mainhand_weapon()
+    self.m_equipping_dic["mainhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["mainhand_weapon"]["tmpl"] = 0
+    self.m_equipping_dic["mainhand_weapon"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.MAINHAND_WEAPON)
+end
+
+----佩戴副手武器
+function inventory_manager:inventory_equipped_offhand_weapon(wearable_info)
+    self.m_equipping_dic["offhand_weapon"] = wearable_info
+    self:emit_event("equipped", wearable_info, SharedEnum.WearableTarget.OFFHAND_WEAPON)
+end
+
+----卸下副手武器
+function inventory_manager:inventory_unequipped_offhand_weapon()
+    self.m_equipping_dic["offhand_weapon"]["unique"] = 0
+    self.m_equipping_dic["offhand_weapon"]["tmpl"] = 0
+    self.m_equipping_dic["offhand_weapon"]["lvl"] = 0
+    self:emit_event("unequipped", SharedEnum.WearableTarget.OFFHAND_WEAPON)
+end
+
+----快速穿装备 目前以装等为替换的准则 有些规则还没有完全确定，所以后续还要改动  temp
+function inventory_manager:quick_equipped(wearable_info)
+    if dbc.item[wearable_info["tmpl"]].derived_params[2] == 0 then
+        ---头盔
+        if self.m_equipping_dic["head"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["head"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.HEAD)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 1 then
+        if self.m_equipping_dic["shoulder"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["shoulder"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.SHOULDER)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 2 then
+        if self.m_equipping_dic["chest"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["chest"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.CHEST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 3 then
+        if self.m_equipping_dic["wrist"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["wrist"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.WRIST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 4 then
+        if self.m_equipping_dic["hands"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["hands"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.HANDS)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 5 then
+        if self.m_equipping_dic["waist"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["waist"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.WAIST)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 6 then
+        if self.m_equipping_dic["legs"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["legs"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.LEGS)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 7 then
+        if self.m_equipping_dic["feet"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["feet"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.FEET)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 8 then
+        if self.m_equipping_dic["neck"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["neck"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.NECK)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 9 then
+        if self.m_equipping_dic["back"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["back"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.BACK)
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 10 then
+        -----戒指有两个特殊处理
+        if self.m_equipping_dic["finger1"]["lvl"] <= self.m_equipping_dic["finger2"]["lvl"] then
+            if self.m_equipping_dic["finger1"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["finger1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.FINGER1)
+            end
+        elseif self.m_equipping_dic["finger2"]["lvl"] < self.m_equipping_dic["finger1"]["lvl"] then
+            if self.m_equipping_dic["finger2"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["finger2"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.FINGER2)
+            end
+        elseif self.m_equipping_dic["finger2"]["lvl"] == self.m_equipping_dic["finger1"]["lvl"] then
+            if self.m_equipping_dic["finger1"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["finger1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.FINGER1)
+            end
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 11 then
+        -----配饰有2个特殊处理
+        if self.m_equipping_dic["accessory1"]["lvl"] <= self.m_equipping_dic["accessory2"]["lvl"] then
+            if self.m_equipping_dic["accessory1"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["accessory1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.ACCESSORY1)
+            end
+        elseif self.m_equipping_dic["accessory2"]["lvl"] < self.m_equipping_dic["accessory1"]["lvl"] then
+            if self.m_equipping_dic["accessory2"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["accessory2"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.ACCESSORY2)
+            end
+        elseif self.m_equipping_dic["accessory2"]["lvl"] == self.m_equipping_dic["accessory1"]["lvl"] then
+            if self.m_equipping_dic["accessory1"]["lvl"] < wearable_info["lvl"] then
+                self.m_equipping_dic["accessory1"] = wearable_info
+                self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.ACCESSORY1)
+            end
+        end
+    elseif dbc.item[wearable_info["tmpl"]].derived_params[2] == 12 then
+        if self.m_equipping_dic["mainhand_weapon"]["lvl"] < wearable_info["lvl"] then
+            self.m_equipping_dic["mainhand_weapon"] = wearable_info
+            self:emit_event("quick_equipment", wearable_info, SharedEnum.WearableTarget.MAINHAND_WEAPON)
+        end
+    end
+end
+
+----获取到装备的列表
+function inventory_manager:gain_equipment_list()
+    return self.m_equipment_list
+end
+
+----获取到非装备的列表
+function inventory_manager:gain_unequipment_list()
+    return self.m_unequipment_list
+end
+
+----获取到装备位的数据
+function inventory_manager:gain_equiping_dic()
+    return self.m_equipping_dic
+end
+
+function inventory_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function inventory_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+------穿装备时向服务器请求的方法
+function inventory_manager:put_on_equipment_request_server(equipment_type, unique, id)
+    if equipment_type == SharedEnum.WearableTarget.HEAD then
+        self:base_call("inventory_equipping_head", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.SHOULDER then
+        self:base_call("inventory_equipping_shoulder", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.CHEST then
+        self:base_call("inventory_equipping_chest", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.WRIST then
+        self:base_call("inventory_equipping_wrist", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.HANDS then
+        self:base_call("inventory_equipping_hands", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.WAIST then
+        self:base_call("inventory_equipping_waist", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.LEGS then
+        self:base_call("inventory_equipping_legs", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.FEET then
+        self:base_call("inventory_equipping_feet", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.NECK then
+        self:base_call("inventory_equipping_neck", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.BACK then
+        self:base_call("inventory_equipping_back", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.FINGER1 then
+        self:base_call("inventory_equipping_finger1", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.FINGER2 then
+        self:base_call("inventory_equipping_finger2", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.ACCESSORY1 then
+        self:base_call("inventory_equipping_accessory1", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.ACCESSORY2 then
+        self:base_call("inventory_equipping_accessory2", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.MAINHAND_WEAPON then
+        self:base_call("inventory_equipping_mainhand_weapon", unique, id)
+    elseif equipment_type == SharedEnum.WearableTarget.OFFHAND_WEAPON then
+        self:base_call("inventory_equipping_offhand_weapon", unique, id)
+    end
+end
+
+function inventory_manager:get_off_equipment_request_server(equipment_type)
+    if equipment_type == SharedEnum.WearableTarget.HEAD then
+        self:base_call("inventory_unequipping_head")
+    elseif equipment_type == SharedEnum.WearableTarget.SHOULDER then
+        self:base_call("inventory_unequipping_shoulder")
+    elseif equipment_type == SharedEnum.WearableTarget.CHEST then
+        self:base_call("inventory_unequipping_chest")
+    elseif equipment_type == SharedEnum.WearableTarget.WRIST then
+        self:base_call("inventory_unequipping_wrist")
+    elseif equipment_type == SharedEnum.WearableTarget.HANDS then
+        self:base_call("inventory_unequipping_hands")
+    elseif equipment_type == SharedEnum.WearableTarget.WAIST then
+        self:base_call("inventory_unequipping_waist")
+    elseif equipment_type == SharedEnum.WearableTarget.LEGS then
+        self:base_call("inventory_unequipping_legs")
+    elseif equipment_type == SharedEnum.WearableTarget.FEET then
+        self:base_call("inventory_unequipping_feet")
+    elseif equipment_type == SharedEnum.WearableTarget.NECK then
+        self:base_call("inventory_unequipping_neck")
+    elseif equipment_type == SharedEnum.WearableTarget.BACK then
+        self:base_call("inventory_unequipping_back")
+    elseif equipment_type == SharedEnum.WearableTarget.FINGER1 then
+        self:base_call("inventory_unequipping_finger1")
+    elseif equipment_type == SharedEnum.WearableTarget.FINGER2 then
+        self:base_call("inventory_unequipping_finger2")
+    elseif equipment_type == SharedEnum.WearableTarget.ACCESSORY1 then
+        self:base_call("inventory_unequipping_accessory1")
+    elseif equipment_type == SharedEnum.WearableTarget.ACCESSORY2 then
+        self:base_call("inventory_unequipping_accessory2")
+    elseif equipment_type == SharedEnum.WearableTarget.MAINHAND_WEAPON then
+        self:base_call("inventory_unequipping_mainhand_weapon")
+    elseif equipment_type == SharedEnum.WearableTarget.OFFHAND_WEAPON then
+        self:base_call("inventory_unequipping_offhand_weapon")
+    end
+end
+
+function inventory_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return inventory_manager

@@ -1,0 +1,610 @@
+local ObserverHost = require "system.observer_host"
+
+local M = class("SkillMgr")
+M:include(ObserverHost)
+
+function M:initialize()
+	Event.init(self)
+
+	self.m_aoe_list = {}
+end
+
+function M:destroy()
+	
+	self:unsubscribeAll()
+end
+
+function M:update()
+
+end
+
+
+
+
+
+
+function M:add_aoe(unit, skill_id, target_pos)
+	-- print("@@@@@@@@ SkillMgr add_aoe", unit, skill_id, target_id, target_pos)
+	self.m_aoe_list[unit:get_id()] = self.m_aoe_list[unit:get_id()] or {}
+
+	local frame_mgr = app:getFrameMgr()
+	local world = frame_mgr:getFrame("world")
+	local aoe = world:add_aoe(dbc.spell[skill_id], target_pos)
+
+end
+
+-- 在world中添加显示skill_eft
+function M:add_skill_eft_at_pos(skill_id, sfx_type, target_pos, target_dir)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = skill_client_cfg[sfx_type]
+
+    -- 没有配置特效则返回 --
+    if type(sfx_path) == "table" then
+        if #sfx_path == 0 then
+            return
+        end
+    else
+        if sfx_path == nil or sfx_path == "" or sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx_path)
+            sfx_path = t
+        end
+    end
+
+    -- 创建特效
+    for i, v in ipairs(sfx_path) do
+        local sfx_path = v
+        local frame_mgr = app:getFrameMgr()
+        local world = frame_mgr:getFrame("world")
+        local sfx = world:add_skl_sfx(skill_id, sfx_path, target_pos, Vector3(0, target_dir, 0))
+    end
+
+end
+
+
+
+--function M:add_skill_eft_at_unit(unit, eft_type, skill_id, target_dir)
+--	local skill_client_cfg = dbc.spell_client[skill_id]
+--	local cast_sfx = skill_client_cfg[eft_type]
+--	if cast_sfx == nil or cast_sfx == "" or cast_sfx == "n" then
+--		return
+--	end
+--
+--	local frame_mgr = app:getFrameMgr()
+--	local world = frame_mgr:getFrame("world")
+--	local eft = world:add_skl_eft(dbc.spell[skill_id], eft_type, unit:get_pos(), Vector3(0, target_dir, 0))
+--	-- unit:set_dir(unit:get_skill_dir())
+--	unit:set_dir(target_dir)
+--end
+
+---@param skill_id 技能id
+---@param caster_unit 施法者unit
+-- 这里假设吟唱特效总是要添加为unit的子对象，或者说，跟随unit一起移动
+function M:add_skill_sing_eft(skill_id, caster_unit)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sing_sfx_path = skill_client_cfg.sing_sfx
+    -- 没有配置特效则返回 --
+    if type(sing_sfx_path) == "table" then
+        if #sing_sfx_path == 0 then
+            return
+        end
+    else
+        if sing_sfx_path == nil or sing_sfx_path == "" or sing_sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sing_sfx_path)
+            sing_sfx_path = t
+        end
+    end
+
+    -- 特效挂点列表
+    local sing_mount_point = skill_client_cfg.sing_mount_point
+    if type(sing_mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, sing_mount_point)
+        sing_mount_point = t
+    end
+
+    -- 创建特效
+    for i, v in ipairs(sing_sfx_path) do
+
+        local sfx_path = v
+        local mount_point = sing_mount_point[i]
+        if mount_point == nil then
+            -- todo 使用正确的缺省挂载点
+            mount_point = "bottom"
+        end
+
+        caster_unit:createChild(string.format("%s_%s_%s_%s_%s", "unit_sfx_sing", skill_id, i, os.time(), math.random()), "skill_sing_sfx",
+        {
+            unit = caster_unit,
+            sfx_path = sfx_path,
+            mount_point = mount_point,
+        })
+    end
+
+end
+---@param buff_data buff数据
+-- buff特效应该总是要添加为unit的子对象，跟随unit一起移动
+function M:add_buff_eft(buff_data, unit)
+    local skill_id = buff_data:get_spell_id()
+    local skill_client_cfg = dbc.spell_buff_client[buff_data:get_buff_id()]
+    if(skill_client_cfg == nil) then
+       Debug.LogError("skill_client_cfg == nil id-->"..tostring(buff_data:get_buff_id()))
+       return 
+    end
+    local buff_sfx_path = skill_client_cfg.buff_sfx
+    -- 没有配置特效则返回 --
+    if type(buff_sfx_path) == "table" then
+        if #buff_sfx_path == 0 then
+            return
+        end
+    else
+        if buff_sfx_path == nil or buff_sfx_path == "" or buff_sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, buff_sfx_path)
+            buff_sfx_path = t
+        end
+    end
+
+    -- 特效挂点列表
+    local mount_point = skill_client_cfg.buff_mount_point
+    if type(mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, mount_point)
+        mount_point = t
+    end
+
+    -- 创建特效
+    for i, v in ipairs(buff_sfx_path) do
+        print("the mount point for buff ", skill_id, mount_point[i])
+        local sfx_path = v
+        local mount_point = mount_point[i]
+        if mount_point == nil then
+            -- todo 使用正确的缺省挂载点
+            mount_point = "bottom"
+        end
+
+        unit:createChild(string.format("%s_%s_%s_%s_%s_%s", "unit_sfx_buff", skill_client_cfg.id, buff_data:get_slot(),
+        unit:get_id(),os.time(),i), "skill_buff_sfx",
+        {
+            unit = unit,
+            sfx_path = sfx_path,
+            mount_point = mount_point,
+            buff_data = buff_data,
+        })
+    end
+
+end
+
+
+
+-- 在角色中添加自动销毁技能特效
+function M:add_autodestory_sklsfx_in_unit(skill_id, sfx_type, mount_point_type, unit)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = skill_client_cfg[sfx_type]
+
+    -- 没有配置特效则返回 --
+    if type(sfx_path) == "table" then
+        if #sfx_path == 0 then
+            return
+        end
+    else
+        if sfx_path == nil or sfx_path == "" or sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx_path)
+            sfx_path = t
+        end
+    end
+
+    -- 特效挂点列表
+    local mount_point = skill_client_cfg[mount_point_type]
+    if type(mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, mount_point)
+        mount_point = t
+    end
+
+    -- 创建特效
+    for i, v in ipairs(sfx_path) do
+        local path = v
+        local mount_point = mount_point[i]
+        if mount_point == nil then
+            -- todo 使用正确的缺省挂载点
+            mount_point = "bottom"
+        end
+
+        unit:createChild(string.format("%s_%s_%s_%s_%s_%s", "unit_sfx", sfx_type, skill_id, i, os.time(), math.random()),
+        "unit_auto_destroy_sfx",
+        {
+            unit = unit,
+            sfx_path = path,
+            mount_point = mount_point,
+        })
+    end
+
+end
+
+function M:add_aim_sfx_in_unit(skill_id, unit)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = skill_client_cfg[Enum_Battle.Skill_Sfx_Type.AIM]
+
+    -- 没有配置特效则返回 --
+    if type(sfx_path) == "table" then
+        if #sfx_path == 0 then
+            return
+        end
+    else
+        if sfx_path == nil or sfx_path == "" or sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx_path)
+            sfx_path = t
+        end
+    end
+
+    -- 特效挂点列表
+    local mount_point = skill_client_cfg[Enum_Battle.Skill_Mount_Point_Type.AIM]
+    if type(mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, mount_point)
+        mount_point = t
+    end
+    
+    local all_sfx = {}
+        -- 创建特效
+    for i, v in ipairs(sfx_path) do
+        local path = v
+        local mount_point = mount_point[i]
+        if mount_point == nil then
+            -- todo 使用正确的缺省挂载点
+            mount_point = "bottom"
+        end
+
+        local sfx_frame = unit:createChild(string.format("%s_%s_%s_%s_%s_%s", "aim_sfx", Enum_Battle.Skill_Sfx_Type.AIM, skill_id, i, os.time(), math.random()),
+        "unit_auto_destroy_sfx",
+        {
+            unit = unit,
+            sfx_path = path,
+            mount_point = mount_point,
+        })
+        table.insert(all_sfx,sfx_frame)
+    end
+
+    return all_sfx
+end
+
+
+-- 预加载某技能的有关资源
+function M:preload_skill_asset(model_id,skill_id)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local anima_assest = {"sing_anim_a","sing_anim_b","instant_anim","hit_anim"}
+    local sfx_assest = Enum_Battle.Skill_Sfx_Type
+    if(skill_client_cfg == nil) then
+        Debug.LogError("预加载某技能的有关资源失败，model_id："..tostring(model_id).." skill_id: "..tostring(skill_id))
+        return 
+    end
+    for k, v in pairs(anima_assest) do
+        local asset_path =  model_mgr.GetAnimationPathById(model_id, skill_client_cfg[v])
+        if asset_path == nil or asset_path == "" or asset_path == "n" then
+            -- do nothing
+        elseif(type(asset_path)== "table") then
+            for i, j in pairs(asset_path) do
+                self:subscribe(app:getResMgr():rxLoad(j),function(asset_ref)
+                    --print("-------预加载动作:", asset_ref.asset)
+                end)
+            end
+        else
+            self:subscribe(app:getResMgr():rxLoad(asset_path), function(asset_ref)
+                --print("-------预加载动作:",asset_ref.asset)
+            end)
+        end
+    end
+
+    for k, v in pairs(sfx_assest) do
+        if(v == Enum_Battle.Skill_Sfx_Type.BUFF) then
+            --local asset_path = dbc.spell_client[skill_id][v] 
+        else
+            local asset_path = skill_client_cfg[v]
+        end
+
+        
+        if asset_path == nil or asset_path == "" or asset_path == "n" then
+            -- do nothing
+        elseif(type(asset_path)== "table") then
+            for i, j in pairs(asset_path) do
+                self:subscribe(app:getResMgr():rxLoad(j),function(asset_ref)
+                    --print("-------预加载特效:", asset_ref.asset)
+                end)
+            end
+        else
+            self:subscribe(app:getResMgr():rxLoad(asset_path), function(asset_ref)
+                --print("-------预加载特效:",asset_ref.asset)
+            end)
+        end
+    end
+end
+
+function M:preload_atk_asset_by_path(model_id,path)
+    self:subscribe(app:getResMgr():rxLoad(model_mgr.GetAnimationPathById(model_id, path)),function(asset_ref)
+        --print("-------预加载普通攻击:", asset_ref.asset)
+    end)
+end
+
+
+function M:get_skill_effect_cfg(skill_id, index)
+    local skill_effect_table = dbc.spell_effect
+
+    for k, v in pairs(skill_effect_table) do
+        if v.spell_id == skill_id and v.index == index then
+            --print("-------get_skill_effect_cfg", v.spell_id, v.index, v.radius)
+            return v
+        end
+    end
+
+    return nil
+end
+
+-- 从某unit向另一个unit发射飞弹
+function M:shoot_projectile_at_unit(skill_id, caster_unit, target_unit, on_hit)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = skill_client_cfg[Enum_Battle.Skill_Sfx_Type.CAST]
+
+    -- 没有配置特效则返回 --
+    if type(sfx_path) == "table" then
+        if #sfx_path == 0 then
+            return
+        end
+    else
+        if sfx_path == nil or sfx_path == "" or sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx_path)
+            sfx_path = t
+        end
+    end
+
+    -- 飞弹起点挂点列表
+    local start_mount_point = skill_client_cfg[Enum_Battle.Skill_Mount_Point_Type.CAST_START]
+    if type(start_mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, start_mount_point)
+        start_mount_point = t
+    end
+
+    -- 飞弹终点挂点列表
+    local end_mount_point = skill_client_cfg[Enum_Battle.Skill_Mount_Point_Type.CAST_END]
+    if type(end_mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, end_mount_point)
+        end_mount_point = t
+    end
+
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+
+    -- 创建飞弹
+    for i, v in ipairs(sfx_path) do
+        local projectile = world:add_projectile(skill_id, v, caster_unit, on_hit)
+
+        -- 飞弹初始位置 角色发射挂点
+        local skill_client_cfg = dbc.spell_client[skill_id]
+        local mount_point = start_mount_point[i]
+
+        local parent = caster_unit:get_bone(mount_point)
+        if parent ~= nil then
+            --print("********* found a bone", mount_point)
+            projectile:set_pos(parent.position)
+        else
+            --print("********* no bone", mount_point)
+            projectile:set_pos(caster_unit:get_pos())
+        end
+
+        local ProjectionAction = require("frame.projectile_action")
+        projectile:set_action(ProjectionAction.FlyToUnit(projectile, target_unit, end_mount_point[i], on_hit))
+    end
+
+end
+
+
+-- 从某unit向世界某位置发射飞弹
+function M:shoot_projectile_at_pos(skill_id, caster_unit, target_pos, on_hit)
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local sfx_path = skill_client_cfg[Enum_Battle.Skill_Sfx_Type.CAST]
+
+    -- 没有配置特效则返回 --
+    if type(sfx_path) == "table" then
+        if #sfx_path == 0 then
+            return
+        end
+    else
+        if sfx_path == nil or sfx_path == "" or sfx_path == "n" then
+            return
+        else
+            local t = {}
+            table.insert(t, sfx_path)
+            sfx_path = t
+        end
+    end
+
+    -- 飞弹起点挂点列表
+    local start_mount_point = skill_client_cfg[Enum_Battle.Skill_Mount_Point_Type.CAST_START]
+    if type(start_mount_point) ~= "table" then
+        local t = {}
+        table.insert(t, start_mount_point)
+        start_mount_point = t
+    end
+
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+    -- 创建飞弹
+    for i, v in ipairs(sfx_path) do
+        local projectile = world:add_projectile(skill_id, v, caster_unit, on_hit)
+
+        -- 飞弹初始位置 角色发射挂点
+        local skill_client_cfg = dbc.spell_client[skill_id]
+        local mount_point = start_mount_point[i]
+
+        local parent = caster_unit:get_bone(mount_point)
+        if parent ~= nil then
+            --print("********* found a bone", mount_point)
+            projectile:set_pos(parent.position)
+        else
+            --print("********* no bone", mount_point)
+            projectile:set_pos(caster_unit:get_pos())
+        end
+
+        local ProjectionAction = require("frame.projectile_action")
+        projectile:set_action(ProjectionAction.FlyToPos(projectile, target_pos, on_hit))
+    end
+end
+
+
+
+
+-- 技能作用目标类型判断 --
+-- 是否无需手动选择一个目标
+---@ skill_effect_list table 某技能的effect列表
+function M:is_target_type_none(skill_effect_list)
+    -- 有任一effect需要即为false
+    for i, v in ipairs(skill_effect_list) do
+        local target_type = v.target
+        -- 如果目标类型为【无目标】或者【施法者】系列(不含CASTER_CONE_ENEMY),则无需手动选择一个目标
+        if target_type == SharedEnum.SpellEffectTarget.NONE or
+        target_type == SharedEnum.SpellEffectTarget.CASTER or
+        target_type == SharedEnum.SpellEffectTarget.CASTER_AREA or
+        target_type == SharedEnum.SpellEffectTarget.CASTER_AREA_ENEMY or
+        target_type == SharedEnum.SpellEffectTarget.CASTER_AREA_ALLY or
+        target_type == SharedEnum.SpellEffectTarget.CASTER_AREA_PARTY or
+        target_type == SharedEnum.SpellEffectTarget.CASTER_AREA_RAID
+        then
+            -- do nothing
+        else
+            return false
+        end
+    end
+    return true
+end
+
+
+-- 是否需要手动指定目标对象
+function M:is_target_type_target(skill_effect_list)
+    -- 有任一effect需要即为true
+    for i, v in ipairs(skill_effect_list) do
+        local target_type = v.target
+        -- 如果目标类型为【目标】系列,则需手动选择一个目标
+        if target_type == SharedEnum.SpellEffectTarget.TARGET or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_ENEMY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_ALLY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_PARTY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_RAID or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_AREA or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_AREA_ENEMY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_AREA_ALLY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_AREA_PARTY or
+        target_type == SharedEnum.SpellEffectTarget.TARGET_AREA_RAID
+        then
+            return true
+        end
+    end
+    return false
+end
+
+
+-- 是否需要手动指定目标点区域
+---@ skill_effect_list table 某技能的effect列表
+function M:is_target_type_dest_area(skill_effect_list)
+    -- 有任一effect需要指定目标点区域即为true
+    for i, v in ipairs(skill_effect_list) do
+        local target_type = v.target
+        if target_type == SharedEnum.SpellEffectTarget.DEST_AREA or
+        target_type == SharedEnum.SpellEffectTarget.DEST_AREA_ENEMY or
+        target_type == SharedEnum.SpellEffectTarget.DEST_AREA_ALLY or
+        target_type == SharedEnum.SpellEffectTarget.DEST_AREA_RAID
+        then
+            return true
+        end
+    end
+    return false
+end
+
+-- 是否需要手动指定施法角度
+---@ skill_effect_list table 某技能的effect列表
+function M:is_target_type_dir(skill_effect_list)
+    -- 有任一effect需要指定即为true
+    for i, v in ipairs(skill_effect_list) do
+        local target_type = v.target
+        if target_type == SharedEnum.SpellEffectTarget.CASTER_CONE_ENEMY then
+            return true
+        end
+    end
+    return false
+end
+
+-- 是否为瞬移技能
+function M:is_teleport_skill(skill_effect_list)
+    -- 有任一effect为瞬移即为true
+    for i, v in ipairs(skill_effect_list) do
+        local effect_type = v.type
+        -- 临时做法 以后会统一由服务器通知
+        if effect_type == 12 then
+            return true , v.base_point
+        end
+    end
+    return false
+end
+
+
+-- 获得指定技能的effet列表
+function M:get_effect_cfg_list(skill_id)
+    local list = {}
+    local skill_effect_table = dbc.spell_effect
+    for i, v in pairs(skill_effect_table) do
+        if v.spell_id == skill_id then
+            table.insert(list, v)
+        end
+    end
+    return list
+end
+
+-- 获取指定技能的最大作用范围
+---@ param is_include_trigger_spell bool 是否(递归)包含触发技能
+function M:get_skill_max_radius(skill_id, is_include_trigger_spell)
+    local ret = 0
+    local effect_list = M.get_effect_cfg_list(self, skill_id)
+    for i, v in pairs(effect_list) do
+        if is_include_trigger_spell then
+            local trigger_spell_id = v.trigger_spell
+            if trigger_spell_id ~= 0 or trigger_spell_id ~= nil or trigger_spell_id ~= ""then
+                local trigger_spell_max_r = M.get_skill_max_radius(self, trigger_spell_id, is_include_trigger_spell)
+                if trigger_spell_max_r > ret then
+                    ret = trigger_spell_max_r
+                end
+            end
+        end
+
+        if v.radius > ret then
+            --print("^^^^^^^^^^^^^^^^^^^^larger radius", skill_id, i, v.radius)
+            ret = v.radius
+        end
+    end
+
+    return ret
+end
+
+
+
+
+
+
+
+return M

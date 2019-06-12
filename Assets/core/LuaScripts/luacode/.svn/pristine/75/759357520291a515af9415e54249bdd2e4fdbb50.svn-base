@@ -1,0 +1,17 @@
+local Frame = require("system.frame")
+local quest_ui_list_item = class("quest_ui_list_item_view", Frame)
+
+-- 选择
+Event.decl(quest_ui_list_item, "selected")
+-- 未选择
+Event.decl(quest_ui_list_item, "unselected")
+-- 关注/取消关注
+Event.decl(quest_ui_list_item, "interest")
+
+
+function quest_ui_list_item:doInit()
+
+end
+
+
+return quest_ui_list_item

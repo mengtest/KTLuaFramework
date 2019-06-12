@@ -1,0 +1,26 @@
+---
+--- Created by 7.
+--- DateTime: 2018/1/3 12:31
+---
+
+local ClassA=class("ClassA")
+
+ClassA.a=0
+ClassA.b=0
+
+Attribute.decl(ClassA,"attrA",5)
+
+function ClassA:initialize()
+    Attribute.init(self)
+    self.a=a
+    self.b=b
+
+
+    self:doInit()
+end
+
+function ClassA:doInit()
+    print("初始化classA")
+end
+
+return ClassA

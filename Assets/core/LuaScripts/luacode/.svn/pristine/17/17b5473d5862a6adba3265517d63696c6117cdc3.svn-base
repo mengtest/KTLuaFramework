@@ -1,0 +1,23 @@
+local rows = {}
+rows[1] = {['id']=1,['map_id']=10001,['pos']={122.1,40.0,485.2},['dir']=4.71,['condi']={1},['condi_param']={1},['teleport_point_name']='监神者营地',['teleport_point_desc']='',['client_map_pos']={122.1,485.2}}
+rows[2] = {['id']=2,['map_id']=1005,['pos']={854.6,50.0,264.5},['dir']=4.71,['condi']={2},['condi_param']={301},['teleport_point_name']='刘家村',['teleport_point_desc']='大唐边境地，流放之民组成的村庄',['client_map_pos']={854.6,264.5}}
+rows[3] = {['id']=3,['map_id']=1005,['pos']={671.8,50.7,544.0},['dir']=4.71,['condi']={2},['condi_param']={321},['teleport_point_name']='平天寨',['teleport_point_desc']='大唐边境地，有平天志向的边境小妖自立的妖兽之寨。',['client_map_pos']={671.8,544.0}}
+rows[4] = {['id']=4,['map_id']=1005,['pos']={519.6,52.0,325.5},['dir']=4.71,['condi']={2},['condi_param']={321},['teleport_point_name']='难民营',['teleport_point_desc']='大唐边境地，因妖兽之乱而流离失所的村民聚集处',['client_map_pos']={519.6,325.5}}
+rows[5] = {['id']=5,['map_id']=1005,['pos']={321.6,49.3,132.7},['dir']=4.71,['condi']={2},['condi_param']={321},['teleport_point_name']='无名湖',['teleport_point_desc']='大唐边境地唯一水泽。昔年曾有人引此境外之水覆灭妖兽大军。后围而成湖。',['client_map_pos']={321.6,132.7}}
+rows[6] = {['id']=6,['map_id']=1005,['pos']={804.3,49.2,719.5},['dir']=4.71,['condi']={2},['condi_param']={321},['teleport_point_name']='骨冢战场',['teleport_point_desc']='昔年边境妖兽被镇压之地，荒骨仍在诉说着战时的不甘。',['client_map_pos']={804.3,719.5}}
+rows[7] = {['id']=7,['map_id']=1005,['pos']={645.6,40.2,903.1},['dir']=4.71,['condi']={1},['condi_param']={1},['teleport_point_name']='列佛古道',['teleport_point_desc']='大唐边境一处崩陷之地，地底似有妖兽不时嘶吼。',['client_map_pos']={645.6,903.1}}
+rows[8] = {['id']=8,['map_id']=1005,['pos']={461.4,85.3,814.5},['dir']=4.71,['condi']={1},['condi_param']={1},['teleport_point_name']='法门寺山门',['teleport_point_desc']='大唐境内最为恢弘的皇家寺庙，也是昔年唐僧在大唐境内最后的讲经之地。',['client_map_pos']={461.4,814.5}}
+rows[9] = {['id']=9,['map_id']=1005,['pos']={470.7,45.3,572.8},['dir']=4.71,['condi']={2},['condi_param']={332},['teleport_point_name']='双叉岭',['teleport_point_desc']='大唐境内虎狼之地，多狂野兽群。',['client_map_pos']={470.7,572.8}}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+	[6] = rows[6],
+	[7] = rows[7],
+	[8] = rows[8],
+	[9] = rows[9],
+}
+return datas

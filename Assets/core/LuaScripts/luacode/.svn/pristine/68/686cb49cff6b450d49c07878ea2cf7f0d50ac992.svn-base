@@ -1,0 +1,13 @@
+local UICharacterInfoView = {}
+function UICharacterInfoView:doInit()
+    local ui_manager = app:get_ui_manager()
+    self:load("ui/CharacterAttr.prefab", function(go)
+        ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local closebtn = go.transform:Find("Rolecharacterinfo/Close_btn").gameObject:GetComponent(UnityEngine.UI.Button)
+        closebtn.onClick:AddListener(function()
+            self.m_mgr:getView("ui_character_info"):getGO():SetActive(false)
+        end)
+    end)
+end
+
+return UICharacterInfoView

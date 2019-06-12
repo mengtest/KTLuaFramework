@@ -1,0 +1,77 @@
+﻿--人物模型选择 模型路径+名称 动作通过目录来找
+local RoleCfg=
+{
+	["modelPath"]='Assets/models/Role/pc/luocha/luocha2.prefab',
+	["parentPath"]='pc/luocha',
+}
+
+local SkillCfg=
+{
+	["id"]=100001,
+	["name"]='火球术',
+	["icon"]='ui/Icons/skill/903001.png',
+	["cdIcon"]='ui/Icons/skill/skillbtn/cd_mask.png',
+	["random"]='',
+	["targetMode"]=1,
+	["showTeamHeader"]=false,
+	["singActionMask"]=true,
+	["castActionMask"]=true,
+	["castLookatParam"]='',
+	["xmodeAngle"]=60,
+	["moveEffect"]=0,
+	["jumpHeight"]=0,
+	["moveSpeed"]=0,
+	["displayID"]=0,
+	["moveAnim"]='',
+	["singActionA"]='hqs_mskillsing_a',
+	["singActionB"]='hqs_mskillsing_b',
+	["singVfx"]={},
+	["singVfxMountPoint"]='',
+	["singSfx"]=0,
+	["channelLoop"]=false,
+	["channelAnim"]='',
+	["channelVfx"]=';',
+	["channelVfxMountPoint"]='',
+	["castAction"]='hqs_mskillcast',
+	["castVfx"]='',
+	["castVfxMountPoint"]='',
+	["castEndVfx"]={'sfx/skill/prefab/pc/luocha/hqs/ls_hqs_qishou_a.prefab',},
+	["castEndVfxMountPoint"]='',
+	["castEndSfx"]=110302,
+	["processVfxEventSwitch"]=true,
+	["processVfx"]={'sfx/skill/prefab/pc/luocha/hqs/ls_hqs_feidan_a.prefab',},
+	["processVfxMountPoint"]='chest',
+	["processEndVfxMountPoint"]='chest',
+	["processLockVfx"]={},
+	["processLockVfxMountPoint"]='',
+	["bulletMotonType"]='',
+	["gethitAction"]='',
+	["gethitVfx"]={'sfx/skill/prefab/pc/luocha/hqs/ls_hqs_baodian_a.prefab',},
+	["gethitVfxMountPoint"]='chest',
+	["gethitSfx"]=110310,
+	["spacehitVfx"]='',
+	["chargeVfx"]={},
+	["chargeVfxMountPoint"]='',
+	["bossIndicatorDuration"]=0,
+	["specializationBgPath"]='ui/Icons/skill/skillcast/tiao_di.png',
+	["specializationFillPath"]='ui/Icons/skill/skillcast/tiao_dutiaozhong.png',
+	["specializationBrightPath"]='ui/Icons/skill/skillcast/tiao_liang.png',
+	["specializationInterruptPath"]='ui/Icons/skill/skillcast/tiao_daduan.png',
+	["isPassive"]=false,
+	["castDistance"]=16,
+	["castTime"]=2.25,
+	["singSwitch"]=true,
+	["channelInterval"]=0,
+	["ballisticSpeed"]=16,
+	["canMoveWhileCasting"]=false,
+	["effectTarget"]=9,
+	["effectType"]=1,
+	["maxEffectRadius"]=10,
+}
+
+local MonstersCfg=
+{
+	[1]={["id"]=32132132,["modelPath"]='Assets/models/Role/pc/luocha/JingTong.prefab',["parentPath"]='pc/luocha',["hitAnimPath"]='',["x"]=0,["y"]=0,["z"]=0,},
+}
+
+return {["role"]=RoleCfg,["skill"]=SkillCfg,["monsters"]=MonstersCfg,}

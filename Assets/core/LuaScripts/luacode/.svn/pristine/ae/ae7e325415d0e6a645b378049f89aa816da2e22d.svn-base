@@ -1,0 +1,158 @@
+---
+--- Created by xiaojingli.
+--- DateTime: 2018/1/17 14:26
+---
+local Frame = require("system.frame")
+local trace_quest_bar = class("trace_quest_bar", Frame)
+
+Attribute.decl(trace_quest_bar, "hide_trace_index", 0)
+
+Event.decl(trace_quest_bar, "refresh_trace_quest_list")
+Event.decl(trace_quest_bar, "refresh_trace_quest_list_to_mini_map")
+Event.decl(trace_quest_bar, "refresh_quest_condition")
+Event.decl(trace_quest_bar, "show_finish_quest")
+Event.decl(trace_quest_bar, "show_new_quest")
+Event.decl(trace_quest_bar, "refresh_quest_dis")
+
+function trace_quest_bar:doInit()
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_trace_list = {}
+    self.m_trace_frame_list = {}
+
+    self:subscribe(self.m_quest_manager:on_event("add_interact_quest"), function(quest_data)
+        self:local_log("trace_quest_bar:doInit-------------------->>add_interact_quest   quest_id:" .. quest_data:get_quest_id())
+        self:refresh_all()
+    end)
+    self:subscribe(self.m_quest_manager:on_event("show_new_quest"), function(quest_data)
+        self:local_log("trace_quest_bar:doInit-------------------->>show_new_quest   quest_id:" .. quest_data:get_quest_id())
+        self:refresh_all()
+        --self:emit_event("show_new_quest", quest_data)
+    end)
+    --初始化时
+    self:subscribe(self.m_quest_manager:on_event("rec_quest_all"), function()
+        self:local_log("trace_quest_bar:doInit-------------------->>rec_quest_all")
+        self:refresh_all()
+    end)
+    self:subscribe(self.m_quest_manager:on_event("update_quest_condition"), function(id)
+        self:local_log("trace_quest_bar:doInit-------------------->>update_quest_condition   quest_id:" .. id)
+        self:emit_event("refresh_quest_condition", id)
+    end)
+    self:subscribe(self.m_quest_manager:on_event("show_finish_quest"), function(quest_data)
+        self:local_log("trace_quest_bar:doInit-------------------->>show_finish_quest   quest_id:" .. quest_data:get_quest_id())
+        if quest_data == nil then
+            return
+        end
+        self:refresh_all()
+        self:emit_event("show_finish_quest", quest_data)
+    end)
+    self:subscribe(self.m_quest_manager:on_event("del_quest"), function(quest_id)
+        self:local_log("trace_quest_bar:doInit-------------------->>del_quest   quest_id:" .. quest_id)
+        self:refresh_all()
+    end)
+
+    local unit = self:getFrame("world"):get_main_player()
+    self:subscribe(unit:on_event_pos_set(false), function(old_pos, new_pos)
+        self:emit_event("refresh_quest_dis")
+        self:refresh_all()
+    end)
+
+    self:subscribe(self:getFrame("world"):on_event_attr_set("map_id", true), function(val)
+        self:local_log("trace_quest_bar:doInit-------------------->>map_id:" .. val)
+        self:refresh_all()
+    end)
+end
+
+function trace_quest_bar:on_loaded()
+    --新接任务显示
+    self.m_trace_frame_list[0] = self:createChild("trace_quest_item_0", "%subsystem.quest.quest_bar.trace_quest_item", { ["outline_color"] = Color(0.13, 0.68, 0.32, 1) })
+    --追踪任务1显示
+    self.m_trace_frame_list[1] = self:createChild("trace_quest_item_1", "%subsystem.quest.quest_bar.trace_quest_item", { ["outline_color"] = Color(0.13, 0.68, 0.32, 1) })
+    --追踪任务2显示
+    self.m_trace_frame_list[2] = self:createChild("trace_quest_item_2", "%subsystem.quest.quest_bar.trace_quest_item", { ["outline_color"] = Color(0.69, 0.50, 0.15, 1) })
+end
+
+function trace_quest_bar:refresh_all()
+    local quest_list = self.m_quest_manager:get_quest_list_for_sider_bar2()
+    if quest_list == nil or utility.table:count(quest_list) == 0 then
+        for i = 0, 3 do
+            if self.m_trace_frame_list[i] then
+                self.m_trace_frame_list[i]:set_quest_data(nil)
+                if self.m_trace_list[i] then
+                    self.m_trace_list[i]:set_is_traced(false)
+                    self.m_trace_list[i]:set_index(0)
+                    self.m_trace_list[i] = nil
+                end
+            end
+        end
+        return
+    end
+
+    --为了防止新任务追踪栏和两个任务追踪栏同时出现
+    if self.m_trace_frame_list[0] then
+        self.m_trace_frame_list[0]:set_quest_data(nil)
+    end
+    if self:get_hide_trace_index() ~= 0 then
+        self.m_trace_frame_list[self:get_hide_trace_index()]:show()
+    end
+
+    for i = 1, 2 do
+        if self.m_trace_list[i] then
+            self.m_trace_list[i]:set_is_traced(false)
+            self.m_trace_list[i]:set_index(0)
+        end
+    end
+
+    local count = 0
+    for i = 1, 2 do
+        if self.m_trace_list[i] then
+            self:local_log("trace_quest_bar:refresh_all-------------------->>trace_" .. i .. "  not is nil   id:" .. self.m_trace_list[i]:get_quest_id())
+            if quest_list[i] then
+                self:local_log("trace_quest_bar:refresh_all-------------------->>quest_" .. i .. "  not is nil   id:" .. quest_list[i]:get_quest_id())
+                if self.m_trace_list[i] == quest_list[i] and self.m_trace_list[i]:get_quest_id() == quest_list[i]:get_quest_id() then
+                    if self.m_trace_frame_list[i] then
+                        self.m_trace_frame_list[i]:refresh_txt_title()
+                        self.m_trace_frame_list[i]:refresh_txt_sketch()
+                        self.m_trace_frame_list[i]:refresh_schdule()
+                        self.m_trace_frame_list[i]:refresh_aim_info()
+                    end
+                    count = count + 1
+                else
+                    self.m_trace_list[i] = quest_list[i]
+                end
+                self.m_trace_list[i]:set_is_traced(true)
+                self.m_trace_list[i]:set_index(i)
+            else
+                self.m_trace_list[i] = nil
+                self.m_trace_frame_list[i]:set_quest_data(nil)
+            end
+        else
+            self:local_log("trace_quest_bar:refresh_all-------------------->>trace_" .. i .. "  is nil")
+            if quest_list[i] then
+                self.m_trace_list[i] = quest_list[i]
+                self.m_trace_list[i]:set_is_traced(true)
+                self.m_trace_list[i]:set_index(i)
+            else
+                if self.m_trace_frame_list[i] then
+                    self.m_trace_frame_list[i]:set_quest_data(nil)
+                end
+            end
+        end
+    end
+
+    self:emit_event("refresh_trace_quest_list_to_mini_map", self.m_trace_list)
+
+    --注释是为了解决重新上线后任务追踪栏不显示的bug
+    --if count < 2 then
+    self:emit_event("refresh_trace_quest_list")
+    --end
+end
+
+function trace_quest_bar:get_trace_quest_list()
+    return self.m_trace_list
+end
+
+function trace_quest_bar:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return trace_quest_bar

@@ -1,0 +1,100 @@
+local Frame = require("system.frame")
+local fashion_select_model = class("fashion_select_model", Frame)
+
+local Exhibition = require("subsystem.exhibition")
+
+function fashion_select_model:doInit()
+    --local world = self:getFrame("world")
+    --self.m_unit = world:get_main_player()
+    self.m_model_dict = {}
+    self.m_cur_model = nil
+
+    self.m_rotate_obj_dict = {}
+    self.m_cur_rotate_obj = nil
+
+    self.m_func_rotate = nil
+end
+
+function fashion_select_model:scene_loaded(scene_name, obj)
+    local rotate_obj = self.m_rotate_obj_dict[scene_name]
+    if rotate_obj then
+        self.m_cur_rotate_obj = rotate_obj
+    else
+        self.m_rotate_obj_dict[scene_name] = obj
+        self.m_cur_rotate_obj = self.m_rotate_obj_dict[scene_name]
+        self.m_tr.parent = obj.transform
+        --self.m_tr.localPosition = Vector3.zero
+    end
+end
+
+function fashion_select_model:load_model(suit_data)
+    local cur_model = self.m_model_dict[suit_data.model_body_id]
+    if self.m_cur_model then
+        self.m_cur_model:stop()
+    end
+    ---将旋转体的旋转复位
+    if self.m_cur_rotate_obj then
+        self.m_cur_rotate_obj.transform.rotation = Vector3.zero
+    end
+    if cur_model then
+        self.m_cur_model = cur_model
+        cur_model:start()
+    else
+        self:create_ctrller(suit_data, function(model)
+            self.m_cur_model = model
+            model:start()
+        end)
+    end
+end
+
+function fashion_select_model:create_ctrller(suit_data, cb)
+    if not suit_data then
+        app:logError("未找到指定的套装数据，请检查配表")
+    end
+    local model_id = suit_data.model_body_id
+    --local exhibition_id = dbc.exhibition[data.exhibition_id] and data.exhibition_id or 1
+    local exhibition_id = dbc.exhibition[suit_data.exhibition_id] and suit_data.exhibition_id or 1
+    self:subscribe(app:getResMgr():rxLoad(app:get_model_mgr().GetPrefabPathById(model_id)), function(asset)
+        local go = Object.Instantiate(asset)
+        self.m_tr = go.transform
+        self.m_tr.rotation = Vector3.zero
+        self.m_tr.localScale = Vector3.one * suit_data.model_scale
+        self.m_model_dict[model_id] = Exhibition:new(go, exhibition_id)
+        --local specialization = self.m_unit:get_specialization()
+        --self:handleWeapon(go, specialization)
+        if self.m_cur_rotate_obj then
+            self.m_cur_rotate_obj.transform.rotation = Vector3.zero
+            self.m_tr.parent = self.m_cur_rotate_obj.transform
+            self.m_tr.localPosition = Vector3(suit_data.model_pos[1], suit_data.model_pos[2], suit_data.model_pos[3])
+        end
+        if cb then
+            cb(self.m_model_dict[model_id])
+        end
+    end)
+end
+
+function fashion_select_model:start_rotate(is_clockwise, speed)
+    local rot_speed = 360 / 6 * speed
+    rot_speed = is_clockwise and rot_speed or -rot_speed
+    self.m_func_rotate = function(self)
+        self.m_cur_rotate_obj.transform:Rotate(Vector3.up, rot_speed * Time.deltaTime)
+    end
+end
+
+function fashion_select_model:on_rotate()
+    if self.m_func_rotate then
+        self:m_func_rotate()
+    end
+end
+
+function fashion_select_model:stop_rotate()
+    self.m_func_rotate = nil
+end
+
+function fashion_select_model:doUpdate()
+    if self.m_cur_model then
+        self.m_cur_model:update()
+    end
+end
+
+return fashion_select_model

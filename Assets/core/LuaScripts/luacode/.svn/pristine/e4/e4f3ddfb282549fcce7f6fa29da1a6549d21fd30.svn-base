@@ -1,0 +1,42 @@
+local Frame = require("system.frame")
+local backpack_equipment_main = class("backpack_equipment_main", Frame)
+
+Event.decl(backpack_equipment_main, "hide_tips")
+-- Event.decl(backpack_equipment_main, "warehouse_select")
+-- Event.decl(backpack_equipment_main, "hide_view")
+
+function backpack_equipment_main:doInit(param)
+    self.m_tips_param = {}
+end
+
+function backpack_equipment_main:on_loaded()
+    -- 背包
+    self:createChild("backpack_list", "backpack_equipment/backpack/backpack_list")
+
+    -- 装备
+    self:createChild("equipment_list", "backpack_equipment/backpack/equipment_list")
+
+    -- tips
+    self:createChild("equipment_tips_parent", "backpack_equipment/backpack/equipment_tips_parent", self.m_tips_param)
+
+    -- 人物属性面板
+    local sdk = app:getKBESDK()
+    self:createChild("ui_character_info", "backpack_equipment/backpack/ui_character_info", { role_id = sdk:get_player_id() })
+
+    -- 试衣间（时装）
+    self:createChild("fashionable_dress_list","backpack_equipment/ware_house/fashionable_dress_list")
+    -- 时装信息面板
+    self:createChild("fashionable_dress_info_show","backpack_equipment/ware_house/fashionable_dress_info_show")
+    -- 时装预览模型界面
+    self:createChild("fashion_select_model","backpack_equipment/ware_house/fashion_select_model")
+end
+
+function backpack_equipment_main:get_param(max_height)
+    self.m_tips_param['max_height'] = max_height
+end
+
+function backpack_equipment_main:need_hide_tips()
+    self:emit_event("hide_tips")
+end
+
+return backpack_equipment_main

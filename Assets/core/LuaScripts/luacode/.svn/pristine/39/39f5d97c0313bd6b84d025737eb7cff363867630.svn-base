@@ -1,0 +1,12 @@
+local M = {}
+
+
+function M:doInit(skill_data)
+    self.m_skill_data = skill_data     --技能数据
+end
+
+function M:get_skill_data()
+    return self.m_skill_data
+end
+
+return M

@@ -1,0 +1,7 @@
+local rows = {}
+rows[1] = {['drop_id']=1000,['rand_type']=2,['get_times']=2,['sub_id_1']=1001,['sub_type_1']=1,['sub_prbb_1']=5000,['sub_boss_1']=10000,['sub_times_1']=2,['sub_id_2']=1002,['sub_type_2']=1,['sub_prbb_2']=5000,['sub_boss_2']=10000,['sub_times_2']=1,['sub_id_3']=1003,['sub_type_3']=2,['sub_prbb_3']=5000,['sub_boss_3']=7000,['sub_times_3']=1,['sub_id_4']=1004,['sub_type_4']=3,['sub_prbb_4']=8000,['sub_boss_4']=10000,['sub_times_4']=1,['sub_id_5']=1005,['sub_type_5']=4,['sub_prbb_5']=10000,['sub_boss_5']=0,['sub_times_5']=1}
+
+local datas = {
+	[1000] = rows[1],
+}
+return datas

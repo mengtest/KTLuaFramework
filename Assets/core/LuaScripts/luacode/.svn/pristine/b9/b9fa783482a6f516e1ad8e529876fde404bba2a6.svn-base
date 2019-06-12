@@ -1,0 +1,96 @@
+local View = require("system.view")
+local quest_ui_list_item_view = class("quest_ui_list_item_view", View)
+
+function quest_ui_list_item_view:doInit(param)
+    self:loadRes(param)
+
+end
+
+function quest_ui_list_item_view:loadRes(param)
+    self.m_quest_id = param
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_quest_data = self.m_quest_manager:get_quest_list()[self.m_quest_id]
+    self:load_prefab("ui/QuestList.prefab", function(loaded_go)
+
+        local template_go = loaded_go.transform:Find("quest_list/Viewport/Content/quest").gameObject
+        local go = Object.Instantiate(template_go)
+
+        self:getGO():AddComponent(RectTransform)
+        self:getGO().transform.sizeDelta = Vector2(590, 110)
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3(0, 0, 0)
+        go.transform.localScale = Vector3.one
+        self:initOutlet(go, self:getFrame())
+
+        local go_trsf = go.transform
+        go:SetActive(true)
+        local frame = self:getFrame()
+        local quest_ui_show = self:getFrame("quest_ui_show")
+        local quest_ui_list = self:getFrame("quest_ui_list")
+
+        -- 获取组件
+        self.m_quest_btn = go.transform:Find("quest_btn"):GetComponent(UI.Button)
+        self.m_quest_name_text = go.transform:Find("quest_btn/name"):GetComponent(UI.Text)
+        self.m_quest_icon_image = go.transform:Find("quest_btn/icon"):GetComponent(UI.Image)
+        self.m_quest_trace_icon_image = go.transform:Find("quest_btn/trace_icon"):GetComponent(UI.Image)
+        self.m_interest_tog = go.transform:Find("interest"):GetComponent(UI.Toggle)
+        self.m_selected_image = go.transform:Find("is_choose"):GetComponent(UI.Image)
+
+        self.m_quest_name_text.text = dbc.quest[self.m_quest_id].name
+
+        ---- TODO 任务icon图标
+
+
+
+        ---- TODO 追踪
+        --self:subscribe(xxx:on_event_trace(), function()
+        --    -- 第一行追踪显示第一行所对应的颜色图标
+        --    self.m_quest_trace_icon_image.sprite = sprite
+        --    -- 第二行追踪显示第一行所对应的颜色图标
+        --    self.m_quest_trace_icon_image.sprite = sprite
+        --end)
+
+        -- 关注的toggle    [只在小地图中响应]
+        self.m_interest_tog.onValueChanged:AddListener(function(is_on)
+            if is_on then
+                self.m_quest_data:set_interest(true)
+                Event_system:dispatch_event(EVENT_QUEST_SET_INTEREST, self.m_quest_id, self.m_quest_data)
+                -- 飘个字
+                --print("飘个字")
+                self:getFrame("ui_main"):show("您已关注该任务")
+            else
+                self.m_quest_data:set_interest(false)
+                Event_system:dispatch_event(EVENT_QUEST_SET_INTEREST, self.m_quest_id, self.m_quest_data)
+                -- 再飘个字
+                --print("再飘个字")
+                self:getFrame("ui_main"):show("您已取消关注该任务")
+            end
+        end)
+        -- 按下按钮之后通知显示面板显示，将一id传递过去
+        self.m_quest_btn.onClick:AddListener(function()
+            quest_ui_show:refresh_show_data(self.m_quest_id)
+            self:selected_show()
+            quest_ui_list:change_selected_item(frame)
+        end)
+
+        self:subscribe(frame:on_event("selected"), function()
+            self:selected_show()
+        end)
+
+        self:subscribe(frame:on_event("unselected"), function()
+            self:unselected_show()
+        end)
+
+    end)
+
+end
+-- 选中之后的处理
+function quest_ui_list_item_view:selected_show()
+    self.m_selected_image.gameObject:SetActive(true)
+end
+
+-- 未选中的处理
+function quest_ui_list_item_view:unselected_show()
+    self.m_selected_image.gameObject:SetActive(false)
+end
+return quest_ui_list_item_view

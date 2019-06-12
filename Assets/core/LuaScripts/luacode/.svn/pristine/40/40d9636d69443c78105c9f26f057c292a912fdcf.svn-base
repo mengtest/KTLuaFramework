@@ -1,0 +1,85 @@
+local View = require("system.view")
+local fashion_select_model_view = class("fashion_select_model_view", View)
+
+function fashion_select_model_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_main_cam = Camera.main
+    self.m_world_view = self:getView("world")
+    self.m_backpack_equipment = self:getFrame("backpack_equipment_main")
+    ----存储点击一张卡牌时加载的场景
+    self.m_scene = nil
+    ----记录鼠标所在位置的x坐标
+    self.m_mouse_X = 0
+
+    ---获取主相机的KTPP组件
+    --local main_cam_ktpp = GameObject.FindGameObjectWithTag("MainCamera"):GetComponent("KTPP")
+    ---获取模型展示场景相机的KTPP组件
+    self.m_model_scene_cam_ktpp = nil
+
+    self.m_fashion_list = self:getFrame("fashionable_dress_list")
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Fashion_select_model"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        local drag = go.transform:Find("fashion_select_model"):GetComponent("DragSkill")
+        drag.onBeginDrag = DragSkill_OnBeginDragHandler()
+        drag.onBeginDrag:AddListener(function(eventdata)
+            self.m_mouse_X = eventdata.position.x
+        end)
+
+        drag.onDrag = DragSkill_OnDragHandler()
+        drag.onDrag:AddListener(function(eventdata)
+            local cur_mouse_x = eventdata.position.x
+            ---设置旋转速度，滑动的越快旋转越快
+            local rot_speed = math.abs(cur_mouse_x - self.m_mouse_X) / 100 / Time.deltaTime
+            self.m_frame:start_rotate(cur_mouse_x < self.m_mouse_X, rot_speed)
+            self.m_frame:on_rotate()
+            self.m_mouse_X = cur_mouse_x
+        end)
+
+        drag.onEndDrag = DragSkill_OnEndDragHandler()
+        drag.onEndDrag:AddListener(function(eventdata)
+            self.m_frame:stop_rotate()
+        end)
+    end)
+
+    --响应时装按钮点击事件
+    self:subscribe(self.m_fashion_list:on_event("card_click"), function(params)
+        self:card_click_call_back(params)
+    end)
+
+    --self:subscribe(self.m_backpack_equipment:on_event("warehouse_select"), function()
+    --    --main_cam_ktpp.enabled = false
+    --    --if self.m_model_scene_cam_ktpp then
+    --    --    self.m_model_scene_cam_ktpp.enabled = true
+    --    --end
+    --end)
+    --
+    --self:subscribe(self.m_backpack_equipment:on_event("hide_view"), function()
+    --    main_cam_ktpp.enabled = true
+    --    self.m_model_scene_cam_ktpp.enabled = false
+    --end)
+end
+
+function fashion_select_model_view:card_click_call_back(params)
+    local scene_name = "moxingzhanshi"
+    local path = string.format("scenes/%s.unity", scene_name)
+    if type(params.dress_info) == "number" then
+        return
+    end
+    self.m_frame:load_model(params.dress_info.info)
+    if self.m_scene ~= scene_name then
+        if not self.m_scene then
+            self.m_world_view:unloadScene(self.m_scene)
+        end
+        self:loadScene(path, function()
+            local rotate_obj = GameObject.Find("rotateObj")
+            --self.m_model_scene_cam_ktpp = GameObject.Find("ModelCamera"):GetComponent("KTPP")
+            self.m_frame:scene_loaded(scene_name, rotate_obj)
+        end)
+    end
+    self.m_scene = scene_name
+end
+
+return fashion_select_model_view

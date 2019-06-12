@@ -1,0 +1,8 @@
+local ObjectSpecial = {}
+
+-- 任务状态
+ObjectSpecial.Type = {
+    DropOut  = 1,   -- 掉落
+}
+
+return ObjectSpecial

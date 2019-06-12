@@ -1,0 +1,55 @@
+-- 吟唱特效
+-- 假设吟唱特效总是挂在角色内部
+local UnitAutoDesotroySfxView = {}
+
+function UnitAutoDesotroySfxView:doInit()
+    local frame = self:getFrame()
+    local sfx_path = frame:get_sfx_path()
+    
+    -- 导致特效删除的unit事件
+    --self:subscribe(self.m_unit:on_event("skill_sing_stop"), function()
+    --    --print("skill_sing_stop ", self:getFrameName())
+    --    self:on_skill_sing_stop()
+    --end)
+    local cache_sfx = CacheMgr.GetSkillCache(sfx_path)
+    if (cache_sfx == nil) then
+        self:load(sfx_path, function(go)
+            --print("UnitAutoDesotroySfxView loaded", self:getFrame():getFrameName(), sfx_path)
+            --CacheMgr.SetSkillCache(sfx_path,go)
+            self:handlePrefab(go)           
+        end)
+    else
+        print("cacheSfx loaded", sfx_path)
+        self:handlePrefab(cache_sfx)
+    end
+end
+
+function UnitAutoDesotroySfxView:handlePrefab(go)
+    go.transform.localPosition = Vector3.zero
+    go.transform.localEulerAngles = Vector3.zero
+    self.m_particle_controll = go:GetComponent(KTParticleControll)
+    if (self.m_particle_controll == nil) then
+        self.m_particle_controll = go:AddComponent(KTParticleControll)
+    end
+end
+
+function UnitAutoDesotroySfxView:doUpdate()
+    if self.m_particle_controll == nil then
+        return
+    end
+    if self.m_expire_time == nil then
+        -- 有时进入doUpdate时，KTParticleControll还没有获得正确的TotalDuration值，要等
+        if self.m_particle_controll.IsInited then
+            self.m_expire_time = Time.time + self.m_particle_controll.TotalDuration
+        end
+    else
+        if Time.time >= self.m_expire_time then
+            --print("UnitAutoDesotroySfxView destroy", self:getFrame():getFrameName())
+            local frame = self:getFrame()
+            frame:destroySelf()
+        end
+    end
+end
+
+
+return UnitAutoDesotroySfxView

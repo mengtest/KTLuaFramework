@@ -1,0 +1,235 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+----开始传送
+Event.decl(big_map, "begin_trans")
+
+-----当前场景任务列表
+----再次创建时此表没有清空，待查
+--local quest_list = {}
+
+function big_map:doInit(param)
+    self.m_is_in_dungeon = param["inst_id"]
+    self.m_inst_data = dbc.instances[self.m_is_in_dungeon]
+    ----boss的信息
+    self.m_boss = {}
+    ----boss位置信息
+    self.m_boss_pos = {}
+    if self.m_is_in_dungeon > 0 then
+        self.m_boss = self.m_inst_data["progresses"]
+        self.m_boss_pos = self.m_inst_data["boss_pos"]
+    end
+    self.m_quest_list = {}
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_world = self:getFrame("world")
+    self.m_owner = self.m_world:get_main_player()
+    self.m_map_id = self.m_world:get_map_id()
+    self:get_quest_in_current_map(self.m_map_id)
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self:get_quest_in_current_map(self.m_map_id)
+    self.m_map_manager = self:getFrame("map_manager")
+    ----已解锁传送点   目前迭代只对本地图进行操作    temp
+    self.m_trans_point = {}
+    -----未解锁传送点
+    self.m_untrans_point = {}
+
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+------获取当前场景中的任务
+function big_map:get_quest_in_current_map(map_id)
+    local quest_data_list = self.m_quest_manager:get_quest_list()
+    local unlock_quest_list = self.m_quest_manager:get_unlocked_quest_list()
+    local traced_quest_list = self:get_traced_quest_data()
+    local quest_aim_area = {}
+
+    for k, v in pairs(quest_data_list) do
+        if v then
+            quest_aim_area = v:get_all_active_aim_area()
+            for j, val in pairs(quest_aim_area) do
+                if quest_aim_area[j][1] == map_id then
+                    ----因为目前配表不全，会存在潜在bug，这里暂时进行处理一下，以便不影响游戏正常运行
+                    if self.m_world:get_area_data(quest_aim_area[j][1], quest_aim_area[j][2]) then
+                        local quest_data = {}
+                        quest_data["map_id"] = quest_aim_area[j][1]
+                        quest_data["area_id"] = quest_aim_area[j][2]
+                        quest_data["is_intrest"] = v:get_interest()
+                        quest_data["is_traced"] = nil
+
+                        for key, value in pairs(traced_quest_list) do
+                            if value == v then
+                                -----1为追踪任务1，显示蓝色图标，2为追踪任务2，显示红色图标
+                                if key == 1 then
+                                    quest_data["is_traced"] = 1
+                                else
+                                    quest_data["is_traced"] = 2
+                                end
+                                break
+                            end
+                        end
+
+                        self.m_quest_list[k] = quest_data
+                    else
+                        app:logError("无法获取当前任务的区域信息，请查看表结构是否有问题....")
+                    end
+                end
+            end
+
+        end
+    end
+    for k, v in pairs(unlock_quest_list) do
+        if v then
+            quest_aim_area = self:get_quest_data_by_id(v):get_aim_area()
+            if quest_aim_area[1] == map_id then
+                ----因为目前配表不全，会存在潜在bug，这里暂时进行处理一下，以便不影响游戏正常运行
+                if self.m_world:get_area_data(quest_aim_area[1], quest_aim_area[2]) then
+                    local quest_data = {}
+                    quest_data["map_id"] = quest_aim_area[1]
+                    quest_data["area_id"] = quest_aim_area[2]
+                    quest_data["is_intrest"] = self:get_quest_data_by_id(v):get_interest()
+                    quest_data["is_traced"] = nil
+                    --print(quest_aim_area[1])
+                    self.m_quest_list[v] = quest_data
+                else
+                    app:logError("无法获取当前任务的区域信息，请查看表结构是否有问题....")
+                end
+            end
+        end
+    end
+
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    self:init()
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded(result)
+    if result == 1 then
+        ----表示在副本内     加载boss信息
+        for i = 1, #self.m_boss do
+            self:createChild("boss_icon_" .. self.m_boss[i], "%subsystem.map.big_map.big_map_boss", { ["id"] = self.m_boss[i], ["pos"] = Vector3(self.m_boss_pos[i * 2 - 1], 0, self.m_boss_pos[i * 2]) })
+        end
+    else
+        ------不在副本内，加载任务信息
+        for k, v in pairs(self.m_quest_list) do
+            local quest_param = {}
+            for key,value in pairs(v) do
+                quest_param[key] = value
+            end
+            local area_data = self.m_world:get_area_data(v["map_id"], v["area_id"])
+            ----获取任务区域的缩放和半径
+            quest_param['area_local_scale'] = area_data['localScale']
+            quest_param['area_radius'] = area_data['radius'] * self.m_scale_x
+            quest_param['id'] = k
+            -----参数分别为：任务id，任务所在地图id，任务区域id，任务是否被关注，任务是否被追踪
+            self:createChild("quest_icon_" .. k, "%subsystem.map.big_map.big_map_quest", quest_param)
+--{ ["id"] = k, ["map_id"] = v["map_id"], ["area_id"] = v["area_id"], ["is_intrest"] = v["is_intrest"], ["is_traced"] = v["is_traced"] }
+        end
+    end
+end
+
+----根据任务id获取quest_data
+function big_map:get_quest_data_by_id(quest_id)
+    self.m_quest_data = require("subsystem.quest.quest_data")
+    local quest_data = self.m_quest_data:new(quest_id, nil, self.m_quest_manager)
+    return quest_data
+end
+
+-----获取正在追踪的任务
+function big_map:get_traced_quest_data()
+    local quest_bar = self:getFrame("quest_bar")
+    return quest_bar:get_traced_quest_list()
+end
+
+function big_map:do_trans()
+    -----服务器返回解锁的传送点后创建传送点
+    self:subscribe(self.m_map_manager:on_event("rec_unlock_trans_point"), function(unlock_tele_point)
+        --Debug.LogError("rec_unlock_trans_point" .. tostring(#unlock_tele_point))
+        self:load_trans_point(unlock_tele_point)
+    end)
+    self.m_map_manager:req_unlock_tele_point()
+end
+
+---创建大地图上的传送点   兄弟们要注意了，涉及到表的移除一定要一定要复制一份，不要修改源文件中的表的结构
+function big_map:load_trans_point(unlock_tele_point)
+
+    local list = {}
+    local trans = {}
+    for i, v in ipairs(dbc.teleport_point) do
+        trans[i] = v
+    end
+
+    -------找出本地图已经解锁的传送点
+    for i, v in pairs(trans) do
+        for key = 1, #unlock_tele_point do
+            if unlock_tele_point[key] == i and self.m_map_id == dbc.teleport_point[i].map_id then
+                --Debug.LogError("i...找出本地图已经解锁的传送点..." .. tostring(i))
+                --Debug.LogError("v...找出本地图已经解锁的传送点..." .. tostring(v.map_id))
+                self.m_trans_point[#self.m_trans_point + 1] = i
+                break
+            end
+        end
+    end
+    ---找出本地图未解锁的传送点
+    local if_add = true
+    for key, value in pairs(trans) do
+        if_add = true
+        for i, v in pairs(self.m_trans_point) do
+            if key == v then
+                --Debug.LogError("i...找出本地图未解锁的传送点..." .. tostring(i))
+                --Debug.LogError("v...找出本地图未解锁的传送点..." .. tostring(v))
+                --Debug.LogError("这个点不是未解锁的传送点..." .. tostring(v))
+                if_add = false
+            end
+        end
+        if if_add and self.m_map_id == dbc.teleport_point[key].map_id then
+            --Debug.LogError("本地图未解锁的传送点..." .. tostring(key))
+            self.m_untrans_point[#self.m_untrans_point + 1] = key
+        end
+    end
+
+    ---生成已经解锁的传送点
+    local send_list = {}
+    for i = 1, #self.m_trans_point do
+        send_list["id"] = self.m_trans_point[i]
+        send_list["is_lock"] = 1
+        --Debug.LogError("m_trans_point" .. tostring(send_list["id"]))
+        self:createChild("transt" .. self.m_trans_point[i], "%subsystem.map.big_map.transmit", send_list)
+    end
+
+    ----生成未解锁的传送点
+    for i = 1, #self.m_untrans_point do
+        send_list["id"] = self.m_untrans_point[i]
+        send_list["is_lock"] = 0
+        --Debug.LogError("m_untrans_point" .. tostring(send_list["id"]))
+        self:createChild("transt" .. self.m_untrans_point[i], "%subsystem.map.big_map.transmit", send_list)
+    end
+end
+
+-----开始传送，隐藏大地图，开始读取进度条
+function big_map:on_begin_trans(id)
+    self:emit_event("begin_trans", id)
+end
+
+return big_map

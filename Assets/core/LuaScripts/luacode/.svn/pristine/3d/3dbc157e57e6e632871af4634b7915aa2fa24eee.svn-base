@@ -1,0 +1,29 @@
+
+local View = require("system.view")
+local Confirm_win_view = class("Confirm_win_view", View)
+
+function Confirm_win_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("confirm_win"), function(go)
+        local tr = go.transform
+        self.m_text_msg = tr:Find("text_msg"):GetComponent(UnityEngine.UI.Text)
+        self.m_btn_ensure = tr:Find("btn_ensure"):GetComponent(UnityEngine.UI.Button)
+        self.m_btn_cancel = tr:Find("btn_cancel"):GetComponent(UnityEngine.UI.Button)
+
+        self:init_with_go(go, parent_node)
+    end)
+end
+
+function Confirm_win_view:on_prepared()
+    local this = self
+    self:subscribe(self.m_frame:on_event_attr_set("msg", true), function (msg)
+        this.m_text_msg.text = msg
+    end)
+    self.m_btn_ensure.onClick:AddListener(function ()
+        this.m_frame:do_ensure()
+    end)
+    self.m_btn_cancel.onClick:AddListener(function ()
+        this.m_frame:do_cancel()
+    end)
+end
+
+return Confirm_win_view 

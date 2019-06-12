@@ -1,0 +1,19 @@
+local Frame = require("system.frame")
+local quest_ui_give_up = class("quest_ui_give_up", Frame)
+
+function quest_ui_give_up:doInit(param)
+    self.m_id = param
+end
+
+-- 取消
+function quest_ui_give_up:on_cancle()
+    self:destroySelf()
+end
+
+-- 确认
+function quest_ui_give_up:on_sure()
+    self:getFrame("quest_manager"):req_give_up_quest(self.m_id)
+    self:destroySelf()
+end
+
+return quest_ui_give_up

@@ -1,0 +1,48 @@
+﻿
+local Frame = require("system.frame")
+local Quest_bar = class("Quest_bar", Frame)
+
+Event.decl(Quest_bar, "show")
+Event.decl(Quest_bar, "hide")
+
+function Quest_bar:doInit(param)
+	self:set_is_dont_create_go_automatic(true)
+end
+
+function Quest_bar:on_prepared()
+--	Event_system:add_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+--	Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+end
+
+function Quest_bar:doDestroy()
+--	Event_system:del_event_listener(EVENT_QUEST_ADD_QUEST, event_binder(self, self.add_quest))
+--	Event_system:del_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+end
+
+function Quest_bar:add_quest(quest_id)
+	local quest_name = string.format("quest%d", quest_id)
+	--self:createChild("quest_name", "%subsystem.quest.quest_detail", nil)
+end
+
+function Quest_bar:del_quest(quest_id)
+
+end
+
+function Quest_bar:del_quest(quest_id)
+
+end
+
+function Quest_bar:show()
+	self:emit_event("show", nil)
+end
+
+function Quest_bar:hide()
+	self:emit_event("hide", nil)
+end
+
+
+
+
+
+
+return Quest_bar

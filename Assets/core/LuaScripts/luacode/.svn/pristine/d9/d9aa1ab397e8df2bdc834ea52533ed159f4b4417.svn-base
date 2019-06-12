@@ -1,0 +1,75 @@
+local M = {}
+
+function M:doInit()
+	self.m_frame = self:getFrame()
+
+	local frame = self.m_frame
+
+	local move_go = frame:get_move_go()
+	
+	move_go.transform:SetParent(self.m_go.transform)
+
+	move_go.transform.localPosition = Vector3.zero
+
+	self.m_go.transform.position = frame:get_start_pos()
+
+	self.m_update_func = nil
+
+	self.m_move_speed = frame:get_move_speed()
+
+	self:subscribe(frame:on_event_move2pos(), function()
+		--app:logError(frame:get_target_pos())
+		self.m_update_func = self.move_to_pos
+	end)
+
+	self:subscribe(frame:on_event_move2dir(), function()
+		self.m_target_dir = frame:get_target_dir()
+		self.m_end_time = Time.time + frame:get_move_time()
+		self.m_update_func = self.move_to_dir
+	end)
+end
+
+function M:doUpdate()
+	if(self.m_update_func ~= nil) then
+		self:m_update_func()
+	end
+end
+
+-- 暂时只有直线
+function M:move_to_pos()
+	local start_pos = self.m_frame:get_start_pos()
+	local target_pos = self.m_frame:get_target_pos()	
+	local frame = self.m_frame
+	local end_time = frame:get_start_time() + Vector3.Distance(frame:get_start_pos(),frame:get_target_pos()) / frame:get_move_speed()
+	local move_go = self.m_go
+	if (Time.time < end_time) then
+		local next_pos = Vector3.Lerp(start_pos, target_pos,
+		(Time.time - frame:get_start_time()) / (end_time - frame:get_start_time()))
+		
+		move_go.transform:LookAt(next_pos)
+
+		move_go.transform.position = next_pos
+	else
+		self.m_update_func = nil
+
+		self.m_frame:finish()
+	end
+	
+end
+
+
+function M:move_to_dir()
+	local percent = Time.time / self.m_end_time
+
+	local move_go = self.m_go
+
+	move_go.transform:Translate(self.m_target_dir * Time.deltaTime * self.m_move_speed)
+
+	if(Time.time > self.m_end_time) then
+		self.m_update_func = nil
+		self.m_frame:finish()
+	end
+end
+
+
+return M

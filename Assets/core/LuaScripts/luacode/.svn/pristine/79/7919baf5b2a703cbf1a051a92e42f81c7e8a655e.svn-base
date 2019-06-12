@@ -1,0 +1,21 @@
+local Frame = require("system.frame")
+local equipment_tips = class("equipment_tips", Frame)
+
+Event.decl(equipment_tips, "put_on_equipment")
+Event.decl(equipment_tips, "get_off_equipment")
+
+function equipment_tips:doInit()
+
+end
+
+------穿上装备
+function equipment_tips:put_on_equipment(equipInfo)
+    self:emit_event("put_on_equipment", equipInfo)
+end
+
+------脱下装备
+function equipment_tips:get_off_equipment(equipInfo)
+    self:emit_event("get_off_equipment", equipInfo)
+end
+
+return equipment_tips

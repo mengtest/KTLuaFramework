@@ -1,0 +1,100 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+
+-----当前场景任务列表
+local quest_list = {}
+
+function big_map:doInit(param)
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_world = self:getFrame("world")
+    self.m_owner = self.m_world:get_main_player()
+    local map_id = self.m_world:get_map_id()
+    --print("当前map_id:",map_id)
+    self:get_quest_in_current_map(map_id)
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+------获取当前场景中的任务
+function big_map:get_quest_in_current_map(map_id)
+    local quest_data_list = self.m_quest_manager:get_quest_list()
+    local unlock_quest_list = self.m_quest_manager:get_unlocked_quest_list()
+    local quest_aim_area = {}
+    local quest_data = {["map_id"] = nil, ["area_id"] = nil, ["is_intrest"] = nil}
+    for k,v in pairs(quest_data_list) do
+        if v then
+            quest_aim_area = v:get_all_active_aim_area()
+            if quest_aim_area[1][1] == map_id then
+                quest_data["map_id"] = quest_aim_area[1][1]
+                quest_data["area_id"] = quest_aim_area[1][2]
+                quest_data["is_intrest"] = v:get_interest()
+                --print(quest_aim_area[1][1])
+                quest_list[k] = quest_data
+            end
+        end
+    end
+    for k,v in pairs(unlock_quest_list) do
+        if v then
+            quest_aim_area = self:get_quest_data_by_id(v):get_aim_area()
+            if quest_aim_area[1] == map_id then
+                quest_data["map_id"] = quest_aim_area[1]
+                quest_data["area_id"] = quest_aim_area[2]
+                quest_data["is_intrest"] = self:get_quest_data_by_id(v):get_interest()
+                --print(quest_aim_area[1])
+                quest_list[v] = quest_data
+            end
+        end
+    end
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    self:init()
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded(result)
+    if result == 1 then
+        ----表示在副本内     加载boss信息
+        self:createChild("boss_icon_" .. 1001, "%subsystem.map.big_map.big_map_boss", { ["id"] = 1001, ["pos"] = Vector3(160,0,120) })
+    end
+    ------加载任务信息
+    if #quest_list > 0 then
+        for k,v in pairs(quest_list) do
+            if not v then
+                return
+            end
+            self:createChild("quest_icon_" .. k, "%subsystem.map.big_map.big_map_quest",{["id"] = k, ["map_id"] = v["map_id"], ["area_id"] = v["area_id"], ["is_intrest"] = v["is_intrest"]})
+        end
+    end
+end
+
+----根据任务id获取quest_data
+function big_map:get_quest_data_by_id(quest_id)
+    self.m_quest_data = require("subsystem.quest.quest_data")
+    --print("任务管理：",self.m_quest_manager)
+    local quest_data = self.m_quest_data:new(quest_id,nil,self.m_quest_manager)
+    return quest_data
+end
+
+return big_map

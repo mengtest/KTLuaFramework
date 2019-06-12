@@ -1,0 +1,25 @@
+local View = require("system.view")
+local dungeon_stop_time_view = class("dungeon_stop_time_view", View)
+
+function dungeon_stop_time_view:doInit(param)
+    self.m_show_time = param
+    self.m_ui_manager = app:get_ui_manager()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("DungeonStopTimeShow"), function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(),go)
+        self.m_show_text = go.transform:Find("time_bg/time_text"):GetComponent(UI.Text)
+        self.m_show_text.text = self.m_show_time
+    end)
+end
+
+function dungeon_stop_time_view:doUpdate()
+    self.m_show_time = self.m_show_time - app:get_delta_time()
+    local result = math.floor(self.m_show_time)
+    if result < 0 then
+        self.m_ui_manager:DestroyUI("dungeon_stop_time")
+    end
+    if self.m_show_text then
+        self.m_show_text.text = tostring(result)
+    end
+end
+
+return dungeon_stop_time_view

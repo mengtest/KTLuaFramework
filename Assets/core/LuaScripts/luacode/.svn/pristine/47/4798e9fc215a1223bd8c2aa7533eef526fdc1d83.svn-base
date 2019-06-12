@@ -1,0 +1,183 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateSkillSing", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)   
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+    
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+    
+    local unit = self.m_unit
+
+    unit:set_main_act(enum.battle.Unit_Main_Act.CLIMB)
+   
+    -- 切换操作方式
+    self.m_param.playerController:set_player_controll_type(enum.battle.Player_Controll_Type.CLIMB)
+    -- 隐藏战斗面操作面板
+    self.m_param.playerController:set_is_show_battle_panel(false)
+    -- 隐藏武器 -> 武器还没有拆分 这是个临时做法
+    local tra = unit:get_bone(enum.unit.BoneName.weapon_hand_r_1)
+    tra.gameObject:SetActive(false)
+    
+    --监听血量 受到伤害需要掉下去 爬完记得注销掉
+    -- self.m_hp_change = unit:subscribe(unit:on_event_hp_set(false), function(new, old)
+    --     Debug.LogError("new:" .. tostring(new) .. " old:" .. tostring(old))
+    -- end)
+    
+    --以下为针对梯子的做法 以后需要扩展 ↓↓↓↓↓↓
+    local ladder = self.m_param.ladder
+    -- 初始位置
+    local start_pos = nil
+
+
+    -- local dir_point = utility.math:get_projection_3d(unit:get_pos(), ladder.transform.position, Vector3.forward)
+    unit:lookAt(ladder.transform.position)
+
+    if (ladder.top_out.gameObject:GetInstanceID() == self.m_param.collider.gameObject:GetInstanceID()) then
+        start_pos = ladder.top.position - Vector3(0, unit:get_cc().height, 0)
+        unit:set_dir(unit:get_dir() + 180)
+        self.m_unit:emit_event("anim_param", "climb_state", "int", 2)
+    else
+        start_pos = ladder.bottom.position
+        self.m_unit:emit_event("anim_param", "climb_state", "int", 1)
+    end
+    -- 顶部
+    self.m_top = ladder.top.position
+    -- 底部
+    self.m_bottom = ladder.bottom.position
+
+
+
+    -- 等待完成上梯子动作
+    slua_timer.addDelayEvent(
+        0.85,
+        function()
+            unit:set_pos(start_pos)
+            unit:emit_event("set_position", start_pos)
+            
+            unit:emit_event("run_function","reset_avatar")
+            self.m_update_func = self.climb_ladder
+        end
+    )
+--以下为针对梯子的做法 以后需要扩展 ↑↑↑↑↑↑
+end
+
+
+function M:exit()
+    self.m_unit:emit_event("anim_param", "climb_state", "int", 0)
+    --print("UnitActStateSkillSing:exit")
+    self.m_param.playerController:set_is_show_battle_panel(true)
+
+
+    -- 切换操作方式
+    self.m_param.playerController:set_player_controll_type(enum.battle.Player_Controll_Type.ALL_DIRECTION)
+    
+    --武器还没有拆分 这是个临时做法
+    local tra = self.m_unit:get_bone(enum.unit.BoneName.weapon_hand_r_1)
+    
+    tra.gameObject:SetActive(true)
+    
+    UnitActStateBase.exit(self)
+end
+
+
+function M:update()
+    UnitActStateBase.update(self)
+    
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+--self.m_unit:lookAt(self.m_ladder.transform.position)
+end
+
+
+function M:Move(V3)
+    
+    local cc = self.m_unit:get_cc()
+    
+    if cc == nil then
+        return
+    end
+    
+    cc:Move(V3)
+    
+    self.m_unit:set_pos(cc.transform.position)
+
+end
+
+function M:change_move_state(move_state)
+    self.m_unit:set_move_state(move_state)
+end
+
+
+function M:climb_ladder()
+    
+    local delta_time = app.get_delta_time()
+    local unit = self.m_unit
+    -------------------
+    -- 方位计算---
+    local move_speed = unit:get_move_speed()
+    
+    local move_dir = unit:get_move_state()
+    
+    
+    if (move_dir == 1) then --向前
+        if (unit:get_pos().y + unit:get_cc().height < self.m_top.y) then
+            self:Move(Vector3(0, move_speed * delta_time, 0))
+        else
+            self:climb_ladder_finish(true)
+        end
+    elseif (move_dir == 5) then --向后
+        if (unit:get_pos().y > self.m_bottom.y) then
+            self:Move(Vector3(0, -move_speed * delta_time, 0))
+        else
+            self:climb_ladder_finish(false)
+        end
+    elseif (move_dir == 3) then
+        
+    elseif (move_dir == 4) then
+        
+    end
+
+end
+
+
+function M:climb_ladder_finish(is_top)
+    self.m_update_func = nil
+    
+    local endPos = nil
+    
+    if (is_top == true) then
+        endPos = self.m_param.ladder.top_out.position
+        self.m_unit:emit_event("anim_param", "climb_state", "int", -1)
+    else
+        endPos = self.m_param.ladder.bottom_out.position
+        self.m_unit:emit_event("anim_param", "climb_state", "int", -2)
+    end
+    
+    
+    print("攀爬结束后延迟设置角色位置",is_top)
+    -- 等待完成下梯子动作
+    slua_timer.addDelayEvent(
+        0.85,
+        function()
+            self.m_unit:set_pos(endPos)
+            self.m_unit:emit_event("set_position", endPos)
+            self.m_unit:emit_event("run_function","reset_avatar")            
+            self.m_fsm:change_state(enum.battle.Unit_Main_Act.MOVE)
+        end
+)
+end
+
+
+return M

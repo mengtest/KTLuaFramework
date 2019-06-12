@@ -1,0 +1,386 @@
+local View = require("system.view")
+local Mini_map_view = class("Mini_map_view", View)
+
+function Mini_map_view:doInit()
+    --Util_log:logError(Util_log.Mask.SJG_Map, string.format("parent.name = %s, parent.child0.name = %s", self:getParent():getGO().transform.name, self:getParent():getGO().transform:GetChild(0).name))
+    local ui_main_entity_tr = self:getParent():getGO().transform:GetChild(0)
+    local ctrl_node = ui_main_entity_tr:Find("MiniMap")
+
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_moveable_rt = nil
+    self.m_layer_quest_rt = nil
+
+    --关注任务
+    self.m_interest_quest_data = nil       --关注任务数据
+    self.m_interest_quest_area_data = nil  --关注任务区域数据
+
+    --追踪任务
+    self.m_map_id = self.m_world:get_map_id()
+    self.m_is_show_trace_one = false
+    self.m_is_show_trace_two = false
+    self.m_trace_one_quest_id = -1   --  -1代表nil，即没有追踪任务时
+    self.m_trace_two_quest_id = -1   --  同上
+    self.m_trace_quest_area_data_one = nil   --追踪任务数据1
+    self.m_trace_quest_area_data_two = nil   --追踪任务数据2
+
+    self.m_quest_condition_aim_area_dict = {}
+    self.m_quest_aim_area_dict = {}
+
+    -- boss位置
+    self.m_boss_rt = nil
+
+    self:init_with_go(ctrl_node, ui_main_entity_tr)
+end
+
+function Mini_map_view:on_prepared()
+    self:init()
+
+    self:subscribe(self:getFrame():on_event("refresh_owner_pos"), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self:getFrame():on_event("refresh_owner_dir"), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+    self:subscribe(self:getFrame():on_event("show_quest_condition_aim_area"), function(quest_id, index)
+        self:show_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self:getFrame():on_event("hide_quest_condition_aim_area"), function(quest_id, index)
+        self:hide_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self:getFrame():on_event("show_quest_aim_area"), function(quest_id)
+        self:show_quest_aim_area(quest_id)
+    end)
+    self:subscribe(self:getFrame():on_event("hide_quest_aim_area"), function(quest_id)
+        self:hide_quest_aim_area(quest_id)
+    end)
+    --关注任务
+    self:subscribe(self:getFrame():on_event("interest_quest_data"), function(quest_id, quest_data)
+        self:set_interest_quest_data(quest_id, quest_data)
+    end)
+
+    --追踪任务
+    self:subscribe(self:getFrame():on_event("add_trace"), function(quest_id)
+        self:add_trace(quest_id)
+    end)
+    self:subscribe(self:getFrame():on_event("del_trace"), function(quest_id)
+        self:del_trace(quest_id)
+    end)
+
+    -- 是否在副本
+    self:subscribe(self:getFrame():on_event("is_in_instance"), function(instance_id)
+        self:get_is_in_instance(instance_id)
+    end)
+
+end
+
+function Mini_map_view:init()
+    local temp_map_size = Vector2(400, 400)
+    local tr = self:getGO().transform
+    local mini_map_size = tr:Find("mask/moveable_items/bg_terrain"):GetComponent(UnityEngine.RectTransform).rect.size
+
+    -- boss地图大小   临时
+    self.m_mini_map = tr:Find("mask/moveable_items/bg_terrain"):GetComponent(UnityEngine.RectTransform)
+    self.m_scale_x = mini_map_size.x / temp_map_size.x
+    self.m_scale_y = mini_map_size.y / temp_map_size.y
+    self.m_moveable_rt = tr:Find("mask/moveable_items"):GetComponent(UnityEngine.RectTransform)
+    self.m_owner_rt = tr:Find("mask/owner"):GetComponent(UnityEngine.RectTransform)
+    self.m_layer_quest_rt = tr:Find("mask/moveable_items/layer_quest"):GetComponent(UnityEngine.RectTransform)
+    self:getFrame():set_scale(self.m_scale_x, self.m_scale_y)
+
+    --关注任务
+    self.m_interest_point_rt = tr:Find("mask/moveable_items/layer_quest/interest_point"):GetComponent(UnityEngine.RectTransform)
+    self.m_minimap_radius = tr:Find("mask"):GetComponent(UnityEngine.RectTransform).sizeDelta.x / 2--小地图半径
+
+    --追踪任务
+    self.m_trace_one_rt = tr:Find("mask/moveable_items/layer_quest/trace_one"):GetComponent(UnityEngine.RectTransform)
+    self.m_trace_two_rt = tr:Find("mask/moveable_items/layer_quest/trace_two"):GetComponent(UnityEngine.RectTransform)
+end
+
+function Mini_map_view:refresh_owner_pos(pos)
+    --[[local map_pos = Vector2(-pos.x * self.m_scale_x, -pos.z * self.m_scale_y)
+    self.m_moveable_rt.anchoredPosition = map_pos--]]
+    self.m_moveable_rt.anchoredPosition3D = -self:project_3d_pos_to_map_pos(pos)
+
+    --关注任务
+    if self.m_interest_quest_data and self.m_interest_quest_data:get_interest() then
+        self:set_quest_point_pos(self.m_interest_point_rt, self.m_interest_quest_area_data)
+    end
+
+    --追踪任务
+    if self.m_trace_quest_area_data_one then
+        self:set_quest_point_pos(self.m_trace_one_rt, self.m_trace_quest_area_data_one)
+    end
+    if self.m_trace_quest_area_data_two then
+        self:set_quest_point_pos(self.m_trace_two_rt, self.m_trace_quest_area_data_two)
+    end
+end
+
+function Mini_map_view:refresh_owner_dir(dir)
+    self.m_owner_rt.localEulerAngles = Vector3(0, 0, -dir)
+end
+
+function Mini_map_view:show_quest_condition_aim_area(quest_id, index)
+    local quest_layer = self.m_quest_condition_aim_area_dict[quest_id]
+    if not quest_layer then
+        quest_layer = {}
+        self.m_quest_condition_aim_area_dict[quest_id] = quest_layer
+    end
+    local area_rt = quest_layer[index]
+    if area_rt then
+        --area_rt.gameObject:SetActive(true)
+        return
+    end
+
+    local area_info = self.m_quest_manager:get_quest_list()[quest_id]:get_condition_aim_area(index)
+    local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+    if not area_data then
+        return
+    end
+
+    quest_layer[index] = "locked"
+    self:load("ui/map/aim_area.prefab", function(go)
+        go.name = "quest_condition_aim_area_" .. area_info[2]
+        area_rt = go:GetComponent(UnityEngine.RectTransform)
+        area_rt.parent = self.m_layer_quest_rt
+        area_rt.localScale = Vector3.one
+        area_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+        area_rt.sizeDelta = Vector2(2 * area_data.radius * self.m_scale_x, 2 * area_data.radius * self.m_scale_y)
+
+        quest_layer[index] = area_rt
+        Util_log:logError(Util_log.Mask.SJG_Map, string.format("quest_id = %d, index = %d, radius = %d\n area_data = \n%s", quest_id, index, 2 * area_data.radius, Util_string:get_string_by_tbl(area_data)))
+    end)
+end
+
+function Mini_map_view:hide_quest_condition_aim_area(quest_id, index)
+    local quest_layer = self.m_quest_condition_aim_area_dict[quest_id]
+    if not quest_layer then
+        return
+    end
+    local area_rt = quest_layer[index]
+    if not area_rt then
+        return
+    end
+
+    --关注任务
+    --完成关注任务
+    self:cancel_or_finished_interest_quest()
+
+    Object.Destroy(area_rt.gameObject)
+    table.remove(quest_layer, index)
+    if #quest_layer == 0 then
+        table.remove(self.m_quest_condition_aim_area_dict, quest_id)
+    end
+end
+
+function Mini_map_view:show_quest_aim_area(quest_id)
+    local area_rt = self.m_quest_aim_area_dict[quest_id]
+    if area_rt then
+        return
+    end
+
+    local area_info = self.m_quest_manager:get_quest_list()[quest_id]:get_aim_area()
+    local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+    if not area_data then
+        return
+    end
+
+    self.m_quest_aim_area_dict[quest_id] = "locked"
+    self:load("ui/map/aim_area.prefab", function(go)
+        go.name = "quest_aim_area_" .. area_info[2]
+        area_rt = go:GetComponent(UnityEngine.RectTransform)
+        area_rt.parent = self.m_layer_quest_rt
+        area_rt.localScale = Vector3.one
+        area_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+        area_rt.sizeDelta = Vector2(2 * area_data.radius * self.m_scale_x, 2 * area_data.radius * self.m_scale_y)
+
+        self.m_quest_aim_area_dict[quest_id] = area_rt
+    end)
+end
+
+function Mini_map_view:hide_quest_aim_area(quest_id)
+    local area_rt = self.m_quest_aim_area_dict[quest_id]
+    if not area_rt then
+        return
+    end
+
+    Object.Destroy(area_rt.gameObject)
+    self.m_quest_aim_area_dict[quest_id] = nil
+
+end
+
+function Mini_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3(pos.x * self.m_scale_x, pos.z * self.m_scale_y, 0)
+end
+
+--关注任务
+--获取关注任务数据和关注任务区域的localPosition
+function Mini_map_view:set_interest_quest_data(quest_id, quest_data)
+    if quest_data:get_interest() then
+        --关注任务
+        self.m_interest_quest_data = quest_data
+        local area_info = quest_data:get_all_active_aim_area()[1]
+        local area_data = self.m_world:get_area_data(area_info[1], area_info[2])
+        self.m_interest_quest_area_data = area_data
+        self.m_interest_point_rt.gameObject:SetActive(true)
+        self.m_interest_point_rt:SetSiblingIndex(10)
+
+        --追踪任务
+        if self.m_trace_one_quest_id == quest_id then
+            self.m_trace_one_rt.gameObject:SetActive(false)
+            self.m_is_show_trace_one = false
+        end
+        if self.m_trace_two_quest_id == quest_id then
+            self.m_trace_two_rt.gameObject:SetActive(false)
+            self.m_is_show_trace_two = false
+        end
+
+        self:set_quest_point_pos(self.m_interest_point_rt, self.m_interest_quest_area_data)
+    else --取消关注任务
+        self:cancel_or_finished_interest_quest()
+
+        --追踪任务
+        if self.m_trace_one_quest_id == quest_id then
+            self.m_trace_one_rt.gameObject:SetActive(true)
+            self.m_is_show_trace_one = true
+        end
+        if self.m_trace_two_quest_id == quest_id then
+            self.m_trace_two_rt.gameObject:SetActive(true)
+            self.m_is_show_trace_two = true
+        end
+    end
+
+end
+--设置任务在小地图边缘的位置
+function Mini_map_view:set_quest_point_pos(quest_point_rt, area_data)
+    local m_interest_quest_area_reality_localPosition = self:project_3d_pos_to_map_pos(area_data.worldPosition)
+    local area_pos = m_interest_quest_area_reality_localPosition + self.m_moveable_rt.localPosition
+
+    local distance = math.sqrt(   math.pow(area_pos.x, 2) + math.pow(area_pos.y, 2)   )   --任务与owner的距离
+
+    if distance < self.m_minimap_radius then
+        quest_point_rt.localPosition = m_interest_quest_area_reality_localPosition
+    else
+        local x, y = self:get_interest_screen_pos(m_interest_quest_area_reality_localPosition)
+        quest_point_rt.localPosition = Vector3(x, y, 0) - self.m_moveable_rt.localPosition
+    end
+end
+--获取任务在小地图边缘的位置
+--reality_localPosition : 任务区域在屏幕中的实际位置
+function Mini_map_view:get_interest_screen_pos(reality_localPosition)
+
+    local area_pos = reality_localPosition + self.m_moveable_rt.localPosition
+    local k = (area_pos.y - self.m_owner_rt.localPosition.y) / (area_pos.x - self.m_owner_rt.localPosition.x)
+    local temp_x = self.m_minimap_radius / math.sqrt(1 + math.pow(k, 2))
+    local temp_y = (self.m_minimap_radius * math.abs(k)) / math.sqrt(1 + math.pow(k, 2))
+    local interest_x1 = temp_x + self.m_owner_rt.localPosition.x
+    local interest_x2 = -temp_x + self.m_owner_rt.localPosition.x
+    local interest_y1 = temp_y + self.m_owner_rt.localPosition.y
+    local interest_y2 = -temp_y + self.m_owner_rt.localPosition.y
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 1 and self:get_area_count(interest_x1, interest_y1) == 1 then
+        return interest_x1, interest_y1
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 2 and self:get_area_count(interest_x2, interest_y1) == 2 then
+        return interest_x2, interest_y1
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 3 and self:get_area_count(interest_x2, interest_y2) == 3 then
+        return interest_x2, interest_y2
+    end
+
+    if self:get_area_count(area_pos.x, area_pos.y) == 4 and self:get_area_count(interest_x1, interest_y2) == 4 then
+        return interest_x1, interest_y2
+    end
+
+end
+--以owner为圆心，获取关注任务所在象限
+function Mini_map_view:get_area_count(x, y)
+    if x > 0 and y > 0 then
+        return 1
+    end
+    if x < 0 and y > 0 then
+        return 2
+    end
+    if x < 0 and y < 0 then
+        return 3
+    end
+    if x > 0 and y < 0 then
+        return 4
+    end
+end
+--取消关注任务或完成关注任务隐藏小黄点
+function Mini_map_view:cancel_or_finished_interest_quest()
+    self.m_interest_quest_data = nil
+    self.m_interest_point_rt.gameObject:SetActive(false)
+end
+
+-- 副本显示boss
+function Mini_map_view:get_is_in_instance(instance_id)
+    if instance_id ~= 0 then
+        self.m_mini_map.localPosition = Vector3(0,0,0)
+        self:load("ui/map/boss_point.prefab", function(go)
+            go.name = "boss"
+            self.m_boss_rt = go:GetComponent(UnityEngine.RectTransform)
+            self.m_boss_rt.parent = self.m_layer_quest_rt
+            self.m_boss_rt:SetSiblingIndex(9)
+            self.m_boss_rt.localScale = Vector3.one
+            self.m_boss_rt.anchoredPosition3D = self:project_3d_pos_to_map_pos(Vector3(130, 0, 100))
+        end)
+    else
+        if self.m_boss_rt ~= nil then
+            Object.Destroy(self.m_boss_rt.gameObject)
+        end
+    end
+end
+
+--追踪任务
+function Mini_map_view:add_trace(quest_id)
+    local traced_quest_list = self:getFrame("quest_bar"):get_traced_quest_list()
+    for trace_id, v in pairs(traced_quest_list) do
+        if v and v:get_quest_id()==quest_id then
+            local area_info = v:get_all_active_aim_area()
+            for j, k in pairs(area_info) do
+            if area_info[j][1] == self.m_map_id then
+                local area_data = self.m_world:get_area_data(area_info[j][1], area_info[j][2])
+                if area_data then
+                    if trace_id==1 then
+                        self.m_trace_quest_area_data_one = area_data
+                        self.m_trace_one_rt.gameObject:SetActive(true)
+                        self:set_quest_point_pos(self.m_trace_one_rt, self.m_trace_quest_area_data_one)
+                        self.m_is_show_trace_one = true
+                        self.m_trace_one_quest_id = quest_id
+                    end
+                    if trace_id==2 then
+                        self.m_trace_quest_area_data_two = area_data
+                        self.m_trace_two_rt.gameObject:SetActive(true)
+                        self:set_quest_point_pos(self.m_trace_two_rt, self.m_trace_quest_area_data_two)
+                        self.m_is_show_trace_two = true
+                        self.m_trace_two_quest_id = quest_id
+                    end
+                end
+            end
+        end
+        end
+    end
+end
+function Mini_map_view:del_trace(quest_id)
+    if self.m_trace_one_quest_id == quest_id then
+        self.m_trace_quest_area_data_one = nil
+        self.m_trace_one_rt.gameObject:SetActive(false)
+        self.m_is_show_trace_one = false
+        self.m_trace_one_quest_id = -1
+    end
+    if self.m_trace_two_quest_id == quest_id then
+        self.m_trace_quest_area_data_two = nil
+        self.m_trace_two_rt.gameObject:SetActive(false)
+        self.m_is_show_trace_two = false
+        self.m_trace_two_quest_id = -1
+    end
+end
+
+
+return Mini_map_view

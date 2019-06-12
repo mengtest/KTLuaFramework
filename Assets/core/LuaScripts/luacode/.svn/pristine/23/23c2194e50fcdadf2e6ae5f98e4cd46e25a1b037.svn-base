@@ -1,0 +1,10 @@
+local row_0 = {['id']=100001,['group']='BGM/Map',['name']='Sence_001.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+local row_1 = {['id']=100101,['group']='BGM/Area',['name']='Area_001.wav',['is_3d']=false,['max_dis']=10.0,['volume']=1.0,['loop_times']=1}
+local row_2 = {['id']=100102,['group']='BGM/Area',['name']='Area_002.wav',['is_3d']=false,['max_dis']=0.0,['volume']=1.0,['loop_times']=0}
+
+local datas = {
+	[100001] = row_0,
+	[100101] = row_1,
+	[100102] = row_2,
+}
+return datas

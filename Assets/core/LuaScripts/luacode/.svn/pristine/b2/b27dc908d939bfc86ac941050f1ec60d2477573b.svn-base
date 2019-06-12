@@ -1,0 +1,18 @@
+
+local Frame = require("system.frame")
+local skill_show_ui = class("skill_show_ui", Frame)
+
+function skill_show_ui: doInit()
+
+end
+
+
+function skill_show_ui:data_list(data)
+
+end
+
+function skill_show_ui:max_level_result(num)
+
+end
+
+return skill_show_ui

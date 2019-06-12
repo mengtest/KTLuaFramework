@@ -1,0 +1,57 @@
+﻿--人物模型选择 模型路径+名称 动作通过目录来找
+local RoleCfg=
+{
+	["modelPath"]='Assets/models/Role/pc/luocha/luocha2.prefab',
+	["parentPath"]='pc/luocha',
+}
+
+local SkillCfg=
+{
+	["id"]=903001,
+	["name"]='火球术',
+	["icon"]='ui/Icons/skill/2001.png',
+	["cdIcon"]='ui/Icons/skill/skillbtn/cd_mask.png',
+	["targetMode"]=3,
+	["showTeamHeader"]=false,
+	["singActionA"]='hqs_mskillsing_a',
+	["singActionB"]='hqs_mskillsing_b',
+	["singVfx"]='',
+	["singVfxMountPoint"]='',
+	["castAction"]='hqs_mskillcast',
+	["castVfx"]='',
+	["castVfxMountPoint"]='',
+	["castEndVfx"]='sfx/skill/prefab/pc/luocha/hqs/ls_hqs_qishou_a.prefab',
+	["castEndVfxMountPoint"]='',
+	["processVfxEventSwitch"]=1,
+	["processVfx"]='sfx/skill/prefab/pc/luocha/hqs/ls_hqs_feidan_a.prefab',
+	["processVfxMountPoint"]='chest',
+	["processEndVfxMountPoint"]='chest',
+	["processLockVfx"]='',
+	["processLockVfxMountPoint"]='',
+	["bulletMotonType"]=0,
+	["channelVfx"]='',
+	["gethitAction"]='',
+	["gethitVfx"]='sfx/skill/prefab/pc/luocha/hqs/ls_hqs_baodian_a.prefab',
+	["gethitVfxMountPoint"]='chest',
+		
+	["isPassive"]=false,
+	["castCondition"]=0,
+	["castDistance"]=15,
+	["castTime"]=2.25,
+	["singSwitch"]=1,
+	["channelInterval"]=0,
+	["ballisticSpeed"]=7,
+	["canMoveWhileCasting"]=1,
+	
+	--spell effect表
+	["effectTarget"]=9,
+	["effectType"]=1,
+	["skillMaxEffectRadius"]=10,
+}
+
+local MonstersCfg=
+{
+	[1]={["id"]=200001,["modelPath"]='Assets/actors/prefab/jianshenzhe_01.prefab',["parentPath"]='jianshenzhe_01',["hitAnimPath"]='',["x"]=20,["y"]=0,["z"]=20,}
+}
+
+return {["role"]=RoleCfg,["skill"]=SkillCfg,["monsters"]=MonstersCfg,}

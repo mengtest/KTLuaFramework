@@ -1,0 +1,219 @@
+local interact_obj = {}
+local enum_interact = require "common.Enum.Enum_Interact"
+
+Attribute.decl(interact_obj, "id", nil)
+-- 物件当前的激活状态 由服务器广播
+Attribute.decl(interact_obj, "discoverable")
+-- 剩余采集次数
+Attribute.decl(interact_obj, "count", nil)
+-- 坐标
+Attribute.decl(interact_obj, "pos", nil)
+-- 是否被任务激活
+Attribute.decl(interact_obj, "task_trigger", false)
+
+function interact_obj:doInit(param)
+    local objID = param:get_id()
+    -- 物件ID
+    local objType = param:get_tmpl()
+    local objPos = param:get_pos()
+    local objDir = param:get_dir()
+    
+    -- self.entity = param
+    self:set_id(objID)
+    self:set_pos(objPos)
+    self:set_discoverable(param:get_discoverable())
+    
+    self:set_count(param:get_count())
+    self.dir = objDir
+    if (objType ~= nil) then
+        self.data = dbc.treasure[objType]
+    else
+        self.data = dbc.treasure[700003]
+    end
+    self.player_controller = self:getFrame("player_controller")
+    self.main_player_unit = self.player_controller:get_main_player_unit()
+    
+    self.m_type_function_list = {}
+    self.m_type_function_list[0] = {lang.collect, self.collect, self.collect_success}
+    self.m_type_function_list[1] = {lang.climb, self.climb, self.climb_success}
+    self.m_type_function_list[2] = {lang.carry, self.carry, self.carry_success}
+    self.m_type_function_list[3] = {lang.transfer, self.transfer, self.transfer_success}
+    self.m_type_function_list[4] = {nil, self.fall_die, nil}
+
+end
+
+-- 获取原型数据
+function interact_obj:get_data()
+    return self.data
+end
+
+-- 初始化GameObject信息
+function interact_obj:initGameObj(go)
+    -- 这里很麻烦 需要商讨后进行优化
+    go.transform.parent.localPosition = self:get_pos()
+    go.transform.localPosition = Vector3.zero
+    go.transform.localEulerAngles = Vector3(0, self.dir, 0)
+    go.transform.localScale = Vector3.one
+    go.name = "InteractObj"
+    go.transform.parent.gameObject.layer = LayerMask.NameToLayer("Role")
+    --
+    --[[local box_collider = go.transform.parent.gameObject:AddComponent(BoxCollider)
+    box_collider.center = Vector3(0, 0.5, 0)
+    box_collider.size = Vector3.one
+    Object.Destroy(go:GetComponent(BoxCollider))]]
+    return go.transform.parent.gameObject
+end
+
+-- 判断是否为可交互状态
+function interact_obj:canInteractState()
+    
+    if (self:get_count() < 1) then return false end
+    
+    local condition1 = self:get_discoverable() == SharedEnum.TreasureStatus.DISCOVERABLE_ALWAYS
+    local condition2 = self:get_discoverable() == SharedEnum.TreasureStatus.DISCOVERABLE_DEPEND and self:get_task_trigger() == true
+    return condition1 or condition2
+end
+
+-- 判断是否进入可交互范围,返回bool
+function interact_obj:inRange(unit_pos)
+    local dist = Vector3.Distance(unit_pos, self:get_pos())
+    return dist < self.data.dist
+end
+
+-- 是否被玩家选中
+function interact_obj:isPlayerTarget()
+    if (self.data.triggered_type == enum_interact.Interact_Triggered_Type.NEED_CLICK) then
+        -- 根本不需要被选中
+        return false
+    else
+        return true
+    end
+end
+
+function interact_obj:canInteract(unit_pos)
+    return self:canInteractState() and self:isPlayerTarget() and self:inRange(unit_pos)
+end
+
+-- 发现了可以交互的物件，通知UI显示按钮
+function interact_obj:showInertactBtn()
+    local f = self.m_type_function_list[self.data.type]
+    if (self.data.triggered_type == enum_interact.Interact_Triggered_Type.NO_NEED_CLICK) then
+        self.player_controller:show_interact_btn(f[1], f[2], f[3], self)
+    elseif (self.data.triggered_type == enum_interact.Interact_Triggered_Type.IMMEDIATELY) then
+        f[2](self)
+    end
+end
+
+-- 没有可以交互的物件，通知UI关闭按钮
+function interact_obj:closeInertactBtn()
+    self.player_controller:show_interact_btn(nil)
+end
+
+-- 采集方法
+function interact_obj:collect()
+    --print("run collect func")
+    -- 交互动作 and 通知服务器开始采集
+    self.main_player_unit:TreasureTarget(self)
+    
+    self.player_controller:set_attr_and_event("interact_btn_time", self.data.time)
+
+end
+
+-- 采集完成方法
+function interact_obj:collect_success(is_success)
+    if is_success == true then
+        -- 隐藏按钮
+        self:closeInertactBtn()
+        self:getFrame("interact_tip"):doHide()
+    else -- 打断or被打断
+        -- 重新寻找采集物
+        self.main_player_unit:find_interact_obj()
+    end
+    
+    -- 交互动作结束 and 通知服务器采集完成
+    self.main_player_unit:TreasureFinish(self:get_id(), is_success)
+
+end
+
+-- 攀爬方法
+function interact_obj:climb()
+    print("run climb func")
+    self.player_controller:set_attr_and_event("interact_btn_time", self.data.time)
+end
+
+-- 攀爬完成方法
+function interact_obj:climb_success(is_success)
+    print("run climb " .. tostring(is_success))
+end
+
+-- 携带方法
+function interact_obj:carry()
+    print("run carry func")
+    self.player_controller:set_attr_and_event("interact_btn_time", self.data.time)
+end
+
+-- 携带完成方法
+function interact_obj:carry_success(is_success)
+    print("run carry " .. tostring(is_success))
+end
+
+-- 传送
+function interact_obj:transfer()
+    print("run transfer func")
+    self.main_player_unit:TreasureTarget(self)
+    
+    self.player_controller:set_attr_and_event("interact_btn_time", self.data.time)
+end
+
+-- 传送完成
+function interact_obj:transfer_success(is_success)
+    print("run transfer " .. tostring(is_success))
+    -- clz test for interactObj
+    if (is_success == true) then
+        self.main_player_unit:set_pos(Vector3(-68.77747, 252.08, 539.7213))
+        self.main_player_unit:emit_event("set_position",self.main_player_unit:get_pos())
+        self.main_player_unit:set_dir(-34.69)
+    else -- 打断or被打断
+        -- 重新寻找
+        self.main_player_unit:find_interact_obj()
+    end
+
+-- 交互动作结束
+--self.main_player_unit:TreasureFinish(self:get_id(), is_success)
+end
+
+-- 跌落方法 -> 直接判定摔死了
+function interact_obj:fall_die()
+    -- 客户端先行修改状态
+    self:set_discoverable(SharedEnum.TreasureStatus.DISCOVERABLE_DEPEND)
+    -- 暂停相机追随
+    self:getFrame("world"):getCamera():pauseTrackUnit(self.main_player_unit)
+    
+    self.main_player_unit:set_hp(0)
+    
+    -- 模拟复活
+    slua_timer.addDelayEvent(
+        5,
+        function()
+            self.main_player_unit:set_hp(self.main_player_unit:get_hp_max())
+            self:getFrame("world"):getCamera():trackUnit(self.main_player_unit)
+            self.main_player_unit:set_pos(Vector3(77.08603, 19.29337, 24.68345))
+            --[[self:getFrame("world"):request_change_map(1001,
+            function()
+            self.main_player_unit:set_pos(Vector3(177.0617, 22.08244, 116.5563))
+            end)]]
+            --
+            self:set_discoverable(SharedEnum.TreasureStatus.DISCOVERABLE_ALWAYS)
+        end
+)
+end
+
+-- 任务触发器
+function interact_obj:task_trigger(bool)
+    -- 激活、关闭任务状态
+    self:set_task_trigger(bool)
+    -- 用相同参数触发discoverable赋值事件 用于检测新状态
+    self:set_attr_and_event("discoverable", self:get_discoverable())
+end
+
+return interact_obj

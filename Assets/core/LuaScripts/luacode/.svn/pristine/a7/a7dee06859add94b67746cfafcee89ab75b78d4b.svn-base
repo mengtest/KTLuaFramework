@@ -1,0 +1,207 @@
+﻿local View = require("system.view")
+local Sidebar_view = class("Sidebar_view", View)
+
+
+function Sidebar_view:doInit()
+    self:load(app:getAssetPathMgr().get_ui_view_asset("sidebar/sidebar"), function(go)
+        local parent_go = self:getParent():getGO()
+        local parent_tr = parent_go and parent_go.transform or nil
+        self:init_with_go(go, parent_tr)
+        app:get_ui_manager():AdaptResolution(self:getFrame():getFrameName(), go)
+    end )
+end
+
+function Sidebar_view:on_prepared()
+    self:init_head()
+    self:init_btn()
+end
+
+function Sidebar_view:init_btn()
+    local tr = self.m_go.transform
+    local tr_hide = tr:Find("btn_hide/img")
+    local tog_hide = tr:Find("btn_hide"):GetComponent(UnityEngine.UI.Toggle)
+    local btn_quest = tr:Find("border/border_btn/vertical_group_btn/btn_quest"):GetComponent(UnityEngine.UI.Button)
+    local btn_team = tr:Find("border/border_btn/vertical_group_btn/btn_team"):GetComponent(UnityEngine.UI.Button)
+    local content_rt = tr:Find("border/border_mask/border_detail"):GetComponent(UnityEngine.RectTransform)
+    local this = self
+    local base_posX = content_rt.localPosition.x
+    tog_hide.onValueChanged:AddListener(function(flag)
+        local width = content_rt.rect.width
+        local aim_posX = nil
+        local aim_eul = nil
+        if flag then
+            aim_posX = base_posX
+            aim_eul = Vector3(0, 0, 0)
+        else
+            aim_posX = base_posX - width
+            aim_eul = Vector3(0, 180, 0)
+        end
+        local tweener_pos = ShortcutExtensions.DOLocalMoveX(content_rt, aim_posX, 0.3, false)
+        DG_DOTweenUtil.SetEase(tweener_pos, Ease.OutBack)
+        local tweener_rot = ShortcutExtensions.DOLocalRotate(tr_hide, aim_eul, 0.3, DG.Tweening.RotateMode.Fast)
+        DG_DOTweenUtil.SetEase(tweener_rot, Ease.InOutCubic)
+    end)
+    tog_hide.isOn = true
+    btn_quest.onClick:AddListener(function()
+        this.m_frame:toggle("quest_bar")
+    end)
+    btn_team.onClick:AddListener(function()
+        this.m_frame:toggle("team_bar")
+    end)
+
+end
+
+function Sidebar_view:init_head()
+    self.m_team_manager = self:getFrame("team_manager")
+    local tr = self.m_go.transform
+    local toggle_group = tr:Find("toggle_group"):GetComponent("UnityEngine.UI.ToggleGroup")
+    self:getFrame().m_toggle_group = toggle_group
+    local role_name_cmp = tr:Find("head/name"):GetComponent("UnityEngine.UI.Text")
+    local role_level_cmp = tr:Find("head/level"):GetComponent("UnityEngine.UI.Text")
+    local btn_cmp = tr:Find("head/team_btn"):GetComponent("UnityEngine.UI.Toggle")
+    self.m_btn_cmp = btn_cmp
+    local m_function = tr:Find("head/function")
+    local duty = tr:Find("head/duty").gameObject
+    duty:SetActive(false)
+    local leader_icon = tr:Find("head/leader_icon").gameObject
+    self.m_leader_icon = leader_icon
+    local quit_team_cmp = m_function:Find("quit_team"):GetComponent(UnityEngine.UI.Button)
+    m_function.gameObject:SetActive(false)
+    btn_cmp.enabled = false
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    self.m_role = kbe_mgr:get_entity(role_id)
+    self:subscribe(self.m_role:on_event_attr_set("level", true), function(val)
+        role_level_cmp.text = val
+    end)
+    self:subscribe(self.m_role:on_event_name_set(true), function(val)
+        role_name_cmp.text = val
+    end)
+    btn_cmp.onValueChanged:AddListener(function(flag)
+        m_function.gameObject:SetActive(flag)
+        duty:SetActive(not flag)
+        if flag then
+            leader_icon:SetActive(false)
+        else
+            leader_icon:SetActive(self:getFrame():get_is_leader())
+        end
+
+        local world = self:getFrame("world")
+        local unit_own = world:get_main_player()
+        unit_own:set_target(unit_own)
+    end)
+    quit_team_cmp.onClick:AddListener(function()
+        self.m_team_manager:req_leave()
+    end)
+    self:subscribe(self.m_team_manager:on_event_add_member(), function(db_id, data, is_leader)
+        if self.m_role:get_dbid() == db_id then
+            btn_cmp.enabled = true
+            self:getFrame():set_is_leader(is_leader)
+            leader_icon:SetActive(is_leader)
+            self.m_btn_cmp = btn_cmp
+            --self:set_duty(duty, duty_id)
+            duty:SetActive(true)
+
+            self.m_duty_event = self:subscribe(self.m_role:on_event_attr_set("specialization", true), function(val)
+                if val and val ~= -1 then
+                    local duty_id = dbc.specialization[val].duty
+                    self:set_duty(duty, duty_id)
+                end
+            end)
+        end
+    end)
+    self:subscribe(self.m_team_manager:on_event_del_member(), function(db_id, data)
+        if self.m_role:get_dbid() == db_id then
+            if self.m_duty_event ~= nil then
+                self:unsubscribe(self.m_duty_event)
+            end
+            btn_cmp.enabled = false
+            m_function.gameObject:SetActive(false)
+            duty:SetActive(false)
+            leader_icon:SetActive(false)
+            self.m_btn_cmp = nil
+        end
+    end)
+    self:subscribe(self.m_team_manager:on_event("change_leader"), function(db_id)
+        self:change_leader(db_id)
+    end)
+end
+
+-----转移队长
+function Sidebar_view:change_leader(db_id)
+    if db_id == self.m_role:get_dbid() then
+        self:getFrame():set_is_leader(true)
+        self.m_leader_icon:SetActive(true)
+        self:getFrame("float_hint_manager"):add_float("你已成为队长")
+    else
+        self:getFrame():set_is_leader(false)
+        self.m_leader_icon:SetActive(false)
+    end
+end
+
+function Sidebar_view:doUpdate()
+    if self.m_btn_cmp and self.m_btn_cmp.isOn then
+        if Input.GetMouseButtonDown(0) or (Input.touchCount > 0 and Input.GetTouch(0).phase == TouchPhase.Began) then
+            --print("鼠标触摸屏幕")
+            local click_name = self:OnePointColliderObject()
+            --print("------------------->>click_name",tostring(click_name))
+            if click_name then
+                if click_name == "team_btn" or click_name == "quit_team" or click_name == "change_leader" then
+                else
+                    self.m_btn_cmp.isOn = false
+                end
+            else
+                self.m_btn_cmp.isOn = false
+            end
+        else
+            --print("无鼠标触摸屏幕")
+        end
+    end
+end
+
+--判断是否点击到ui上（暂时不用）
+function Sidebar_view:isPointerOverUIObject()
+    local eventData = EventSystems.PointerEventData(EventSystems.EventSystem.current)
+    eventData.position = Vector2(Input.mousePosition.x, Input.mousePosition.y)
+
+    local results = ListRaycastResult()
+    EventSystems.EventSystem.current:RaycastAll(eventData, results)
+    return results.Count > 0
+end
+
+--获取点击到的ui名称
+function Sidebar_view:OnePointColliderObject()
+    local eventData = EventSystems.PointerEventData(EventSystems.EventSystem.current)
+    eventData.position = Vector2(Input.mousePosition.x, Input.mousePosition.y)
+
+    local results = ListRaycastResult()
+    EventSystems.EventSystem.current:RaycastAll(eventData, results)
+
+    if results.Count > 0 then
+        return results:getItem(0).gameObject.name
+    else
+        return nil
+    end
+end
+
+-----设置职责图标
+function Sidebar_view:set_duty(duty_go, duty_id)
+    local path = ""
+    if duty_id == 1 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('tank')
+    elseif duty_id == 2 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('damage')
+    elseif duty_id == 3 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('healer')
+    else
+        path = app:getAssetPathMgr().get_sidebar_view_resource('damage')
+    end
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        local tex = asset
+        duty_go.transform:GetComponent("Image").sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+    end)
+end
+
+return Sidebar_view

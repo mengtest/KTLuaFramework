@@ -1,0 +1,883 @@
+local M = {}
+
+function M:doInit()
+    self.m_world = self:getFrame("world")
+
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+
+    self:subscribe(kbe_mgr:on_event("role_enter"), function(...)
+        self:on_role_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("role_exit"), function(...)
+        self:on_role_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("interact_obj_enter"), function(...)
+        self:on_interact_obj_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("interact_obj_exit"), function(...)
+        self:on_interact_obj_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Object_enter"), function(...)
+        self:on_Object_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Object_exit"), function(...)
+        self:on_Object_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("giver_enter"), function(...)
+        self:on_giver_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("giver_exit"), function(...)
+        self:on_giver_exit(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Merchant_enter"), function(...)
+        self:on_merchant_enter(...)
+    end)
+    self:subscribe(kbe_mgr:on_event("Merchant_exit"), function(...)
+        self:on_merchant_exit(...)
+    end)
+
+    self:subscribe(kbe_mgr:on_event("EnergyBall_enter"), function(...)
+        self:on_energy_ball_enter(...)
+    end)
+
+    self:subscribe(kbe_mgr:on_event("EnergyBall_exit"), function(...)
+        self:on_energy_ball_exit(...)
+    end)
+
+    kbe_mgr:reproduce_enter_event()
+end
+
+--[[ unit  start ]] --
+--local ATT_MAP = {
+--    pos = "pos",
+--    dir = "dir",
+--    name = "name",
+--    health = "hp",
+--    health_max = "hp_max",
+--    target_id = "target_id",
+--    dbid = "dbid",
+--}
+-- 创建角色(怪物)的方法
+function M:on_role_enter(role)
+    local unit = nil
+    local sdk = app:getKBESDK()
+    local is_main_player = role:get_id() == sdk:get_player_id()
+    local roleID = role:get_id()
+    -- 角色/怪物ID
+    local creatureID = role:get_role_type()
+    local roleName = role:get_name()
+    local rolePos = role:get_pos()
+
+    --by lijunfeng 2017/12/14 加入MobGiver分支，所有单位初始化做分支处理
+    if role.class.name == "Role" then
+
+        local world_time = role:get_role_world_time()
+        self.m_world:set_world_time(world_time)
+
+        unit = self.m_world:addUnit(roleID, creatureID, roleName, rolePos, true, is_main_player, role)
+        if is_main_player then
+            -- 镜头动画
+            self:subscribe(role:on_event("camera_animation"), function(id)
+                self.m_world:rec_camera_animation(id)
+            end)
+            self:subscribe(role:on_event("screen_shake"), function(id)
+                self.m_world:rec_screen_shake(id)
+            end)
+
+            -- Quest System
+            local quest_manager = self:getFrame("quest_manager")
+            --取得所有任务 by lijunfeng 2018/3/5 添加marks参数
+            self:subscribe(role:on_event("quest_all"), function(timestamp, infos, nexts, prevs, panels, marks)
+                quest_manager:rec_quest_all(timestamp, infos, nexts, prevs, panels, marks)
+            end)
+            --取得新增任务
+            self:subscribe(role:on_event("quest_jobs"), function(infos, nexts, prevs, panels)
+                quest_manager:rec_quest_jobs(infos, nexts, prevs, panels)
+            end)
+            --确认完后任务
+            self:subscribe(role:on_event("quest_remove"), function(id)
+                quest_manager:rec_quest_remove(id)
+            end)
+            --允许放弃任务
+            self:subscribe(role:on_event("quest_revert"), function(id)
+                quest_manager:rec_give_up_quest(id)
+            end)
+            --更新任务条件
+            self:subscribe(role:on_event("quest_update"), function(id, num, cond)
+                quest_manager:rec_update_quest(id, num, cond)
+            end)
+            self:subscribe(role:on_event("quest_token_ticket"), function(token_ticket, entity_id)
+                unit:set_attr("token_ticket", token_ticket)
+            end)
+            --by lijunfeng 2018/2/6
+            self:subscribe(role:on_event("quest_status"), function(quest_id, timestamp)
+                quest_manager:rec_quest_status(quest_id, timestamp)
+            end)
+
+            self:subscribe(role:on_event("quiz_bgn"), function(quiz_id, index, answer1, answer2, hint)
+                self:getFrame("quiz_manager"):quiz_bgn(quiz_id, index, answer1, answer2, hint)
+            end)
+            self:subscribe(role:on_event("quiz_end"), function(quiz_id, index, is_correct)
+                self:getFrame("quiz_manager"):quiz_end(quiz_id, index, is_correct)
+            end)
+            -- Team System
+            local team_mgr = app:get_team_mgr()
+            self:subscribe(role:on_event("team_info"), function(db_id, team_info)
+                team_mgr:rec_team_info(db_id, team_info)
+            end)
+
+            self:subscribe(role:on_event("member_info"), function(member_info)
+                team_mgr:rec_member_info(member_info)
+            end)
+
+            self:subscribe(role:on_event("invite_team"), function(db_id, inviter_name, team_id)
+                team_mgr:rec_invite_team(db_id, inviter_name, team_id)
+            end)
+
+            self:subscribe(role:on_event("resp_result"), function(team_args_info)
+                team_mgr:rec_resp_result(team_args_info)
+            end)
+
+            self:subscribe(role:on_event("change_leader"), function(db_id)
+                team_mgr:rec_change_leader(db_id)
+            end)
+
+            self:subscribe(role:on_event("change_hp_for_team"), function(db_id, hp)
+                team_mgr:rec_change_hp_for_team(db_id, hp)
+            end)
+
+            self:subscribe(role:on_event("change_max_hp_for_team"), function(db_id, max_hp)
+                team_mgr:rec_change_max_hp_for_team(db_id, max_hp)
+            end)
+
+            self:subscribe(role:on_event("change_specialization_for_team"), function(db_id, specialization)
+                team_mgr:rec_change_specialization_for_team(db_id, specialization)
+            end)
+
+            self:subscribe(role:on_event("member_add_aura_for_team"), function(db_id, aura_info)
+                team_mgr:rec_member_add_aura_for_team(db_id, aura_info)
+            end)
+
+            self:subscribe(role:on_event("member_del_aura_for_team"), function(db_id, index)
+                team_mgr:rec_member_del_aura_for_team(db_id, index)
+            end)
+
+            self:subscribe(role:on_event("join_team_notify"), function(member_info)
+                team_mgr:rec_join_team_notify(member_info)
+            end)
+
+            self:subscribe(role:on_event("leave_team_notify"), function(db_id)
+                team_mgr:rec_leave_team_notify(db_id)
+            end)
+
+            self:subscribe(role:on_event("member_state_change"), function(db_id, index)
+                team_mgr:rec_member_state_change(db_id, index)
+            end)
+
+            self:subscribe(role:on_event("member_position"), function(map_id, team_member_position_info)
+                team_mgr:rec_member_position(map_id, team_member_position_info)
+            end)
+
+            -- matching system
+            local matching_manager = self:getFrame("matching_manager")
+            self:subscribe(role:on_event("resp_get_match_data"), function(challenge_num, is_maching, dungeon_id, time, duty, diff)
+                matching_manager:rec_matching_data(challenge_num, is_maching, dungeon_id, time, duty, diff)
+            end)
+
+            self:subscribe(role:on_event("will_create_matching"), function(diff_type, dungeon_id)
+                matching_manager:will_create_matching(diff_type, dungeon_id)
+            end)
+
+            self:subscribe(role:on_event("will_create_matching_inst"), function(dbid, dungeon_id)
+                matching_manager:will_create_matching_inst(dbid, dungeon_id)
+            end)
+
+            self:subscribe(role:on_event("come_back_matching_inst"), function()
+                matching_manager:rec_come_back_matching_inst()
+            end)
+
+            self:subscribe(role:on_event("can_join_matching"), function()
+                matching_manager:rec_can_join_matching()
+            end)
+
+            self:subscribe(role:on_event("refuse_sure_matching_notify"), function(unicode)
+                matching_manager:refuse_sure_matching_notify(unicode)
+            end)
+
+            self:subscribe(role:on_event("pause_matching_notify"), function(unicode)
+                matching_manager:pause_matching_notify(unicode)
+            end)
+
+            --dungeon system
+            local dungeon_manager = self:getFrame("dungeon_manager")
+            self:subscribe(role:on_event("resp_unlock_instance"), function(unlock_dungeon_list)
+                dungeon_manager:accept_unlock_dungeon_list(unlock_dungeon_list)
+            end)
+
+            self:subscribe(role:on_event("unlock_new_instance"), function(dungeon_id)
+                dungeon_manager:accept_unlock_new_dungeon(dungeon_id)
+            end)
+
+            self:subscribe(role:on_event("instance_diffculty_select"), function(map_id)
+                dungeon_manager:accept_dungeon_diff_result(map_id)
+            end)
+
+            self:subscribe(role:on_event("resp_inst_progress"), function(progress_arry)
+                dungeon_manager:accept_dungeon_progress(progress_arry)
+            end)
+
+            self:subscribe(role:on_event("sync_inst_data"), function(time, progress_arry, drag_arry)
+                dungeon_manager:accept_dungeon_time_and_progress(time, progress_arry, drag_arry)
+            end)
+
+            self:subscribe(role:on_event("sync_inst_time"), function(time)
+                dungeon_manager:accept_dungeon_time(time)
+            end)
+
+            self:subscribe(role:on_event("sync_inst_data_before_enter"), function(id, progress_arry, drag_arry, reset)
+                dungeon_manager:accept_dungeon_reset_and_progress(id, progress_arry, drag_arry, reset)
+            end)
+
+            self:subscribe(role:on_event("resp_kill_pro_for_diff_sel"), function(progress_arry, drag_arry)
+                dungeon_manager:accept_resp_kill_pro_for_diff_sel(progress_arry, drag_arry)
+            end)
+
+            -- Skill UI System 2017.11.01    rjy
+            local skill_ui_manager = self:getFrame("skill_ui_manager")
+            self:subscribe(role:on_event("master_all"), function(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+                skill_ui_manager:rec_master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+            end)
+
+            self:subscribe(role:on_event("master_enabled"), function(talent_id)
+                skill_ui_manager:rec_master_enabled(talent_id)
+            end)
+
+            self:subscribe(role:on_event("master_learnt"), function(master_info)
+                skill_ui_manager:rec_master_learnt(master_info)
+            end)
+
+            self:subscribe(role:on_event("master_available"), function(available_id_list)
+                skill_ui_manager:rec_master_available(available_id_list)
+            end)
+
+            self:subscribe(role:on_event("master_level"), function(skill_id)
+                skill_ui_manager:rec_master_level(skill_id)
+            end)
+
+            self:subscribe(role:on_event("master_stat"), function(skill_id)
+                skill_ui_manager:rec_master_stat(skill_id)
+            end)
+
+            self:subscribe(role:on_event("master_page"), function(page_id)
+                skill_ui_manager:rec_master_page(page_id)
+            end)
+
+            self:subscribe(role:on_event("master_slot"), function(skill_id, slot)
+                skill_ui_manager:rec_master_slot(skill_id, slot)
+            end)
+
+            self:subscribe(role:on_event("master_status"), function(skill_id, max_level, curr_level, associated)
+                skill_ui_manager:rec_master_status(skill_id, max_level, curr_level, associated)
+            end)
+            -----inventory   system   2017.11.27   ke
+            local inventory_manager = self:getFrame("inventory_manager")
+            self:subscribe(role:on_event("inventory_all"), function(countable_info, wearable_info, attachable_info, equipped_inventory, slot_flag, inspiration, handbook)
+                inventory_manager:inventory_all(countable_info, wearable_info, attachable_info, equipped_inventory, slot_flag, inspiration, handbook)
+            end)
+
+            self:subscribe(role:on_event("inventory_countables"), function(countable_info)
+                inventory_manager:inventory_countables(countable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_wearables"), function(wearable_info)
+                inventory_manager:inventory_wearables(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_head"), function(wearable_info)
+                inventory_manager:inventory_equipped_head(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_head"), function()
+                inventory_manager:inventory_unequipped_head()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_shoulder"), function(wearable_info)
+                inventory_manager:inventory_equipped_shoulder(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_shoulder"), function()
+                inventory_manager:inventory_unequipped_shoulder()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_chest"), function(wearable_info)
+                inventory_manager:inventory_equipped_chest(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_chest"), function()
+                inventory_manager:inventory_unequipped_chest()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_wrist"), function(wearable_info)
+                inventory_manager:inventory_equipped_wrist(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_wrist"), function()
+                inventory_manager:inventory_unequipped_wrist()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_hands"), function(wearable_info)
+                inventory_manager:inventory_equipped_hands(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_hands"), function()
+                inventory_manager:inventory_unequipped_hands()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_waist"), function(wearable_info)
+                inventory_manager:inventory_equipped_waist(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_waist"), function()
+                inventory_manager:inventory_unequipped_waist()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_legs"), function(wearable_info)
+                inventory_manager:inventory_equipped_legs(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_legs"), function()
+                inventory_manager:inventory_unequipped_legs()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_feet"), function(wearable_info)
+                inventory_manager:inventory_equipped_feet(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_feet"), function()
+                inventory_manager:inventory_unequipped_feet()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_neck"), function(wearable_info)
+                inventory_manager:inventory_equipped_neck(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_neck"), function()
+                inventory_manager:inventory_unequipped_neck()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_back"), function(wearable_info)
+                inventory_manager:inventory_equipped_back(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_back"), function()
+                inventory_manager:inventory_unequipped_back()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_finger1"), function(wearable_info)
+                inventory_manager:inventory_equipped_finger1(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_finger1"), function()
+                inventory_manager:inventory_unequipped_finger1()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_finger2"), function(wearable_info)
+                inventory_manager:inventory_equipped_finger2(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_finger2"), function()
+                inventory_manager:inventory_unequipped_finger2()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_accessory1"), function(wearable_info)
+                inventory_manager:inventory_equipped_accessory1(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_accessory1"), function()
+                inventory_manager:inventory_unequipped_accessory1()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_accessory2"), function(wearable_info)
+                inventory_manager:inventory_equipped_accessory2(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_accessory2"), function()
+                inventory_manager:inventory_unequipped_accessory2()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_mainhand_weapon"), function(wearable_info)
+                inventory_manager:inventory_equipped_mainhand_weapon(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_mainhand_weapon"), function()
+                inventory_manager:inventory_unequipped_mainhand_weapon()
+            end)
+
+            self:subscribe(role:on_event("inventory_equipped_offhand_weapon"), function(wearable_info)
+                inventory_manager:inventory_equipped_offhand_weapon(wearable_info)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_offhand_weapon"), function()
+                inventory_manager:inventory_unequipped_offhand_weapon()
+            end)
+
+
+            ---- 背包中添加灵兽的东西  rjy  2018.01.10
+            self:subscribe(role:on_event("inventory_attachable"), function(attachable_info)
+                inventory_manager:inventory_attachable(attachable_info)
+            end)
+            -- 完成升级
+            self:subscribe(role:on_event("inventory_upgraded_sprite"), function(unique, tmpl, arg)
+                inventory_manager:inventory_upgraded_sprite(unique, tmpl, arg)
+            end)
+            -- 解除出战
+            self:subscribe(role:on_event("inventory_unattached_sprite"), function()
+                inventory_manager:inventory_unattached_sprite()
+            end)
+            -- 分解
+            self:subscribe(role:on_event("inventory_inverted_sprites"), function(sprite_unique_list, sprite_id_list)
+                inventory_manager:inventory_inverted_sprites(sprite_unique_list, sprite_id_list)
+            end)
+            -- 融灵
+            self:subscribe(role:on_event("inventory_merged_sprites"), function(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+                inventory_manager:inventory_merged_sprites(main_sprite_unique, main_sprite_id, piece_sprite_unique_list, piece_sprite_id_list, arg, new_sprite_unique, new_sprite_id)
+            end)
+            -- 金
+            self:subscribe(role:on_event("inventory_equipped_metal_sprite"), function(attachable_info, args)
+                inventory_manager:inventory_equipped_metal_sprite(attachable_info, args)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_metal_sprite"), function(unequipped_type)
+                inventory_manager:inventory_unequipped_metal_sprite(unequipped_type)
+            end)
+
+            self:subscribe(role:on_event("inventory_attached_metal_sprite"), function()
+                inventory_manager:inventory_attached_metal_sprite()
+            end)
+
+            self:subscribe(role:on_event("inventory_skinned_metal_sprite"), function(skin_id)
+                inventory_manager:inventory_skinned_metal_sprite(skin_id)
+            end)
+
+            -- 木
+            self:subscribe(role:on_event("inventory_equipped_wood_sprite"), function(attachable_info, args)
+                inventory_manager:inventory_equipped_wood_sprite(attachable_info, args)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_wood_sprite"), function(unequipped_type)
+                inventory_manager:inventory_unequipped_wood_sprite(unequipped_type)
+            end)
+
+            self:subscribe(role:on_event("inventory_attached_wood_sprite"), function()
+                inventory_manager:inventory_attached_wood_sprite()
+            end)
+
+            self:subscribe(role:on_event("inventory_skinned_wood_sprite"), function(skin_id)
+                inventory_manager:inventory_skinned_wood_sprite(skin_id)
+            end)
+
+            -- 水
+            self:subscribe(role:on_event("inventory_equipped_water_sprite"), function(attachable_info, args)
+                inventory_manager:inventory_equipped_water_sprite(attachable_info, args)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_water_sprite"), function(unequipped_type)
+                inventory_manager:inventory_unequipped_water_sprite(unequipped_type)
+            end)
+
+            self:subscribe(role:on_event("inventory_attached_water_sprite"), function()
+                inventory_manager:inventory_attached_water_sprite()
+            end)
+
+            self:subscribe(role:on_event("inventory_skinned_water_sprite"), function(skin_id)
+                inventory_manager:inventory_skinned_water_sprite(skin_id)
+            end)
+
+            -- 火
+            self:subscribe(role:on_event("inventory_equipped_fire_sprite"), function(attachable_info, args)
+                inventory_manager:inventory_equipped_fire_sprite(attachable_info, args)
+            end)
+
+            self:subscribe(role:on_event("inventory_unequipped_fire_sprite"), function(unequipped_type)
+                inventory_manager:inventory_unequipped_fire_sprite(unequipped_type)
+            end)
+
+            self:subscribe(role:on_event("inventory_attached_fire_sprite"), function()
+                inventory_manager:inventory_attached_fire_sprite()
+            end)
+
+            self:subscribe(role:on_event("inventory_skinned_fire_sprite"), function(skin_id)
+                inventory_manager:inventory_skinned_fire_sprite(skin_id)
+            end)
+
+
+
+
+
+            local map_manager = self:getFrame("map_manager")
+            self:subscribe(role:on_event("resp_unlock_tele_point"), function(unlock_tele_point)
+                map_manager:resp_unlock_tele_point(unlock_tele_point)
+            end)
+
+            ----suit UI system  2018.1.5 by xhz
+            local suit_manager = self:getFrame("suit_manager")
+            self:subscribe(role:on_event("suit_all"), function(outer_appearance, dressed_cabinet)
+                suit_manager:suit_all(outer_appearance, dressed_cabinet)
+            end)
+
+            self:subscribe(role:on_event("suit_unlocked"), function(suit_id, suit_timestamp)
+                suit_manager:suit_unlocked(suit_id, suit_timestamp)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_upper"), function(suit_id)
+                suit_manager:suit_collected_upper(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_lower"), function(suit_id)
+                suit_manager:suit_collected_lower(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_weapon"), function(suit_id)
+                suit_manager:suit_collected_weapon(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_face"), function(suit_id)
+                suit_manager:suit_collected_face(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_shoulder"), function(suit_id)
+                suit_manager:suit_collected_shoulder(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_back"), function(suit_id)
+                suit_manager:suit_collected_back(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_tail"), function(suit_id)
+                suit_manager:suit_collected_tail(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_waist"), function(suit_id)
+                suit_manager:suit_collected_waist(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_hands"), function(suit_id)
+                suit_manager:suit_collected_hands(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_collected_feet"), function(suit_id)
+                suit_manager:suit_collected_feet(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_upper"), function(suit_id)
+                suit_manager:suit_dressed_upper(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_lower"), function(suit_id)
+                suit_manager:suit_dressed_lower(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_weapon"), function(suit_id)
+                suit_manager:suit_dressed_weapon(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_face"), function(suit_id)
+                suit_manager:suit_dressed_face(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_shoulder"), function(suit_id)
+                suit_manager:suit_dressed_shoulder(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_back"), function(suit_id)
+                suit_manager:suit_dressed_back(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_tail"), function(suit_id)
+                suit_manager:suit_dressed_tail(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_waist"), function(suit_id)
+                suit_manager:suit_dressed_waist(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_hands"), function(suit_id)
+                suit_manager:suit_dressed_hands(suit_id)
+            end)
+
+            self:subscribe(role:on_event("suit_dressed_feet"), function(suit_id)
+                suit_manager:suit_dressed_feet(suit_id)
+            end)
+
+            --死亡复活
+            local death_manager = self:getFrame("death_manager")
+            self:subscribe(role:on_event("revival_conds"), function(fighting_phase_number, fighting_phase_state)
+                death_manager:revival_conds(fighting_phase_number, fighting_phase_state)
+            end)
+
+            -- 技能修改
+            self:subscribe(role:on_event("add_spell_mod"), function(skill_id, spell_mod_op, spell_mod_type, value)
+                unit:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+            end)
+
+            -- 技能CD重置
+            self:subscribe(role:on_event("spell_cd_reset"), function(spell_id)
+                unit:spell_cd_reset(spell_id)
+            end)
+
+            -- 技能CD变化
+            self:subscribe(role:on_event("spell_cd_mod"), function(spell_id, second)
+                unit:spell_cd_mod(spell_id, second)
+            end)
+
+        end
+    elseif role.class.name == "Creature" then
+
+        local create_time = role:get_created_time()
+
+        unit = self.m_world:addUnit(roleID, creatureID, roleName, rolePos, false, false, role)
+
+        if unit:getCfg().id == 600010 then
+            --等关卡编辑加入公共载具选项后安Type判断
+            unit:emit_event("init_waterwhell_angle", create_time)
+        end
+
+        self:subscribe(role:on_event("play_anim"), function(anima_name, has_camera, is_loop)
+            unit:emit_event("play_anim", anima_name, is_loop, has_camera)
+        end)
+
+        self:subscribe(role:on_event("threat_update"), function(threat_info)
+            local threat_manager = self:getFrame("threat_manager")
+            if threat_manager then
+                threat_manager:rec_threat_update(role:get_id(), threat_info)
+            end
+            unit:emit_event("threat_update", threat_info)
+        end)
+
+
+    elseif role.class.name == "MobGiver" then
+        print("mobnpc进入:", creatureID, roleName, rolePos)
+        unit = self.m_world:add_mob_giver(roleID, creatureID, roleName, rolePos, false, false, role)
+        self:subscribe(role:on_event("play_anim"), function(anima_name, has_camera, is_loop)
+            unit:emit_event("play_anim", anima_name, is_loop, has_camera)
+        end)
+    end
+
+    self:subscribe(role:on_event("set_position"), function(pos)
+        unit:emit_event("set_position", pos)
+    end)
+
+    self:subscribe(role:on_event("update_position"), function(pos)
+        unit:emit_event("update_position", pos)
+    end)
+
+    --对话泡泡
+    self:subscribe(role:on_event("popup_bubble"), function(dialog_id)
+        print("收到创建泡泡消息", dialog_id)
+        unit:set_bubble(dialog_id)
+    end)
+
+    -- 在这里实现切换战斗状态的具体逻辑
+    self:subscribe(role:on_event_attr_set("in_combat"), function(val)
+        --Debug.LogError("class name  " .. tostring(role.class.name) .. "  in_combat  " .. tostring(val) )
+        unit:change_battle_state(val)
+    end)
+
+    -- 灵兽
+    self:subscribe(role:on_event_attr_set("attached_sprite"), function(val)
+        unit:set_attached_sprite(val)
+    end)
+
+    self:subscribe(role:on_event_attr_set("move_state", true), function(val)
+        unit:set_move_state(val)
+        -- unit:set_attr_at("anim_param", "run", val ~= 0)
+    end)
+
+    self:subscribe(role:on_event_attr_set("move_speed", true), function(val)
+        unit:set_move_speed(val)
+    end)
+
+    local skill_queue = unit:get_skill_queue()
+
+    self:subscribe(role:on_event("cast_prepare"), function(client_cast_id, server_cast_id)
+        skill_queue:cast_prepare(unit, client_cast_id, server_cast_id)
+    end)
+
+    self:subscribe(role:on_event("cast_failed"), function(cast_id, spell_id, reason)
+        skill_queue:cast_failed(unit, cast_id, spell_id, reason)
+    end)
+
+    self:subscribe(role:on_event("spell_start"), function(cast_id, spell_id, target_id, target_pos, dir, cast_time)
+        skill_queue:spell_start(unit, cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    end)
+
+    self:subscribe(role:on_event("spell_go"), function(cast_id, spell_id, hit_targets, miss_targets)
+        skill_queue:spell_go(unit, cast_id, spell_id, hit_targets, miss_targets)
+    end)
+
+    self:subscribe(role:on_event("spell_failure"), function(cast_id, spell_id, reason)
+        skill_queue:spell_failure(unit, cast_id, spell_id, reason)
+    end)
+
+    self:subscribe(role:on_event("be_hit"), function(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)
+        skill_queue:be_hit(unit, attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id, health)
+    end)
+
+    self:subscribe(role:on_event("s2c_perform"), function(state)
+        if (state == enum.shared.RoleAction.MOTION_JUMP) then
+            --Debug.LogError("同步跳跃")
+            unit:set_to_jump(true)
+        elseif (state == enum.shared.RoleAction.MOTION_TREASURE_BGN) then
+            --Debug.LogError("同步采集")
+            unit:emit_event("treasure", true)
+        elseif (state == enum.shared.RoleAction.MOTION_TREASURE_END) then
+            --Debug.LogError("同步采集完成")
+            unit:emit_event("treasure", false)
+        end
+    end)
+
+    -- buff --
+    local buff_list = role:get_buff_list()
+    -- 添加buff
+    self:subscribe(buff_list:on_event("add_buff"), function(added_list)
+        unit:on_add_buff(added_list)
+    end)
+    -- 移除buff
+    self:subscribe(buff_list:on_event("remove_buff"), function(removed_list)
+        unit:on_remove_buff(removed_list)
+    end)
+
+
+    self:subscribe(role:on_event_display_id_set(), function(val)
+        --app:logError("set_display_id:"..val)
+        unit:set_display_id(val)
+    end)
+
+
+end
+
+function M:on_role_exit(role)
+    if role.class.name == "Role" or role.class.name == "Creature" then
+        --删除frame，自动删除GameObject-
+        self.m_world:delUnit(role:get_id())
+    elseif role.class.name == "MobGiver" then
+        --删除frame，自动删除GameObject-
+        self.m_world:del_mob_giver(role:get_id())
+    end
+end
+
+--[[ unit  end ]] --
+--[[ obj  start ]] --
+-- 交互物可变属性列表
+local INTERACT_ATT_MAP = {
+    discoverable = "discoverable",
+    pos = "pos",
+    count = "count",
+}
+
+
+-- 创建交互物的方法
+function M:on_interact_obj_enter(obj)
+
+    -- 创建interact_obj.frame
+    local o = self.m_world:addInteractObj(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(INTERACT_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_interact_obj_exit(obj)
+    self.m_world:delInteractObj(obj:get_id())
+end
+
+--[[ obj  end ]] --
+--[[ Object  start ]] --
+-- 创建物件的方法
+-- 交互物可变属性列表
+local Object_ATT_MAP = {
+    state = "state",
+}
+
+function M:on_Object_enter(obj)
+    -- 创建Object.frame
+    local o = self.m_world:addObject(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(Object_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_Object_exit(obj)
+    self.m_world:delObject(obj:get_id())
+end
+
+function M:on_giver_enter(giver_source)
+    local giver_client = self.m_world:add_giver(giver_source)
+    local tmpl = giver_source:get_tmpl()
+    local a = "stop"
+end
+
+function M:on_giver_exit(obj)
+
+end
+
+--[[ Object  end ]] --
+--[[商人 start]] --
+local Merchant_ATT_MAP = {
+    pos = "pos",
+    dir = "dir",
+}
+
+function M:on_merchant_enter(obj)
+
+    -- 创建Object.frame
+    local o = self.m_world:addMerchant(obj)
+
+    --当kbe修改属性值时 需要通知给实例frame
+    for k, v in pairs(Merchant_ATT_MAP) do
+        self:subscribe(obj:on_event_attr_set(k), function(val)
+            o:set_attr(v, val)
+        end)
+    end
+end
+
+function M:on_merchant_exit(obj)
+    self.m_world:delMerchant(obj:get_id())
+end
+
+--[[商人 end]] --
+
+--[[赵鹏的能量球 start]] --
+function M:on_energy_ball_enter(obj)
+    local energy = self.m_world:addDropItem(obj)
+
+    self:subscribe(obj:on_event("spawn"), function(id)
+
+        self.m_world:emit_event("add_linghunsuipian", obj:get_belongs_to())
+
+        energy:spawn(id)
+    end)
+
+    self:subscribe(obj:on_event("adsorb"), function(id)
+        energy:adsorb(id)
+    end)
+
+end
+
+function M:on_energy_ball_exit(obj)
+
+    self.m_world:delDropItem(obj:get_id())
+
+    self.m_world:emit_event("del_linghunsuipian", obj:get_belongs_to())
+
+end
+
+--[[赵鹏的能量球 end]] --
+return M

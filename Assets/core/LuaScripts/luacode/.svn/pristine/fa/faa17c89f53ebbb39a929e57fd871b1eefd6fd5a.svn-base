@@ -1,0 +1,27 @@
+local Frame = require("system.frame")
+local matching_list_item = class("matching_list_item", Frame)
+
+Event.decl(matching_list_item, "item_down")
+Event.decl(matching_list_item, "refresh")
+Event.decl(matching_list_item, "refresh_bg")
+
+function matching_list_item:doInit(param)
+    self:set_is_add_rect_trans(true)
+end
+
+function matching_list_item:on_item_btn()
+    self:emit_event("item_down")
+end
+
+------刷新界面
+function matching_list_item:refresh(id)
+    self:emit_event("refresh", id)
+end
+
+----刷新背景显示
+function matching_list_item:refresh_bg()
+    self:emit_event("refresh_bg")
+end
+
+
+return matching_list_item

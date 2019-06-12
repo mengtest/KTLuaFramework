@@ -1,0 +1,325 @@
+local ClientSession = class("ClientSession")
+
+function ClientSession:initialize(player, session, remote)
+	self.m_player = player
+	self.m_session = session
+
+	self.m_rpcs = {}
+	self.m_rpc_id = 0
+
+	self.m_logined = false
+	self.m_reconnect_requests = nil
+
+	self.m_seh = false
+	self.m_subscribers = {}
+
+	self.m_show_notify = {}
+
+	session:setScriptHandler(function(...) self:onSessionEvent(...) end)
+
+	for _,method in ipairs(remote) do
+		player[method] = function(_, ...)
+			local params = {...}
+			local cb
+			if type(params[#params]) == "function" then
+				cb = params[#params]
+				table.remove(params, #params)
+			end
+			local co = coroutine.running()
+			self:onPlayerRemoteCall(method, params, cb, co)
+
+			if co then
+				return coroutine.yield()
+			end
+		end
+	end
+
+	self:subscribe({
+			player_sync = function(_, pch)
+				self:onPlayerSync(pch)
+			end
+		})
+end
+
+function ClientSession:setDisconnectCallback(cb)
+	self.m_cb_disconnect = cb
+end
+
+function ClientSession:onPlayerSync(patch)
+	print("ClientSession:onPlayerSync", util.dump(patch))
+	if patch and #patch > 0 then
+		util.applyPatch2(self.m_player.data, patch)
+		self.m_player:sync()
+	end
+end
+
+function ClientSession:syncWait(event)
+	assert(self.m_wait == nil)
+	assert(coroutine.running() ~= nil)
+
+	self.m_wait = {
+		event = event,
+		co = coroutine.running(),
+		time = os.time(),
+	}
+	return coroutine.yield()
+end
+
+function ClientSession:syncReturn(event, ...)
+	local s = self.m_wait
+	self.m_wait = nil
+
+	assert(s)
+	assert(s.event == event)
+
+	local ok, msg = coroutine.resume(s.co, ...)
+	if not ok then error(msg) end
+end
+
+function ClientSession:isConnected()
+	return self.m_session:isConnected()
+end
+
+function ClientSession:isLogined()
+	return self.m_logined
+end
+
+function ClientSession:onPlayerLogin(id, token, type, wid, wname)
+end
+
+function ClientSession:onPlayerLogout()
+end
+
+function ClientSession:onPushNotify(name, params)
+	-- print("ClientSession:onPushNotify", name, util.dump(params))
+	for k,_ in pairs(self.m_subscribers) do
+		if (k[name]) then
+			k[name](k, unpack(params))
+		end
+	end
+end
+
+function ClientSession:connect(ip, port)
+	print("ClientSession:connect", ip, port)
+	local ok, msg = self.m_session:connect(ip, port)
+	if not ok then
+		return ok, msg
+	end
+	return self:syncWait("connect")
+end
+
+function ClientSession:login(ip, port, id, token, type, wid, wname, udid, version)
+	self:showNotify("busy")
+	print("connect login")
+	local ok, msg = self:connect(ip, port)
+	if not ok then
+		self.m_session:disconnect()
+		self:hideNotify("busy")
+		return false, msg
+	end
+
+	assert(self:isConnected())
+	print("send login")
+	self.m_session:login(id, token, type, version, wid, udid)
+	local ret, uid, world_ip, world_port, code = self:syncWait("login")
+	if not ret then
+		self.m_session:disconnect()
+		self:hideNotify("busy")
+		return false, uid
+	end
+
+	print("connect world")
+	local ok, msg = self:connect(world_ip, world_port)
+	if not ok then
+		self.m_session:disconnect()
+		self:hideNotify("busy")
+		return false, msg
+	end
+
+	assert(self:isConnected())
+	print("send join", uid, code, udid)
+	self.m_session:join(uid, code, udid)
+	local ret = {self:syncWait("join")}
+
+	print(ret)
+	if ret[1] then
+		self:onPlayerLogin(id, token, type, wid, wname)
+	else
+		self.m_session:disconnect()
+	end
+
+	self:hideNotify("busy")
+
+	return unpack(ret)
+end
+
+function ClientSession:logout()
+	self.m_rpcs = {}
+	if self.m_logined then
+		self.m_logined = false
+		self:hideNotify("busy")
+		self:onPlayerLogout()
+	end
+	self.m_session:disconnect()
+end
+
+function ClientSession:subscribe(obj)
+	assert(type(obj) == "table")
+	self.m_subscribers[obj] = true
+end
+
+function ClientSession:unsubscribe(obj)
+	assert(type(obj) == "table")
+	self.m_subscribers[obj] = nil
+end
+
+local SessionEventHandler = {}
+function SessionEventHandler.connect(self)
+	print("SessionEventHandler.connect")
+	self:syncReturn("connect", true)
+end
+function SessionEventHandler.disconnect(self)
+	print("SessionEventHandler.disconnect")
+
+	if self.m_cb_disconnect then self.m_cb_disconnect() end
+
+	local waiting_requests = self.m_rpcs
+	self.m_rpcs = {}
+	if self.m_logined then
+		self.m_logined = false
+		self:hideNotify("busy")
+		self:showNotify("lost")
+		self:onPlayerLogout()
+
+		self.m_reconnect_requests = waiting_requests
+	end
+end
+function SessionEventHandler.login_result(self, ret, uid, ip, port, code)
+	print("SessionEventHandler.login_result", ret, uid, ip, port, code)
+	self:syncReturn("login", ret, uid, ip, port, code)
+end
+function SessionEventHandler.join_result(self, ret, data, server_time)
+	print("SessionEventHandler.join_result", ret, data, server_time)
+	self:hideNotify("busy")
+
+	local param
+	if ret then
+		self.m_logined = true
+		-- TimeUtil:setOffset(server_time - TimeUtil:timeNowLocal())
+		self.m_player:setup(data)
+	else
+		param = data
+	end
+
+	self:syncReturn("join", ret, param)
+end
+function SessionEventHandler.remote_call_result(self, id, result, patch)
+	-- print("SessionEventHandler.remote_call_result", id, result_data, result_len, patch_data, patch_len)
+	local entry = self.m_rpcs[id]
+	if not entry then return end
+	self.m_rpcs[id] = nil
+
+	if table.maxn(util.tab_keys(self.m_rpcs)) == 0 then
+		self:hideNotify("busy")
+	end
+
+	if patch and #patch > 0 then
+		print(util.dump(patch))
+		util.applyPatch2(self.m_player.data, patch)
+		self.m_player:sync()
+	end
+
+	assert(type(result) == "table")
+	if entry.cb then
+		entry.cb(unpack(result))
+	end
+	if entry.co then
+		local ok, msg = coroutine.resume(entry.co, unpack(result))
+		if (not ok) then error(msg) end
+	end
+end
+
+function SessionEventHandler.push_notify(self, name, param)
+	-- print("SessionEventHandler.push_notify", name, param_data, param_len)
+	assert(type(param) == "table")
+
+	self:onPushNotify(name, param)
+end
+
+function ClientSession:onSessionEvent(event, ...)
+	SessionEventHandler[event](self, ...)
+	if self.m_seh then
+		self.m_seh(event, ...)
+	end
+end
+
+function ClientSession:showNotify(type, nodelay)
+	self.m_show_notify[type] = true
+end
+
+function ClientSession:hideNotify(type)
+	self.m_show_notify[type] = false
+end
+
+function ClientSession:update()
+	self.m_session:update()
+
+	local now = os.time()
+	if self.m_wait then
+		if now - self.m_wait.time > 15 then
+			self.m_session:disconnect()
+			SessionEventHandler.disconnect(self)
+			self:syncReturn(self.m_wait.event, false, "timeout")
+		end
+	end
+	for k,v in pairs(self.m_rpcs) do
+		if now - v.time > 15 then
+			self.m_session:disconnect()
+			SessionEventHandler.disconnect(self)
+			break
+		end
+	end
+
+	for k,v in pairs(self.m_show_notify) do
+		if v then
+			self:showNotify(k)
+		else
+			self:hideNotify(k)
+		end
+	end
+end
+
+function ClientSession:onPlayerRemoteCall(method, params, cb, co)
+	if not self.m_session:isConnected() then
+		if self.m_reconnect_requests then
+			local id = self.m_rpc_id + 1
+			self.m_rpc_id = id
+			self.m_reconnect_requests[id] = {
+				time = os.time(),
+				method = method,
+				params = params,
+				cb = cb,
+				co = co,
+			}
+		else
+			print("drop remote call request", method, params)
+		end
+		return
+	end
+
+	self:showNotify("busy")
+	local id = self.m_rpc_id + 1
+	self.m_rpc_id = id
+	self.m_rpcs[id] = {
+		time = os.time(),
+		method = method,
+		params = params,
+		cb = cb,
+		co = co,
+	}
+
+	-- print("onPlayerRemoteCall", id, method, param_data, param_len)
+	self.m_session:callRemote(id, method, params)
+end
+
+return ClientSession

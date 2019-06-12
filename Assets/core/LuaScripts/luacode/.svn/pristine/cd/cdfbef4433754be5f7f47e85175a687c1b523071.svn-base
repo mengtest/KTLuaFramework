@@ -1,0 +1,392 @@
+local require_relative = REQUIRE_BASE(...)
+local ObserverHost = require "system.observer_host"
+local Combat = require_relative("interfaces.Combat")
+local CombatState = require_relative("interfaces.CombatState")
+local M = class("Role")
+
+-- include mixin
+M:include(ObserverHost, Combat, CombatState)
+
+Attribute.decl(M, "pos", function()
+    return Vector3(0, 0, 0)
+end)
+Attribute.decl(M, "dir", function()
+    return 0
+end)
+Attribute.decl(M, "move_state", 0)
+Attribute.decl(M, "move_speed", 0)
+Attribute.decl(M, "name", "")
+Attribute.decl(M, "health", 0)
+Attribute.decl(M, "health_max", 0)
+Attribute.decl(M, "target_id", 0)
+Attribute.decl(M, "in_combat", 0)
+Attribute.decl(M, "dbid", 0)
+Attribute.decl(M, "rclass", -1)
+Attribute.decl(M, "specialization", -1)
+Attribute.decl(M, "is_main_player", false)
+
+
+-- rjy 2017.10.28 技能消耗
+Attribute.decl(M, "mana", 0)
+Attribute.decl(M, "mana_max", 0)
+Attribute.decl(M, "mana_regain", 0)
+Attribute.decl(M, "pain", 0)
+Attribute.decl(M, "pain_max", 0)
+Attribute.decl(M, "fury", 0)
+Attribute.decl(M, "fury_max", 0)
+
+----ke 添加角色是否在副本的属性  2017.11.13
+Attribute.decl(M, "inst_id", 0)
+
+Event.decl(M, "quest_all")
+Event.decl(M, "quest_jobs")
+Event.decl(M, "quest_ready")
+Event.decl(M, "quest_remove")
+Event.decl(M, "quest_revert")
+Event.decl(M, "quest_update")
+Event.decl(M, "quest_token_ticket")
+Event.decl(M, "spell_start")
+Event.decl(M, "be_hit")
+Event.decl(M, "jump")
+Event.decl(M, "treasure_touching")
+Event.decl(M, "treasure_touched")
+-- ↓↓↓↓↓位移相关↓↓↓↓↓
+Event.decl(M, "special_move")
+Event.decl(M, "set_position")
+Event.decl(M, "update_position")
+-- ↑↑↑↑↑位移相关↑↑↑↑↑
+Event.decl(M, "play_anim")
+
+-- 组队
+Event.decl(M, "team_info")
+Event.decl(M, "invite_team")
+Event.decl(M, "resp_result")
+
+--副本
+Event.decl(M, "resp_unlock_instance")
+Event.decl(M, "unlock_new_instance")
+Event.decl(M, "instance_diffculty_select")
+Event.decl(M, "resp_inst_progress")
+Event.decl(M, "sync_inst_data")
+
+-- 技能天赋
+Event.decl(M, "master_all")
+Event.decl(M, "master_learnt")
+Event.decl(M, "master_available")
+Event.decl(M, "master_level")
+Event.decl(M, "master_stat")
+Event.decl(M, "master_page")
+Event.decl(M, "master_slot")
+
+
+
+-- ↓↓↓↓↓ 地图编辑器信息 ↓↓↓↓↓↓↓
+--  地图事件
+Event.decl(M, "map_event")
+-- ↑↑↑↑↑ 地图编辑器信息 ↑↑↑↑↑↑↑
+
+-- 添加技能修改 --
+Event.decl(M, "add_spell_mod")
+
+--------------------------------------------------------------------------------
+-- base call
+--------------------------------------------------------------------------------
+function M:base_call(method, ...)
+    app:getKBESDK():entity_base_call(self.m_id, method, ...)
+end
+
+--------------------------------------------------------------------------------
+-- cell call
+--------------------------------------------------------------------------------
+function M:cell_call(method, ...)
+    app:getKBESDK():entity_cell_call(self.m_id, method, ...)
+end
+
+
+function M:set_move_state(state)
+    self:cell_call('set_move_state', state)
+end
+
+function M:use_skill(skill_id, target_id, target_pos, dir)
+    --print("c2s:cast_skill", skill_id, target_id, target_pos, dir)
+    self:cell_call('cast_spell', 1, skill_id, target_id, target_pos, dir)
+end
+
+-- 请求广播采集结束
+function M:treasure_end()
+    self:cell_call('c2s_perform', SharedEnum.RoleAction.MOTION_TREASURE_END)
+end
+
+--- 请求广播动作角色状态变化
+function M:c2s_perform(state)
+    self:cell_call('c2s_perform', state)
+end
+
+-- 请求广播开始采集(需要等待服务器验证)
+function M:treasure_begin(id, func)
+    self.m_treasure_begin_func = func
+    self:cell_call("treasure_touch_bgn", id)
+end
+
+-- 请求广播采集结束(需要等待服务器验证)
+function M:treasure_end(id, result)
+    if (result == true) then
+        -- 因为现在服务器还没有做验证 所以我们需要自己判断是否上传此消息
+        --Debug.LogError("self.server_ticket--->"..tostring(self.server_ticket))
+        self:cell_call("treasure_touch_end", id, self.server_ticket)
+    end
+
+    self:c2s_perform(SharedEnum.RoleAction.MOTION_TREASURE_END)
+end
+
+
+
+
+
+--[[function M:set_target(target_id)
+self:cell_call('set_target', target_id)
+end--]]
+--------------------------------------------------------------------------------
+-- call from server
+--------------------------------------------------------------------------------
+function M:quest_all(timestamp, infos, nexts, prevs, panels)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_all, infos =\n" .. Util_string:get_string_by_tbl(infos))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_all, nexts =\n" .. Util_string:get_string_by_tbl(nexts))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_all, prevs =\n" .. Util_string:get_string_by_tbl(prevs))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_all, panels =\n" .. Util_string:get_string_by_tbl(panels))
+    self:emit_event("quest_all", timestamp, infos, nexts, prevs, panels)
+end
+
+function M:quest_jobs(infos, nexts, prevs, panels)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_jobs, infos =\n" .. Util_string:get_string_by_tbl(infos))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_jobs, nexts =\n" .. Util_string:get_string_by_tbl(nexts))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_jobs, prevs =\n" .. Util_string:get_string_by_tbl(prevs))
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_jobs, panels =\n" .. Util_string:get_string_by_tbl(panels))
+    self:emit_event("quest_jobs", infos, nexts, prevs, panels)
+end
+
+function M:quest_ready(infos)
+end
+
+function M:quest_remove(id)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_remove, id = " .. tostring(id))
+    self:emit_event("quest_remove", id)
+end
+
+function M:quest_revert(id)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_revert, id = " .. tostring(id))
+    self:emit_event("quest_revert", id)
+end
+
+function M:quest_update(id, num, cond)
+    Util_log:logError(Util_log.Mask.SJG_Quest, string.format("Role::quest_update, id = %s, num = %s, cond = %s", tostring(id), tostring(num), Util_string:get_string_by_tbl(cond)))
+    self:emit_event("quest_update", id, num, cond)
+end
+
+function M:dialog_bgn(token_ticket, entity_id)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::dialog_bgn, " .. token_ticket)
+    self:emit_event("quest_token_ticket", token_ticket, entity_id)
+end
+
+function M:quest_done_bgn(token_ticket, entity_id)
+    Util_log:logError(Util_log.Mask.SJG_Quest, "Role::quest_done_bgn, " .. token_ticket)
+    self:emit_event("quest_token_ticket", token_ticket, entity_id)
+end
+
+function M:spell_start(cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    print("s2c:spell_start", cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    self:emit_event("spell_start", cast_id, spell_id, target_id, target_pos, dir, cast_time)
+end
+
+function M:be_hit(attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+    print("M:be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+    self:emit_event("be_hit", attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+end
+
+function M:s2c_perform(state)
+    self:emit_event("s2c_perform", state)
+end
+
+function M:special_move(type, targetV3, skill_id)
+    self:emit_event("special_move", type, targetV3, skill_id)
+end
+
+-- 添加技能修改 --
+function M:add_spell_mod(skill_id, spell_mod_op, spell_mod_type, value)
+    self:emit_event("add_spell_mod", skill_id, spell_mod_op, spell_mod_type, value)
+end
+
+
+-- ↓↓↓↓↓↓↓↓ 技能天赋相关 ↓↓↓↓↓↓↓↓ -- rjy 10.31
+-- 取得所有技能
+function M:master_all(flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+    self:emit_event("master_all", flags, page, master_info, unlocked_skill_id_list, locked_skill_id_list)
+end
+
+-- 取得新增已学习技能(参数为列表)
+function M:master_learnt(master_info)
+    self:emit_event("master_learnt", master_info)
+end
+
+-- 取得新增已解锁技能(参数为id列表)
+function M:master_available(available_id_list)
+    self:emit_event("master_available", available_id_list)
+end
+
+-- 更新技能等级
+function M:master_level(skill_id)
+    self:emit_event("master_level", skill_id)
+end
+
+-- 更新技能状态
+function M:master_stat(skill_id)
+    self:emit_event("master_stat", skill_id)
+end
+
+-- 更新技能页面
+function M:master_page(page_id)
+    self:emit_event("master_page", page_id)
+end
+
+-- 更新技能位置
+function M:master_slot(skill_id, slot)
+    self:emit_event("master_slot", skill_id,slot)
+end
+
+-- ↑↑↑↑↑↑↑↑ 技能天赋相关 ↑↑↑↑↑↑↑↑ --
+
+
+-- ↓↓↓↓↓↓↓↓ 采集相关 ↓↓↓↓↓↓↓↓ -- 
+-- 正在采集
+function M:treasure_touching(live, server_ticket)
+
+    if (self.m_treasure_begin_func ~= nil) then
+        -- 这里以后会根据服务器修改
+        self.m_treasure_begin_func(true)
+    end
+    self.server_ticket = server_ticket
+    self:c2s_perform(SharedEnum.RoleAction.MOTION_TREASURE_BGN)
+end
+
+-- 采集完成
+function M:treasure_touched(live, result)
+    --Debug.LogError("treasure_touched")
+end
+
+
+-- ↑↑↑↑↑↑↑↑ 采集相关 ↑↑↑↑↑↑↑↑ -- 
+
+-- ↓↓↓↓↓↓↓↓ 地图编辑器相关 ↓↓↓↓↓↓↓↓ -- 
+-- 地图事件
+function M:map_event(event, arg1, arg2)
+    --self:emit_event(event, arg1,arg2)
+end
+-- ↑↑↑↑↑↑↑↑ 地图编辑器相关 ↑↑↑↑↑↑↑↑ --
+
+--------------------------------------------------------------------------------
+-- 组队
+--------------------------------------------------------------------------------
+function M:team_info(data)
+    self:emit_event("team_info", data)
+end
+
+function M:invite_team(db_id, inviter_name, team_id)
+    self:emit_event("invite_team", db_id, inviter_name, team_id)
+end
+
+function M:resp_result(team_args_info)
+    self:emit_event("resp_result", team_args_info)
+end
+
+---副本
+function M:resp_unlock_instance(unlock_dungeon_list)
+    self:emit_event("resp_unlock_instance", unlock_dungeon_list)
+end
+
+function M:unlock_new_instance(dungeon_id)
+    self:emit_event("unlock_new_instance", dungeon_id)
+end
+
+function M:instance_diffculty_select(map_id)
+    self:emit_event("instance_diffculty_select", map_id)
+end
+
+function M:resp_inst_progress(progress_arry)
+    self:emit_event("resp_inst_progress", progress_arry)
+end
+
+function M:sync_inst_data(time, progress_arry)
+    self:emit_event("sync_inst_data", time, progress_arry)
+end
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+function M:print_quests(infos)
+    for job = 1, #infos do
+        curr = "quest id=" .. infos[job].id
+        for cond = 1, #infos[job].finishes do
+            curr = curr .. " done" .. cond .. "=" .. infos[job].finishes[cond].done .. " stats"
+            for num = 1, #infos[job].finishes[cond].stats do
+                curr = curr .. "=" .. infos[job].finishes[cond].stats[num]
+            end
+        end
+        print(curr)
+    end
+end
+
+function M:initialize(id)
+    --print("kbe.Role initialize")
+    Attribute.init(self)
+
+    -- 各mixin初始化
+    Combat.initialize(self)
+    CombatState.initialize(self)
+
+    self.m_id = id
+    self.m_move_to = nil
+end
+
+function M:on_init()
+    --print("Role:on_init")
+    -- 各mixin
+    Combat.on_init(self)
+    CombatState.on_init(self)
+end
+
+function M:on_destroy()
+    --print("Role:on_destroy")
+    -- 各mixin
+    Combat.on_destroy(self)
+    CombatState.on_destroy(self)
+end
+
+function M:set_property(name, value)
+    self:set_attr(name, value)
+    self:emit_event("on_event_" .. name .. "_set", value)
+end
+
+function M:get_id()
+    return self.m_id
+end
+
+function M:get_role_type()
+    local type_data = dbc.vocation[self:get_rclass()]
+    return (type_data and dbc.creature[type_data.creature_id]) and type_data.creature_id or 1001
+end
+
+function M:reset_pos()
+    --self:emit_event("set_position", self:get_pos())
+end
+
+function M:move_to(pos)
+    self:emit_event("update_position", self:get_pos())
+end
+
+
+function M:update(delta)
+    -- 各mixin update
+    Combat.update(self, delta)
+    CombatState.update(self, delta)
+end
+
+return M

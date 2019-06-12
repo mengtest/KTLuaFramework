@@ -1,0 +1,79 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/9/22 17:39
+---
+local BubbleView = { }
+function BubbleView:doInit(param)
+    -------------------------------
+    --指的是对话泡泡的位置显示
+    local frame = self:getFrame()
+    self.m_cam = self:getView("world"):getCamera()
+    self.m_itemgo = nil
+    --------------------------------
+    --id指的是服务器传过来的对话泡泡的内容
+    self.dialog_id = param.id
+    self.m_ui_manager = app:get_ui_manager()
+    self:load("ui/Bubble.prefab", function(go)
+        -- ui创建完成
+        self:refresh()
+        self.m_itemgo = go
+        --------------------------------------------
+        --播放泡泡对话
+        local anima = go:GetComponentInChildren(Animator)
+        self.m_anima = anima
+        self:reset()
+        self:subscribe(self:getFrame():on_event_reset(), function()
+            self:reset()
+        end)
+
+        local m_bubble_text = self.m_itemgo.transform:Find("BubbleAttr/Dialogbox/Contenttext").gameObject:GetComponent(UnityEngine.UI.Text)
+        local frame = self:getFrame()
+        self:subscribe(frame:on_event_bubbletext_set(true), function()
+            m_bubble_text.text = dbc.bubble[self.dialog_id].text
+        end)
+        --对话泡泡位置的显示
+        self:subscribe(frame:on_event_posbubble_set(true):combineLatest(self.m_cam:on_event_position_set(true)), function(world_pos)
+            self:refresh_to_screen_posbubble(world_pos)
+            m_bubble_text.text = dbc.bubble[self.dialog_id].text
+        end)
+    end)
+end
+
+
+--对话泡泡的位置显示的刷新
+function BubbleView:refresh()
+    if not self.m_itemgo then
+        return
+    end
+    self:refresh_to_screen_posbubble(self:getFrame():get_posbubble())
+end
+--更新对话泡泡的显示
+function BubbleView:refresh_to_screen_posbubble(world_pos)
+    local item_bu = self.m_itemgo.transform:Find("BubbleAttr")
+    ----世界坐标转换为UI坐标    先找到主角的位置，在主角的位置生成UI，再转换为UI的坐标
+    local spos, is_front = self.m_cam:worldToUIScreenPoint(world_pos)
+    if is_front then
+        item_bu.gameObject:SetActive(true)
+        item_bu.position = Vector3(spos.x, spos.y, spos.z)
+    else
+        item_bu.gameObject:SetActive(false)
+    end
+end
+
+function BubbleView:reset()
+    self.m_ui_manager:ShowView("bubble")
+    self.m_anima:SetTrigger("show")
+    slua_timer.addDelayEvent(
+    3,
+    function()
+        self.m_anima:SetTrigger("hide")
+        slua_timer.addDelayEvent(
+        1.5,
+        function()
+            self:getFrame():destroySelf()
+        end)
+    end)
+
+
+end
+return BubbleView

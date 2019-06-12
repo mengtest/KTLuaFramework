@@ -1,0 +1,545 @@
+﻿---
+--- Created by lijunfeng
+--- DateTime: 2018/1/2 19:50
+---
+local Trigger_component = require("subsystem.component.trigger_component")
+local Interact_component = require("subsystem.component.interact_component")
+local MEvent=require("common.util.mevent")
+local UnitView = require "view.unit_view"
+local Unit = require "frame.mob_giver"
+
+local M = class("mob_giver_view", UnitView)
+
+M.Interact_Gaze = {
+    Normal = 1,
+    Enter = 2,
+    Talking = 3,
+    Exit = 4,
+    Auto_Gaze, --自动注视中
+    Greet, --打招呼
+}
+
+function M:doInit()
+    M.super.doInit(self)
+    self.m_top_hint = nil
+    self.m_upper_dir = 0 --上半身角度
+    self.m_pre_dir = 0 --记录的之前全身角度，用于交互完恢复
+    self.m_interact_act_state = self.Interact_Gaze.Normal
+    self.m_is_greeted = false --是否打过招呼
+    local this = self
+
+    MEvent:add_listen("show_talk_anim", function(from, value)
+        print("显示交互对话动作",value.id,self:getFrame():get_id(),value.name, value.anim, value.trigger)
+        if value.id==self:getFrame():get_id() then -- bylijunfeng 2018/3/2
+            self:on_event_override_animator_clip(value.name, value.anim, value.trigger)
+        end
+    end)
+
+    self:subscribe(self:getFrame():on_event_attr_set("interact_state", false), function(is_interact)
+        if is_interact then
+            --自动转向
+            self:enter_interact()
+        else
+            --恢复默认行为
+            self:exit_interact()
+        end
+    end)
+end
+
+function M:doUpdate()
+    M.super.doUpdate(self)
+
+    if self.m_interact_act_state == self.Interact_Gaze.Normal then
+        self:execute_normal()
+    elseif self.m_interact_act_state == self.Interact_Gaze.Auto_Gaze then
+        self:execute_auto_gaze()
+    elseif self.m_interact_act_state == self.Interact_Gaze.Greet then
+        self:execute_greet()
+    elseif self.m_interact_act_state == self.Interact_Gaze.Enter then
+        self:execute_enter()
+    elseif self.m_interact_act_state == self.Interact_Gaze.Talking then
+        self:execute_talking()
+    elseif self.m_interact_act_state == self.Interact_Gaze.Exit then
+        self:execute_exit()
+    end
+end
+
+function M:doLateUpdate()
+    self:turn_neck(self.m_upper_dir)
+end
+
+function M:turn()
+    if not self.m_anim:GetBool("run") then
+        self.m_anim:SetBool("run", true)
+        self.m_anim:SetBool("back", false)
+    end
+end
+
+function M:stop_turn()
+    self.m_anim:SetBool("run", false)
+end
+--打招呼 临时写死测试
+function M:Greet()
+    local cfg = self.m_unit:getCfg()
+    self:on_event_override_animator_clip("greet", cfg.greet_action_id, "greet")
+end
+
+function M:is_moving()
+    return self.m_unit:get_move_state() ~= Unit.MOVE_STATE.IDLE
+end
+
+--转动头部
+function M:turn_neck(angle)
+    local flag=false
+    self.m_neck_trs,flag =self.m_unit:get_bone("Bip001 Neck")
+
+    if not flag then
+        self.m_neck_trs,flag =self.m_unit:get_bone("Bip01 Neck")
+    end
+
+    if not flag then
+        print("无法找到正确骨骼")
+        return
+    end
+    --print("脖子角度",-angle)
+    self.m_neck_trs.localEulerAngles=Vector3(self.m_neck_trs.localEulerAngles.x-angle,self.m_neck_trs.localEulerAngles.y,self.m_neck_trs.localEulerAngles.z)
+    --print("脖子角度",neck_trs.rotation)
+end
+
+--处理npc默认行为
+function M:execute_normal()
+    local cfg = self.m_unit:getCfg()
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+    local player_unit = world:get_main_player()
+    local player_move_state = player_unit:get_move_state()
+
+    --特殊npc或者普通npc配置上半身跟随
+    if cfg.unit_type == 6 or (cfg.unit_type == 1 and cfg.follow_type == 1) then
+        local view_dis = Vector3.Distance(player_unit:get_pos(), self.m_unit:get_pos())
+        --print("视距",view_dis)
+        if view_dis <= cfg.view_radius then
+            --print("视距内")
+            if self:check_in_view_angle(player_unit, cfg.view_angle, true) then
+                --print("视角内")
+                if player_move_state ~= Unit.MOVE_STATE.IDLE then
+                    --print("玩家移动中，注视")
+                    if self.m_is_greeted then
+                        self.m_is_greeted = false
+                    end
+
+                    self:smooth_upper_to_dir(player_unit)
+                else
+                    --根据配置打招呼
+                    if not self:is_moving() then
+                        if not self.m_is_greeted then
+                            self.m_is_greeted = true
+                            --print("开始播放打招呼")
+                            self:Greet()
+                        end
+                    end
+                end
+            else
+                --print("视角外")
+                --恢复上半身默认角度
+                if self.m_upper_dir ~= 0 then
+                    self:reset_upperbody_dir()
+                end
+            end
+        else
+            --print("视距外")
+            --如果上半身转动了，则reset上半身
+            if self.m_upper_dir ~= 0 then
+                self:reset_upperbody_dir()
+            end
+        end
+    elseif cfg.unit_type == 1 and cfg.follow_type == 2 then
+        --普通npc配置全身跟随
+        local view_dis = Vector3.Distance(player_unit:get_pos(), self.m_unit:get_pos())
+        --print("视距2",view_dis)
+        if view_dis <= cfg.view_radius then
+            --print("视距内2")
+            if self:check_in_view_angle(player_unit, cfg.view_angle, false) then
+                --print("视角内2")
+                if player_move_state ~= Unit.MOVE_STATE.IDLE then
+                    --转动全身直到面对玩家
+                    print("玩家移动中，注视2")
+                    --todo:如果正在打招呼，则直接中断动作
+                    local _, angle = self:calc_target_dir(player_unit, false)
+
+                    print("相差角度", angle)
+                    if angle > 20 then
+                        if self.m_is_greeted == true then
+                            self.m_is_greeted = false
+                        end
+                        self:turn()
+                        self:smooth_fullbody_to_dir(player_unit)
+                    end
+                else
+                    --根据配置打招呼
+                    if not self:is_moving() then
+                        self:stop_turn()
+                        if not self.m_is_greeted then
+                            self.m_is_greeted = true
+                            print("开始播放打招呼")
+                            self:Greet()
+                        end
+                    end
+                end
+            else
+                --print("视角外2")
+                --恢复全身默认角度
+                if math.abs(self:getGO().transform.localEulerAngles.y - self.m_unit:get_birth_dir()) > 1.0 then
+                    self:stop_turn()
+                    self:reset_fullbody_dir(self.m_unit:get_birth_dir())
+                end
+            end
+        else
+            --print("视距外2")
+            --恢复全身默认角度
+            if math.abs(self:getGO().transform.localEulerAngles.y - self.m_unit:get_birth_dir()) > 1.0 then
+                self:stop_turn()
+                self:reset_fullbody_dir(self.m_unit:get_birth_dir())
+            end
+        end
+    end
+end
+
+function M:execute_auto_gaze()
+
+end
+
+function M:execute_greet()
+end
+
+function M:execute_enter()
+    local cfg = self.m_unit:getCfg()
+    local frame_mgr = app:getFrameMgr()
+    local world = frame_mgr:getFrame("world")
+    local player_unit = world:get_main_player()
+    local to_angle = self:smooth_fullbody_to_dir(player_unit)
+    if math.abs(self:getGO().transform.localEulerAngles.y - to_angle) < 1.0 then
+        self.m_interact_act_state = self.Interact_Gaze.Talking
+        print("进入交互结束")
+        self:stop_turn()
+    end
+end
+
+function M:execute_talking()
+end
+
+function M:execute_exit()
+    local to_angle = self:reset_fullbody_dir(self.m_pre_dir)
+    if math.abs(self:getGO().transform.localEulerAngles.y - to_angle) < 1.0 then
+        self.m_interact_act_state = self.Interact_Gaze.Normal
+        self:stop_turn()
+        print("退出交互结束")
+    end
+end
+
+--接收进入交互时
+function M:enter_interact()
+    print("进入交互状态")
+    local cfg = self.m_unit:getCfg()
+    if cfg.unit_type == 6 then
+        if self.m_pre_dir == 0 then
+            print("记录之前朝向")
+            self.m_pre_dir = self:getGO().transform.localEulerAngles.y
+        end
+    elseif cfg.unit_type == 1 then
+
+    end
+
+    self.m_interact_act_state = self.Interact_Gaze.Enter
+    self:turn()
+end
+
+--接收退出交互
+function M:exit_interact()
+    print("退出交互状态")
+    self.m_interact_act_state = self.Interact_Gaze.Exit
+    self:turn()
+end
+
+--服务器返回退出交互确认，服务器接管时要清楚所有临时标记
+function M:exit_interact_ok()
+
+end
+
+--检查target是否在center视角内true 是在视角内
+--angle 视角
+--include_upper 是否包括上半身角度
+function M:check_in_view_angle(target, angle, include_upper)
+    local target_dir = target:get_pos() - self.m_unit:get_pos()
+    local view_go = self:getGO()
+    local self_angle = view_go.transform.localEulerAngles.y
+
+    if include_upper then
+        self_angle = self_angle + self.m_upper_dir
+    end
+
+    local tsig, tangle = self:calc_target_dir_base(target_dir, Vector3.forward)
+    local res_angle = self:angle360to180(self:clampto360(tsig * tangle - self_angle))
+    return math.abs(res_angle) <= angle * 0.5
+end
+
+--检查目标在左半边还是右半边，并且返回相差角度，-1为左，1为 右
+--include_upper 是否包括上半身角度
+function M:calc_target_dir(target, include_upper)
+    local target_dir = target:get_pos() - self.m_unit:get_pos()
+    local view_go = self:getGO()
+    local self_angle = view_go.transform.localEulerAngles.y
+
+    if include_upper then
+        self_angle = self_angle + self.m_upper_dir
+    end
+
+    local tsig, tangle = self:calc_target_dir_base(target_dir, Vector3.forward)
+    local res_angle = self:angle360to180(self:clampto360(tsig * tangle - self_angle))
+    return math.abs(res_angle), Mathf.Sign(res_angle)
+end
+
+--检查角度在左半边还是右半边，并且返回相差角度，-1为左，1为 右
+function M:calc_target_dir2(angle)
+    local view_go = self:getGO()
+    local self_angle = view_go.transform.localEulerAngles.y
+    local res_angle = self:angle360to180(self:clampto360(angle - self_angle))
+    return math.abs(res_angle), Mathf.Sign(res_angle)
+end
+
+--求target_dir相对curr_dir的旋转角度
+function M:calc_target_dir_base(target_dir, curr_dir)
+    local normal = Vector3.Cross(curr_dir, target_dir)
+    local sig = Mathf.Sign(Vector3.Dot(normal, Vector3.up))
+    return sig, Vector3.Angle(curr_dir, target_dir)--范围-180到180
+end
+
+--旋转全身到目标角度 speed为旋转速度
+function M:smooth_fullbody_to_dir(target)
+    local cfg = self.m_unit:getCfg()
+    local view_go = self:getGO()
+    local cur_euler = view_go.transform.localEulerAngles
+    local cur_dir = cur_euler.y
+    local sig, angle = self:calc_target_dir(target, false)
+    local to_angle = cur_dir + sig * angle
+    local smoothed_dir = Mathf.SmoothDampAngle(cur_dir, to_angle, 0, cfg.rotation_fullbody_spd)
+
+    view_go.transform.localEulerAngles = Vector3(cur_euler.x, smoothed_dir, cur_euler.z)
+    if math.abs(view_go.transform.localEulerAngles.y - to_angle) < 1.0 then
+        print("转动全身结束")
+    end
+
+    return to_angle
+end
+
+--重置全身转向状态
+function M:reset_fullbody_dir(pre_angle)
+    local cfg = self.m_unit:getCfg()
+    local view_go = self:getGO()
+    local cur_euler = view_go.transform.localEulerAngles
+    local cur_dir = cur_euler.y
+    local sig, angle = self:calc_target_dir2(pre_angle)
+    local to_angle = cur_dir + sig * angle
+    local smoothed_dir = Mathf.SmoothDampAngle(cur_dir, to_angle, 0, cfg.rotation_fullbody_spd)
+
+    view_go.transform.localEulerAngles = Vector3(cur_euler.x, smoothed_dir, cur_euler.z)
+    if math.abs(view_go.transform.localEulerAngles.y - to_angle) < 1.0 then
+        print("重置全身结束")
+    end
+
+    return to_angle
+end
+
+--转上半身(和头)注视目标，直到角度限制
+function M:smooth_upper_to_dir(target)
+    local cfg = self.m_unit:getCfg()
+    local sig, angle = self:calc_target_dir(target, true)
+
+    if angle > cfg.upperbody_rotation_range then
+        angle = fg.upperbody_rotation_range
+    end
+
+    local to_angle = sig * angle
+
+    --print("相差角度,左右侧,要转的角,上身转角",angle,sig,to_angle,cfg.upperbody_rotation_range)
+    self.m_upper_dir = Mathf.SmoothDampAngle(self.m_upper_dir, to_angle, 0, cfg.rotation_upperbody_spd)
+end
+
+--重置上半身转身为0
+function M:reset_upperbody_dir()
+    local cfg = self.m_unit:getCfg()
+
+    self.m_upper_dir = Mathf.SmoothDampAngle(self.m_upper_dir, 0, 0, cfg.rotation_upperbody_spd)
+end
+
+--[0到360)转为-180到180
+function M:angle360to180(angle)
+    if angle > 180 and angle < 360 then
+        return angle - 360
+    else
+        return angle
+    end
+end
+
+--180到180转为[0到360)
+function M:angle180to360(angle)
+    if angle < 0 and angle >= -180 then
+        return angle + 360
+    else
+        return angle
+    end
+end
+
+--转换任意角度到0,360区间
+function M:clampto360(angle)
+    while (angle < 0 or angle >= 360)
+    do
+        if angle < 0 then
+            angle = angle + 360
+        elseif angle >= 360 then
+            angle = angle - 360
+        end
+    end
+    return angle
+end
+
+--交互部分功能
+function M:on_prepared()
+    print("准备交互功能")
+    self:subscribe(self:getFrame():on_event_attr_set("top_state", true), function(val)
+        if not val then
+            return
+        end
+        self:on_top_state_change(val)
+    end)
+
+    self:add_arder_interact_component(self:getFrame():get_arder_interact_id(), self:getFrame("player_controller"))
+    if self:getFrame().m_interact_cmp == nil then
+        print("主动获取任务状态")
+        self:subscribe(self:getFrame():on_event_attr_set("is_in_world", false), function(val)
+            if val then
+                self:getFrame("quest_manager"):refresh_npc_state(self:getFrame():get_tmpl())
+            end
+        end)
+    end
+end
+
+-- add by lijunfeng 2018/1/4 添加休闲交互组件
+function M:add_arder_interact_component(interact_id, pc)
+    local giver = self:getFrame()
+    if giver.m_arder_interact_cmp then
+        print("已有休闲组件")
+        giver.m_arder_interact_cmp:refresh(interact_id, event_binder(giver, giver.on_arder_selected),true)
+    else
+        if interact_id <= 0 then
+            return
+        end
+        print("创建休闲组件")
+        giver.m_arder_interact_cmp = Interact_component:new(interact_id, pc, event_binder(giver, giver.on_arder_selected),true)
+        local go = GameObject("Arder_Trigger_Interact_" .. interact_id)
+        local tr = go.transform
+        tr.parent = self:getGO().transform
+        tr.localPosition = Vector3.zero
+        giver.m_arder_interact_cmp:set_go(go)
+        giver.m_arder_interact_cmp:set_host(giver)
+    end
+end
+-- add by lijunfeng 2018/1/4 移除休闲交互组件
+function M:remove_arder_interact_component()
+    local giver = self:getFrame()
+    if giver.m_arder_interact_cmp then
+        print("删除休闲组件")
+        giver.m_arder_interact_cmp:destroy()
+        giver.m_arder_interact_cmp=nil
+    end
+end
+
+function M:on_interact_changed(interact_id, pc)
+    local giver = self:getFrame()
+    if giver.m_interact_cmp then
+        print("已有组件")
+        giver.m_interact_cmp:refresh(interact_id, event_binder(giver, giver.on_selected),false)
+    else
+        if interact_id <= 0 then
+            return
+        end
+
+        print("创建组件")
+        giver.m_interact_cmp = Interact_component:new(interact_id, pc, event_binder(giver, giver.on_selected),false)
+        local go = GameObject("Trigger_Interact_" .. interact_id)
+        local tr = go.transform
+        tr.parent = self:getGO().transform
+        tr.localPosition = Vector3.zero
+        giver.m_interact_cmp:set_go(go)
+        giver.m_interact_cmp:set_host(giver)
+
+        --slua_timer.addDelayEvent(3,
+        --function()
+        --    if self:getFrame("world"):get_map_id() == 1004 and self.m_unit:get_cfg().talk_when_birth then
+        --        print("自动对话")
+        --        self.m_unit:on_selected()
+        --    end
+        --end)
+    end
+end
+
+-- add by lijunfeng 2018/1/20 移除交互组件
+function M:remove_interact_component()
+    local giver = self:getFrame()
+    if giver.m_interact_cmp then
+        print("删除组件")
+        giver.m_interact_cmp:destroy()
+        giver.m_interact_cmp=nil
+        --by lijunfneg 2018/2/27
+        if giver.m_hint_item then
+            self:del_npc_hint()
+        end
+    end
+end
+
+-- add by lijunfeng 2018/1/20 npc头上交互提示状态变化回调
+function M:on_top_state_change(curr_state)
+    if curr_state==enum.quest.Quest_Npc_State.None then
+        --删除当前状态
+        print("删除当前触发器")
+        self:remove_interact_component()
+    else
+        local interact_id=self:getFrame():get_cur_interact_id()
+        local pc = self:getFrame("player_controller")
+        self:on_interact_changed(interact_id, pc)
+        --加载对应资源 by lijunfeng 2018/2/27
+        local giver = self:getFrame()
+        if not giver.m_hint_item then
+           giver.m_hint_item=self:create_npc_hint(curr_state)
+        else
+            self:change_hint_color(curr_state)
+        end
+    end
+end
+
+--by lijunfneg 2018/2/27 创建头上提示
+function M:create_npc_hint(interact_state)
+    local giver = self:getFrame()
+    print("创建hint2",giver:get_tid(),interact_state)
+    local param = { tid = giver:get_tid(), interact_state = interact_state }
+    local random_id = app:get_game_time() + utility.math:random_float(1, 8)
+    local hint = giver:createChild("hint" .. random_id, "hint", param)
+    return hint
+end
+
+-- by lijunfneg 2018/2/27 上提示变化
+function M:change_hint_color(interact_state)
+    print("改变hint颜色",interact_state)
+    local giver = self:getFrame()
+    giver.m_hint_item:set_interact_state(interact_state)
+end
+
+-- by lijunfneg 2018/2/27 删除头上提示
+function M:del_npc_hint()
+    print("删除hint")
+    local giver = self:getFrame()
+    giver.m_hint_item:destroySelf()
+    giver.m_hint_item = nil
+end
+
+return M

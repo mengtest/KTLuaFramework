@@ -1,0 +1,111 @@
+local Frame = require("system.frame")
+local spirit_handbook_list = class("spirit_handbook_list", Frame)
+
+Event.decl(spirit_handbook_list, "change_card")
+
+function spirit_handbook_list:doInit()
+
+    -- 图鉴中已经解锁的灵兽ID列表
+    self.m_unlock_spirit_id_list = {}
+    -- 表中所有的灵兽
+    self.m_all_spirit_id_list = {}
+    -- 卡片frame列表
+    self.m_btn_list = {}
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    local handbook = self.m_inventory_mgr:get_handbook()
+    local left_shift = 0
+    local result = 0
+
+    for i, v in ipairs(dbc.sprite) do
+        table.insert(self.m_all_spirit_id_list, i)
+        left_shift = bit.lshift(1, i)
+        result = bit.rshift(bit.band(left_shift, handbook), i)
+        if result == 1 then
+            table.insert(self.m_unlock_spirit_id_list, i)
+        end
+    end
+
+    -- 新增
+    self:subscribe(self.m_inventory_mgr:on_event("add_sprite"), function(data_list)
+        for i, data in ipairs(data_list) do
+            for k, v in ipairs(self.m_unlock_spirit_id_list) do
+                if v ~= data.tmpl then
+                    table.insert(self.m_unlock_spirit_id_list, data.tmpl)
+                    for j, child in ipairs(self.m_btn_list) do
+                        if j == data.tmpl then
+                            child:set_id(j)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+
+end
+
+function spirit_handbook_list:on_loaded()
+    -- 创建所有的灵兽卡片
+    for i, v in ipairs(self.m_all_spirit_id_list) do
+        local card = self:createChild("spirit_handbook_card" .. v, "spirit_beast.spirit_handbook.spirit_handbook_card", v)
+        self.m_btn_list[v] = card
+    end
+    -- 给已经拥有的卡片设置id
+    for i, v in ipairs(self.m_btn_list) do
+        for key, id in ipairs(self.m_unlock_spirit_id_list) do
+            if i == id then
+                v:set_id(id)
+            end
+        end
+    end
+
+    -- 初始化设置选中的
+    for i, v in ipairs(self.m_btn_list) do
+        for key, id in ipairs(self.m_unlock_spirit_id_list) do
+            if i == id then
+                self.m_selected_frame = v
+            end
+        end
+        break
+    end
+    self:select_card(self.m_unlock_spirit_id_list[1])
+end
+
+
+---- 初始化的时候等待card_view准备完再选择
+function spirit_handbook_list:set_select()
+    self.m_selected_frame:emit_event("selected")
+end
+
+-- 点击切换所选
+function spirit_handbook_list:change_selected_btn(child)
+    if child:get_id() == 0 then
+        return
+    end
+
+    if child == self.m_selected_frame then
+        return
+    else
+        if self.m_selected_frame ~= nil then
+            self.m_selected_frame:emit_event("unselected")
+        end
+    end
+    for k, v in ipairs(self.m_btn_list) do
+        if v == child then
+            self.m_selected_frame = child
+            child:emit_event("selected")
+            break
+        end
+    end
+end
+
+function spirit_handbook_list:select_card(id)
+    self:emit_event("change_card", id)
+end
+function spirit_handbook_list:get_selected_card()
+    return self.m_selected_frame
+end
+
+
+
+return spirit_handbook_list

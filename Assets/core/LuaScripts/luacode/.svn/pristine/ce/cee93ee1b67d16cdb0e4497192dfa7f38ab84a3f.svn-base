@@ -1,0 +1,7 @@
+local dungeon_join = {}
+
+function dungeon_join:doInit(param)
+
+end
+
+return dungeon_join

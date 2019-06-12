@@ -1,0 +1,34 @@
+local row_0 = {['id']=4001,['anim_name']='show2_a',['transition_duration']=0.0,['trigger_info']='[{5:{"trigger_id":4002,"trigger_param":{}}},{1:{"trigger_id":4002,"trigger_param":{"bone_name":"","radius":1}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_1 = {['id']=4002,['anim_name']='show2_b',['transition_duration']=0.1,['trigger_info']='[{1:{"trigger_id":4003,"trigger_param":{"bone_name":"","radius":1}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_2 = {['id']=4003,['anim_name']='show2_c',['transition_duration']=0.1,['trigger_info']='[{2:{"trigger_id":4004,"trigger_param":{"bone_name":"","radius":1}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=5,['behavior_param']='{"x":[-1.75,1.75],"y":[0,1.6]}'}
+local row_3 = {['id']=4004,['anim_name']='show2_f',['transition_duration']=0.1,['trigger_info']='[{7:{"trigger_id":4005,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=2,['behavior_param']='10'}
+local row_4 = {['id']=4005,['anim_name']='show2_d',['transition_duration']=0.1,['trigger_info']='[{5:{"trigger_id":4006,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_5 = {['id']=4006,['anim_name']='show2_e',['transition_duration']=0.1,['trigger_info']='[{5:{"trigger_id":4008,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_6 = {['id']=4007,['anim_name']='show2_run',['transition_duration']=0.1,['trigger_info']='[{7:{"trigger_id":4011,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=3,['behavior_param']='2'}
+local row_7 = {['id']=4008,['anim_name']='show2_g',['transition_duration']=0.1,['trigger_info']='[{6:{"trigger_id":4007,"trigger_param":{"duration":[4,4]}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_8 = {['id']=4009,['anim_name']='show2_stand',['transition_duration']=0.1,['trigger_info']='[{6:{"trigger_id":4010,"trigger_param":{"duration":[3,6]}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_9 = {['id']=4010,['anim_name']='show2_daiji',['transition_duration']=0.1,['trigger_info']='[{5:{"trigger_id":4009,"trigger_param":{}}}]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_10 = {['id']=4011,['anim_name']='show2_stand',['transition_duration']=0.1,['trigger_info']='[{6:{"trigger_id":4009,"trigger_param":{"duration":[1.2,1.2]}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=4,['behavior_param']='[1,1.2]'}
+local row_11 = {['id']=6001,['anim_name']='show',['transition_duration']=0.0,['trigger_info']='[{5:{"trigger_id":6002,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_12 = {['id']=6002,['anim_name']='show1',['transition_duration']=0.1,['trigger_info']='[]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_13 = {['id']=1001,['anim_name']='show',['transition_duration']=0.1,['trigger_info']='[{5:{"trigger_id":1002,"trigger_param":{}}}]',['is_rotatable']=false,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+local row_14 = {['id']=1002,['anim_name']='show1',['transition_duration']=0.1,['trigger_info']='[]',['is_rotatable']=true,['is_show_cam_anim']=false,['behavior']=1,['behavior_param']='[1,1]'}
+
+local datas = {
+	[4001] = row_0,
+	[4002] = row_1,
+	[4003] = row_2,
+	[4004] = row_3,
+	[4005] = row_4,
+	[4006] = row_5,
+	[4007] = row_6,
+	[4008] = row_7,
+	[4009] = row_8,
+	[4010] = row_9,
+	[4011] = row_10,
+	[6001] = row_11,
+	[6002] = row_12,
+	[1001] = row_13,
+	[1002] = row_14,
+}
+return datas

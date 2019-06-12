@@ -1,0 +1,110 @@
+local Frame = require("system.frame")
+local Quiz_window = class("Quiz_window", Frame)
+
+Attribute.decl(Quiz_window, "text_poster_name", "text_poster_name")
+Attribute.decl(Quiz_window, "text_quiz", "text_quiz")
+Attribute.decl(Quiz_window, "text_answer1", "text_answer1")
+Attribute.decl(Quiz_window, "text_answer2", "text_answer2")
+Attribute.decl(Quiz_window, "exp", 0) -- bylijunfeng 2018/1/18
+Attribute.decl(Quiz_window, "gold", 0) -- bylijunfeng 2018/1/18
+Attribute.decl(Quiz_window, "goods", nil) -- bylijunfeng 2018/1/18
+Attribute.decl(Quiz_window, "exp_num", "666") -- xiaojingli 2018/1/29
+Attribute.decl(Quiz_window, "money_num", "666") -- xiaojingli 2018/1/29
+
+Event.decl(Quiz_window, "show")
+Event.decl(Quiz_window, "hide")
+Event.decl(Quiz_window, "switch_answer_mode")
+Event.decl(Quiz_window, "create_award_list")
+Event.decl(Quiz_window, "hide_award")
+
+function Quiz_window:doInit(params)
+    self.m_quiz_manager = params["quiz_manager"]
+    self:set_is_dont_create_go_automatic(true)
+    self.m_award_frame_list = {}
+end
+
+function Quiz_window:on_prepared()
+
+end
+
+function Quiz_window:show()
+    self:emit_event("show")
+    utility.log:logError(utility.log.Mask.SJG_Quiz, "Quiz_window:show()")
+end
+
+function Quiz_window:hide()
+    self:emit_event("hide")
+end
+
+function Quiz_window:on_btn_answer1()
+    self.m_quiz_manager:quiz_rsp(0)
+end
+
+function Quiz_window:on_btn_answer2()
+    self.m_quiz_manager:quiz_rsp(1)
+end
+
+function Quiz_window:on_btn_next()
+    self.m_quiz_manager:show_next_quiz()
+end
+
+function Quiz_window:set_quiz_host_name(name)
+    self:set_attr("text_poster_name", name)
+end
+-- 答题提示未做
+function Quiz_window:refresh_quiz_info(text_quiz, answer1, answer2, hint)
+    self:set_attr("text_quiz", text_quiz)
+    self:set_attr("text_answer1", answer1)
+    self:set_attr("text_answer2", answer2)
+    self:emit_event("switch_answer_mode", true)
+end
+
+function Quiz_window:refresh_quiz_feedback(text_feedback)
+    self:set_attr("text_quiz", text_feedback)
+    self:emit_event("switch_answer_mode", false)
+end
+
+----奖励   xiaojingli  2018.1.29
+function Quiz_window:create_award_list(quest_id)
+    local inventory_manager = self:getFrame("inventory_manager")
+    local exp = 0
+    local money = 0
+    local award_list = {}
+    local gains = dbc.quest[quest_id].gains
+    for _, v in pairs(gains) do
+        local gain = dbc.loot[v]
+        money = money + gain.money
+        exp = exp + gain.exp
+        for i, k in ipairs(gain.item_id) do
+            local level = dbc.item[k].level_label
+            local name = inventory_manager:gain_equipment_name(k, level)
+            local quality = inventory_manager:gain_equipment_quality(k, level)
+            local quality_path = dbc.equip_quality_client[quality].backpack_icon
+            local equip_path = dbc.item[k].equip_path
+
+            local award = {}
+            award["name"] = name
+            award["level"] = level
+            award["quality_path"] = quality_path
+            award["equip_path"] = equip_path
+            table.insert(award_list, award)
+        end
+    end
+
+    self:emit_event("create_award_list", money, exp, award_list)
+end
+
+function Quiz_window:create_child_frame(params, index)
+    local child = self:createChild("equipment_item_" .. index, "backpack_equipment.backpack.equipment_item", params)
+    table.insert(self.m_award_frame_list, child)
+end
+
+--销毁所有奖励创建的frame
+function Quiz_window:destroy_all_award_frame()
+    for i, v in pairs(self.m_award_frame_list) do
+        self:destroyChild(v)
+    end
+    self:emit_event("hide_award")
+end
+
+return Quiz_window

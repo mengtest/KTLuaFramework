@@ -1,0 +1,165 @@
+local View = require("system.view")
+local fashionable_dress_info_show_view = class("fashionable_dress_info_show_view", View)
+
+function fashionable_dress_info_show_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_fashionable_dress_list = self:getFrame("fashionable_dress_list")
+    self.m_suit_manager = self:getFrame("suit_manager")
+    --收集属性1的属性列表
+    self.m_own_attr1_child_list = {}
+    --收集属性2的属性列表
+    self.m_own_attr2_child_list = {}
+    --穿戴属性1的属性列表
+    self.m_wear_attr1_child_list = {}
+    --穿戴属性2的属性列表
+    self.m_wear_attr2_child_list = {}
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("FeshionableDressInfoShow"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        --时装名称
+        self.m_fashionable_dress_name = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/fashionable_dress_name"):GetComponent(UI.Text)
+        --五种品质
+        self.m_quality_common = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/quality_common").gameObject
+        self.m_quality_greate = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/quality_greate").gameObject
+        self.m_quality_excellent = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/quality_excellent").gameObject
+        self.m_quality_epic = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/quality_epic").gameObject
+        self.m_quality_legendary = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/top/quality_legendary").gameObject
+        --时装信息区域
+        self.m_info_area = go.transform:Find("fashionable_dress_attr_show/fashionable_dress_bg/info_area")
+        --时装属性信息模板
+        self.m_item = go.transform:Find("fashionable_dress_attr_show/item").gameObject
+
+        self.m_buy_btn = go.transform:Find("fashionable_dress_attr_show/buy_btn"):GetComponent(UI.Button)
+        self.m_wear_btn = go.transform:Find("fashionable_dress_attr_show/wear_btn"):GetComponent(UI.Button)
+
+        self.m_buy_btn.onClick:AddListener(function()
+            --购买按钮点击事件
+        end)
+
+        self.m_wear_btn.onClick:AddListener(function()
+            --穿戴按钮点击事件
+        end)
+        self:subscribe(self.m_fashionable_dress_list:on_event("card_click"), function(params)
+            self:refresh_view_call_back(params)
+        end)
+    end)
+end
+
+------响应刷新信息的回调
+function fashionable_dress_info_show_view:refresh_view_call_back(params)
+    --临时做法，忽略所有参数为number类型的卡牌 temp
+    if type(params.dress_info) == 'number' then
+        return
+    end
+    self:refresh_prepare()
+    local fashionable_dress_name = params.dress_info.info.name
+    local fashionable_dress_quality = params.dress_info.info.quality
+    local own_attr1 = params.dress_info.info.collect1
+    local own_attr2 = params.dress_info.info.collect2
+    local wear_attr1 = params.dress_info.info.wear1
+    local wear_attr2 = params.dress_info.info.wear2
+    ---获取套装包含的套件
+    local suit_contains = self.m_suit_manager:check_suit_contains(params.dress_info.info.id)
+    ---套装中各个套件是否拥有
+    local suit_contains_state = {}
+
+    self.m_fashionable_dress_name.text = fashionable_dress_name
+    self:gain_fashionable_dress_quality(fashionable_dress_quality)
+
+    ---判断是否拥有
+    if suit_contains and params.dress_info.info.type == 0 then
+        local sum = 0
+        local count = 0
+        for k, v in pairs(suit_contains) do
+            suit_contains_state[k] = self.m_suit_manager:check_whether_own_suit(v)
+            sum = sum + self.m_suit_manager:check_whether_own_suit(v)
+            count = count + 1
+        end
+        if sum / count == 0 then
+            -- 一件都没有
+            self.m_buy_btn.gameObject:SetActive(true)
+            self.m_wear_btn.gameObject:SetActive(false)
+        elseif sum / count == 1 then
+            --全都有
+            self.m_buy_btn.gameObject:SetActive(false)
+            self.m_wear_btn.gameObject:SetActive(true)
+        else
+            --部分拥有
+            self.m_buy_btn.gameObject:SetActive(true)
+            self.m_wear_btn.gameObject:SetActive(true)
+        end
+    end
+
+
+    self:gain_fashion_info(own_attr1, self.m_own_attr1_child_list, 1)
+    self:gain_fashion_info(own_attr2, self.m_own_attr2_child_list, 2)
+    self:gain_fashion_info(wear_attr1, self.m_wear_attr1_child_list, 3)
+    self:gain_fashion_info(wear_attr2, self.m_wear_attr2_child_list, 41)
+end
+
+function fashionable_dress_info_show_view:gain_fashionable_dress_quality(quality_type)
+    if quality_type == enum.shared.WearableQuality.COMMON then
+        self.m_quality_common:SetActive(true)
+    elseif quality_type == enum.shared.WearableQuality.GREAT then
+        self.m_quality_greate:SetActive(true)
+    elseif quality_type == enum.shared.WearableQuality.EXCELLENT then
+        self.m_quality_excellent:SetActive(true)
+    elseif quality_type == enum.shared.WearableQuality.EPIC then
+        self.m_quality_epic:SetActive(true)
+    elseif quality_type == enum.shared.WearableQuality.LEGENDARY then
+        self.m_quality_legendary:SetActive(true)
+    end
+end
+
+function fashionable_dress_info_show_view:refresh_prepare()
+    if not self.m_quality_common then
+        return
+    end
+    self.m_quality_common:SetActive(false)
+    self.m_quality_greate:SetActive(false)
+    self.m_quality_excellent:SetActive(false)
+    self.m_quality_epic:SetActive(false)
+    self.m_quality_legendary:SetActive(false)
+    self.m_buy_btn.gameObject:SetActive(false)
+    self.m_wear_btn.gameObject:SetActive(false)
+
+    for i = 1, self.m_info_area.childCount do
+        local describe_info_area = self.m_info_area:GetChild(i - 1):Find("describe_info")
+        for j = 1, describe_info_area.childCount do
+            describe_info_area:GetChild(j - 1).gameObject:SetActive(false)
+        end
+    end
+end
+
+function fashionable_dress_info_show_view:gain_fashion_info(info_list, info_child_list, index)
+    if #info_list == 0 then
+        return
+    end
+
+    local list_index = 1
+    self.m_info_area:GetChild(index - 1).gameObject:SetActive(true)
+    local describe_info_area = self.m_info_area:GetChild(index - 1):Find("describe_info")
+    for i = 1, #info_list, 2 do
+        local child_item = info_child_list[list_index]
+        local attr_name = self.m_suit_manager:gain_attr_name(info_list[i])
+        local item_value = string.format(attr_name .. " +%d", info_list[i + 1])
+        if child_item then
+            child_item:GetComponent(UI.Text).text = item_value
+            child_item.gameObject:SetActive(true)
+        else
+            local itemGo = Object.Instantiate(self.m_item)
+            itemGo.transform:SetParent(describe_info_area)
+            itemGo.transform.localPosition = Vector3.zero
+            itemGo.transform.localScale = Vector3.one
+            itemGo:GetComponent(UI.Text).text = item_value
+            info_child_list[#info_child_list + 1] = itemGo.transform
+            itemGo:SetActive(true)
+        end
+        list_index = list_index + 1
+    end
+end
+
+return fashionable_dress_info_show_view

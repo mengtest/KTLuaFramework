@@ -1,0 +1,89 @@
+-- 为了展示效果 临时添加的功能 并不规范也缺乏考量
+local ObserverHost = require "system.observer_host"
+
+local CacheMgr = class("CacheMgr")
+
+CacheMgr:include(ObserverHost)
+
+CacheMgr.AnimaCacheList = {}
+
+CacheMgr.SfxCacheList = {}
+
+CacheMgr.PrefabCacheList = {}
+
+function CacheMgr:init()
+
+end
+
+
+-- 动作
+function CacheMgr:GetAnimaCache(path)
+    --Debug.LogError("尝试获取资源----->"..path)
+    local result = CacheMgr.AnimaCacheList[path]
+    return result
+end
+
+function CacheMgr:AddAnimaCache(path)
+    if(CacheMgr.AnimaCacheList[path] ~= nil) then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        CacheMgr.AnimaCacheList[path] = asset
+    end)	
+end
+
+function CacheMgr:RemoveAnimaCache()
+	
+end
+-- 动作
+
+-- 特效
+function CacheMgr:GetSfxCache(path)
+    --Debug.LogError("尝试获取资源----->"..path)
+    local result = CacheMgr.SfxCacheList[path]
+    return result
+end
+
+function CacheMgr:AddSfxCache(path)
+    if(CacheMgr.SfxCacheList[path] ~= nil) then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        CacheMgr.SfxCacheList[path] = asset
+    end)	
+end
+
+function CacheMgr:RemoveSfxCache()
+	
+end
+-- 特效
+
+
+-- prefab
+-- pacman 2017-12-26 临时功能 预加载prefab
+function CacheMgr:GetPrefabCache(path)
+    --Debug.LogError("尝试获取资源----->"..path)
+    local result = CacheMgr.PrefabCacheList[path]
+    return result
+end
+
+function CacheMgr:AddPrefabCache(path)
+    if(CacheMgr.PrefabCacheList[path] ~= nil) then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        CacheMgr.PrefabCacheList[path] = asset
+    end)
+end
+-- prefab
+
+
+
+
+
+
+
+return CacheMgr

@@ -1,0 +1,14 @@
+local Frame = require("system.frame")
+local backpack_item = class("backpack_item", Frame)
+
+Event.decl(backpack_item, "item_change")
+
+function backpack_item:doInit(param)
+
+end
+
+function backpack_item:change_item(param)
+    self:emit_event("item_change", param)
+end
+
+return backpack_item

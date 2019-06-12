@@ -1,0 +1,45 @@
+-- 角色行为状态 技能
+local require_relative = REQUIRE_BASE(...)
+local UnitActStateBase = require_relative("ua_state_base")
+-- 在initialize中初始化，避免交叉require死循环
+local UAFsm = nil
+local Unit = nil
+
+local M = class("UnitActStateAbnormity", UnitActStateBase)
+
+function M:initialize(fsm, unit)
+    UnitActStateBase.initialize(self, fsm, unit)
+    UAFsm = require_relative("ua_state_machine")
+    Unit = require "frame.unit"
+end
+
+function M:enter()
+    UnitActStateBase.enter(self)
+
+    local unit = self.m_unit
+
+    local att = self.m_param.CombatState
+
+    if(att == "stunned") then
+        unit:emit_event("anim_trigger","stunned")
+        unit:set_main_act(enum.battle.Unit_Main_Act.STUNNED)
+    elseif(att == "frozen") then
+
+    end
+
+end
+
+function M:exit()    
+
+    UnitActStateBase.exit(self)
+end
+
+function M:update()
+  
+end
+
+function M:change_move_state()
+    -- do nothing
+end
+
+return M

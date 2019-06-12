@@ -1,0 +1,15 @@
+local rows = {}
+rows[1] = {['quality']=0,['backpack_icon']='ui/Icons/Icon/icon_quality/white.png',['equip_big_icon']='ui/Icons/Icon/icon_quality/white_big.png',['equip_small_icon']='ui/Icons/Icon/icon_quality/white_small.png',['equip_waist_icon']='ui/Icons/Icon/icon_quality/white_middle.png'}
+rows[2] = {['quality']=1,['backpack_icon']='ui/Icons/Icon/icon_quality/green.png',['equip_big_icon']='ui/Icons/Icon/icon_quality/green_big.png',['equip_small_icon']='ui/Icons/Icon/icon_quality/green_small.png',['equip_waist_icon']='ui/Icons/Icon/icon_quality/green_middle.png'}
+rows[3] = {['quality']=2,['backpack_icon']='ui/Icons/Icon/icon_quality/blue.png',['equip_big_icon']='ui/Icons/Icon/icon_quality/blue_big.png',['equip_small_icon']='ui/Icons/Icon/icon_quality/blue_small.png',['equip_waist_icon']='ui/Icons/Icon/icon_quality/blue_middle.png'}
+rows[4] = {['quality']=3,['backpack_icon']='ui/Icons/Icon/icon_quality/purple.png',['equip_big_icon']='ui/Icons/Icon/icon_quality/purple_big.png',['equip_small_icon']='ui/Icons/Icon/icon_quality/purple_small.png',['equip_waist_icon']='ui/Icons/Icon/icon_quality/purple_middle.png'}
+rows[5] = {['quality']=4,['backpack_icon']='ui/Icons/Icon/icon_quality/gold.png',['equip_big_icon']='ui/Icons/Icon/icon_quality/gold_big.png',['equip_small_icon']='ui/Icons/Icon/icon_quality/gold_small.png',['equip_waist_icon']='ui/Icons/Icon/icon_quality/gold_middle.png'}
+
+local datas = {
+	[0] = rows[1],
+	[1] = rows[2],
+	[2] = rows[3],
+	[3] = rows[4],
+	[4] = rows[5],
+}
+return datas

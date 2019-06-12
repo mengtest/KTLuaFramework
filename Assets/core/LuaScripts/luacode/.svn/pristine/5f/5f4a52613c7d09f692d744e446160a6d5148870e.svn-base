@@ -1,0 +1,12 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/3 19:50
+---
+local Frame = require("system.frame")
+local team_mgr_bar = class("team_mgr_bar", Frame)
+
+function team_mgr_bar:doInit()
+
+end
+
+return team_mgr_bar

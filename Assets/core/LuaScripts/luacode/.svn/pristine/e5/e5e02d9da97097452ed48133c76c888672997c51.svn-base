@@ -1,0 +1,489 @@
+local View = require("system.view")
+local skill_ui_setting_view = class("skill_ui_setting_view", View)
+
+function skill_ui_setting_view:doInit(param)
+    -- 是否在表面拖动
+    self.m_is_drag_on_surface = true
+
+    -- 拖动的技能图标
+    self.m_dragging_icon_dict = {}
+
+    -- 拖动的地方
+    self.m_dragging_plane_dict = {}
+
+    self:load("ui/SkillSetting.prefab", function(go)
+        local frame = self:getFrame()
+        --app:get_ui_manager():AdaptResolution(frame:getFrameName(), go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        local skill_ui_manager = self:getFrame("skill_ui_manager")
+
+
+        -- 获取组件
+        local canvas = go
+        self.m_canvas = canvas
+
+        -- 配置结束时的skill_id列表
+        self.m_skill_id_list = {}
+
+
+
+
+        self:subscribe(frame:on_event("child_created"), function(child_frame)
+
+            local name = child_frame:getFrameName()
+
+            if string.find(name, "skill_ui_setting_btn") then
+                local skill_btn_id = tonumber(string.match(name, "%d+"))
+
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+
+                local parent_transform = go.transform:Find("bg/skill_column1/skill_setting_layer1/SkillPos_" .. skill_btn_id)
+                if parent_transform == nil then
+                    parent_transform = go.transform:Find("bg/skill_column2/skill_setting_layer2/SkillPos_" .. skill_btn_id)
+                end
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+
+                ---------------------------------------------
+
+                -- 回调  开始拖动
+                view:set_on_beign_drag_handler(
+                function(skill_ui_setting_btn_view, event_data)
+                    self:on_begin_drag(skill_ui_setting_btn_view, event_data)
+                end
+                )
+                -- 回调  拖动ing
+                view:set_on_drag_handler(
+                function(event_data)
+                    self:on_drag(event_data)
+                end
+                )
+
+                -- 回调  结束拖动
+                view:set_on_end_drag_handler(
+                function(event_data)
+                    self:on_end_drag(event_data)
+                end
+                )
+
+                -- 回调  扔下技能
+                view:set_on_drop_handler(
+                function(skill_ui_setting_btn_view, event_data)
+                    self:on_drop(skill_ui_setting_btn_view, event_data)
+                end
+                )
+
+                -- 回调  拖动技能进入技能按钮区域
+                view:set_on_pointer_enter_handler(
+                function(skill_ui_setting_btn_view, event_data)
+                    self:on_pointer_enter(skill_ui_setting_btn_view, event_data)
+                end
+                )
+
+                -- 回调  拖动技能离开技能按钮区域
+                view:set_on_pointer_exit_handler(
+                function(skill_ui_setting_btn_view)
+                    self:on_pointer_exit(skill_ui_setting_btn_view)
+                end
+                )
+
+                -- 回调  点击技能按钮
+                view:set_on_pointer_click_handler(
+                function(skill_ui_setting_btn_view)
+                    self:on_pointer_click(skill_ui_setting_btn_view)
+                end
+                )
+
+                ---------------------------------------------
+
+            end
+
+
+            if string.find(name, "skill_ui_setting_list") then
+                local view = self.m_mgr:getView(name)
+                -- 布局位置
+                local view_go = view:getGO()
+
+                -------------技能列表生成位置  临时的做法-----------------
+                local parent_transform = nil
+                if self.m_skill_btn_id >= 0 and self.m_skill_btn_id < 6 then
+                    parent_transform = go.transform:Find("bg/skill_column2")
+                else
+                    parent_transform = go.transform:Find("bg/skill_column1")
+                end
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = Vector3.zero
+                view_go.transform.localScale = Vector3.one
+            end
+            -------------技能列表生成位置  临时的做法-----------------
+        end)
+
+
+
+
+        self:subscribe(frame:on_event_is_dropped_set(true), function(is_dropped)
+            if self.m_conn_source_skill_id ~= nil then
+                self:unsubscribe(self.m_conn_source_skill_id)
+            end
+            -- 监听拖出来的技能     把拖出来的技能置为当前操作技能
+            self.m_conn_source_skill_id = self:subscribe(frame:on_event_source_skill_id_set(true), function(id)
+                if is_dropped then
+                    if id == 0 then
+                        return
+                    else
+                        self:local_log("放下技能时的原技能id：%s", id)
+                        if self.m_drop_skill_id == 0 then
+                            local default_icon_path = "ui/Icons/new/skill_bantoudi.png"
+                            self:subscribe(app:getResMgr():rxLoad(default_icon_path), function(asset_ref)
+                                local tex = asset_ref.asset
+                                if (tex == nil) then
+                                else
+                                    self.m_drag_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                                end
+                            end)
+                            self.m_drag_btn_frame:set_skill_id(0)
+                        end
+                        self.m_drop_btn_frame:set_skill_id(id)
+                        ---- 技能图标设置
+                        local client_cfg = self.m_drop_btn_frame:get_client_cfg()
+                        local icon_path = client_cfg.icon
+                        self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                            local tex = asset_ref.asset
+                            if (tex == nil) then
+                                Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                            else
+                                self.m_drop_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                            end
+                        end)
+                    end
+                end
+            end)
+        end)
+
+
+        -- 监听目标技能id的set   当前技能id变为目标技能
+        self:subscribe(frame:on_event_target_skill_id_set(true), function(id)
+            if id == 0 then
+                return
+            else
+                -- 原技能变为目标技能
+                if self.m_drag_skill_id == frame:get_source_skill_id() then
+                    self:local_log("嘿~~~~~我进来了", frame:get_source_skill_id(), self.m_drag_skill_slot, frame:get_target_skill_id(), self.m_drop_skill_slot)
+                    -- 通知服务器换位置
+                    --skill_ui_manager:req_master_swap(frame:get_source_skill_id(), self.m_drag_skill_slot, frame:get_target_skill_id(), self.m_drop_skill_slot)
+
+                    self:local_log("放下技能时，被拖动（原）技能的id：%s     目标技能id(原技能的id变为)：%s", self.m_drag_skill_id, id)
+                    self.m_drag_btn_frame:set_skill_id(id)
+                    -- 技能图标设置
+                    local client_cfg = self.m_drag_btn_frame:get_client_cfg()
+                    local icon_path = client_cfg.icon
+                    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                        local tex = asset_ref.asset
+                        if (tex == nil) then
+                            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                        else
+                            self.m_drag_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                        end
+                    end)
+                end
+            end
+        end)
+
+        ---------------- 监听技能列表中的技能点击技能     来替换技能按钮中的技能
+        self:subscribe(frame:on_event("skill_btn_on_click"), function(btn_frame)
+            self.m_clicked_btn_frame = btn_frame
+            -- 想让当前操作的按钮变红
+            -- btn_frame:getView():get_container_image().color = Color.red
+        end)
+
+        self:subscribe(frame:on_event_is_created_skill_list_set(), function(is_created)
+            if is_created then
+                self:subscribe(self.m_skill_ui_setting_list:on_event("set_skill"), function(skill_id, slot)
+                    if skill_id == 0 then
+                        return
+                    else
+                        -- 不可以重复配置↓
+                        -- 所选槽位内的技能和列表中点击的技能相同时
+                        local clicked_skill_id = self.m_clicked_btn_frame:get_skill_id()
+                        local clicked_skill_slot = self.m_clicked_btn_frame:get_slot()
+                        if self.m_clicked_btn_frame:get_skill_id() == skill_id then
+                            -- 可以什么都不做
+                            --self.m_clicked_btn_frame:set_skill_id(skill_id)
+                        else
+                            -- 所选槽位内的技能和列表中点击的技能不同时
+                            -- 遍历当前槽位中的技能
+                            local list = frame:get_skill_btn_list()
+                            for i, v in ipairs(list) do
+                                if v:get_skill_id() == skill_id then
+                                    -- 列表中所点击的技能已经装配
+                                    self.m_skill_btn = v
+                                    break
+                                    --else
+                                    --    -- 列表中所点击的技能并没有装配
+                                    --    self.m_clicked_btn_frame:set_skill_id(skill_id)
+                                    --
+                                end
+                            end
+                        end
+
+                        if self.m_skill_btn then
+                            self.m_skill_btn:set_skill_id(self.m_clicked_btn_frame:get_skill_id())
+                            if self.m_skill_btn:get_skill_id() == 0 then
+                                local icon_path = "ui/Icons/new/skill_bantoudi.png"
+                                self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                                    local tex = asset_ref.asset
+                                    if (tex == nil) then
+                                        Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                                    else
+                                        self:getView(self.m_skill_btn:getFrameName()):get_icon().sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                                    end
+                                end)
+                                self.m_clicked_btn_frame:set_skill_id(skill_id)
+                                skill_ui_manager:req_master_swap(skill_id, slot, clicked_skill_id, clicked_skill_slot)
+                            else
+                                local client_cfg = self.m_skill_btn:get_client_cfg()
+                                local icon_path = client_cfg.icon
+                                self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                                    local tex = asset_ref.asset
+                                    if (tex == nil) then
+                                        Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                                    else
+                                        self:getView(self.m_skill_btn:getFrameName()):get_icon().sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                                    end
+                                end)
+                                self.m_clicked_btn_frame:set_skill_id(skill_id)
+                                skill_ui_manager:req_master_swap(skill_id, slot, clicked_skill_id, clicked_skill_slot)
+                            end
+                        else
+                            self.m_clicked_btn_frame:set_skill_id(skill_id)
+                            skill_ui_manager:req_master_swap(skill_id, slot, clicked_skill_id, clicked_skill_slot)
+                        end
+                        -- 不可以重复配置↑
+
+                        -- 技能图标设置
+                        local client_cfg = self.m_clicked_btn_frame:get_client_cfg()
+                        local icon_path = client_cfg.icon
+                        self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+                            local tex = asset_ref.asset
+                            if (tex == nil) then
+                                Debug.LogError("找不到这个icon啊---->" .. icon_path)
+                            else
+                                self.m_click_icon.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                            end
+                        end)
+                    end
+                    self.m_skill_ui_setting_list:destroySelf()
+                    frame:set_is_created_skill_list(false)
+                end)
+            end
+        end)
+        frame:on_loaded()
+    end)
+
+end
+
+-- 开始拖动
+function skill_ui_setting_view:on_begin_drag(skill_ui_setting_btn_view, event_data)
+    self:getFrame():set_is_dropped(false)
+    local btn_frame = skill_ui_setting_btn_view:getFrame()
+    self.m_drag_btn_frame = btn_frame
+    local skill_id = btn_frame:get_skill_id()
+    self.m_drag_skill_id = skill_id
+    local slot = btn_frame:get_slot()
+    self.m_drag_skill_slot = slot
+    local icon = skill_ui_setting_btn_view:get_icon()
+    self.m_drag_icon = icon
+
+
+
+    self:local_log("开始拖动时的技能id：%s", skill_id)
+    self:local_log("开始拖动时的技能slot：%s", slot)
+
+    if skill_id == 0 then
+        return
+    else
+        self:getFrame():set_source_skill_id(skill_id)
+    end
+    self.m_dragging_icon_dict[event_data.pointerId] = GameObject("icon")
+    self.m_dragging_icon_dict[event_data.pointerId].transform:SetParent(self.m_canvas.transform, false)
+    self.m_dragging_icon_dict[event_data.pointerId].transform:SetAsLastSibling()
+
+    local image = self.m_dragging_icon_dict[event_data.pointerId]:AddComponent(UI.Image)
+    local group = self.m_dragging_icon_dict[event_data.pointerId]:AddComponent(UnityEngine.CanvasGroup)
+    group.blocksRaycasts = false
+
+    image.sprite = icon.sprite
+    image:SetNativeSize()
+
+    if self.m_is_drag_on_surface then
+        self.m_dragging_plane_dict[event_data.pointerId] = icon.gameObject.transform
+    else
+        self.m_dragging_plane_dict[event_data.pointerId] = self.m_canvas.transform
+    end
+
+
+    self:set_dragged_position(event_data)
+end
+
+-- 拖动
+function skill_ui_setting_view:on_drag(event_data)
+
+    if self.m_dragging_icon_dict[event_data.pointerId] ~= nil then
+        self:set_dragged_position(event_data)
+    end
+
+end
+
+-- 设置拖动的位置
+function skill_ui_setting_view:set_dragged_position(event_data)
+
+    if self.m_is_drag_on_surface and event_data.pointerEnter ~= nil and event_data.pointerEnter.transform ~= nil then
+        self.m_dragging_plane_dict[event_data.pointerId] = event_data.pointerEnter.transform
+
+    end
+
+    local rt = self.m_dragging_icon_dict[event_data.pointerId]:GetComponent(RectTransform)
+
+    local ok, globalMousePos = RectTransformUtility.ScreenPointToWorldPointInRectangle(self.m_dragging_plane_dict[event_data.pointerId], event_data.position, event_data.pressEventCamera, Slua.out)
+    if ok then
+        rt.position = globalMousePos
+        rt.rotation = self.m_dragging_plane_dict[event_data.pointerId].rotation
+    end
+
+end
+
+-- 结束拖动
+function skill_ui_setting_view:on_end_drag(event_data)
+
+    if self.m_dragging_icon_dict[event_data.pointerId] ~= nil then
+        Object.Destroy(self.m_dragging_icon_dict[event_data.pointerId])
+    end
+    self.m_dragging_icon_dict[event_data.pointerId] = nil
+    self:getFrame():set_source_skill_id(0)
+    self:getFrame():set_target_skill_id(0)
+
+end
+
+
+-- 扔下技能
+function skill_ui_setting_view:on_drop(skill_ui_setting_btn_view, event_data)
+
+    local btn_frame = skill_ui_setting_btn_view:getFrame()
+    self.m_drop_btn_frame = btn_frame
+    local skill_id = btn_frame:get_skill_id()
+    self.m_drop_skill_id = skill_id
+    local slot = btn_frame:get_slot()
+    self.m_drop_skill_slot = slot
+    local icon = skill_ui_setting_btn_view:get_icon()
+    self.m_drop_icon = icon
+    local container_image = skill_ui_setting_btn_view:get_container_image()
+    container_image.color = Color.white
+    if icon == nil then
+        return
+    end
+
+    local skill_ui_manager = self:getFrame("skill_ui_manager")
+    local frame = self:getFrame()
+    skill_ui_manager:req_master_swap(frame:get_source_skill_id(), self.m_drag_skill_slot, skill_id, slot)
+
+    self:getFrame():set_target_skill_id(skill_id)
+    self:local_log(">>>>>>>>>>>>>>>>>>>放下技能时的目标技能id：%s", skill_id)
+    self:local_log(">>>>>>>>>>>>>>>>>>>放下技能时的目标技能slot：%s", slot)
+
+    self:getFrame():set_is_dropped(true)
+
+end
+
+-- 拖动技能进入区域
+function skill_ui_setting_view:on_pointer_enter(skill_ui_setting_btn_view, event_data)
+    local container_image = skill_ui_setting_btn_view:get_container_image()
+    if container_image == nil then
+        return
+    end
+    local drop_sprite = self:get_drop_skill_icon(event_data)
+    if drop_sprite ~= nil then
+        container_image.color = Color.yellow
+    end
+end
+
+-- 拖动技能离开区域
+function skill_ui_setting_view:on_pointer_exit(skill_ui_setting_btn_view)
+    local container_image = skill_ui_setting_btn_view:get_container_image()
+    if container_image == nil then
+        return
+    end
+    container_image.color = Color.white
+
+end
+
+-- 获得拖动的技能图标
+function skill_ui_setting_view:get_drop_skill_icon(event_data)
+
+    local originalObj = event_data.pointerDrag
+    if originalObj == nil then
+        return nil
+    end
+
+    local src_image = originalObj:GetComponent(UI.Image)
+    if src_image == nil then
+        return nil
+    end
+
+    return src_image.sprite
+end
+
+-- 点击技能按钮
+function skill_ui_setting_view:on_pointer_click(skill_ui_setting_btn_view)
+
+    local frame = self:getFrame()
+    local btn_frame = skill_ui_setting_btn_view:getFrame()
+    self.m_click_btn_frame = btn_frame
+    local skill_id = btn_frame:get_skill_id()
+    self.m_click_skill_id = skill_id
+    local slot = btn_frame:get_slot()
+    self.m_clicked_slot = slot
+    local icon = skill_ui_setting_btn_view:get_icon()
+    self.m_click_icon = icon
+    local container_image = skill_ui_setting_btn_view:get_container_image()
+    self.m_container_image = container_image
+    local skill_btn_id = skill_ui_setting_btn_view:get_btn_id()
+    self.m_skill_btn_id = skill_btn_id
+
+    self:local_log("点击操作的目标技能id：%s", skill_id)
+
+
+    -----------技能列表的创建与销毁（临时）------------------
+    if not frame:get_is_created_skill_list() then
+        self.m_skill_ui_setting_list = self:getFrame():create_skill_list()
+        frame:on_click_btn(btn_frame)
+        frame:set_is_created_skill_list(true)
+        ----------------哪个按钮被点击了显示为红色---------------------
+        --container_image.color = Color.red
+    else
+        frame:destroy_skill_list()
+        frame:set_is_created_skill_list(false)
+        --container_image.color = Color.white
+    end
+    -----------技能列表的创建与销毁（临时）------------------
+end
+
+
+-- 用于点击其他位置关闭列表
+function skill_ui_setting_view:close_skill_setting_list()
+
+    local frame = self:getFrame()
+    if frame:get_is_created_skill_list() then
+        frame:destroy_skill_list()
+        frame:set_is_created_skill_list(false)
+    end
+end
+function skill_ui_setting_view:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return skill_ui_setting_view

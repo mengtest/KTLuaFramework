@@ -1,0 +1,14 @@
+local row_0 = {['id']=11,['name']='斩仙台',['condi']={1},['condi_param']={0},['dwlx']=1,['mfdwrs']=0,['entry_condi']={0},['entry_param']={0},['inst_map_id']=21,['map_id']=1004,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='剧情',['des_one']='',['des_two']='',['time']=300,['prepare_time']=10}
+local row_1 = {['id']=12,['name']='斩仙台',['condi']={1},['condi_param']={0},['dwlx']=2,['mfdwrs']=1,['entry_condi']={0},['entry_param']={0},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='普通',['des_one']='',['des_two']='',['time']=300,['prepare_time']=20}
+local row_2 = {['id']=13,['name']='斩仙台',['condi']={1},['condi_param']={0},['dwlx']=2,['mfdwrs']=3,['entry_condi']={0},['entry_param']={0},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='英雄',['des_one']='无需等级',['des_two']='需要完成首个任务',['time']=300,['prepare_time']=30}
+local row_3 = {['id']=14,['name']='斩仙台',['condi']={1,5},['condi_param']={25,13},['dwlx']=2,['mfdwrs']=1,['entry_condi']={1,3,4},['entry_param']={10,8,1001},['inst_map_id']=22,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='史诗',['des_one']='需求等级20',['des_two']='需要通关英雄难度',['time']=300,['prepare_time']=40}
+local row_4 = {['id']=15,['name']='斩仙台',['condi']={1,5},['condi_param']={0,14},['dwlx']=2,['mfdwrs']=5,['entry_condi']={0},['entry_param']={0},['inst_map_id']=23,['map_id']=1003,['map_file']='res/map/hgs_jsz1_0.json',['diff_name']='秘境',['des_one']='队长需要有本副本秘境钥匙',['des_two']='',['time']=300,['prepare_time']=50}
+
+local datas = {
+	[11] = row_0,
+	[12] = row_1,
+	[13] = row_2,
+	[14] = row_3,
+	[15] = row_4,
+}
+return datas

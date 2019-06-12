@@ -1,0 +1,64 @@
+-- Role, creature等源自entity的对象的基类
+
+local M = class("EntityBaseObj")
+
+-------------------------
+-- Attribute & Event
+-------------------------
+
+--------------------------------------------------------------------------------
+-- base call
+--------------------------------------------------------------------------------
+function M:base_call(method, ...)
+	app:getKBESDK():entity_base_call(self.m_id, method, ...)
+end
+
+
+
+--------------------------------------------------------------------------------
+-- cell call
+--------------------------------------------------------------------------------
+function M:cell_call(method, ...)
+	app:getKBESDK():entity_cell_call(self.m_id, method, ...)
+end
+
+
+--------------------------------------------------------------------------------
+-- call from server
+--------------------------------------------------------------------------------
+
+function M:add_buff(skill_id, index, end_time, stack)
+    self.m_buff_list:add_buff(skill_id, index, end_time, stack)
+end
+
+
+function M:update_buff(skill_id, index, end_time, stack)
+    self.m_buff_list:update_buff(skill_id, index, end_time, stack)
+end
+
+function M:remove_buff(skill_id, index)
+    self.m_buff_list:remove_buff(skill_id, index)
+end
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+function M:initialize()
+    --print("kbe.BattleObj initialize")
+    Attribute.init(self)
+
+    self.m_buff_list = require("data.buff_data_list"):new()
+end
+
+function M:on_init()
+    --print("kbe.BattleObj:on_init")
+end
+
+function M:on_destroy()
+    --print("kbe.BattleObj:on_destroy")
+end
+
+function M:update(delta)
+    --print("kbe.BattleObj:update")
+end
+
+return M

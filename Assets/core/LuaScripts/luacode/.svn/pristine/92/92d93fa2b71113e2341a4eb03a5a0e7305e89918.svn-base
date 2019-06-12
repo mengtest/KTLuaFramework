@@ -1,0 +1,10 @@
+local row_0 = {['tmpl']=9527,['text']='问题文本1',['audio']=100201,['prompt']=0,['answer_right']='正确答案1',['answer_wrong']='错误答案1',['right_feedback']='正确反馈对话1',['right_reaction']='',['wrong_feedback']='错误反馈对话1',['wrong_reaction']='',['another']=9528}
+local row_1 = {['tmpl']=9528,['text']='问题文本2',['audio']=100202,['prompt']=1,['answer_right']='正确答案2',['answer_wrong']='错误答案2',['right_feedback']='正确反馈对话2',['right_reaction']='',['wrong_feedback']='错误反馈对话2',['wrong_reaction']='',['another']=9529}
+local row_2 = {['tmpl']=9529,['text']='问题文本3',['audio']=100203,['prompt']=0,['answer_right']='正确答案3',['answer_wrong']='错误答案3',['right_feedback']='正确反馈对话3',['right_reaction']='',['wrong_feedback']='错误反馈对话3',['wrong_reaction']='',['another']=0}
+
+local datas = {
+	[9527] = row_0,
+	[9528] = row_1,
+	[9529] = row_2,
+}
+return datas

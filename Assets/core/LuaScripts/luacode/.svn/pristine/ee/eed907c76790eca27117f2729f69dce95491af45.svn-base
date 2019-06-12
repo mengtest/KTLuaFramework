@@ -1,0 +1,10 @@
+local row_0 = {['id']=1001,['submap_name']='花果山',['boss_id']={},['boss_pos']={},['door_id']={2001},['door_pos']={},['change_map_id']={1002},['first_point']={},['second_point']={}}
+local row_1 = {['id']=1002,['submap_name']='水帘洞',['boss_id']={},['boss_pos']={},['door_id']={2001,2002},['door_pos']={12,10,222,888},['change_map_id']={1003,1001},['first_point']={},['second_point']={}}
+local row_2 = {['id']=1003,['submap_name']='天兵大营',['boss_id']={1001},['boss_pos']={10,20},['door_id']={2002},['door_pos']={},['change_map_id']={1002},['first_point']={},['second_point']={}}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+}
+return datas

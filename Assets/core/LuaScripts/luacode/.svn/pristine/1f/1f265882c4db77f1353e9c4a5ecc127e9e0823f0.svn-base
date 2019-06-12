@@ -1,0 +1,15 @@
+---
+--- Created by Administrator.
+--- DateTime: 2017/11/8 17:56
+---
+local Frame = require("system.frame")
+local quest_talk = class("quest_talk",Frame)
+Event.decl(quest_talk,"finish_talk")
+
+function  quest_talk:doInit( ) end
+function quest_talk:finish_talk()
+   self:emit_event("finish_talk")
+end
+
+
+return quest_talk

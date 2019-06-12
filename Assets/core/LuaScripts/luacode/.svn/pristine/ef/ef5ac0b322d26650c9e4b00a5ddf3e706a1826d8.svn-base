@@ -1,0 +1,33 @@
+-- pacman 2018-03-01 仿MonoBehaviour
+-- 子类中声明静态变量 disallow_multiple_component = true，即可阻止一个view上添加多个同名Component
+
+local ViewComponent = class("ViewComponent")
+
+-- @view 本Compoonent所属View对象
+-- @game_object 本Compoonent所关心的gameObject，相当于MonoBehaviour.gameObject
+function ViewComponent:initialize(view, game_object)
+    --print("----------ViewComponent:initialize")
+    self.m_view = view
+    self.m_game_object = game_object
+    self.m_enabled = true
+end
+
+function ViewComponent:set_enabled(enabled)
+    if self.m_enabled ~= enabled then
+        self.m_enabled = enabled
+    end
+end
+
+function ViewComponent:get_enabled()
+    return self.m_enabled
+end
+
+function ViewComponent:update()
+    --print("----------ViewComponent:update")
+end
+
+function ViewComponent:on_destroy()
+    --print("----------ViewComponent:on_destroy")
+end
+
+return ViewComponent

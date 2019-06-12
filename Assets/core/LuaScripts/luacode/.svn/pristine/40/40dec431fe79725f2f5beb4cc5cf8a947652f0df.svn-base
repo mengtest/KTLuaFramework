@@ -1,0 +1,138 @@
+local Frame = require("system.frame")
+local quest_ui_show = class("quest_ui_show", Frame)
+
+Attribute.decl(quest_ui_show, "quest_id", 0)
+-- 任务名称
+Attribute.decl(quest_ui_show, "quest_name", "")
+-- 任务状态
+Attribute.decl(quest_ui_show, "quest_stat", "")
+-- 任务目的地
+Attribute.decl(quest_ui_show, "quest_destination", "")
+-- 任务和角色之间距离
+Attribute.decl(quest_ui_show, "quest_distance", "")
+-- 任务目标信息
+Attribute.decl(quest_ui_show, "quest_target_info", "")
+-- 任务详细信息
+Attribute.decl(quest_ui_show, "quest_detail_info", "")
+-- 任务奖励经验
+Attribute.decl(quest_ui_show, "quest_reward_xp", 0)
+-- 任务奖励金币
+Attribute.decl(quest_ui_show, "quest_reward_money", 0)
+--显示数据
+Event.decl(quest_ui_show, "show_data")
+
+function quest_ui_show:doInit(param)
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self:subscribe(self.m_quest_manager:on_event("drop_quest"), function(quest_data)
+        self:refresh_show_data(quest_data:get_quest_id())
+    end)
+end
+
+-- 刷新当前页面显示的信息
+function quest_ui_show:refresh_show_data(quest_id)
+    if quest_id == 0 then
+        self:emit_event("show_data", 0)
+        return
+    end
+    self:emit_event("show_data", quest_id)
+
+    self:set_quest_id(quest_id)
+
+    -- 任务名称
+    local quest_name = dbc.quest[quest_id].name
+    self:set_quest_name(quest_name)
+
+    -- 任务状态
+    local quest_data = self.m_quest_manager:get_all_quest_list_data()[quest_id]
+
+    local quest_stat = quest_data:get_quest_state()
+    if quest_data:get_is_fall() == true then
+        self:set_quest_stat("失败")
+    elseif quest_stat == enum.quest.Quest_State.Received then
+        self:set_quest_stat("已接取")
+    elseif quest_stat == enum.quest.Quest_State.Finished then
+        self:set_quest_stat("可交付")
+    elseif quest_stat == enum.quest.Quest_State.Interact then
+        self:set_quest_stat("可接取")
+    end
+
+    -- 获得经验
+    local exp = 0
+    -- 获得金币
+    local gold = 0
+    for i, v in ipairs(dbc.quest[quest_id].gains) do
+        gold = gold + dbc.loot[v].money
+        exp = exp + dbc.loot[v].exp
+    end
+    self:set_quest_reward_money(gold)
+    self:set_quest_reward_xp(exp)
+
+    -- 详细信息
+    local quest_detail = dbc.quest[quest_id].desc
+    self:set_quest_detail_info(quest_detail)
+
+    -- 任务目的地
+    local quest_destination = dbc.quest[quest_id].destination
+    self:set_quest_destination(quest_destination)
+
+    self.m_sketchy = dbc.quest[quest_id].sketchy
+    self:refresh_schdule(quest_id)
+
+end
+
+function quest_ui_show:del_quest(quest_id)
+    if quest_id == self:get_quest_id() then
+        self:set_quest_id(0)
+    end
+end
+
+-- 刷新进度
+function quest_ui_show:refresh_schdule(quest_id)
+    if quest_id == self:get_quest_id() then
+        local quest_data = self.m_quest_manager:get_all_quest_list_data()[quest_id]
+        -- 任务当前进度
+        self.m_quest_schedule = string.format("(%d/%d)", quest_data:get_cur_weights(), quest_data:get_aim_weights())
+        -- 把进度改到简述后面
+        self:set_quest_target_info(self.m_sketchy .. self.m_quest_schedule)
+    else
+        return
+    end
+end
+
+function quest_ui_show:doUpdate()
+    if self:get_quest_id() ~= 0 then
+        local quest_data = self.m_quest_manager:get_all_quest_list_data()[self:get_quest_id()]
+        if quest_data then
+            local dis_aim, _, _, dir_aim = quest_data:get_target_info()
+            self:refresh_aim_info(dis_aim, dir_aim)
+        end
+    else
+
+    end
+end
+
+-- 刷新距离
+function quest_ui_show:refresh_aim_info(dis_aim, dir_aim)
+    if not dis_aim or not dir_aim then
+        self:set_quest_distance("距您<color=" .. "red" .. ">999+</color>m")
+        return
+    end
+    -- 任务和角色之间距离
+    local dis_color = nil
+    if math.floor(dis_aim) + 1 <= 150 then
+        dis_color = "#4CE10BFF"
+    elseif math.floor(dis_aim) + 1 <= 500 then
+        dis_color = "yellow"
+    else
+        dis_color = "red"
+    end
+    self:set_quest_distance(string.format("距您<color=" .. dis_color .. ">%d</color>m", math.floor(dis_aim) + 1))
+end
+
+--放弃任务
+function quest_ui_show:on_give_up()
+    local ui_manager = app:get_ui_manager()
+    ui_manager:CreateUI("quest_ui_give_up", "%subsystem.quest.quest_ui.quest_ui_give_up", self:get_quest_id(), ui_manager.UI_Depth.HIGH)
+end
+
+return quest_ui_show

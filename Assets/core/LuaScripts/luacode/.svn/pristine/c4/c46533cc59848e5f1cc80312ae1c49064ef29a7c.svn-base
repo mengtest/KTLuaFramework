@@ -1,0 +1,239 @@
+local rows = {}
+rows[1] = {['id']=1001,['model_type']=0,['prefab_name']='JingTong',['model_path']='pc/jingtong',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[2] = {['id']=20001,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[3] = {['id']=20002,['model_type']=0,['prefab_name']='jianshenzhe_02',['model_path']='jianshenzhe_02',['trans_id']=0,['atk_anim']=2000003,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[4] = {['id']=20003,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=2000005,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[5] = {['id']=20004,['model_type']=0,['prefab_name']='chengnianhouzi_01',['model_path']='chengnianhouzi_01',['trans_id']=0,['atk_anim']=2000007,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']='sfx/skill/prefab/monster/chusheng_yanchen01_bai.prefab'}
+rows[6] = {['id']=20005,['model_type']=0,['prefab_name']='plane_fire_generator',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[7] = {['id']=20006,['model_type']=0,['prefab_name']='plane_fire',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/boss/jls/js_jls_hyzj_eskillcast_a.prefab'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[8] = {['id']=20007,['model_type']=0,['prefab_name']='xiaonihou_01',['model_path']='xiaonihou_01',['trans_id']=0,['atk_anim']=2000009,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[9] = {['id']=20008,['model_type']=0,['prefab_name']='jigutianbing_001',['model_path']='npc/jigutianbing_001',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[10] = {['id']=20011,['model_type']=0,['prefab_name']='linghunsuipian',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/pc/linghou/youhunzhadan/lh_suipian.prefab'},['appearance_sfx_mount']={'top'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[11] = {['id']=20012,['model_type']=0,['prefab_name']='bengjiangjun_01',['model_path']='bengjiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[12] = {['id']=20013,['model_type']=0,['prefab_name']='houlaolai_01',['model_path']='houlaolai_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[13] = {['id']=20014,['model_type']=0,['prefab_name']='liuyuanshuai_01',['model_path']='liuyuanshuai_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[14] = {['id']=20015,['model_type']=0,['prefab_name']='touguoxiaoyao_01',['model_path']='touguoxiaoyao_01',['trans_id']=0,['atk_anim']=2000011,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[15] = {['id']=20016,['model_type']=0,['prefab_name']='pangjiangju',['model_path']='monster/pangjiangjun',['trans_id']=0,['atk_anim']=2000040,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[16] = {['id']=20017,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[17] = {['id']=20018,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[18] = {['id']=20019,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[19] = {['id']=20020,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[20] = {['id']=20021,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[21] = {['id']=20022,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[22] = {['id']=20023,['model_type']=0,['prefab_name']='P1_HCDJ',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/boss/jls/xin_huochuidaji/jls_2_huochuidaji.prefab'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[23] = {['id']=20024,['model_type']=0,['prefab_name']='linghunsuipian',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/pc/luocha/lx/lx_eskillhit_a.prefab'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[24] = {['id']=20025,['model_type']=0,['prefab_name']='linghunsuipian',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/pc/luocha/lx/lx_eskillhit_b.prefab'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[25] = {['id']=20026,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[26] = {['id']=20027,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[27] = {['id']=20028,['model_type']=0,['prefab_name']='jianshenzhe_02',['model_path']='jianshenzhe_02',['trans_id']=0,['atk_anim']=2000003,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[28] = {['id']=20029,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[29] = {['id']=20030,['model_type']=0,['prefab_name']='energystone_fire',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/huo_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[30] = {['id']=20031,['model_type']=0,['prefab_name']='energystone_fire',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/huo_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[31] = {['id']=20032,['model_type']=0,['prefab_name']='jianshenzhe_03',['model_path']='jianshenzhe_03',['trans_id']=0,['atk_anim']=2000001,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[32] = {['id']=20033,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[33] = {['id']=30001,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[34] = {['id']=30002,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[35] = {['id']=30003,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[36] = {['id']=30004,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[37] = {['id']=30005,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[38] = {['id']=30006,['model_type']=0,['prefab_name']='jianshenzhe_01',['model_path']='jianshenzhe_01',['trans_id']=0,['atk_anim']=2000024,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[39] = {['id']=40001,['model_type']=0,['prefab_name']='julingshen_p1',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=2000028,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[40] = {['id']=40002,['model_type']=0,['prefab_name']='julingshen_p1',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=2000030,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[41] = {['id']=40003,['model_type']=0,['prefab_name']='julingshen_p1',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=2000030,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[42] = {['id']=40004,['model_type']=0,['prefab_name']='julingshen_p1',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=2000030,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[43] = {['id']=50001,['model_type']=0,['prefab_name']='julingshen_p3',['model_path']='boss/julingshen_03',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/boss/jls/juese_julingshen_003_xiongkou.prefab','sfx/skill/prefab/boss/jls/juese_julingshen_003_youbi.prefab','sfx/skill/prefab/boss/jls/juese_julingshen_003_zuobi.prefab'},['appearance_sfx_mount']={'chest','weapon_hand_r_1','weapon_hand_l_1'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[44] = {['id']=50002,['model_type']=0,['prefab_name']='julingshen_p3_left_hand',['model_path']='julingshen_03',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[45] = {['id']=50003,['model_type']=0,['prefab_name']='julingshen_p3_right_hand',['model_path']='julingshen_03',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[46] = {['id']=60001,['model_type']=0,['prefab_name']='energystone_fire',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/huo_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[47] = {['id']=60002,['model_type']=0,['prefab_name']='energystone_wind',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/feng_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[48] = {['id']=60003,['model_type']=0,['prefab_name']='energystone_thunder',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/dian_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[49] = {['id']=60004,['model_type']=0,['prefab_name']='energystone_lightning',['model_path']='energystone_1',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/fushi/shui_zhangchang.prefab'},['appearance_sfx_mount']={'bottom'},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[50] = {['id']=60005,['model_type']=0,['prefab_name']='Hill_002',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[51] = {['id']=60007,['model_type']=0,['prefab_name']='boat',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'sfx/skill/prefab/scene/hgs_1_0/jlyj_guiji.prefab'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[52] = {['id']=70001,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[53] = {['id']=70002,['model_type']=0,['prefab_name']='',['model_path']='',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[54] = {['id']=70003,['model_type']=0,['prefab_name']='interact_obj/horizon_fall_die_01',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[55] = {['id']=70004,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[56] = {['id']=70005,['model_type']=0,['prefab_name']='interact_obj/air_box',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[57] = {['id']=70006,['model_type']=0,['prefab_name']='leicha',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[58] = {['id']=70007,['model_type']=0,['prefab_name']='leichui',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[59] = {['id']=70008,['model_type']=0,['prefab_name']='xiaonihou_kunbang',['model_path']='xiaonihou_01',['trans_id']=0,['atk_anim']=2000032,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[60] = {['id']=70009,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[61] = {['id']=70010,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[62] = {['id']=70011,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[63] = {['id']=70012,['model_type']=0,['prefab_name']='none_creature/dtbj_thing_jingzi02',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[64] = {['id']=70013,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[65] = {['id']=70014,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[66] = {['id']=70015,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[67] = {['id']=70016,['model_type']=0,['prefab_name']='none_creature/dtbj_thing_jingzi01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[68] = {['id']=70017,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[69] = {['id']=70018,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[70] = {['id']=70019,['model_type']=0,['prefab_name']='interact_obj/smallcase_01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[71] = {['id']=70020,['model_type']=0,['prefab_name']='none_creature/dtbj_other_kuang001',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[72] = {['id']=70021,['model_type']=0,['prefab_name']='none_creature/dtbj_other_mutong01',['model_path']='smallcase_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[73] = {['id']=90001,['model_type']=0,['prefab_name']='none_creature/AirWall',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[74] = {['id']=90002,['model_type']=0,['prefab_name']='none_creature/shiqiao',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[75] = {['id']=90003,['model_type']=0,['prefab_name']='none_creature/kongqiqiang001',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[76] = {['id']=90004,['model_type']=0,['prefab_name']='shitaifuzhou',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[77] = {['id']=90005,['model_type']=0,['prefab_name']='none_creature/qiujinfuzhou',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[78] = {['id']=90006,['model_type']=0,['prefab_name']='none_creature/hgs_thing_dilaowujia_05',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[79] = {['id']=90007,['model_type']=0,['prefab_name']='none_creature/taizi_zuo',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[80] = {['id']=90008,['model_type']=0,['prefab_name']='none_creature/taizi_you',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[81] = {['id']=90009,['model_type']=0,['prefab_name']='none_creature/taizi_hou',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[82] = {['id']=90010,['model_type']=0,['prefab_name']='none_creature/HGS_1_0_sfx_huoba',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[83] = {['id']=90011,['model_type']=0,['prefab_name']='none_creature/tree',['model_path']='scene/hgs_tree_kandaoshu_001',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[84] = {['id']=90012,['model_type']=0,['prefab_name']='none_creature/taizi_qian',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[85] = {['id']=90013,['model_type']=0,['prefab_name']='none_creature/dashengdan',['model_path']='scene/hgs_rock_dashengdan_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[86] = {['id']=90014,['model_type']=0,['prefab_name']='none_creature/hgs_hoututeng_001',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[87] = {['id']=90015,['model_type']=0,['prefab_name']='none_creature/hgs_hoututeng_002',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[88] = {['id']=90016,['model_type']=0,['prefab_name']='none_creature/hgs_hoututeng_003',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[89] = {['id']=90017,['model_type']=0,['prefab_name']='none_creature/hgs_hoututeng_004',['model_path']='julingshen_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[90] = {['id']=1002,['model_type']=0,['prefab_name']='linghou',['model_path']='pc/linghou',['trans_id']=100200,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[91] = {['id']=1101,['model_type']=0,['prefab_name']='jingtong_show',['model_path']='dzs_jingtong',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[92] = {['id']=1003,['model_type']=0,['prefab_name']='luocha',['model_path']='pc/luocha',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[93] = {['id']=100200,['model_type']=0,['prefab_name']='linghou_trans',['model_path']='linghou',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[94] = {['id']=100201,['model_type']=0,['prefab_name']='luocha_fenshen',['model_path']='sfx/luocha_fenshen',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[95] = {['id']=1501,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[96] = {['id']=1502,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[97] = {['id']=1503,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[98] = {['id']=1504,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[99] = {['id']=1505,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[100] = {['id']=1506,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[101] = {['id']=1507,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[102] = {['id']=1508,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[103] = {['id']=1509,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[104] = {['id']=1510,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[105] = {['id']=1511,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[106] = {['id']=1512,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[107] = {['id']=1513,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[108] = {['id']=1514,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[109] = {['id']=1515,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[110] = {['id']=1516,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[111] = {['id']=1517,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[112] = {['id']=1518,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[113] = {['id']=1519,['model_type']=0,['prefab_name']='bajiangjun_01',['model_path']='bajiangjun_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[114] = {['id']=1053,['model_type']=0,['prefab_name']='chengnianhouzi_01',['model_path']='chengnianhouzi_01',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={'fight_attack_01','fight_attack_02'},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[115] = {['id']=910001,['model_type']=0,['prefab_name']='taizizudang_zuo',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[116] = {['id']=910002,['model_type']=0,['prefab_name']='taizizudang_you',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+rows[117] = {['id']=910003,['model_type']=0,['prefab_name']='taizizudang_hou',['model_path']='scene/shiqiao',['trans_id']=0,['atk_anim']=0,['appearance_sfx']={},['appearance_sfx_mount']={},['before_born_sfx']='',['after_dead_sfx']=''}
+
+local datas = {
+	[1001] = rows[1],
+	[20001] = rows[2],
+	[20002] = rows[3],
+	[20003] = rows[4],
+	[20004] = rows[5],
+	[20005] = rows[6],
+	[20006] = rows[7],
+	[20007] = rows[8],
+	[20008] = rows[9],
+	[20011] = rows[10],
+	[20012] = rows[11],
+	[20013] = rows[12],
+	[20014] = rows[13],
+	[20015] = rows[14],
+	[20016] = rows[15],
+	[20017] = rows[16],
+	[20018] = rows[17],
+	[20019] = rows[18],
+	[20020] = rows[19],
+	[20021] = rows[20],
+	[20022] = rows[21],
+	[20023] = rows[22],
+	[20024] = rows[23],
+	[20025] = rows[24],
+	[20026] = rows[25],
+	[20027] = rows[26],
+	[20028] = rows[27],
+	[20029] = rows[28],
+	[20030] = rows[29],
+	[20031] = rows[30],
+	[20032] = rows[31],
+	[20033] = rows[32],
+	[30001] = rows[33],
+	[30002] = rows[34],
+	[30003] = rows[35],
+	[30004] = rows[36],
+	[30005] = rows[37],
+	[30006] = rows[38],
+	[40001] = rows[39],
+	[40002] = rows[40],
+	[40003] = rows[41],
+	[40004] = rows[42],
+	[50001] = rows[43],
+	[50002] = rows[44],
+	[50003] = rows[45],
+	[60001] = rows[46],
+	[60002] = rows[47],
+	[60003] = rows[48],
+	[60004] = rows[49],
+	[60005] = rows[50],
+	[60007] = rows[51],
+	[70001] = rows[52],
+	[70002] = rows[53],
+	[70003] = rows[54],
+	[70004] = rows[55],
+	[70005] = rows[56],
+	[70006] = rows[57],
+	[70007] = rows[58],
+	[70008] = rows[59],
+	[70009] = rows[60],
+	[70010] = rows[61],
+	[70011] = rows[62],
+	[70012] = rows[63],
+	[70013] = rows[64],
+	[70014] = rows[65],
+	[70015] = rows[66],
+	[70016] = rows[67],
+	[70017] = rows[68],
+	[70018] = rows[69],
+	[70019] = rows[70],
+	[70020] = rows[71],
+	[70021] = rows[72],
+	[90001] = rows[73],
+	[90002] = rows[74],
+	[90003] = rows[75],
+	[90004] = rows[76],
+	[90005] = rows[77],
+	[90006] = rows[78],
+	[90007] = rows[79],
+	[90008] = rows[80],
+	[90009] = rows[81],
+	[90010] = rows[82],
+	[90011] = rows[83],
+	[90012] = rows[84],
+	[90013] = rows[85],
+	[90014] = rows[86],
+	[90015] = rows[87],
+	[90016] = rows[88],
+	[90017] = rows[89],
+	[1002] = rows[90],
+	[1101] = rows[91],
+	[1003] = rows[92],
+	[100200] = rows[93],
+	[100201] = rows[94],
+	[1501] = rows[95],
+	[1502] = rows[96],
+	[1503] = rows[97],
+	[1504] = rows[98],
+	[1505] = rows[99],
+	[1506] = rows[100],
+	[1507] = rows[101],
+	[1508] = rows[102],
+	[1509] = rows[103],
+	[1510] = rows[104],
+	[1511] = rows[105],
+	[1512] = rows[106],
+	[1513] = rows[107],
+	[1514] = rows[108],
+	[1515] = rows[109],
+	[1516] = rows[110],
+	[1517] = rows[111],
+	[1518] = rows[112],
+	[1519] = rows[113],
+	[1053] = rows[114],
+	[910001] = rows[115],
+	[910002] = rows[116],
+	[910003] = rows[117],
+}
+return datas

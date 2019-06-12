@@ -1,0 +1,135 @@
+
+local Frame = require("system.frame")
+local Quiz_manager = class("Quiz_manager", Frame)
+
+function Quiz_manager:doInit(params)
+    local ui_manager = app:get_ui_manager()
+    local params = {
+        ["quiz_manager"] = self,
+    }
+    self.m_quiz_window = ui_manager:CreateUI("quiz_window", "%subsystem.quiz.quiz_window", params, ui_manager.UI_Depth.ALERT)
+    
+    self.m_cur_quiz_host = nil  -- 问答功能的寄主
+    self.m_cur_quiz_audio = 0
+    self.m_quiz_id_list = {}
+    self.m_cur_quiz_id = 0
+    self.m_cur_index = 0
+    self.m_max_index = 0
+end
+
+function Quiz_manager:start_quiz(quiz_host, quiz_id)
+    if not self:is_quiz_available() then
+        return
+    end
+    self:reset_quiz_host(quiz_host)
+    self:reset_quiz_id(quiz_id)
+    --self.m_cur_quiz_host:cell_call("quiz_rqt", self.m_cur_quiz_id, self.m_cur_index)
+    self:quiz_rqt(self.m_cur_quiz_id, self.m_cur_index)
+    self.m_quiz_window:show()
+end
+
+function Quiz_manager:stop_quiz()
+    self.m_cur_quiz_host = nil
+    self.m_cur_quiz_id = 0
+    self.m_cur_index = 0
+    self.m_max_index = 0
+    self.m_quiz_window:hide()
+end
+
+function Quiz_manager:quiz_rqt(quiz_id, cur_index)
+    Util_log:logError(Util_log.Mask.SJG_Quiz, "Quiz_manager:quiz_rqt, quiz_id = %s, index = %s", quiz_id, cur_index)
+    self.m_cur_quiz_host:cell_call("quiz_rqt", quiz_id, cur_index)
+end
+
+function Quiz_manager:quiz_rsp(answer_index)
+    Util_log:logError(Util_log.Mask.SJG_Quiz, "Quiz_manager:quiz_rsp, quiz_id = %s, index = %s, answer_index = %s", self.m_cur_quiz_id, self.m_cur_index, answer_index)
+    self.m_cur_quiz_host:cell_call("quiz_rsp", self.m_cur_quiz_id, self.m_cur_index, answer_index)
+end
+
+function Quiz_manager:quiz_bgn(quiz_id, index, answer1, answer2, hint)
+    local quiz_info = dbc.quiz[self.m_quiz_id_list[index + 1]]
+    local text_quiz = quiz_info.text
+    self.m_quiz_window:refresh_quiz_info(text_quiz, answer1, answer2, hint)
+    self.m_cur_quiz_audio = self.m_cur_quiz_audio == 0 and Sound_manager:create(quiz_info.audio) or self.m_cur_quiz_audio
+end
+
+function Quiz_manager:quiz_end(quiz_id, index, is_correct)
+    Util_log:logError(Util_log.Mask.SJG_Quiz, "Quiz_manager:quiz_end(), self.m_quiz_id_list[index] = %s", self.m_quiz_id_list[index])
+    local text_feedback = is_correct == 1 and dbc.quiz[self.m_quiz_id_list[index + 1]].right_feedback or dbc.quiz[self.m_quiz_id_list[index + 1]].wrong_feedback
+    self.m_cur_index = index + 1
+    self.m_quiz_window:refresh_quiz_feedback(text_feedback)
+    Sound_manager:destroy(self.m_cur_quiz_audio)
+    self.m_cur_quiz_audio = 0
+end
+
+function Quiz_manager:show_next_quiz()
+    --self.m_cur_index = self.m_cur_index + 1
+    if self.m_cur_index >= self.m_max_index then
+        self:stop_quiz()
+    else
+        self:quiz_rqt(self.m_cur_quiz_id, self.m_cur_index)
+    end
+end
+
+function Quiz_manager:is_quiz_available()
+    if self.m_cur_quiz_host then return false end
+    if self.m_cur_quiz_id > 0 then return false end
+    return true
+end
+
+function Quiz_manager:reset_quiz_id(quiz_id)
+    self.m_cur_quiz_id = quiz_id
+--    self.m_max_index = self:get_quiz_count(quiz_id, 0)
+--    self.m_cur_index = self.m_max_index > 0 and 1 or 0
+    self.m_quiz_id_list = self:get_quiz_id_list(quiz_id, {})
+    self.m_max_index = #self.m_quiz_id_list
+    self.m_cur_index = self.m_max_index > 0 and 0 or 0
+    Util_log:logError(Util_log.Mask.SJG_Quiz, "Quiz_manager:reset_quiz_id(), self.m_quiz_id_list = %s", Util_string:get_string_by_tbl(self.m_quiz_id_list))
+end
+
+function Quiz_manager:reset_quiz_host(quiz_host)
+    self.m_cur_quiz_host = quiz_host
+    self.m_quiz_window:set_quiz_host_name(quiz_host:get_name())
+end
+
+--function Quiz_manager:get_quiz_count(quiz_id, cur_count)
+--    if cur_count > 100 then
+--        Util_log:logError(Util_log.Mask.Global, "大哥，你确定你【Quiz】表的问答链没问题吗？都链接100条问答了。\n quiz_id = %s", tostring(quiz_id))
+--    end
+--    local quiz_info = dbc.quiz[quiz_id]
+--    if quiz_info then
+--        cur_count = cur_count + 1
+--    end
+--    if quiz_info.another > 0 then
+--        cur_count = self:get_quiz_count(quiz_info.another, cur_count)
+--    end
+--    if cur_count <= 0 then
+--        Util_log:logError(Util_log.Mask.Global, "Error，当前quiz_id链接的问答链为空。\n quiz_id = %s", tostring(quiz_id))
+--    end
+--    return cur_count
+--end
+
+function Quiz_manager:get_quiz_id_list(quiz_id, quiz_id_list)
+    if #quiz_id_list > 100 then
+        Util_log:logError(Util_log.Mask.Global, "大哥，你确定你【Quiz】表的问答链没问题吗？都链接100条问答了。\n quiz_id = %s", tostring(quiz_id))
+    end
+    local quiz_info = dbc.quiz[quiz_id]
+    if quiz_info then
+        table.insert(quiz_id_list, quiz_id)
+    end
+    if quiz_info.another > 0 then
+        self:get_quiz_id_list(quiz_info.another, quiz_id_list)
+    end
+    if #quiz_id_list <= 0 then
+        Util_log:logError(Util_log.Mask.Global, "Error，当前quiz_id链接的问答链为空。\n quiz_id = %s", tostring(quiz_id))
+    end
+    return quiz_id_list
+end
+
+
+
+
+
+
+
+return Quiz_manager

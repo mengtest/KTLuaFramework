@@ -1,0 +1,27 @@
+--套装卡片的view
+local View = require("system.view")
+local fashion_select_card_view = class("fashion_select_card_view", View)
+
+
+function fashion_select_card_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+    self.m_fashion_select_frame=self:getFrame("fashion_select_show")
+    self:load_prefab("ui/fashion_select.prefab", function(loaded_go)
+        local template_go = loaded_go.transform:Find("Fashion_select_slippage/Fashion_select_card").gameObject
+        local choiceGo = Object.Instantiate(template_go)
+        self:getGO():AddComponent(RectTransform)
+        choiceGo.transform:SetParent(self:getGO().transform)
+        choiceGo.transform.localPosition = Vector3.zero
+        choiceGo.transform.localScale = Vector3.one
+        choiceGo:SetActive(true)
+
+        --时装选择按钮
+       self.m_test_fashion_bt=choiceGo:GetComponent(UI.Button)
+        self.m_test_fashion_bt.onClick:AddListener(function()
+            self.m_fashion_select_frame:fashion_bt()
+    end)
+    end)
+end
+
+return fashion_select_card_view

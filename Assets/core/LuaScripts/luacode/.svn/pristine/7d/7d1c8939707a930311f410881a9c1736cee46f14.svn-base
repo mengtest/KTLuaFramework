@@ -1,0 +1,28 @@
+local row_0 = {['id']=900010,['model_id']=90001,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=1,['special']=0}
+local row_1 = {['id']=900020,['model_id']=90002,['state']=0,['anim']='',['sfx']={'sfx/skill/prefab/jls/xiu_gai/juchuizadi_eskillsing_a.prefab'},['sfx_mount']={},['collider']=1,['special']=0}
+local row_2 = {['id']=900021,['model_id']=90002,['state']=1,['anim']='shiqiao',['sfx']={'sfx/skill/prefab/luocha/rlbf_eskillbuff_a.prefab'},['sfx_mount']={},['collider']=0,['special']=0}
+local row_3 = {['id']=900030,['model_id']=90003,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=1,['special']=0}
+local row_4 = {['id']=900050,['model_id']=90005,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=0,['special']=0}
+local row_5 = {['id']=900060,['model_id']=90006,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=0,['special']=0}
+local row_6 = {['id']=900070,['model_id']=90007,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=1,['special']=0}
+local row_7 = {['id']=900071,['model_id']=90007,['state']=1,['anim']='shitai_zuo',['sfx']={},['sfx_mount']={},['collider']=0,['special']=1}
+local row_8 = {['id']=900080,['model_id']=90008,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=1,['special']=0}
+local row_9 = {['id']=900081,['model_id']=90008,['state']=1,['anim']='shitai_you',['sfx']={},['sfx_mount']={},['collider']=0,['special']=1}
+local row_10 = {['id']=900090,['model_id']=90009,['state']=0,['anim']='',['sfx']={},['sfx_mount']={},['collider']=1,['special']=0}
+local row_11 = {['id']=900091,['model_id']=90009,['state']=1,['anim']='shitai_hou',['sfx']={},['sfx_mount']={},['collider']=0,['special']=1}
+
+local datas = {
+	[900010] = row_0,
+	[900020] = row_1,
+	[900021] = row_2,
+	[900030] = row_3,
+	[900050] = row_4,
+	[900060] = row_5,
+	[900070] = row_6,
+	[900071] = row_7,
+	[900080] = row_8,
+	[900081] = row_9,
+	[900090] = row_10,
+	[900091] = row_11,
+}
+return datas

@@ -1,0 +1,8 @@
+local Frame = require("system.frame")
+local dungeon_join = class("dungeon_join", Frame)
+
+function dungeon_join:doInit(param)
+
+end
+
+return dungeon_join

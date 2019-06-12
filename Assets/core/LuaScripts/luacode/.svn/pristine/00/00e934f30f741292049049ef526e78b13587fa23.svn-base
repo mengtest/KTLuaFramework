@@ -1,0 +1,76 @@
+local M = class("BuffData")
+
+-------------------------
+-- Attribute & Event
+-------------------------
+Attribute.decl(M, "spell_id", 0)		 -- 所属技能id
+Attribute.decl(M, "slot", 0)		    -- 槽位
+Attribute.decl(M, "caster_id", 0)		-- 施法者id
+Attribute.decl(M, "duration", 0)		-- 持续时间
+Attribute.decl(M, "remaining", 0)		-- 剩余时间(仅用于初始化)
+Attribute.decl(M, "stack_num", 1)			-- 堆叠数量
+
+-- 起始时间
+Attribute.calc(M, "start_time",
+    function(self)
+        local time = app:get_server_time()
+        return time + self:get_remaining() - self:get_duration()
+    end,
+    "duration", "remaining")
+
+-- 结束时间
+Attribute.calc(M, "end_time",
+    function(self)
+        return self:get_start_time() + self:get_duration()
+    end,
+    "start_time")
+
+
+Attribute.decl(M, "cur_remaining", 0)		-- 当前剩余时间
+
+-- 剩余百分比
+Attribute.calc(M, "cur_remain_percent",
+    function(self)
+        return self:get_cur_remaining() / self:get_duration()
+    end,
+    "cur_remaining")
+
+
+-- 模版数据
+--[[
+Attribute.calc(M, "cfg",
+    function(self)
+        return dbc.spell[self:get_spell_id()]
+    end,
+    "id")
+]]
+
+Attribute.calc(M, "client_cfg",
+    function(self)
+        return dbc.spell_client[self:get_spell_id()]
+    end,
+    "id")
+
+
+function M:initialize(host)
+    Attribute.init(self)
+
+    self.m_host = host        -- 宿主(Combat)对象
+end
+
+-- 获取宿主对象
+function M:get_host()
+    return self.m_host
+end
+
+function M:update(delta)
+    local cur_remaining = self:get_end_time() - app:get_server_time()
+    if cur_remaining < 0 then
+        cur_remaining = 0
+    end
+
+    self:set_cur_remaining(cur_remaining)
+end
+
+
+return M

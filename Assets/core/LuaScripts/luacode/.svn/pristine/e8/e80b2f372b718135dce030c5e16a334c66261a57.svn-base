@@ -1,0 +1,228 @@
+---
+--- Created by PC.
+--- DateTime: 2018/3/5 11:37
+---
+local View = require("system.view")
+local team_member_item_view = class("team_member_item_view", View)
+
+function team_member_item_view:doInit()
+    self.m_frame = self:getFrame()
+    self.m_team_mgr_bar = self:getFrame("team_mgr_bar")
+    self.m_current_blood_icon = nil
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("TeamMemberItem"), function(go)
+        local size_delta = self["member_item_gameObject"].transform.sizeDelta
+        go.transform.sizeDelta = Vector2(size_delta.x, size_delta.y)
+        go.transform.anchorMax = Vector2(0.5, 0.5)
+        go.transform.anchorMin = Vector2(0.5, 0.5)
+        go.transform.anchoredPosition3D = Vector3.zero
+
+        self["team_btn_GUIToggle"].group = self.m_team_mgr_bar:get_toggle_group()
+
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_zuidui_canxue_01"), self["member_item_gameObject"].transform, "canxue_particle")
+        --self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_zudui_biankuang_01"), self["member_item_gameObject"].transform, "xuanzhong_particle")
+
+        self:init_team()
+
+        self:subscribe(self.m_frame:on_event("update_specialization"), function(specialization)
+            self:update_duty(specialization)
+        end)
+        self:subscribe(self.m_frame:on_event("update_hp"), function(hp, max_hp)
+            self:update_hp(hp, max_hp)
+        end)
+        self:subscribe(self.m_frame:on_event("update_max_hp"), function(hp, max_hp)
+            self:update_hp(hp, max_hp)
+        end)
+        self:subscribe(self.m_frame:on_event("change_leader"), function(is_leader)
+            self:update_leader(is_leader)
+        end)
+        self:subscribe(self.m_frame:on_event("login"), function(hp, max_hp)
+            self:is_show_state(false)
+            self:update_hp(hp, max_hp)
+        end)
+        self:subscribe(self.m_frame:on_event("logout"), function(hp, max_hp)
+            self:update_hp(hp, max_hp)
+        end)
+        self:subscribe(self.m_frame:on_event("on_team_btn"), function(is_on)
+            self:set_target(self.m_frame:get_member_info().entity_id)
+            self:on_team_btn(is_on)
+        end)
+        self:subscribe(self.m_frame:on_event("close_toggle"), function()
+            self:close_toggle()
+        end)
+        self:subscribe(self.m_frame:on_event("update_member"), function()
+            self:init_team()
+        end)
+    end)
+end
+
+--设置目标
+function team_member_item_view:init_team()
+    self:update_duty(self.m_frame:get_member_info().specialization)
+    self:update_hp(self.m_frame:get_member_info().hp, self.m_frame:get_member_info().max_hp)
+    self:update_leader(self.m_frame:get_member_info().is_leader)
+end
+
+function team_member_item_view:on_team_btn(is_on)
+    self["selected_gameObject"]:SetActive(is_on)
+    --self:is_play_particle("xuanzhong_particle", is_on)
+    if is_on then
+        self["change_leader_go_gameObject"]:SetActive(self.m_team_mgr_bar:get_is_leader() and self.m_frame:get_member_info().dbid ~= self.m_frame.m_player_dbid)
+        self["quit_team_go_gameObject"]:SetActive(self.m_team_mgr_bar:get_is_leader() or self.m_frame:get_member_info().dbid == self.m_frame.m_player_dbid)
+        self.m_team_mgr_bar:set_toggle_selected(self["team_btn_GUIToggle"])
+    else
+        self["change_leader_go_gameObject"]:SetActive(false)
+        self["quit_team_go_gameObject"]:SetActive(false)
+        self.m_team_mgr_bar:set_toggle_selected(nil)
+    end
+end
+
+--关闭toggle
+function team_member_item_view:close_toggle()
+    local current_toggle = self.m_team_mgr_bar:get_toggle_selected()
+    if current_toggle then
+        current_toggle.isOn = false
+        self.m_team_mgr_bar:set_toggle_selected(nil)
+    end
+end
+
+function team_member_item_view:logout()
+    self.m_frame:set_state("离线")
+    self:is_show_state(true)
+end
+
+function team_member_item_view:is_show_state(is_show)
+    self["state_GUIText"].gameObject:SetActive(is_show)
+end
+
+--是否显示队长icon
+function team_member_item_view:update_leader(is_leader)
+    self["leader_icon_gameObject"]:SetActive(is_leader)
+end
+
+--刷新血量
+function team_member_item_view:update_hp(hp, max_hp)
+    local percent = hp / max_hp
+    self["hp_GUIImage"].fillAmount = percent
+
+    local icon_path = nil
+    if percent >= 0.75 then
+        self:is_show_state(false)
+        self:is_play_particle("canxue_particle", false)
+        icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_high')
+    elseif percent >= 0.35 then
+        self:is_show_state(false)
+        self:is_play_particle("canxue_particle", false)
+        icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_middle')
+    elseif percent > 0 then
+        self:is_show_state(false)
+        self:is_play_particle("canxue_particle", true)
+        icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_low')
+    else
+        self.m_frame:set_state("死亡")
+        self:is_show_state(true)
+        self:is_play_particle("canxue_particle", false)
+        icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_low')
+    end
+
+    if self.m_frame:get_member_info().state == 0 then
+        self:logout()
+        icon_path = app:getAssetPathMgr().get_team_bar_view_resource('hp_logout')
+    end
+
+    if self.m_current_blood_icon == nil or self.m_current_blood_icon ~= icon_path then
+        self.m_current_blood_icon = icon_path
+        self:load_icon(icon_path, self["hp_GUIImage"])
+    end
+end
+
+--刷新职责定位
+function team_member_item_view:update_duty(specialization)
+    local t = dbc.specialization[specialization]
+    assert(t, "team_member_item_view:update_duty the specialization not is exist")
+
+    local duty = t.duty
+    local path = ""
+    if duty == 1 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('tank')
+    elseif duty == 2 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('damage')
+    elseif duty == 3 then
+        path = app:getAssetPathMgr().get_sidebar_view_resource('healer')
+    else
+        path = app:getAssetPathMgr().get_sidebar_view_resource('tank')
+    end
+
+    self:load_icon(path, self["duty_GUIImage"])
+end
+
+function team_member_item_view:set_target(id)
+    local world = self:getFrame("world")
+    local unit_own = world:get_main_player()
+    local unit_tar = world:getUnit(id)
+    unit_own:set_target(unit_tar)
+end
+
+--加载图片
+function team_member_item_view:load_icon(path, img)
+    if path == nil then
+        return
+    end
+    if img == nil then
+        return
+    end
+
+    self:subscribe(app:getResMgr():rxLoad(path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("team_member_item_view:load_icon path not is exist, path：" .. path)
+        else
+            img.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            img:SetNativeSize()
+        end
+    end)
+end
+
+--播放或者暂停特效
+function team_member_item_view:is_play_particle(name, is_play)
+    if self[name] then
+        self[name].gameObject:SetActive(is_play)
+        if is_play then
+            self[name]:Play()
+        else
+            self[name]:Stop()
+        end
+    end
+end
+
+--加载特效
+function team_member_item_view:load_sfx(path, parent, name)
+    self:load(path, function(go)
+        local component = go.transform:GetChild(0):GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        go:SetActive(true)
+        component.gameObject:SetActive(false)
+        component:Stop()
+
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.HIGH)
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        self[name] = component
+    end)
+end
+
+function team_member_item_view:local_log(...)
+    app:logError(string.format(...))
+end
+
+return team_member_item_view

@@ -1,0 +1,109 @@
+local M = {}
+
+
+function M.addSingleEvent(view)
+    local m_trigger_event = view:getGO():AddComponent(KTRoleTriggerEvent)
+    
+    m_trigger_event._onTriggerEnterEvent = KTRoleTriggerEvent_OnTriggerEnterEvent()
+    m_trigger_event._onTriggerExitEvent = KTRoleTriggerEvent_OnTriggerExitEvent()
+    
+    m_trigger_event._onTriggerEnterEvent:AddListener(function(collider)
+        Debug.Log("on_trigger_" .. collider.gameObject.tag .. "_enter")
+        local func = M["on_trigger_" .. collider.gameObject.tag .. "_enter"]
+        if (func ~= nil and type(func) == "function") then
+            func(view, collider)
+        end
+    end)
+    
+    m_trigger_event._onTriggerExitEvent:AddListener(function(collider)
+        Debug.Log("on_trigger_" .. collider.gameObject.tag .. "_exit")
+        local func = M["on_trigger_" .. collider.gameObject.tag .. "_exit"]
+        if (func ~= nil and type(func) == "function") then
+            func(view, collider)
+        end
+    end)
+
+end
+
+function M.on_trigger_ladder_enter(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    local ladder_trigger = collider.gameObject.transform
+    local ladder = ladder_trigger.parent.gameObject:GetComponent(SceneObjs_ladder)
+    
+    if (ladder == nil) then return end
+    
+    local unit = view:getFrame()
+    local uafsm = unit:get_uafsm()
+    
+    playerController:show_interact_btn("攀爬",
+        function()
+            -- 直接关闭ui 执行攀爬完成
+            playerController:show_interact_btn(nil)
+            -- 我们找到了上梯子的位置
+            uafsm:change_state(Enum_Battle.Unit_Main_Act.CLIMB, {collider = collider, ladder = ladder, playerController = playerController})
+        
+        end,
+        nil, view:getFrame())
+end
+
+
+function M.on_trigger_ladder_exit(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    -- 直接关闭ui 啥都不执行
+    playerController:show_interact_btn(nil)
+end
+
+
+function M.on_trigger_jump_point_enter(view, collider)
+    
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    
+    local jump_point = collider.gameObject:GetComponent(SceneObjs_jump_point)
+    
+    if (jump_point == nil) then return end
+    
+    local unit = view:getFrame()
+    
+    local uafsm = unit:get_uafsm()
+    
+    local endPos = jump_point.end_pos
+    
+    if (jump_point.is_auto == true) then
+        playerController:show_interact_btn(nil)
+        uafsm:change_state(Enum_Battle.Unit_Main_Act.Auto_Move, {target = endPos, type = "jump"})
+    else
+        
+        playerController:show_interact_btn("跳跃",
+            function()
+                playerController:show_interact_btn(nil)
+                uafsm:change_state(Enum_Battle.Unit_Main_Act.Auto_Move, {target = endPos, type = "jump"})
+            end,
+            nil, view:getFrame())
+    end
+
+end
+
+
+function M.on_trigger_jump_point_exit(view, collider)
+    local playerController = app:getFrameMgr():getFrame("player_controller")
+    -- 直接关闭ui 啥都不执行
+    playerController:show_interact_btn(nil)
+end
+
+
+function M.on_trigger_carrier_enter(view, collider)
+    
+    local unit = view:getFrame()
+    
+    unit:set_carrier(collider.gameObject)
+end
+
+function M.on_trigger_carrier_exit(view, collider)
+    
+    local unit = view:getFrame()
+    
+    unit:set_carrier(nil)
+end
+
+
+return M

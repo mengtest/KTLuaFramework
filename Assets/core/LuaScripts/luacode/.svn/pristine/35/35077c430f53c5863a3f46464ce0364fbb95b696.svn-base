@@ -1,0 +1,9 @@
+--套装卡片的frame
+local Frame = require("system.frame")
+local fashion_select_card = class("fashion_select_card", Frame)
+function fashion_select_card:doInit()
+
+end
+
+
+return fashion_select_card

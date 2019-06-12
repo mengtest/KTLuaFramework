@@ -1,0 +1,20 @@
+local M = {}
+
+Attribute.decl(M, "can_use",true)
+Attribute.decl(M, "highLight",false)
+
+
+function M:doInit(skill_data)
+    self.m_skill_data = skill_data     --技能数据
+end
+
+function M:get_skill_data()
+    return self.m_skill_data
+end
+
+function M:change_btn_state(can_use,is_highLight)
+    self:set_can_use(can_use)
+    self:set_highLight(is_highLight)
+end
+
+return M

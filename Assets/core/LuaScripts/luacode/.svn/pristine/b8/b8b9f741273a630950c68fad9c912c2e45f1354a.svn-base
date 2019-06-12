@@ -1,0 +1,254 @@
+-- buff列表，用于管理某个entity身上的buff集合
+
+local require_relative = REQUIRE_BASE(...)
+local BuffData = require_relative("buff_data")
+local BuffDataList = class("BuffDataList")
+local Special_Buff = require "system.special_buff_mgr"
+
+-------------------------
+-- Attribute & Event
+-------------------------
+Event.decl(BuffDataList, "add_buff")        -- 新增buff
+Event.decl(BuffDataList, "remove_buff")       -- 移除buff
+
+
+function BuffDataList:initialize(host)
+    --print("BuffDataList initialize")
+    Attribute.init(self)
+
+    self.m_buff_list = {}
+    self.m_host = host        -- 宿主(Combat)对象
+
+    Special_Buff.doInit()
+end
+
+-- 获取宿主对象
+function BuffDataList:get_host()
+    return self.m_host
+end
+
+-- 添加buff
+function BuffDataList:add_buff(buff_info, emit_event)
+    emit_event = emit_event or true
+
+    local buff = BuffData:new(self.m_host)
+
+    buff:set_spell_id(buff_info.spell_id)
+    buff:set_slot(buff_info.slot)
+    buff:set_caster_id(buff_info.caster_id)
+    buff:set_duration(buff_info.duration)
+    buff:set_remaining(buff_info.remaining)
+    buff:set_stack_num(buff_info.stack_num)
+    --Debug.LogError("添加buff："..tostring(buff_info.spell_id).."  层数:"..tostring(buff_info.stack_num))
+    self.m_buff_list[buff_info.slot] = buff
+
+    if emit_event then
+        self:emit_event("add_buff", { buff })
+    end
+
+
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    if role_id == buff_info.caster_id then
+        self:check_buff_to_change_skill(buff)
+    end
+    Special_Buff.check_special_buff(buff_info.spell_id, self:get_host(), buff_info.stack_num)
+
+    return buff
+end
+
+-- 添加一组buff
+function BuffDataList:add_buff_list(buff_info_list)
+    if #buff_info_list == 0 then
+        --print("-----------empty buff_info_list")
+        return
+    end
+
+    local added_list = {}
+
+    for k, v in pairs(buff_info_list) do
+        local buff = self:add_buff(v, false)
+        table.insert(added_list, buff)
+    end
+
+    --print("----------- add_buff", added_list)
+    self:emit_event("add_buff", added_list)
+end
+
+
+-- 更新buff
+function BuffDataList:update_buff(buff_info)
+    local buff = self.m_buff_list[buff_info.slot]
+    buff:set_spell_id(buff_info.spell_id)
+    buff:set_slot(buff_info.slot)
+    buff:set_caster_id(buff_info.caster_id)
+    buff:set_duration(buff_info.duration)
+    buff:set_remaining(buff_info.remaining)
+    buff:set_stack_num(buff_info.stack_num)
+end
+
+
+-- 移除buff
+function BuffDataList:remove_buff(slot, emit_event)
+    emit_event = emit_event or true
+
+    local buff = self.m_buff_list[slot]
+    self.m_buff_list[slot] = nil
+
+    if emit_event then
+        self:emit_event("remove_buff", { buff })
+    end
+
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    if role_id == buff:get_caster_id() then
+        self:remove_buff_to_restore_skill(buff)
+    end
+    Special_Buff.check_special_buff(buff:get_spell_id(), self:get_host(), 0)
+
+    return buff
+end
+
+
+-- 移除一组buff
+function BuffDataList:remove_buff_list(buff_slot_list)
+    local removed_list = {}
+    for _, v in pairs(buff_slot_list) do
+        local buff = self:remove_buff(v, false)
+        table.insert(removed_list, buff)
+    end
+    self:emit_event("remove_buff", removed_list)
+end
+
+-- 返回当前列表的副本
+function BuffDataList:get_table()
+    local copy = {}
+
+    for k, v in pairs(self.m_buff_list) do
+        copy[k] = v
+    end
+
+    return copy
+end
+
+
+function BuffDataList:update(delta)
+    for _, v in pairs(self.m_buff_list) do
+        v:update(delta)
+    end
+end
+
+function BuffDataList:find_unit()
+
+
+end
+-- 获取一下player_controller
+local function get_player_controller()
+    if app:getFrameMgr():getFrame("player_controller") then
+        if (BuffDataList.m_playerController == nil) then
+            BuffDataList.m_playerController = app:getFrameMgr():getFrame("player_controller")
+        end
+    else
+        return nil
+    end
+    return BuffDataList.m_playerController
+end
+
+-- 获取同组技能
+local function get_same_group_skill_list(skill_id)
+    local list = {}
+    local exclusion = dbc.spell_ui[skill_id].exclusion
+    local group_num = utility.math:get_integer_part(exclusion / 100)
+
+    for id, skill_info in pairs(dbc.spell_ui) do
+        if utility.math:get_integer_part(skill_info.exclusion / 100) == group_num then
+            table.insert(list, skill_info.exclusion, skill_info)
+        end
+    end
+    return list
+end
+
+-- rjy 2018.02.28 检查移除buff还原技能
+function BuffDataList:remove_buff_to_restore_skill(buff)
+    local function restore_skill(assembled_buff_id_list, i, v)
+        for k, buff_id in pairs(assembled_buff_id_list) do
+            if buff:get_buff_id() == buff_id then
+                get_player_controller():change_skill_btn_skill_data(v.new_id, v.orgin_id)
+                get_player_controller():change_skill_btn_state(v.orgin_id, true, false)
+                self.m_list[i] = nil
+            end
+        end
+    end
+    if self.m_list then
+        for i, v in pairs(self.m_list) do
+            -- 集合spell_ui中的status_buff_applied和status_buff_level组成的buff_id_list
+            local assembled_buff_id_list = {}
+            local status_buff_applied = dbc.spell_ui[v.new_id].status_buff_applied
+            local status_buff_level = dbc.spell_ui[v.new_id].status_buff_level
+            for i, v in pairs(status_buff_applied) do
+                local buff_id = v .. "" .. status_buff_level[i]
+                table.insert(assembled_buff_id_list, tonumber(buff_id))
+            end
+
+            -- 如果这个被激活的新技能是满足任一个条件都可以激活的技能
+            if dbc.spell_ui[v.new_id].status_buff_logic == true then
+                -- 当前玩家身上的所有buff对应的buff_id
+                local buff_id_list = {}
+                for i, buff_data in pairs(self.m_buff_list) do
+                    table.insert(buff_id_list, buff_data:get_buff_id())
+                end
+                if not utility.table:tab1_is_contain_one_of_tab2s_element(buff_id_list, assembled_buff_id_list) then
+                    restore_skill(assembled_buff_id_list, i, v)
+                end
+            else
+                restore_skill(assembled_buff_id_list, i, v)
+            end
+        end
+    end
+end
+-- rjy 2018.02.28 检查新增buff替换技能
+function BuffDataList:check_buff_to_change_skill(buff)
+    -- 这张表中存的是变换前后的技能id  方便还原技能
+    self.m_list = {}
+    -- 当前玩家身上的所有buff对应的buff_id
+    local buff_id_list = {}
+    for i, v in pairs(self.m_buff_list) do
+        table.insert(buff_id_list, v:get_buff_id())
+    end
+    for skill_id, skill_info in pairs(dbc.spell_ui) do
+        -- 集合spell_ui中的status_buff_applied和status_buff_level组成的buff_id_list
+        local assembled_buff_id_list = {}
+        local status_buff_applied = skill_info.status_buff_applied
+        local status_buff_level = skill_info.status_buff_level
+        for i, v in pairs(status_buff_applied) do
+            local buff_id = v .. "" .. status_buff_level[i]
+            table.insert(assembled_buff_id_list, tonumber(buff_id))
+        end
+
+        if skill_info.status_buff_logic == false then
+            -- 全部符合的情况
+            if utility.table:count(assembled_buff_id_list) ~= 0 and utility.table:is_contain_tab(buff_id_list, assembled_buff_id_list) then
+                self:conditions_staisfied(skill_id)
+            end
+        else
+            -- 任何一个条件满足的情况
+            if utility.table:count(assembled_buff_id_list) ~= 0 and utility.table:tab1_is_contain_one_of_tab2s_element(buff_id_list, assembled_buff_id_list) then
+                self:conditions_staisfied(skill_id)
+            end
+        end
+    end
+end
+-- 新增buff 的时候满足了换技能的条件
+function BuffDataList:conditions_staisfied(skill_id)
+    local same_group_skill_list = get_same_group_skill_list(skill_id)
+    for i, info in pairs(same_group_skill_list) do
+        if dbc.spell_ui[skill_id].exclusion > dbc.spell_ui[info.id].exclusion then
+            get_player_controller():change_skill_btn_skill_data(info.id, skill_id)
+            if dbc.spell_ui[skill_id].high_light_sfx == 1 then
+                get_player_controller():change_skill_btn_state(skill_id, true, true)
+            end
+            table.insert(self.m_list, { orgin_id = info.id, new_id = skill_id })
+        end
+    end
+end
+return BuffDataList

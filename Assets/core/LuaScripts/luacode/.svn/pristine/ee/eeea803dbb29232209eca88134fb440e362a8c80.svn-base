@@ -1,0 +1,1053 @@
+local rows = {}
+rows[1] = {['spell_id']=903001,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=23600,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[2] = {['spell_id']=903002,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=18880,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[3] = {['spell_id']=903003,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=49560,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[4] = {['spell_id']=903004,['index']=0,['target']=7,['radius']=6.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=29500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[5] = {['spell_id']=903004,['index']=1,['target']=7,['radius']=6.0,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[6] = {['spell_id']=903005,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=27140,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[7] = {['spell_id']=903005,['index']=1,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-5000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[8] = {['spell_id']=903006,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25960,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[9] = {['spell_id']=903006,['index']=1,['target']=14,['radius']=1.6,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=12980,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[10] = {['spell_id']=903007,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10000,['param1']=17,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[11] = {['spell_id']=903007,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=28,['period']=0.0,['base_point']=5000,['param1']=4,['param2']=6,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[12] = {['spell_id']=903008,['index']=0,['target']=0,['radius']=6.0,['radius2']=3.0,['type']=12,['aura']=0,['period']=0.0,['base_point']=8,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[13] = {['spell_id']=903009,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[14] = {['spell_id']=903010,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[15] = {['spell_id']=903011,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[16] = {['spell_id']=903012,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[17] = {['spell_id']=903013,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=-10000,['param1']=903005,['param2']=4,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[18] = {['spell_id']=903013,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=-10000,['param1']=903005,['param2']=1,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[19] = {['spell_id']=903014,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=17,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[20] = {['spell_id']=903015,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=2903015,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[21] = {['spell_id']=903016,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=20,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[22] = {['spell_id']=903017,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[23] = {['spell_id']=903018,['index']=0,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=6,['aura']=14,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[24] = {['spell_id']=903018,['index']=1,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=180,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[25] = {['spell_id']=903019,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[26] = {['spell_id']=903020,['index']=0,['target']=1,['radius']=2.0,['radius2']=0.0,['type']=15,['aura']=0,['period']=0.0,['base_point']=0,['param1']=1903020,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=903021}
+rows[27] = {['spell_id']=903021,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=4000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[28] = {['spell_id']=903022,['index']=0,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=3.0,['base_point']=0,['param1']=1903022,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903023}
+rows[29] = {['spell_id']=903023,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=129800,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[30] = {['spell_id']=903023,['index']=1,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=2.0,['base_point']=0,['param1']=1903023,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903024}
+rows[31] = {['spell_id']=903024,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=8200,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[32] = {['spell_id']=903025,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903026}
+rows[33] = {['spell_id']=903026,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=4,['period']=0.0,['base_point']=200,['param1']=33,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[34] = {['spell_id']=903027,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=300,['param1']=903001,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[35] = {['spell_id']=903028,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=3,['param1']=903004,['param2']=7,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[36] = {['spell_id']=903029,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903030}
+rows[37] = {['spell_id']=903030,['index']=0,['target']=6,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=800,['param1']=4,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[38] = {['spell_id']=903031,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903032}
+rows[39] = {['spell_id']=903032,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=5000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[40] = {['spell_id']=903032,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=0,['period']=0.0,['base_point']=-10,['param1']=903006,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[41] = {['spell_id']=903033,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903034}
+rows[42] = {['spell_id']=903034,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[43] = {['spell_id']=903035,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903036}
+rows[44] = {['spell_id']=903036,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=29,['period']=1.0,['base_point']=500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[45] = {['spell_id']=903037,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=500,['param1']=903005,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[46] = {['spell_id']=903038,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[47] = {['spell_id']=903039,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=300,['param1']=58,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[48] = {['spell_id']=903040,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=500,['param1']=58,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[49] = {['spell_id']=903041,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903042}
+rows[50] = {['spell_id']=903042,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=3,['period']=0.0,['base_point']=3000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[51] = {['spell_id']=903043,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=100,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[52] = {['spell_id']=903044,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[53] = {['spell_id']=903044,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[54] = {['spell_id']=903045,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=800,['param1']=903002,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[55] = {['spell_id']=903046,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=400,['param1']=903010,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[56] = {['spell_id']=903047,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903048}
+rows[57] = {['spell_id']=903048,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=27140,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[58] = {['spell_id']=903048,['index']=1,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-5000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[59] = {['spell_id']=903049,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1,['param1']=903007,['param2']=6,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[60] = {['spell_id']=903050,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=200,['param1']=33,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[61] = {['spell_id']=903051,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=-300,['param1']=903001,['param2']=1,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[62] = {['spell_id']=903052,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=200,['param1']=903003,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[63] = {['spell_id']=903053,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=23600,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[64] = {['spell_id']=903054,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=21,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[65] = {['spell_id']=903054,['index']=1,['target']=15,['radius']=1.6,['radius2']=0.0,['type']=21,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[66] = {['spell_id']=903055,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[67] = {['spell_id']=903056,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=27,['aura']=0,['period']=0.0,['base_point']=3500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[68] = {['spell_id']=903056,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=30,['period']=1.0,['base_point']=583,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[69] = {['spell_id']=903056,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[70] = {['spell_id']=903056,['index']=3,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=15000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[71] = {['spell_id']=903057,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1500,['param1']=17,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[72] = {['spell_id']=903057,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=4,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[73] = {['spell_id']=903058,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903059}
+rows[74] = {['spell_id']=903059,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=31,['period']=0.0,['base_point']=70000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[75] = {['spell_id']=903059,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903089}
+rows[76] = {['spell_id']=903059,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=46,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[77] = {['spell_id']=903060,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=5000,['param1']=903059,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[78] = {['spell_id']=903061,['index']=0,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[79] = {['spell_id']=903062,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[80] = {['spell_id']=903063,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903064}
+rows[81] = {['spell_id']=903064,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=240,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[82] = {['spell_id']=903065,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903066}
+rows[83] = {['spell_id']=903066,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=4500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[84] = {['spell_id']=903067,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[85] = {['spell_id']=903069,['index']=0,['target']=0,['radius']=6.0,['radius2']=3.0,['type']=12,['aura']=0,['period']=0.0,['base_point']=8,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[86] = {['spell_id']=903070,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903071}
+rows[87] = {['spell_id']=903071,['index']=0,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=11800,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[88] = {['spell_id']=903071,['index']=1,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-7000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[89] = {['spell_id']=903072,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[90] = {['spell_id']=903073,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=1.25,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[91] = {['spell_id']=903074,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=10000,['param1']=903004,['param2']=12,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[92] = {['spell_id']=903075,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-2,['param1']=903002,['param2']=2,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[93] = {['spell_id']=903075,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1,['param1']=903002,['param2']=8,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[94] = {['spell_id']=903076,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[95] = {['spell_id']=903077,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903078}
+rows[96] = {['spell_id']=903078,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[97] = {['spell_id']=903079,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1,['param1']=903018,['param2']=8,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[98] = {['spell_id']=903080,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903081}
+rows[99] = {['spell_id']=903081,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=5000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[100] = {['spell_id']=903082,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903083}
+rows[101] = {['spell_id']=903083,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=7,['aura']=18,['period']=1.0,['base_point']=0,['param1']=1903022,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903088}
+rows[102] = {['spell_id']=903084,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903087}
+rows[103] = {['spell_id']=903085,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=903086}
+rows[104] = {['spell_id']=903086,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=34,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[105] = {['spell_id']=903087,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=0,['period']=0.0,['base_point']=-1,['param1']=903007,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[106] = {['spell_id']=903088,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=2950,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[107] = {['spell_id']=903089,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=5000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[108] = {['spell_id']=903090,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=400,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[109] = {['spell_id']=903091,['index']=0,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[110] = {['spell_id']=903092,['index']=0,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[111] = {['spell_id']=906001,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=17500,['param1']=5,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[112] = {['spell_id']=906002,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[113] = {['spell_id']=906003,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=50000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[114] = {['spell_id']=906004,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=50000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[115] = {['spell_id']=906004,['index']=1,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=9,['period']=3.0,['base_point']=6200,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[116] = {['spell_id']=906005,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=200000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[117] = {['spell_id']=906006,['index']=0,['target']=15,['radius']=16.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[118] = {['spell_id']=906007,['index']=0,['target']=20,['radius']=4.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=60000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[119] = {['spell_id']=906008,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=40000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[120] = {['spell_id']=906008,['index']=1,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=16,['period']=0.0,['base_point']=4000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[121] = {['spell_id']=906009,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[122] = {['spell_id']=906010,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=17,['period']=3.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[123] = {['spell_id']=906011,['index']=0,['target']=4,['radius']=16.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=1.6,['base_point']=14400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[124] = {['spell_id']=906012,['index']=0,['target']=18,['radius']=2.0,['radius2']=0.0,['type']=15,['aura']=0,['period']=0.0,['base_point']=0,['param1']=1906012,['param2']=1,['param3']=1,['param4']=0,['trigger_spell']=906013}
+rows[125] = {['spell_id']=906013,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=4,['period']=0.0,['base_point']=4000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[126] = {['spell_id']=906014,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[127] = {['spell_id']=906015,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[128] = {['spell_id']=906016,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[129] = {['spell_id']=906017,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[130] = {['spell_id']=906018,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=2400,['param1']=906006,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[131] = {['spell_id']=906019,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=14,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[132] = {['spell_id']=906019,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=22,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[133] = {['spell_id']=906019,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=18,['period']=22.5,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=22}
+rows[134] = {['spell_id']=906019,['index']=3,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=23,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[135] = {['spell_id']=906019,['index']=4,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=24,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[136] = {['spell_id']=906020,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=906021}
+rows[137] = {['spell_id']=906021,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1500,['param1']=37,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[138] = {['spell_id']=906022,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=3000,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[139] = {['spell_id']=906022,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=30,['period']=1.0,['base_point']=150,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[140] = {['spell_id']=906023,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=906024}
+rows[141] = {['spell_id']=906024,['index']=0,['target']=10,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=64,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[142] = {['spell_id']=906025,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=26000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[143] = {['spell_id']=906026,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[144] = {['spell_id']=906026,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=3300,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[145] = {['spell_id']=906027,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=45000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[146] = {['spell_id']=906027,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[147] = {['spell_id']=906028,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=906029}
+rows[148] = {['spell_id']=906029,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=906026,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[149] = {['spell_id']=912001,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=34000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[150] = {['spell_id']=912001,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=5000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912077}
+rows[151] = {['spell_id']=912001,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=10,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[152] = {['spell_id']=912002,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=18,['period']=1.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912012}
+rows[153] = {['spell_id']=912002,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=8,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[154] = {['spell_id']=912002,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=21,['period']=1.0,['base_point']=2,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[155] = {['spell_id']=912002,['index']=3,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=24300,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[156] = {['spell_id']=912003,['index']=0,['target']=24,['radius']=2.0,['radius2']=2.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=34000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[157] = {['spell_id']=912003,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912084}
+rows[158] = {['spell_id']=912003,['index']=2,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=9,['aura']=0,['period']=0.0,['base_point']=10,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[159] = {['spell_id']=912003,['index']=3,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[160] = {['spell_id']=912004,['index']=0,['target']=18,['radius']=0.0,['radius2']=0.0,['type']=11,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[161] = {['spell_id']=912004,['index']=1,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=28000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[162] = {['spell_id']=912005,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=17000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[163] = {['spell_id']=912005,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=16,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[164] = {['spell_id']=912006,['index']=0,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=2.0,['base_point']=0,['param1']=1912006,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912013}
+rows[165] = {['spell_id']=912007,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=50700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[166] = {['spell_id']=912007,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=2,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[167] = {['spell_id']=912007,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=18,['period']=1.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912014}
+rows[168] = {['spell_id']=912007,['index']=3,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=15800,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[169] = {['spell_id']=912007,['index']=4,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912085}
+rows[170] = {['spell_id']=912008,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=21,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[171] = {['spell_id']=912008,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=3000,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[172] = {['spell_id']=912008,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=0,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[173] = {['spell_id']=912008,['index']=3,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=2912008,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[174] = {['spell_id']=912008,['index']=4,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=10000,['param1']=35,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[175] = {['spell_id']=912008,['index']=5,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[176] = {['spell_id']=912008,['index']=6,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[177] = {['spell_id']=912008,['index']=7,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=21,['period']=1.0,['base_point']=7,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[178] = {['spell_id']=912009,['index']=0,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=2.0,['base_point']=0,['param1']=1912009,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912015}
+rows[179] = {['spell_id']=912010,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=12,['period']=0.0,['base_point']=0,['param1']=1000,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[180] = {['spell_id']=912011,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912016}
+rows[181] = {['spell_id']=912012,['index']=0,['target']=3,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=6900,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[182] = {['spell_id']=912013,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=16500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[183] = {['spell_id']=912013,['index']=1,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=3400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[184] = {['spell_id']=912014,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[185] = {['spell_id']=912015,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=10,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[186] = {['spell_id']=912015,['index']=1,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=-7000,['param1']=9,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[187] = {['spell_id']=912016,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=212500,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[188] = {['spell_id']=912017,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=2000,['param1']=25,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[189] = {['spell_id']=912017,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1200,['param1']=46,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[190] = {['spell_id']=912017,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=54,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[191] = {['spell_id']=912018,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=83100,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[192] = {['spell_id']=912018,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=26,['period']=0.0,['base_point']=-4000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[193] = {['spell_id']=912019,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=16,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[194] = {['spell_id']=912019,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=15,['period']=0.0,['base_point']=3,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[195] = {['spell_id']=912020,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=5600,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[196] = {['spell_id']=912020,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=20,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[197] = {['spell_id']=912021,['index']=0,['target']=24,['radius']=6.0,['radius2']=2.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=11500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[198] = {['spell_id']=912022,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=71000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[199] = {['spell_id']=912022,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[200] = {['spell_id']=912022,['index']=2,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912024}
+rows[201] = {['spell_id']=912023,['index']=0,['target']=3,['radius']=5.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=30000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[202] = {['spell_id']=912023,['index']=1,['target']=3,['radius']=5.0,['radius2']=0.0,['type']=6,['aura']=25,['period']=0.0,['base_point']=2000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[203] = {['spell_id']=912023,['index']=2,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=17,['aura']=0,['period']=0.0,['base_point']=10,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[204] = {['spell_id']=912024,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=71000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[205] = {['spell_id']=912025,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[206] = {['spell_id']=912026,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=21,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[207] = {['spell_id']=912027,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=40600,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[208] = {['spell_id']=912027,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[209] = {['spell_id']=912027,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=10,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[210] = {['spell_id']=912028,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=136500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[211] = {['spell_id']=912028,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[212] = {['spell_id']=912029,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=32,['period']=0.0,['base_point']=225000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[213] = {['spell_id']=912030,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912017}
+rows[214] = {['spell_id']=912030,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=912017,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[215] = {['spell_id']=912030,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=60,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[216] = {['spell_id']=912031,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=11,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[217] = {['spell_id']=912032,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=500,['param1']=912004,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[218] = {['spell_id']=912033,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=500,['param1']=912008,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[219] = {['spell_id']=912033,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=500,['param1']=912053,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[220] = {['spell_id']=912034,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[221] = {['spell_id']=912035,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=100,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[222] = {['spell_id']=912036,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=300,['param1']=912001,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[223] = {['spell_id']=912037,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=300,['param1']=912002,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[224] = {['spell_id']=912038,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=100,['param1']=25,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[225] = {['spell_id']=912039,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912078}
+rows[226] = {['spell_id']=912040,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=58,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[227] = {['spell_id']=912041,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1,['param1']=912008,['param2']=6,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[228] = {['spell_id']=912042,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1000,['param1']=912003,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[229] = {['spell_id']=912043,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912083}
+rows[230] = {['spell_id']=912044,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[231] = {['spell_id']=912045,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=2,['param1']=912018,['param2']=6,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[232] = {['spell_id']=912046,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[233] = {['spell_id']=912046,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=2000,['param1']=35,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[234] = {['spell_id']=912046,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[235] = {['spell_id']=912047,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912048}
+rows[236] = {['spell_id']=912048,['index']=0,['target']=24,['radius']=2.0,['radius2']=2.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=11500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[237] = {['spell_id']=912049,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912050}
+rows[238] = {['spell_id']=912050,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-300,['param1']=32,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[239] = {['spell_id']=912051,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[240] = {['spell_id']=912052,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912053}
+rows[241] = {['spell_id']=912053,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=21,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[242] = {['spell_id']=912053,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=3000,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[243] = {['spell_id']=912053,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=0,['param1']=39,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[244] = {['spell_id']=912053,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=2912008,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[245] = {['spell_id']=912054,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912055}
+rows[246] = {['spell_id']=912055,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=28,['aura']=0,['period']=0.0,['base_point']=1,['param1']=912018,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[247] = {['spell_id']=912056,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=35,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[248] = {['spell_id']=912057,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=4,['param1']=912004,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[249] = {['spell_id']=912058,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912059}
+rows[250] = {['spell_id']=912059,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[251] = {['spell_id']=912059,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=2000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[252] = {['spell_id']=912060,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912061}
+rows[253] = {['spell_id']=912060,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=3000,['param1']=912017,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[254] = {['spell_id']=912061,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-5000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[255] = {['spell_id']=912062,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912063}
+rows[256] = {['spell_id']=912063,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=5,['aura']=0,['period']=0.0,['base_point']=46800,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[257] = {['spell_id']=912064,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912065}
+rows[258] = {['spell_id']=912065,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[259] = {['spell_id']=912066,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[260] = {['spell_id']=912067,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912082}
+rows[261] = {['spell_id']=912068,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[262] = {['spell_id']=912069,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912070}
+rows[263] = {['spell_id']=912070,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=0,['period']=0.0,['base_point']=-1,['param1']=912017,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[264] = {['spell_id']=912071,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=5000,['param1']=912008,['param2']=9,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[265] = {['spell_id']=912071,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=5000,['param1']=912053,['param2']=9,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[266] = {['spell_id']=912072,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[267] = {['spell_id']=912073,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[268] = {['spell_id']=912074,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[269] = {['spell_id']=912075,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912081}
+rows[270] = {['spell_id']=912076,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1000,['param1']=912017,['param2']=9,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[271] = {['spell_id']=912077,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[272] = {['spell_id']=912078,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=500,['param1']=912001,['param2']=10,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[273] = {['spell_id']=912079,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[274] = {['spell_id']=912079,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[275] = {['spell_id']=912080,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=100,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[276] = {['spell_id']=912081,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=27,['aura']=0,['period']=0.0,['base_point']=3000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[277] = {['spell_id']=912081,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912053}
+rows[278] = {['spell_id']=912082,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=4,['period']=0.0,['base_point']=2000,['param1']=68,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[279] = {['spell_id']=912083,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=25,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[280] = {['spell_id']=912084,['index']=0,['target']=24,['radius']=2.0,['radius2']=2.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=34000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[281] = {['spell_id']=912085,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=50700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[282] = {['spell_id']=912086,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-2000,['param1']=32,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[283] = {['spell_id']=912086,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=6500,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[284] = {['spell_id']=912086,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=7500,['param1']=35,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[285] = {['spell_id']=912087,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912088}
+rows[286] = {['spell_id']=912088,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=912020,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[287] = {['spell_id']=913001,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=19000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[288] = {['spell_id']=913001,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=20,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[289] = {['spell_id']=913001,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=22,['aura']=0,['period']=0.0,['base_point']=10,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[290] = {['spell_id']=913001,['index']=3,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913003}
+rows[291] = {['spell_id']=913002,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=30500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[292] = {['spell_id']=913002,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913030}
+rows[293] = {['spell_id']=913003,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=19000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[294] = {['spell_id']=913004,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913031}
+rows[295] = {['spell_id']=913005,['index']=0,['target']=3,['radius']=5.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=14400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[296] = {['spell_id']=913005,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10000,['param1']=23,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[297] = {['spell_id']=913006,['index']=0,['target']=24,['radius']=6.0,['radius2']=2.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=29400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[298] = {['spell_id']=913006,['index']=1,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=12,['aura']=0,['period']=0.0,['base_point']=8,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[299] = {['spell_id']=913007,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=5000,['param1']=23,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[300] = {['spell_id']=913007,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3500,['param1']=37,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[301] = {['spell_id']=913007,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=0,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[302] = {['spell_id']=913008,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=56000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[303] = {['spell_id']=913008,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=30,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[304] = {['spell_id']=913008,['index']=2,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=24,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[305] = {['spell_id']=913009,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913033}
+rows[306] = {['spell_id']=913010,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=39700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[307] = {['spell_id']=913010,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913011}
+rows[308] = {['spell_id']=913011,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=63000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[309] = {['spell_id']=913012,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913031}
+rows[310] = {['spell_id']=913013,['index']=0,['target']=3,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=14400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[311] = {['spell_id']=913013,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10000,['param1']=23,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[312] = {['spell_id']=913014,['index']=0,['target']=24,['radius']=6.0,['radius2']=2.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=5500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[313] = {['spell_id']=913015,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=4900,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[314] = {['spell_id']=913015,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[315] = {['spell_id']=913016,['index']=0,['target']=18,['radius']=0.0,['radius2']=0.0,['type']=11,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[316] = {['spell_id']=913016,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=2913016,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[317] = {['spell_id']=913016,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=21,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[318] = {['spell_id']=913016,['index']=3,['target']=1,['radius']=3.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=13100,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[319] = {['spell_id']=913016,['index']=4,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=2500,['param1']=18,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[320] = {['spell_id']=913017,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=7,['aura']=18,['period']=0.428,['base_point']=0,['param1']=1913017,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913018}
+rows[321] = {['spell_id']=913017,['index']=1,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=7,['aura']=18,['period']=0.428,['base_point']=0,['param1']=1913017,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913018}
+rows[322] = {['spell_id']=913018,['index']=0,['target']=19,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=11200,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[323] = {['spell_id']=913019,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=20,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[324] = {['spell_id']=913019,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[325] = {['spell_id']=913019,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[326] = {['spell_id']=913020,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=136500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[327] = {['spell_id']=913020,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[328] = {['spell_id']=913021,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=26,['period']=0.0,['base_point']=2500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[329] = {['spell_id']=913021,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=33,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913029}
+rows[330] = {['spell_id']=913022,['index']=0,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=12500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[331] = {['spell_id']=913022,['index']=1,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[332] = {['spell_id']=913022,['index']=2,['target']=3,['radius']=3.2,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913049}
+rows[333] = {['spell_id']=913023,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=30000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[334] = {['spell_id']=913024,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913032}
+rows[335] = {['spell_id']=913025,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[336] = {['spell_id']=913025,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=5,['param1']=1,['param2']=13,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[337] = {['spell_id']=913025,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=5000,['param1']=1,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[338] = {['spell_id']=913026,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=912016}
+rows[339] = {['spell_id']=913027,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=26,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[340] = {['spell_id']=913027,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[341] = {['spell_id']=913028,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[342] = {['spell_id']=913029,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[343] = {['spell_id']=913030,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=48500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[344] = {['spell_id']=913031,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=20,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[345] = {['spell_id']=913032,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=6,['period']=0.0,['base_point']=5,['param1']=913023,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[346] = {['spell_id']=913033,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=913008,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[347] = {['spell_id']=913034,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=4900,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[348] = {['spell_id']=913034,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[349] = {['spell_id']=913035,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913002,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[350] = {['spell_id']=913035,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913030,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[351] = {['spell_id']=913035,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913010,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[352] = {['spell_id']=913035,['index']=3,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913011,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[353] = {['spell_id']=913035,['index']=4,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913095,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[354] = {['spell_id']=913035,['index']=5,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913096,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[355] = {['spell_id']=913035,['index']=6,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913097,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[356] = {['spell_id']=913035,['index']=7,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=1500,['param1']=913098,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[357] = {['spell_id']=913036,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=500,['param1']=913015,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[358] = {['spell_id']=913037,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-18,['param1']=913016,['param2']=2,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[359] = {['spell_id']=913038,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[360] = {['spell_id']=913039,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913040}
+rows[361] = {['spell_id']=913040,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=0,['period']=0.0,['base_point']=-5,['param1']=913014,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[362] = {['spell_id']=913040,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=19,['aura']=0,['period']=0.0,['base_point']=-5,['param1']=913022,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[363] = {['spell_id']=913041,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=3000,['param1']=913007,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[364] = {['spell_id']=913042,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913043}
+rows[365] = {['spell_id']=913043,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=5,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[366] = {['spell_id']=913044,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-400,['param1']=32,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[367] = {['spell_id']=913045,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913046}
+rows[368] = {['spell_id']=913046,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=65000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[369] = {['spell_id']=913047,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[370] = {['spell_id']=913048,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=10000,['param1']=913022,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[371] = {['spell_id']=913049,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[372] = {['spell_id']=913050,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10,['param1']=67,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[373] = {['spell_id']=913051,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=600,['param1']=913014,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[374] = {['spell_id']=913052,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=600,['param1']=913001,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[375] = {['spell_id']=913052,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=600,['param1']=913003,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[376] = {['spell_id']=913053,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913054}
+rows[377] = {['spell_id']=913054,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=2.0,['base_point']=400,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[378] = {['spell_id']=913055,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913057}
+rows[379] = {['spell_id']=913056,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913059}
+rows[380] = {['spell_id']=913057,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=30500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[381] = {['spell_id']=913057,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913058}
+rows[382] = {['spell_id']=913058,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=48500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[383] = {['spell_id']=913059,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=39700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[384] = {['spell_id']=913059,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913060}
+rows[385] = {['spell_id']=913060,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=63000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[386] = {['spell_id']=913061,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=5,['period']=0.0,['base_point']=1000,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[387] = {['spell_id']=913061,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=1000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[388] = {['spell_id']=913062,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-5,['param1']=913014,['param2']=4,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[389] = {['spell_id']=913063,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=2000,['param1']=913005,['param2']=14,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[390] = {['spell_id']=913064,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=600,['param1']=913002,['param2']=14,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[391] = {['spell_id']=913064,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=600,['param1']=913030,['param2']=14,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[392] = {['spell_id']=913065,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=100,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[393] = {['spell_id']=913066,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913067}
+rows[394] = {['spell_id']=913066,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=3000,['param1']=913006,['param2']=5,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[395] = {['spell_id']=913067,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=30,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[396] = {['spell_id']=913068,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[397] = {['spell_id']=913069,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913070}
+rows[398] = {['spell_id']=913069,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-2,['param1']=913006,['param2']=2,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[399] = {['spell_id']=913070,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=21,['period']=1.0,['base_point']=1,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[400] = {['spell_id']=913071,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913072}
+rows[401] = {['spell_id']=913072,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=8500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[402] = {['spell_id']=913072,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=20,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[403] = {['spell_id']=913072,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=22,['aura']=0,['period']=0.0,['base_point']=10,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[404] = {['spell_id']=913073,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913074}
+rows[405] = {['spell_id']=913074,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=10000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[406] = {['spell_id']=913075,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913076}
+rows[407] = {['spell_id']=913076,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=35,['param1']=3,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[408] = {['spell_id']=913077,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-15000,['param1']=913095,['param2']=12,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[409] = {['spell_id']=913077,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-15000,['param1']=913096,['param2']=12,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[410] = {['spell_id']=913077,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913079}
+rows[411] = {['spell_id']=913078,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-15000,['param1']=913097,['param2']=12,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[412] = {['spell_id']=913078,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-15000,['param1']=913098,['param2']=12,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[413] = {['spell_id']=913078,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913080}
+rows[414] = {['spell_id']=913079,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=7900,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[415] = {['spell_id']=913080,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=10270,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[416] = {['spell_id']=913081,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=-20,['param1']=913005,['param2']=4,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[417] = {['spell_id']=913081,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=7,['period']=0.0,['base_point']=5000,['param1']=913005,['param2']=9,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[418] = {['spell_id']=913082,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913083}
+rows[419] = {['spell_id']=913083,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=1.0,['base_point']=15000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[420] = {['spell_id']=913084,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[421] = {['spell_id']=913085,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=7000,['param1']=913016,['param2']=11,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[422] = {['spell_id']=913086,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913087}
+rows[423] = {['spell_id']=913087,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=2000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[424] = {['spell_id']=913088,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=6,['period']=0.0,['base_point']=1,['param1']=913015,['param2']=8,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[425] = {['spell_id']=913088,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913089}
+rows[426] = {['spell_id']=913089,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-5000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[427] = {['spell_id']=913090,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913091}
+rows[428] = {['spell_id']=913091,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=913014,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[429] = {['spell_id']=913091,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=913022,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[430] = {['spell_id']=913091,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=20,['aura']=0,['period']=0.0,['base_point']=0,['param1']=913007,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[431] = {['spell_id']=913092,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[432] = {['spell_id']=913093,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=21,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[433] = {['spell_id']=913094,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=2913016,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[434] = {['spell_id']=913094,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=21,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[435] = {['spell_id']=913094,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=2500,['param1']=18,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[436] = {['spell_id']=913095,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=30500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[437] = {['spell_id']=913095,['index']=1,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913096}
+rows[438] = {['spell_id']=913096,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=48500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[439] = {['spell_id']=913097,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=39700,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[440] = {['spell_id']=913097,['index']=1,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=18,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913098}
+rows[441] = {['spell_id']=913098,['index']=0,['target']=14,['radius']=3.2,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=63000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[442] = {['spell_id']=913099,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=10,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=913033}
+rows[443] = {['spell_id']=1,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[444] = {['spell_id']=2,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[445] = {['spell_id']=3,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[446] = {['spell_id']=4,['index']=0,['target']=7,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[447] = {['spell_id']=5,['index']=0,['target']=18,['radius']=3.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=80000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[448] = {['spell_id']=7,['index']=0,['target']=19,['radius']=1.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[449] = {['spell_id']=8,['index']=0,['target']=19,['radius']=8.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[450] = {['spell_id']=9,['index']=0,['target']=19,['radius']=10.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=15000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[451] = {['spell_id']=10,['index']=0,['target']=19,['radius']=10.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=12000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[452] = {['spell_id']=11,['index']=0,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[453] = {['spell_id']=12,['index']=0,['target']=0,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[454] = {['spell_id']=13,['index']=0,['target']=10,['radius']=0.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=17500,['param1']=5,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[455] = {['spell_id']=14,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[456] = {['spell_id']=15,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[457] = {['spell_id']=16,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[458] = {['spell_id']=17,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[459] = {['spell_id']=18,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=25000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[460] = {['spell_id']=19,['index']=0,['target']=10,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[461] = {['spell_id']=20,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=10000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[462] = {['spell_id']=21,['index']=0,['target']=19,['radius']=3.5,['radius2']=0.0,['type']=6,['aura']=13,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[463] = {['spell_id']=21,['index']=1,['target']=19,['radius']=3.5,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[464] = {['spell_id']=22,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=13,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[465] = {['spell_id']=9120011,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=34000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[466] = {['spell_id']=9120011,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=8,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=1,['param2']=5000,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[467] = {['spell_id']=9120011,['index']=2,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=14,['aura']=0,['period']=0.0,['base_point']=20,['param1']=2,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[468] = {['spell_id']=23,['index']=0,['target']=1,['radius']=5.0,['radius2']=0.0,['type']=0,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[469] = {['spell_id']=24,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[470] = {['spell_id']=25,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=8,['period']=2.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[471] = {['spell_id']=26,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[472] = {['spell_id']=27,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[473] = {['spell_id']=28,['index']=0,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=3000,['param1']=31,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[474] = {['spell_id']=29,['index']=0,['target']=19,['radius']=1.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=5000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[475] = {['spell_id']=30,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[476] = {['spell_id']=31,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=25,['aura']=0,['period']=0.0,['base_point']=0,['param1']=30202001,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[477] = {['spell_id']=32,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[478] = {['spell_id']=33,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[479] = {['spell_id']=34,['index']=0,['target']=24,['radius']=10.0,['radius2']=1.5,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[480] = {['spell_id']=34,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=24,['aura']=0,['period']=0.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[481] = {['spell_id']=35,['index']=0,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=60012,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[482] = {['spell_id']=35,['index']=1,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[483] = {['spell_id']=36,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=3000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[484] = {['spell_id']=37,['index']=0,['target']=19,['radius']=5.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=30000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[485] = {['spell_id']=38,['index']=0,['target']=7,['radius']=6.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=29500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[486] = {['spell_id']=39,['index']=1,['target']=1,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=20000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[487] = {['spell_id']=40,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=1,['period']=0.0,['base_point']=-5000,['param1']=22,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[488] = {['spell_id']=41,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=30,['period']=1.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[489] = {['spell_id']=42,['index']=0,['target']=13,['radius']=60.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=20000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[490] = {['spell_id']=43,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=25,['aura']=0,['period']=0.0,['base_point']=0,['param1']=30302005,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[491] = {['spell_id']=44,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=25,['aura']=0,['period']=0.0,['base_point']=0,['param1']=30302001,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[492] = {['spell_id']=45,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[493] = {['spell_id']=45,['index']=1,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=2.0,['base_point']=0,['param1']=30201012,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=59}
+rows[494] = {['spell_id']=59,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[495] = {['spell_id']=58,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=30,['period']=2.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[496] = {['spell_id']=46,['index']=0,['target']=7,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[497] = {['spell_id']=47,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=24,['aura']=0,['period']=0.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[498] = {['spell_id']=47,['index']=1,['target']=24,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[499] = {['spell_id']=48,['index']=0,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=60012,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[500] = {['spell_id']=48,['index']=1,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[501] = {['spell_id']=49,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=3000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[502] = {['spell_id']=50,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=25,['aura']=0,['period']=0.0,['base_point']=0,['param1']=30402005,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[503] = {['spell_id']=51,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=25,['aura']=0,['period']=0.0,['base_point']=0,['param1']=30402001,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[504] = {['spell_id']=52,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[505] = {['spell_id']=52,['index']=1,['target']=19,['radius']=0.0,['radius2']=0.0,['type']=7,['aura']=18,['period']=2.0,['base_point']=0,['param1']=200016,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=61}
+rows[506] = {['spell_id']=61,['index']=0,['target']=19,['radius']=3.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=8200,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[507] = {['spell_id']=60,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=30,['period']=2.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[508] = {['spell_id']=53,['index']=0,['target']=7,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[509] = {['spell_id']=54,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=24,['aura']=0,['period']=0.0,['base_point']=1000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[510] = {['spell_id']=54,['index']=1,['target']=24,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[511] = {['spell_id']=55,['index']=0,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=60012,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[512] = {['spell_id']=55,['index']=1,['target']=19,['radius']=60.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[513] = {['spell_id']=56,['index']=0,['target']=19,['radius']=4.0,['radius2']=0.0,['type']=2,['aura']=0,['period']=0.0,['base_point']=3000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[514] = {['spell_id']=62,['index']=0,['target']=19,['radius']=80.0,['radius2']=0.0,['type']=3,['aura']=0,['period']=0.0,['base_point']=15000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[515] = {['spell_id']=63,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=19,['period']=0.0,['base_point']=0,['param1']=20002,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[516] = {['spell_id']=63,['index']=1,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=6,['aura']=15,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[517] = {['spell_id']=65,['index']=0,['target']=3,['radius']=60.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=15000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[518] = {['spell_id']=66,['index']=0,['target']=8,['radius']=0.0,['radius2']=0.0,['type']=12,['aura']=0,['period']=0.0,['base_point']=0,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[519] = {['spell_id']=67,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[520] = {['spell_id']=68,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[521] = {['spell_id']=69,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[522] = {['spell_id']=70,['index']=0,['target']=9,['radius']=0.0,['radius2']=0.0,['type']=4,['aura']=0,['period']=0.0,['base_point']=10000,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[523] = {['spell_id']=71,['index']=0,['target']=7,['radius']=6.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=29500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+rows[524] = {['spell_id']=72,['index']=0,['target']=7,['radius']=6.0,['radius2']=0.0,['type']=1,['aura']=0,['period']=0.0,['base_point']=29500,['param1']=0,['param2']=0,['param3']=0,['param4']=0,['trigger_spell']=0}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+	[6] = rows[6],
+	[7] = rows[7],
+	[8] = rows[8],
+	[9] = rows[9],
+	[10] = rows[10],
+	[11] = rows[11],
+	[12] = rows[12],
+	[13] = rows[13],
+	[14] = rows[14],
+	[15] = rows[15],
+	[16] = rows[16],
+	[17] = rows[17],
+	[18] = rows[18],
+	[19] = rows[19],
+	[20] = rows[20],
+	[21] = rows[21],
+	[22] = rows[22],
+	[23] = rows[23],
+	[24] = rows[24],
+	[25] = rows[25],
+	[26] = rows[26],
+	[27] = rows[27],
+	[28] = rows[28],
+	[29] = rows[29],
+	[30] = rows[30],
+	[31] = rows[31],
+	[32] = rows[32],
+	[33] = rows[33],
+	[34] = rows[34],
+	[35] = rows[35],
+	[36] = rows[36],
+	[37] = rows[37],
+	[38] = rows[38],
+	[39] = rows[39],
+	[40] = rows[40],
+	[41] = rows[41],
+	[42] = rows[42],
+	[43] = rows[43],
+	[44] = rows[44],
+	[45] = rows[45],
+	[46] = rows[46],
+	[47] = rows[47],
+	[48] = rows[48],
+	[49] = rows[49],
+	[50] = rows[50],
+	[51] = rows[51],
+	[52] = rows[52],
+	[53] = rows[53],
+	[54] = rows[54],
+	[55] = rows[55],
+	[56] = rows[56],
+	[57] = rows[57],
+	[58] = rows[58],
+	[59] = rows[59],
+	[60] = rows[60],
+	[61] = rows[61],
+	[62] = rows[62],
+	[63] = rows[63],
+	[64] = rows[64],
+	[65] = rows[65],
+	[66] = rows[66],
+	[67] = rows[67],
+	[68] = rows[68],
+	[69] = rows[69],
+	[70] = rows[70],
+	[71] = rows[71],
+	[72] = rows[72],
+	[73] = rows[73],
+	[74] = rows[74],
+	[75] = rows[75],
+	[76] = rows[76],
+	[77] = rows[77],
+	[78] = rows[78],
+	[79] = rows[79],
+	[80] = rows[80],
+	[81] = rows[81],
+	[82] = rows[82],
+	[83] = rows[83],
+	[84] = rows[84],
+	[85] = rows[85],
+	[86] = rows[86],
+	[87] = rows[87],
+	[88] = rows[88],
+	[89] = rows[89],
+	[90] = rows[90],
+	[91] = rows[91],
+	[92] = rows[92],
+	[93] = rows[93],
+	[94] = rows[94],
+	[95] = rows[95],
+	[96] = rows[96],
+	[97] = rows[97],
+	[98] = rows[98],
+	[99] = rows[99],
+	[100] = rows[100],
+	[101] = rows[101],
+	[102] = rows[102],
+	[103] = rows[103],
+	[104] = rows[104],
+	[105] = rows[105],
+	[106] = rows[106],
+	[107] = rows[107],
+	[108] = rows[108],
+	[109] = rows[109],
+	[110] = rows[110],
+	[111] = rows[111],
+	[112] = rows[112],
+	[113] = rows[113],
+	[114] = rows[114],
+	[115] = rows[115],
+	[116] = rows[116],
+	[117] = rows[117],
+	[118] = rows[118],
+	[119] = rows[119],
+	[120] = rows[120],
+	[121] = rows[121],
+	[122] = rows[122],
+	[123] = rows[123],
+	[124] = rows[124],
+	[125] = rows[125],
+	[126] = rows[126],
+	[127] = rows[127],
+	[128] = rows[128],
+	[129] = rows[129],
+	[130] = rows[130],
+	[131] = rows[131],
+	[132] = rows[132],
+	[133] = rows[133],
+	[134] = rows[134],
+	[135] = rows[135],
+	[136] = rows[136],
+	[137] = rows[137],
+	[138] = rows[138],
+	[139] = rows[139],
+	[140] = rows[140],
+	[141] = rows[141],
+	[142] = rows[142],
+	[143] = rows[143],
+	[144] = rows[144],
+	[145] = rows[145],
+	[146] = rows[146],
+	[147] = rows[147],
+	[148] = rows[148],
+	[149] = rows[149],
+	[150] = rows[150],
+	[151] = rows[151],
+	[152] = rows[152],
+	[153] = rows[153],
+	[154] = rows[154],
+	[155] = rows[155],
+	[156] = rows[156],
+	[157] = rows[157],
+	[158] = rows[158],
+	[159] = rows[159],
+	[160] = rows[160],
+	[161] = rows[161],
+	[162] = rows[162],
+	[163] = rows[163],
+	[164] = rows[164],
+	[165] = rows[165],
+	[166] = rows[166],
+	[167] = rows[167],
+	[168] = rows[168],
+	[169] = rows[169],
+	[170] = rows[170],
+	[171] = rows[171],
+	[172] = rows[172],
+	[173] = rows[173],
+	[174] = rows[174],
+	[175] = rows[175],
+	[176] = rows[176],
+	[177] = rows[177],
+	[178] = rows[178],
+	[179] = rows[179],
+	[180] = rows[180],
+	[181] = rows[181],
+	[182] = rows[182],
+	[183] = rows[183],
+	[184] = rows[184],
+	[185] = rows[185],
+	[186] = rows[186],
+	[187] = rows[187],
+	[188] = rows[188],
+	[189] = rows[189],
+	[190] = rows[190],
+	[191] = rows[191],
+	[192] = rows[192],
+	[193] = rows[193],
+	[194] = rows[194],
+	[195] = rows[195],
+	[196] = rows[196],
+	[197] = rows[197],
+	[198] = rows[198],
+	[199] = rows[199],
+	[200] = rows[200],
+	[201] = rows[201],
+	[202] = rows[202],
+	[203] = rows[203],
+	[204] = rows[204],
+	[205] = rows[205],
+	[206] = rows[206],
+	[207] = rows[207],
+	[208] = rows[208],
+	[209] = rows[209],
+	[210] = rows[210],
+	[211] = rows[211],
+	[212] = rows[212],
+	[213] = rows[213],
+	[214] = rows[214],
+	[215] = rows[215],
+	[216] = rows[216],
+	[217] = rows[217],
+	[218] = rows[218],
+	[219] = rows[219],
+	[220] = rows[220],
+	[221] = rows[221],
+	[222] = rows[222],
+	[223] = rows[223],
+	[224] = rows[224],
+	[225] = rows[225],
+	[226] = rows[226],
+	[227] = rows[227],
+	[228] = rows[228],
+	[229] = rows[229],
+	[230] = rows[230],
+	[231] = rows[231],
+	[232] = rows[232],
+	[233] = rows[233],
+	[234] = rows[234],
+	[235] = rows[235],
+	[236] = rows[236],
+	[237] = rows[237],
+	[238] = rows[238],
+	[239] = rows[239],
+	[240] = rows[240],
+	[241] = rows[241],
+	[242] = rows[242],
+	[243] = rows[243],
+	[244] = rows[244],
+	[245] = rows[245],
+	[246] = rows[246],
+	[247] = rows[247],
+	[248] = rows[248],
+	[249] = rows[249],
+	[250] = rows[250],
+	[251] = rows[251],
+	[252] = rows[252],
+	[253] = rows[253],
+	[254] = rows[254],
+	[255] = rows[255],
+	[256] = rows[256],
+	[257] = rows[257],
+	[258] = rows[258],
+	[259] = rows[259],
+	[260] = rows[260],
+	[261] = rows[261],
+	[262] = rows[262],
+	[263] = rows[263],
+	[264] = rows[264],
+	[265] = rows[265],
+	[266] = rows[266],
+	[267] = rows[267],
+	[268] = rows[268],
+	[269] = rows[269],
+	[270] = rows[270],
+	[271] = rows[271],
+	[272] = rows[272],
+	[273] = rows[273],
+	[274] = rows[274],
+	[275] = rows[275],
+	[276] = rows[276],
+	[277] = rows[277],
+	[278] = rows[278],
+	[279] = rows[279],
+	[280] = rows[280],
+	[281] = rows[281],
+	[282] = rows[282],
+	[283] = rows[283],
+	[284] = rows[284],
+	[285] = rows[285],
+	[286] = rows[286],
+	[287] = rows[287],
+	[288] = rows[288],
+	[289] = rows[289],
+	[290] = rows[290],
+	[291] = rows[291],
+	[292] = rows[292],
+	[293] = rows[293],
+	[294] = rows[294],
+	[295] = rows[295],
+	[296] = rows[296],
+	[297] = rows[297],
+	[298] = rows[298],
+	[299] = rows[299],
+	[300] = rows[300],
+	[301] = rows[301],
+	[302] = rows[302],
+	[303] = rows[303],
+	[304] = rows[304],
+	[305] = rows[305],
+	[306] = rows[306],
+	[307] = rows[307],
+	[308] = rows[308],
+	[309] = rows[309],
+	[310] = rows[310],
+	[311] = rows[311],
+	[312] = rows[312],
+	[313] = rows[313],
+	[314] = rows[314],
+	[315] = rows[315],
+	[316] = rows[316],
+	[317] = rows[317],
+	[318] = rows[318],
+	[319] = rows[319],
+	[320] = rows[320],
+	[321] = rows[321],
+	[322] = rows[322],
+	[323] = rows[323],
+	[324] = rows[324],
+	[325] = rows[325],
+	[326] = rows[326],
+	[327] = rows[327],
+	[328] = rows[328],
+	[329] = rows[329],
+	[330] = rows[330],
+	[331] = rows[331],
+	[332] = rows[332],
+	[333] = rows[333],
+	[334] = rows[334],
+	[335] = rows[335],
+	[336] = rows[336],
+	[337] = rows[337],
+	[338] = rows[338],
+	[339] = rows[339],
+	[340] = rows[340],
+	[341] = rows[341],
+	[342] = rows[342],
+	[343] = rows[343],
+	[344] = rows[344],
+	[345] = rows[345],
+	[346] = rows[346],
+	[347] = rows[347],
+	[348] = rows[348],
+	[349] = rows[349],
+	[350] = rows[350],
+	[351] = rows[351],
+	[352] = rows[352],
+	[353] = rows[353],
+	[354] = rows[354],
+	[355] = rows[355],
+	[356] = rows[356],
+	[357] = rows[357],
+	[358] = rows[358],
+	[359] = rows[359],
+	[360] = rows[360],
+	[361] = rows[361],
+	[362] = rows[362],
+	[363] = rows[363],
+	[364] = rows[364],
+	[365] = rows[365],
+	[366] = rows[366],
+	[367] = rows[367],
+	[368] = rows[368],
+	[369] = rows[369],
+	[370] = rows[370],
+	[371] = rows[371],
+	[372] = rows[372],
+	[373] = rows[373],
+	[374] = rows[374],
+	[375] = rows[375],
+	[376] = rows[376],
+	[377] = rows[377],
+	[378] = rows[378],
+	[379] = rows[379],
+	[380] = rows[380],
+	[381] = rows[381],
+	[382] = rows[382],
+	[383] = rows[383],
+	[384] = rows[384],
+	[385] = rows[385],
+	[386] = rows[386],
+	[387] = rows[387],
+	[388] = rows[388],
+	[389] = rows[389],
+	[390] = rows[390],
+	[391] = rows[391],
+	[392] = rows[392],
+	[393] = rows[393],
+	[394] = rows[394],
+	[395] = rows[395],
+	[396] = rows[396],
+	[397] = rows[397],
+	[398] = rows[398],
+	[399] = rows[399],
+	[400] = rows[400],
+	[401] = rows[401],
+	[402] = rows[402],
+	[403] = rows[403],
+	[404] = rows[404],
+	[405] = rows[405],
+	[406] = rows[406],
+	[407] = rows[407],
+	[408] = rows[408],
+	[409] = rows[409],
+	[410] = rows[410],
+	[411] = rows[411],
+	[412] = rows[412],
+	[413] = rows[413],
+	[414] = rows[414],
+	[415] = rows[415],
+	[416] = rows[416],
+	[417] = rows[417],
+	[418] = rows[418],
+	[419] = rows[419],
+	[420] = rows[420],
+	[421] = rows[421],
+	[422] = rows[422],
+	[423] = rows[423],
+	[424] = rows[424],
+	[425] = rows[425],
+	[426] = rows[426],
+	[427] = rows[427],
+	[428] = rows[428],
+	[429] = rows[429],
+	[430] = rows[430],
+	[431] = rows[431],
+	[432] = rows[432],
+	[433] = rows[433],
+	[434] = rows[434],
+	[435] = rows[435],
+	[436] = rows[436],
+	[437] = rows[437],
+	[438] = rows[438],
+	[439] = rows[439],
+	[440] = rows[440],
+	[441] = rows[441],
+	[442] = rows[442],
+	[443] = rows[443],
+	[444] = rows[444],
+	[445] = rows[445],
+	[446] = rows[446],
+	[447] = rows[447],
+	[448] = rows[448],
+	[449] = rows[449],
+	[450] = rows[450],
+	[451] = rows[451],
+	[452] = rows[452],
+	[453] = rows[453],
+	[454] = rows[454],
+	[455] = rows[455],
+	[456] = rows[456],
+	[457] = rows[457],
+	[458] = rows[458],
+	[459] = rows[459],
+	[460] = rows[460],
+	[461] = rows[461],
+	[462] = rows[462],
+	[463] = rows[463],
+	[464] = rows[464],
+	[465] = rows[465],
+	[466] = rows[466],
+	[467] = rows[467],
+	[468] = rows[468],
+	[469] = rows[469],
+	[470] = rows[470],
+	[471] = rows[471],
+	[472] = rows[472],
+	[473] = rows[473],
+	[474] = rows[474],
+	[475] = rows[475],
+	[476] = rows[476],
+	[477] = rows[477],
+	[478] = rows[478],
+	[479] = rows[479],
+	[480] = rows[480],
+	[481] = rows[481],
+	[482] = rows[482],
+	[483] = rows[483],
+	[484] = rows[484],
+	[485] = rows[485],
+	[486] = rows[486],
+	[487] = rows[487],
+	[488] = rows[488],
+	[489] = rows[489],
+	[490] = rows[490],
+	[491] = rows[491],
+	[492] = rows[492],
+	[493] = rows[493],
+	[494] = rows[494],
+	[495] = rows[495],
+	[496] = rows[496],
+	[497] = rows[497],
+	[498] = rows[498],
+	[499] = rows[499],
+	[500] = rows[500],
+	[501] = rows[501],
+	[502] = rows[502],
+	[503] = rows[503],
+	[504] = rows[504],
+	[505] = rows[505],
+	[506] = rows[506],
+	[507] = rows[507],
+	[508] = rows[508],
+	[509] = rows[509],
+	[510] = rows[510],
+	[511] = rows[511],
+	[512] = rows[512],
+	[513] = rows[513],
+	[514] = rows[514],
+	[515] = rows[515],
+	[516] = rows[516],
+	[517] = rows[517],
+	[518] = rows[518],
+	[519] = rows[519],
+	[520] = rows[520],
+	[521] = rows[521],
+	[522] = rows[522],
+	[523] = rows[523],
+	[524] = rows[524],
+}
+return datas

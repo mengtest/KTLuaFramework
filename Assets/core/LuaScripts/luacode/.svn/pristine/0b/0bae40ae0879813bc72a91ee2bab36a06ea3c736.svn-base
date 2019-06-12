@@ -1,0 +1,198 @@
+local WorldView = { }
+
+local anim_event_util = require "common.util.event_anima"
+
+function WorldView:doInit()
+    self.m_cam = self:getFrame():getCamera()
+
+    self:subscribe(self:getFrame():on_event_attr_set("map_id", true), function(val)
+        self:loadMap(val)
+    end )
+
+    self:subscribe(self:getFrame():on_event("add_skill_indicator"), function(boss_id)
+        self:AddSkillIndicator(boss_id)
+    end)
+
+    self:subscribe(self:getFrame():on_event("set_skill_indicator"), function(target_pos, boss_id, target_mode, cast_time)
+        self:SetSkillIndicator(target_pos, boss_id, target_mode, cast_time)
+    end)
+
+end
+
+function WorldView:AddSkillIndicator(bossid)
+    local areaName = string.format("IndicatorArea".."-%d", bossid)
+    local areaObject = GameObject(areaName)
+    areaObject.transform:SetParent(self:getGO().transform)
+    -- 矩形作用区域
+    local boss_skill_indicator_rect_go = self:load("sfx/skill_projector/prefab/enemy_round_area.prefab", function(eft_go)
+        eft_go.name = "enemy_skill_rect"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        eft_go.transform:SetParent(areaObject.transform)
+        eft_go:SetActive(false)
+    end)
+    
+    -- 圆形作用区域
+    local boss_skill_indicator_round_go = self:load("sfx/skill_projector/prefab/enemy_round_area.prefab", function(eft_go)
+        eft_go.name = "enemy_skill_round"
+        eft_go.transform.localPosition = Vector3(0, 2, 0)
+        eft_go.transform.localScale = Vector3(1, 1, 1)
+        eft_go.transform:SetParent(areaObject.transform)
+        eft_go:SetActive(false)
+    end)    
+end
+
+function WorldView:SetSkillIndicator(skill_id, target_pos, boss_id, cast_time)
+    local areaName = string.format("IndicatorArea".."-%d", boss_id)
+    local areaObject = self:getGO().transform:Find(areaName)
+    areaObject.localPosition = target_pos
+    local skill_cfg = dbc.spell[skill_id]
+    local skill_client_cfg = dbc.spell_client[skill_id]
+    local target_mode = skill_client_cfg.target_mode
+    print(cast_time)
+    if (cast_time > 0) then
+        local area_go = nil
+        if target_mode == Enum_Battle.Skill_Target_Mode.AREA then
+            -- 圆形作用区域
+            local m_skill_round_area_go = areaObject.transform:Find("enemy_skill_round")
+            if m_skill_round_area_go ~= nil then
+                area_go = m_skill_round_area_go
+                m_skill_round_area_go.gameObject:SetActive(true)
+                slua_timer.addDelayEvent(cast_time, function()
+                    m_skill_round_area_go:SetActive(false)
+                end)
+            end
+        elseif target_mode == Enum_Battle.Skill_Target_Mode.DIRECTION then
+            -- 锥形作用区域
+            -- 受技能方无锥形
+        elseif target_mode == Enum_Battle.Skill_Target_Mode.RECT then
+            -- 矩形区域
+            local m_skill_rect_area_go = areaObject.transform:Find("enemy_skill_rect")
+            if m_skill_rect_area_go ~= nil then
+                area_go = m_skill_rect_area_go
+                m_skill_rect_area_go.gameObject:SetActive(true)
+                slua_timer.addDelayEvent(cast_time, function()
+                    m_skill_rect_area_go:SetActive(false)
+                end)
+            end
+        end
+        
+        if area_go ~= nil then
+            local projector = area_go:GetComponent(Projector)
+            local skill_mgr = app:getSkillMgr()
+            -- pacman 2017-09-25 目前一个技能有多种效果，每个效果的范围可能都不一样。那么该用哪一个范围值来显示技能区域？
+            -- 临时先用最大的那个范围值
+            projector.orthographicSize = skill_mgr:get_skill_max_radius(skill_cfg.id, true)
+            projector.ignoreLayers = LayerMask.GetMask("TransparentFX", "Role")
+        end
+    end
+end
+
+function WorldView:loadMap(map_id)
+    print("WorldView:loadMap", map_id)
+    local map_scene = nil
+    local load_map_type = nil
+    if map_id then
+        local info = dbc.map[map_id]
+        if info then
+            map_scene = info.res_client
+            load_map_type = info.load_map_type
+        end
+    end
+
+    self:loadMapScene(map_scene, load_map_type)
+end
+
+function WorldView:unloadScene(name)
+    local SceneManager = SceneManagement.SceneManager
+    local s = SceneManager.GetSceneByName(name)
+    if s:IsValid() then
+        SceneManager.UnloadSceneAsync(s)
+    end
+end
+
+function WorldView:unloadMapScene()
+    if self.m_map_scene then
+        self:unloadScene(self.m_map_scene)
+        self.m_map_scene = nil
+    end
+end
+
+-----1为流式   0为非流式   ke  2017.12.6
+function WorldView:loadMapScene(name, map_type)
+    local world = self:getFrame()
+    world:set_map_loaded(false)
+    self:unloadMapScene()
+
+    self.m_map_scene = name
+    if map_type == 1 then
+        self.m_map_scene = name .. "_game"  --fan
+    end
+
+    if name then
+        local path = string.format("Scenes/%s.unity", name)
+        if map_type == 1 then
+            path = string.format("Scenes/%s.unity", name .. "/" .. self.m_map_scene)
+        end
+        self:loadScene(path, function()
+            world:set_map_loaded(true)
+
+            if map_type == 1 then
+                local unit = world:get_main_player()
+                local unit_view = app:getView(unit:getFrameName())
+                local go = unit_view:getGO()
+                KTMapStreamManager.GetInstance():CreateStreams(self.m_map_scene, go.transform)
+
+            else
+                if self.m_map_scene ~= name then
+                    self:unloadScene(name)
+                end
+            end
+        end )
+    end
+end
+
+function WorldView:doDestroy()
+    self:unloadMapScene()
+end
+
+function WorldView:doUpdate()
+    self.m_cam:update()
+end
+
+function WorldView:pickGameObjectFromScreenPos(pos)
+    local go = self.m_cam:pickRoleLayerFromScreenPos(pos)
+    if go then
+        --app:logError("go.name = " .. tostring(go.name))
+    else
+        --app:logError("null go")
+    end
+    return self:getViewMgr():getViewFromGO(go)
+end
+
+
+function WorldView:pickFromScreenPos(pos)
+    return self.m_cam:pickFromScreenPos(pos)
+end
+
+function WorldView:findPath(from, to)
+    local path = AI.NavMeshPath()
+    if AI.NavMesh.CalculatePath(from, to, -1, path) then
+        local ret = { }
+        for wp in foreach(path.corners) do
+            table.insert(ret, wp)
+        end
+        return ret
+    end
+end
+
+function WorldView:trackUnit(unit)
+    self.m_cam:trackUnit(unit)
+end
+
+function WorldView:getCamera()
+    return self.m_cam
+end
+
+
+return WorldView

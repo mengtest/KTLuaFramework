@@ -1,0 +1,51 @@
+local Frame = require("system.frame")
+local spirit_slot = class("spirit_slot", Frame)
+local bit = require("bit")
+
+-- 槽位id
+Attribute.decl(spirit_slot, "slot_id", 0)
+-- 槽位中的灵兽数据
+Attribute.decl(spirit_slot, "spirit_data", nil)
+-- 选择/未选择
+Attribute.decl(spirit_slot, "is_selected", false)
+-- 是否锁定
+Attribute.decl(spirit_slot, "is_lock", false)
+
+
+function spirit_slot:doInit()
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    local frame_name = self:getFrameName()
+    local slot_id = tonumber(string.match(frame_name, "%d+"))
+    self:set_slot_id(slot_id)
+    -- 初始化设置锁定
+    self:set_lock()
+
+end
+
+function spirit_slot:set_lock()
+    local slot_flag = self.m_inventory_mgr:get_slot_flag()
+    local left_shift = 0
+    local result = 0
+    -- 根据表中配的十进制数转换成二进制来判断此槽位是否解锁    15 -> 1111 -> 火水木金 表示全解锁   [逐步解锁的逻辑暂时没有]
+    if self:get_slot_id() == enum.spirit_beast.SpiritBeastProperty.FIRE then
+        left_shift = bit.lshift(1, 3)
+        result = bit.rshift(bit.band(left_shift, slot_flag), 3)
+    elseif self:get_slot_id() == enum.spirit_beast.SpiritBeastProperty.WATER then
+        left_shift = bit.lshift(1, 2)
+        result = bit.rshift(bit.band(left_shift, slot_flag), 2)
+    elseif self:get_slot_id() == enum.spirit_beast.SpiritBeastProperty.WOOD then
+        left_shift = bit.lshift(1, 1)
+        result = bit.rshift(bit.band(left_shift, slot_flag), 1)
+    elseif self:get_slot_id() == enum.spirit_beast.SpiritBeastProperty.GOLD then
+        left_shift = bit.lshift(1, 0)
+        result = bit.rshift(bit.band(left_shift, slot_flag), 0)
+    end
+
+    if result == 1 then
+        self:set_is_lock(false)
+    else
+        self:set_is_lock(true)
+    end
+end
+
+return spirit_slot

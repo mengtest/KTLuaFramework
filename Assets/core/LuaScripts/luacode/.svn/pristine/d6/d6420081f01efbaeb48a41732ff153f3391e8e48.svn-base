@@ -1,0 +1,135 @@
+local rows = {}
+rows[1] = {['id']=101,['delay_time']='0',['text']='哇！亮了！好神奇！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[2] = {['id']=102,['delay_time']='0',['text']='哇！又亮了！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[3] = {['id']=103,['delay_time']='0',['text']='这肯定是大圣石在引导我们！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[4] = {['id']=104,['delay_time']='0',['text']='哈哈，快看那是什么！大圣园',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[5] = {['id']=105,['delay_time']='0',['text']='木桥断了，想想办法如何通过吧！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[6] = {['id']=106,['delay_time']='0',['text']='你说打倒树让它变成一座桥如何？',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[7] = {['id']=107,['delay_time']='0',['text']='搞定！离大圣石又近一步！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[8] = {['id']=108,['delay_time']='0',['text']='花果山所有灵韵都是大圣石赋予的吧',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[9] = {['id']=109,['delay_time']='0',['text']='长老为什么不让我们来看大圣石呢？',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[10] = {['id']=110,['delay_time']='0',['text']='大圣石如果给予我们能量，是不是我们成为大圣一样厉害的灵猴了呀',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[11] = {['id']=111,['delay_time']='0',['text']='此处为监神者管理，擅闯者必诛！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[12] = {['id']=112,['delay_time']='0',['text']='放屁！大圣园是我们灵猴圣地！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[13] = {['id']=113,['delay_time']='0',['text']='石桥以断，你们怎么都不可能上去',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[14] = {['id']=114,['delay_time']='0',['text']='看！那边的石头上有灵猴印记！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[15] = {['id']=115,['delay_time']='0',['text']='怎么会有监神者？',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[16] = {['id']=116,['delay_time']='0',['text']='奉劝你们不要往前走了。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[17] = {['id']=117,['delay_time']='0',['text']='时间差不多了，迎接你们的必定是噩梦。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[18] = {['id']=118,['delay_time']='0',['text']='这些天兵在大圣园干什么！，快去阻止他们！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[19] = {['id']=119,['delay_time']='0',['text']='哈哈哈，虽然动用了神器全部能量，但孙悟空最后的能量也就不复存在了！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[20] = {['id']=120,['delay_time']='0',['text']='大圣石！！！可恶！和你们拼了！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[21] = {['id']=121,['delay_time']='0',['text']='杀！！！！！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[22] = {['id']=122,['delay_time']='0',['text']='要不是我用了全部能量，怎能输给你们这些小虫子！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[23] = {['id']=123,['delay_time']='0',['text']='不过你们是跑不掉的！哈哈哈…',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[24] = {['id']=124,['delay_time']='0',['text']='这里为什么会有监神者出现？',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[25] = {['id']=125,['delay_time']='0',['text']='这事情越来越奇怪了',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[26] = {['id']=126,['delay_time']='0',['text']='喂，快看这里有梯子，快爬上去',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[27] = {['id']=127,['delay_time']='0',['text']='住手你们在对大圣石干什么！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[28] = {['id']=128,['delay_time']='0',['text']='快阻止他们！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[29] = {['id']=1001,['delay_time']='0',['text']='虎符在此，灵猴一族，随我冲杀！救出同胞！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[30] = {['id']=1002,['delay_time']='0',['text']='滚出花果山，还我家园！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[31] = {['id']=1003,['delay_time']='0',['text']='天威不可违！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[32] = {['id']=1004,['delay_time']='0',['text']='终于解决掉这些天兵了，快随本将军继续前进。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[33] = {['id']=1005,['delay_time']='0',['text']='前面好像有道大门，绕道后面看看有没有打开发办法。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[34] = {['id']=1006,['delay_time']='0',['text']='这大门还真是坚硬啊，快看看那是些什么。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[35] = {['id']=1007,['delay_time']='0',['text']='我们必须打碎这些能量柱机关，才能将前面的石墙破坏。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[36] = {['id']=1008,['delay_time']='0',['text']='这些能量柱好像很强，大家要小心！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[37] = {['id']=1009,['delay_time']='0',['text']='干得漂亮，我们赶快进入山洞里营救同胞吧！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[38] = {['id']=1010,['delay_time']='0',['text']='这段山路很长，大家注意四周，避免埋伏！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[39] = {['id']=1011,['delay_time']='0',['text']='快看，我们的同胞就被绑在那边！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[40] = {['id']=1012,['delay_time']='0',['text']='快去解救这些小猴子，接下来我们还有很多事情要做！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[41] = {['id']=1013,['delay_time']='0',['text']='接下来我们要去营救大马猴了，大家快跟上！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[42] = {['id']=1014,['delay_time']='0',['text']='可恶的天兵，竟然用这种卑鄙的手段捆住大马猴！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[43] = {['id']=2001,['delay_time']='0',['text']='一群卑劣的种族，竟敢挑衅监神者的威严！',['time']=4,['interval']=0.0,['bubble_id']=0}
+rows[44] = {['id']=2002,['delay_time']='0',['text']='你们给他们一点教训！',['time']=4,['interval']=0.0,['bubble_id']=0}
+rows[45] = {['id']=2003,['delay_time']='0',['text']='施主请住手！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[46] = {['id']=2004,['delay_time']='0',['text']='去找阿喏吧！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[47] = {['id']=2005,['delay_time']='0',['text']='为了平天寨！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[48] = {['id']=2006,['delay_time']='5',['text']='杀光这群叛徒！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[49] = {['id']=2005,['delay_time']='0',['text']='保护大王！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[50] = {['id']=2006,['delay_time']='2',['text']='受死吧！',['time']=10,['interval']=0.0,['bubble_id']=0}
+rows[51] = {['id']=3001,['delay_time']='0',['text']='什么人？胆敢擅闯高老庄！',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[52] = {['id']=3002,['delay_time']='0',['text']='来人啊，有刺客。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[53] = {['id']=3003,['delay_time']='0',['text']='蠢货，你给我拿下他们。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[54] = {['id']=3004,['delay_time']='0',['text']='啊，得令，管家大人。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[55] = {['id']=3005,['delay_time']='0',['text']='一起上，兄弟们，炸死刺客。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[56] = {['id']=3006,['delay_time']='0',['text']='你们给我上。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[57] = {['id']=3007,['delay_time']='0',['text']='一群废物，你们全部给我上。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[58] = {['id']=3008,['delay_time']='0',['text']='一群蠢猪，还需要我亲自出马。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[59] = {['id']=3009,['delay_time']='0',['text']='翠兰，你今天真漂亮，让我香一下。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[60] = {['id']=3010,['delay_time']='0',['text']='讨厌你，只许你轻轻一下。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[61] = {['id']=3011,['delay_time']='0',['text']='啊，这怎么有人。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[62] = {['id']=3012,['delay_time']='0',['text']='啊啊啊啊啊啊，你们这群混蛋坏我好事，我要和你们拼了。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[63] = {['id']=3013,['delay_time']='0',['text']='来啊，你们这群凡人。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[64] = {['id']=3014,['delay_time']='0',['text']='你们这群凡人对力量一无所知。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[65] = {['id']=3015,['delay_time']='0',['text']='让你们这群凡人见识一下真正的力量。',['time']=5,['interval']=0.0,['bubble_id']=0}
+rows[66] = {['id']=3016,['delay_time']='0',['text']='感受这死亡的威胁吧，哈哈哈哈！！！',['time']=5,['interval']=0.0,['bubble_id']=0}
+
+local datas = {
+	[101] = rows[1],
+	[102] = rows[2],
+	[103] = rows[3],
+	[104] = rows[4],
+	[105] = rows[5],
+	[106] = rows[6],
+	[107] = rows[7],
+	[108] = rows[8],
+	[109] = rows[9],
+	[110] = rows[10],
+	[111] = rows[11],
+	[112] = rows[12],
+	[113] = rows[13],
+	[114] = rows[14],
+	[115] = rows[15],
+	[116] = rows[16],
+	[117] = rows[17],
+	[118] = rows[18],
+	[119] = rows[19],
+	[120] = rows[20],
+	[121] = rows[21],
+	[122] = rows[22],
+	[123] = rows[23],
+	[124] = rows[24],
+	[125] = rows[25],
+	[126] = rows[26],
+	[127] = rows[27],
+	[128] = rows[28],
+	[1001] = rows[29],
+	[1002] = rows[30],
+	[1003] = rows[31],
+	[1004] = rows[32],
+	[1005] = rows[33],
+	[1006] = rows[34],
+	[1007] = rows[35],
+	[1008] = rows[36],
+	[1009] = rows[37],
+	[1010] = rows[38],
+	[1011] = rows[39],
+	[1012] = rows[40],
+	[1013] = rows[41],
+	[1014] = rows[42],
+	[2001] = rows[43],
+	[2002] = rows[44],
+	[2003] = rows[45],
+	[2004] = rows[46],
+	[2005] = rows[49],
+	[2006] = rows[50],
+	[3001] = rows[51],
+	[3002] = rows[52],
+	[3003] = rows[53],
+	[3004] = rows[54],
+	[3005] = rows[55],
+	[3006] = rows[56],
+	[3007] = rows[57],
+	[3008] = rows[58],
+	[3009] = rows[59],
+	[3010] = rows[60],
+	[3011] = rows[61],
+	[3012] = rows[62],
+	[3013] = rows[63],
+	[3014] = rows[64],
+	[3015] = rows[65],
+	[3016] = rows[66],
+}
+return datas

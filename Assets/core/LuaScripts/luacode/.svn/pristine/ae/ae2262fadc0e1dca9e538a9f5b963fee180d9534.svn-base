@@ -1,0 +1,22 @@
+local M = {}
+
+
+
+-- 用于控制Active,下面有具体方法，不要在其它地方直接修改
+Attribute.decl(M, "show", true)
+
+Attribute.decl(M, "create_canvas", false)
+Attribute.decl(M, "create_canvas_scaler", false)
+Attribute.decl(M, "create_canvas_raycaster", false)
+
+function M:doInit(parma)
+
+    if (parma ~= nil) then
+        self:set_create_canvas(parma.canvas)
+        self:set_create_canvas_scaler(parma.scaler)
+        self:set_create_canvas_raycaster(parma.raycaster)     
+    end
+end
+
+
+return M

@@ -1,0 +1,121 @@
+local M = {}
+
+
+function M:init()
+    self.m_skill_queue = {}
+    self.m_last_skill = nil
+end
+
+
+function M:add_skill_object(cast_id, spell_id, target_id, target_pos, dir, cast_time, spell_client_id)
+    self.m_skill_queue[tostring(cast_id)] = 
+    {
+        cast_id = cast_id,
+        spell_id = spell_id,
+        target_id = target_id,
+        target_pos = target_pos,
+        dir = dir,
+        cast_time = cast_time,
+        spell_client_id = spell_client_id,
+        is_singing = false,
+        hit_outcome = SharedEnum.SpellHitOutcome.NORMAL,
+        damage = 0,
+        is_buff = 0,
+        attacker_id = -1,
+        hit_targets = {},
+        miss_targets = {}
+    }
+
+    self.m_last_skill = self.m_skill_queue[tostring(cast_id)]
+
+    return self.m_skill_queue[tostring(cast_id)]
+end
+
+function M:remove_skill_object(cast_id)
+    self.m_skill_queue[tostring(cast_id)] = nil
+end
+
+function M:get_skill_object(cast_id)
+    return self.m_skill_queue[tostring(cast_id)]
+end
+
+function M:get_last_skill_object()
+    return self.m_last_skill
+end
+
+-- 技能开始
+function M:spell_start(unit, cast_id, spell_id, target_id, target_pos, dir, cast_time)
+    local spell_data = dbc.spell[spell_id]
+    -- 默认spell_client_id 就是 spell_id 但是会有随机
+    local spell_client_id = spell_id
+
+    -- 根据专精去找普攻的client_id
+    if(spell_id == 1) then 
+        local specialization = unit:get_specialization()
+        local atk_client_id = model_mgr.GetAtkAnim(specialization)
+        if(atk_client_id ~= nil) then spell_client_id = atk_client_id end
+    end
+
+    local spell_client_data = dbc.spell_client[spell_client_id]
+    
+
+    if(spell_data == nil or spell_client_data == nil) then 
+        Debug.LogError("spell_start 找不到技能数据.."..spell_id) 
+        return
+    end
+
+    -- 在这里随机spell_client并且缓存起来
+    if(#spell_client_data.random > 0) then
+        local max = #spell_client_data.random + 1
+        local rand = math.random(max)
+        if(rand == 1) then 
+            
+        else
+            spell_client_id = spell_client_data.random[rand - 1]
+        end
+    end
+
+    local skill_queue_object = self:add_skill_object(cast_id, spell_id, target_id, target_pos, dir, cast_time,spell_client_id)
+
+    unit:spell_start(skill_queue_object)
+end
+
+-- 技能释放
+function M:spell_go(unit,cast_id,spell_id,hit_targets,miss_targets)
+    local skill_queue_object = self:get_skill_object(cast_id)
+
+    skill_queue_object.hit_targets = hit_targets
+    skill_queue_object.miss_targets = miss_targets
+
+    unit:spell_go(skill_queue_object,Enum_Battle.Sing_Finish.FINISH)
+end
+
+-- 技能失败
+function M:spell_failure(unit,cast_id,spell_id,reason)
+    unit:spell_go(nil,Enum_Battle.Sing_Finish.CANCEL)
+end
+    
+-- 命中
+function M:be_hit(unit,attacker_id, skill_id, hit_outcome, damage, is_buff, cast_id)
+    -- Debug.LogError(unit:get_id().." be_hit by "..attacker_id.." damage = "..damage.." cast_id = "
+    -- ..cast_id.." is_buff = "..is_buff)
+
+    if(is_buff == 1) then
+        --因为buff的延迟掉血还没有处理好 所以先不管buff
+        --unit:emit_event("popup_text",attacker_id,spell_id, hit_outcome,damage,is_buff) 
+        return 
+    end
+
+    local world = unit:getFrame("world")
+    local attacker = world:getUnit(attacker_id)
+    if(attacker == nil) then return end
+    local skill_queue_object = attacker:get_skill_queue():get_skill_object(cast_id)  
+    if(skill_queue_object == nil) then return end
+      
+    skill_queue_object.hit_outcome = hit_outcome
+    skill_queue_object.damage = damage
+    skill_queue_object.is_buff = is_buff
+    skill_queue_object.attacker_id = attacker_id
+end
+
+return M

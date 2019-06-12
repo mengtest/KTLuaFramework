@@ -1,0 +1,314 @@
+local M = {}
+
+function M:doInit()
+    self.m_frame = self:getFrame()
+    local path = self.m_frame:get_sfx_path()
+    
+    self.m_update_func = nil
+
+    if path == "" or path == "n" then
+        return
+    else
+        local cache_sfx = CacheMgr.GetSfxCache(path)
+        if (cache_sfx == nil) then
+            self:load(path, function(go)
+                self:handle_prefab(go)
+            end)
+        else
+            local go = GameObject.Instantiate(cache_sfx)
+            self:handle_prefab(go)
+        end
+    end
+end
+
+function M:handle_prefab(go)
+    -- 因为弹道有拖尾 所以先把他隐藏起来 等到运行时候在显示
+    go:SetActive(false)
+    
+    go.transform.position = Vector3.zero
+    go.transform.eulerAngles = Vector3.zero
+    self.m_bullet = go
+    
+    go:SetActive(true)
+    
+    self.m_start_pos = self.m_frame:get_pos()
+
+
+    self:handle_projectile_type()
+end
+
+function M:handle_projectile_type()
+    self.m_projectile_type_cfg = self.m_frame:get_projectile_type_cfg()
+
+    if (self.m_projectile_type_cfg ~= nil) then
+        self:select_projectile_type()
+    else -- 无弹道设置
+        self:pos_dir_event()
+    end
+end
+
+function M:pos_dir_event()
+    local view_go = self:getGO()
+    -- 响应pos事件
+    self:subscribe(self.m_frame:on_event_pos_set(true), function(value)
+
+        view_go.transform.position = value
+    end)
+    
+    -- 响应eular事件
+    self:subscribe(self.m_frame:on_event_euler_set(true), function(value)
+        view_go.transform.eulerAngles = Vector3(0, value, 0)
+    end)
+end
+
+function M:doUpdate()
+    if (self.m_update_func ~= nil) then
+        self:m_update_func()
+    end
+
+
+end
+
+function M:select_projectile_type()
+    if (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.WAGGLE) then
+        
+        self.m_update_func = self.waggle
+        
+        self.m_x_dis = self.m_projectile_type_cfg.param1
+        
+        self.m_x_speed = self.m_projectile_type_cfg.param2
+        
+        self.m_y_dis = self.m_projectile_type_cfg.param3
+        
+        self.m_y_speed = self.m_projectile_type_cfg.param4
+        
+        self:pos_dir_event()
+    
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.PARABOLA) then
+        
+        self.m_update_func = self.custom_curve
+        
+        self.m_point_count = self.m_frame:get_expected_time() / Time.deltaTime
+        
+        self:subscribe(self.m_frame:get_target():on_event_pos_set(true), function(value)
+            self:init_parabola_curve()
+        end)
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.FLASH) then
+        
+        self.m_line_render = self.m_bullet:GetComponent(LineRenderer)
+        
+        if (self.m_line_render == nil) then return end
+        
+        self.m_line_pos_lis = {}
+        
+        self.m_y_dis = 0
+        
+        self.m_update_func = self.Flash
+    
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.GROUND) then
+        
+        self.m_character_controller = self.m_bullet:GetComponent(CharacterController)
+        
+        if (self.m_character_controller == nil) then return end
+        
+        self.m_update_func = self.Ground
+        
+        self:pos_dir_event()
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.SPIRAL) then
+        self.m_child_bullets = {}
+        
+        self.m_child_bullets_radius = {}
+        
+        local children_count = self.m_bullet.transform.childCount
+        
+        local radius = 0
+        
+        for i = 1, children_count, 1 do
+            table.insert(self.m_child_bullets, self.m_bullet.transform:GetChild(i - 1))
+            table.insert(self.m_child_bullets_radius, radius)
+        end
+        
+        self.m_angle = 0
+        
+        self.m_angle_speed = self.m_projectile_type_cfg.param1
+        
+        self.m_update_func = self.Spiral
+        
+        self:pos_dir_event()
+    
+    elseif (self.m_projectile_type_cfg.type == Enum_Battle.Projectile_Type.CUSTOM) then
+        
+        self.m_curve_sum_time = Time.time
+        
+        self.m_point_count = 100
+        
+        local target = self.m_frame:get_target()
+
+        self:subscribe(target:on_event_pos_set(true), function(value)
+            self:init_custom_curve()
+        end)
+        
+        self.m_update_func = self.custom_curve
+    end
+
+
+end
+
+function M:waggle()
+    local x = Mathf.Sin(self.m_frame:get_moved_dis() * (self.m_x_speed / self.m_frame:get_cfg().speed));
+    local y = Mathf.Sin(self.m_frame:get_moved_dis() * (self.m_y_speed / self.m_frame:get_cfg().speed));
+    
+    
+    local next_point = self.m_bullet.transform.right * x * self.m_x_dis + self.m_bullet.transform.up * y * self.m_y_dis
+    
+    local direction = self.m_projectile_type_cfg.direction
+    
+    if (direction == Enum_Battle.Projectile_Direction.TARGET) then
+        self.m_bullet.transform:LookAt(self.m_frame:get_target_pos())
+    elseif (direction == Enum_Battle.Projectile_Direction.TRACK) then
+        self.m_bullet.transform:LookAt(next_point)
+    end
+    
+    
+    self.m_bullet.transform.localPosition = next_point
+    
+    
+    
+    if (self.m_x_dis > 0) then
+        self.m_x_dis = self.m_x_dis - Time.deltaTime * self.m_frame:get_expected_time()
+    end
+    
+    if (self.m_y_dis > 0) then
+        self.m_y_dis = self.m_y_dis - Time.deltaTime * self.m_frame:get_expected_time()
+    end
+end
+
+function M:init_parabola_curve()
+    self.m_curve_point = {}
+    
+    self.m_center = (self.m_start_pos + self.m_frame:get_target_pos()) * 0.5
+    self.m_center.y = math.max(self.m_start_pos.y, self.m_frame:get_target_pos().y) + self.m_projectile_type_cfg.param1
+    for i = 1, self.m_point_count, 1 do
+        local pos1 = Vector3.Lerp(self.m_start_pos, self.m_center, i / self.m_point_count)
+        local pos2 = Vector3.Lerp(self.m_center, self.m_frame:get_target_pos(), i / self.m_point_count)
+        local find = Vector3.Lerp(pos1, pos2, i / self.m_point_count)
+        table.insert(self.m_curve_point, find)
+    end
+
+end
+
+function M:init_custom_curve()
+    self.m_curve_point = {}
+    
+    local type = self.m_frame:get_client_cfg().projectile_type
+    
+    local user_data = KTBezier.getLinePoint(self.m_start_pos, self.m_frame:get_target_pos(), self.m_point_count, dbc.projectile_type[type].custom)
+    
+    for info in foreach(user_data) do
+        table.insert(self.m_curve_point, info)
+    end
+end
+
+function M:custom_curve()
+    
+    local ttt = Time.time - self.m_curve_sum_time
+    
+    local percent = ttt / self.m_frame:get_expected_time()
+    
+    local index = math.ceil(self.m_point_count * percent)
+    
+    local direction = self.m_projectile_type_cfg.direction
+    if (index <= self.m_point_count) then
+        if (direction == Enum_Battle.Projectile_Direction.TRACK) then
+            self.m_bullet.transform:LookAt(self.m_curve_point[index])
+        elseif (direction == Enum_Battle.Projectile_Direction.TARGET) then
+            self.m_bullet.transform:LookAt(self.m_frame:get_target_pos())
+        end
+        self.m_bullet.transform.position = self.m_curve_point[index]
+    else
+        local on_hit = self.m_frame:get_on_hit()
+        on_hit(self.m_frame)
+    end
+end
+
+function M:Flash()
+    self.m_line_pos_lis = {}
+    
+    local endPos = self.m_frame:get_target_pos() + Vector3.up * self.m_y_dis
+    
+    local startPos = self.m_start_pos + Vector3.up * self.m_y_dis;
+    
+    self:CollectLinPos(startPos, endPos, 1, 3)
+    
+    table.insert(self.m_line_pos_lis, endPos)
+    self.m_line_render.positionCount = #self.m_line_pos_lis
+    
+    for i = 1, #self.m_line_pos_lis, 1 do
+        self.m_line_render:SetPosition(i - 1, self.m_line_pos_lis[i]);
+    end
+end
+
+function M:CollectLinPos(startPos, destPos, displace, detail)
+    if (displace < detail) then
+        table.insert(self.m_line_pos_lis, startPos)
+    else
+        local midX = (startPos.x + destPos.x) / 2;
+        local midY = (startPos.y + destPos.y) / 2;
+        local midZ = (startPos.z + destPos.z) / 2;
+        
+        midX = midX + (UnityEngine.Random.value - 0.5) * displace;
+        midY = midY + (UnityEngine.Random.value - 0.5) * displace;
+        midZ = midZ + (UnityEngine.Random.value - 0.5) * displace;
+        
+        local midPos = Vector3(midX, midY, midZ);
+        
+        self:CollectLinPos(startPos, midPos, displace / 2);
+        self:CollectLinPos(midPos, destPos, displace / 2);
+    end
+end
+
+function M:Ground()
+    local direction = self.m_projectile_type_cfg.direction
+    if (direction == Enum_Battle.Projectile_Direction.TARGET) then
+        self.m_bullet.transform:LookAt(self.m_frame:get_target_pos())
+    end
+    
+    if (self.m_character_controller.isGrounded == false) then
+        self.m_character_controller:Move(Vector3(0, -self.m_projectile_type_cfg.param1, 0) * Time.deltaTime)
+    else
+        self.m_character_controller:Move((self.m_frame:get_pos() - self.m_bullet.transform.position) * self.m_projectile_type_cfg.param1 * Time.deltaTime)
+    end
+end
+
+function M:Spiral()
+    local offset = 1;
+    for i = 1, #self.m_child_bullets, 1 do
+        self.m_angle = self.m_angle + self.m_angle_speed * Time.deltaTime;
+        
+        local direction = self.m_projectile_type_cfg.direction
+        
+        if (direction == Enum_Battle.Projectile_Direction.TARGET) then
+            self.m_child_bullets[i]:LookAt(self.m_frame:get_target_pos())
+        end
+        
+        self.m_child_bullets[i].localPosition = offset * Vector3(Mathf.Cos(self.m_angle) * self.m_child_bullets_radius[i], Mathf.Sin(self.m_angle) * self.m_child_bullets_radius[i], self.m_child_bullets[i].localPosition.z);
+        
+        offset = offset * -1
+        if (self.m_frame:get_moved_dis() > self.m_frame:get_expected_dis() * 0.2) then
+            
+            if (self.m_frame:get_moved_dis() < self.m_frame:get_expected_dis() * 0.7) then
+                if (self.m_child_bullets_radius[i] < self.m_projectile_type_cfg.param2) then
+                    self.m_child_bullets_radius[i] = self.m_child_bullets_radius[i] + Time.deltaTime * self.m_projectile_type_cfg.param2 / (self.m_frame:get_expected_time() * 0.5)
+                end
+            else
+                if (self.m_child_bullets_radius[i] > 0) then
+                    self.m_child_bullets_radius[i] = self.m_child_bullets_radius[i] - Time.deltaTime * self.m_projectile_type_cfg.param2 / (self.m_frame:get_expected_time() * 0.2)
+                end
+            end
+        end
+    end
+
+
+end
+
+return M

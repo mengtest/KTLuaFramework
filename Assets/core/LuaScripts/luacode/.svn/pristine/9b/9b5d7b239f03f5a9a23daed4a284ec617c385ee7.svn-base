@@ -1,0 +1,144 @@
+local Frame = require("system.frame")
+local big_map = class("dungeon_confirm_progress", Frame)
+
+Event.decl(big_map, "refresh_owner_pos")
+Event.decl(big_map, "refresh_owner_dir")
+
+-----当前场景任务列表
+----再次创建时此表没有清空，待查
+--local quest_list = {}
+
+function big_map:doInit(param)
+    self.m_quest_list = {}
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_world = self:getFrame("world")
+    self.m_owner = self.m_world:get_main_player()
+    local map_id = self.m_world:get_map_id()
+    --print("当前map_id:",map_id)
+    self:get_quest_in_current_map(map_id)
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+end
+
+function big_map:init()
+    self:subscribe(self.m_owner:on_event_attr_set("pos", true), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_owner:on_event_attr_set("dir", true), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+end
+
+------获取当前场景中的任务
+function big_map:get_quest_in_current_map(map_id)
+    local quest_data_list = self.m_quest_manager:get_quest_list()
+    --for k,v in pairs(quest_data_list) do
+    --    print(k)
+    --end
+    local unlock_quest_list = self.m_quest_manager:get_unlocked_quest_list()
+    local traced_quest_list = self:get_traced_quest_data()
+    local quest_aim_area = {}
+    local quest_data = {["map_id"] = nil, ["area_id"] = nil, ["is_intrest"] = nil, ["is_traced"] = nil}
+    for k,v in pairs(quest_data_list) do
+        if v then
+            --print(k)
+            quest_aim_area = v:get_all_active_aim_area()
+            if quest_aim_area[1][1] == map_id then
+                ----因为目前配表不全，会存在潜在bug，这里暂时进行处理一下，以便不影响游戏正常运行
+                if self.m_world:get_area_data(quest_aim_area[1][1], quest_aim_area[1][2]) then
+                    quest_data["map_id"] = quest_aim_area[1][1]
+                    quest_data["area_id"] = quest_aim_area[1][2]
+                    quest_data["is_intrest"] = v:get_interest()
+                    quest_data["is_traced"] = nil
+                    for key,value in pairs(traced_quest_list) do
+                        if value == v then
+                            --print(value == v)
+                            -----1为追踪任务1，显示蓝色图标，2为追踪任务2，显示红色图标
+                            if key == 1 then
+                                quest_data["is_traced"] = 1
+                            else
+                                quest_data["is_traced"] = 2
+                            end
+                            break
+                        end
+                    end
+                    --print(quest_aim_area[1][1])
+                    self.m_quest_list[k] = quest_data
+                else
+                    app:logError("无法获取当前任务的区域信息，请查看表结构是否有问题....")
+                end
+            end
+        end
+    end
+    for k,v in pairs(unlock_quest_list) do
+        if v then
+            quest_aim_area = self:get_quest_data_by_id(v):get_aim_area()
+            if quest_aim_area[1] == map_id then
+                ----因为目前配表不全，会存在潜在bug，这里暂时进行处理一下，以便不影响游戏正常运行
+                if self.m_world:get_area_data(quest_aim_area[1], quest_aim_area[2]) then
+                    quest_data["map_id"] = quest_aim_area[1]
+                    quest_data["area_id"] = quest_aim_area[2]
+                    quest_data["is_intrest"] = self:get_quest_data_by_id(v):get_interest()
+                    quest_data["is_traced"] = nil
+                    --print(quest_aim_area[1])
+                    self.m_quest_list[v] = quest_data
+                else
+                    app:logError("无法获取当前任务的区域信息，请查看表结构是否有问题....")
+                end
+            end
+        end
+    end
+end
+
+function big_map:set_scale(scale_x, scale_y)
+    self.m_scale_x = scale_x
+    self.m_scale_y = scale_y
+    self:init()
+end
+
+function big_map:refresh_owner_pos(pos)
+    self:emit_event("refresh_owner_pos", pos)
+end
+
+function big_map:refresh_owner_dir(dir)
+    self:emit_event("refresh_owner_dir", dir)
+end
+
+function big_map:on_loaded(result)
+    if result == 1 then
+        ----表示在副本内     加载boss信息
+        self:createChild("boss_icon_" .. 1001, "%subsystem.map.big_map.big_map_boss", { ["id"] = 1001, ["pos"] = Vector3(160,0,120) })
+    else
+        ------不在副本内，加载任务信息
+        if #self.m_quest_list > 0 then
+            for k,v in pairs(self.m_quest_list) do
+                if not v then
+                    return
+                end
+            -----参数分别为：任务id，任务所在地图id，任务区域id，任务是否被关注，任务是否被追踪
+            self:createChild("quest_icon_" .. k, "%subsystem.map.big_map.big_map_quest",{["id"] = k, ["map_id"] = v["map_id"], ["area_id"] = v["area_id"], ["is_intrest"] = v["is_intrest"], ["is_traced"] = v["is_traced"]})
+
+            end
+            --for k,v in pairs(quest_list) do
+            --    print(k)
+            --end
+        end
+    end
+
+end
+
+----根据任务id获取quest_data
+function big_map:get_quest_data_by_id(quest_id)
+    self.m_quest_data = require("subsystem.quest.quest_data")
+    --print("任务管理：",self.m_quest_manager)
+    local quest_data = self.m_quest_data:new(quest_id,nil,self.m_quest_manager)
+    return quest_data
+end
+
+-----获取正在追踪的任务
+function big_map:get_traced_quest_data()
+    local quest_bar = self:getFrame("quest_bar")
+    return quest_bar:get_traced_quest_list()
+end
+
+return big_map

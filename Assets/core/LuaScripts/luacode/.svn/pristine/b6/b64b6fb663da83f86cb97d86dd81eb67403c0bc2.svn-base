@@ -1,0 +1,61 @@
+
+local Sound_manager = Sound_manager or {}
+
+function Sound_manager:init()
+    local go = GameObject.Find("SoundManager")
+    if not go then
+        go = GameObject("SoundManager")
+    end
+    GameObject.DontDestroyOnLoad(go)
+    self.m_sound_manager = go:GetComponent(SoundManager)
+    if not self.m_sound_manager then
+        self.m_sound_manager = go:AddComponent(SoundManager)
+    end
+end
+
+-- sound_tbl_id(int):要生成的sound在sound表中的id
+-- return sound_id(int)
+function Sound_manager:create(sound_tbl_id)
+    local sound_data = dbc.sound[sound_tbl_id]
+    if sound_data then
+        return self.m_sound_manager:Create(sound_data.group, sound_data.name, sound_data.is_3d, sound_data.max_dis, sound_data.volume, sound_data.loop_times)
+    else
+        Debug.LogError("Cannot found sound id: " .. sound_tbl_id)
+        return nil
+    end
+end
+
+function Sound_manager:destroy(sound_id)
+    self.m_sound_manager:Destroy(sound_id)
+end
+
+function Sound_manager:get_sound_tr(sound_id)
+    return self.m_sound_manager:GetSoundTr(sound_id)
+end
+
+function Sound_manager:play(sound_id)
+    self.m_sound_manager:Play(sound_id)
+end
+
+function Sound_manager:pause(sound_id)
+    self.m_sound_manager:Pause(sound_id)
+end
+
+-- 只有无限循环的sound才响应此接口，loop_times > 0的sound调用此接口无反应
+function Sound_manager:stop(sound_id)
+    self.m_sound_manager:Stop(sound_id)
+end
+
+-- 设置背景音音量
+-- volume(float):[0-1],目标音量
+function Sound_manager:set_bgm_volume(volume)
+    self.m_sound_manager:SetBgmVolume(volume)
+end
+
+-- 设置效果音音量
+-- volume(float):[0-1],目标音量
+function Sound_manager:set_sfx_volume(volume)
+    self.m_sound_manager:SetSfxVolume(volume)
+end
+
+return Sound_manager

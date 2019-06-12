@@ -1,0 +1,812 @@
+local M = {}
+
+function M:doInit(role)
+    ----用来对于界面的显示隐藏做标志位
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_quest_talk = false
+    self.m_frame = self:getFrame()
+    ------物品表
+    self.m_item = dbc.item
+
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Main"), function(go)
+        -----ke   20.17.12.15   temp
+        local pro = loading_temp_pro
+        --Debug.LogError("Main"..tostring(pro))
+        loading_temp_pro = pro + 0.1
+        --Debug.LogError("Main..."..tostring(loading_temp_pro))
+
+        -- pacman 2017-06-15 临时做法
+        local target_trs = go.transform:Find("Target")
+        local name_txt = target_trs:Find("TextName"):GetComponent(UI.Text)
+        local hp_prog = target_trs:Find("HealthBar"):GetComponent(UI.Image)
+        local hp_txt = target_trs:Find("Hp"):GetComponent(UI.Text)
+        local head_icon_toggle = target_trs:Find("HeadIcon"):GetComponent(UI.Toggle)
+        local team_invate_tr = target_trs:Find("HeadIcon/grid/team_invate")
+        local team_invate_btn = team_invate_tr:Find("team_invate_btn"):GetComponent(UI.Button)
+        local ui_manager = app:get_ui_manager()
+        ui_manager:AdaptResolution(self.m_frame:getFrameName(), go)
+        self.m_system_btn_container = go.transform:Find("system_btn")
+        --副本相关
+        self.m_dungeon_tip_text = go.transform:Find("Dungeon_state")
+        self.m_dungeonun_unlock_text = go.transform:Find("Dungeon_state/tip_text"):GetComponent(UI.Text)
+        self.m_dungeon_type_image = go.transform:Find("dungeon_type_image").gameObject:GetComponent(UnityEngine.UI.Button)
+        --NPC交互
+        --任务栏
+        self.quest_bar_btn = go.transform:Find("quest_bar").gameObject
+        --物品icon生成点
+        self.m_equip_generic_point = go.transform:Find("equip_generic_point")
+        self.m_equip_item = self.m_equip_generic_point:Find("equipment_quality")
+        --物品icon目标点，临时固定在这，以后背包按钮会固定  temp  by xhz
+        self.m_equip_target_point = go.transform:Find("backpack_temp")
+
+        --获取inventory_manager，响应获得物品的事件
+        local inventory_manager = self:getFrame("inventory_manager")
+        self:subscribe(inventory_manager:on_event("add_unequipment"), function(countable_info)
+            self:add_item(countable_info)
+        end)
+        self:subscribe(inventory_manager:on_event("add_equipment"), function(wearable_info)
+            self:add_wearable_item(wearable_info)
+        end)
+        ---  临时加一个放大镜特效
+        self.m_match_sfx = nil
+        self["quick_matching_GUIButton"].gameObject:GetComponent(RectTransform).anchoredPosition3D = Vector3(550, 300, 0)
+
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_zudui_chazhao_01"), self["quick_matching_GUIButton"].gameObject.transform, "m_match_sfx")
+
+        --交互按钮
+        local npc_btn = go.transform:Find("npc_button").gameObject:GetComponent(UnityEngine.UI.Button)
+        local npc_btn1 = go.transform:Find("npc_button1").gameObject:GetComponent(UnityEngine.UI.Button)
+        local npc_btn2 = go.transform:Find("npc_button2").gameObject:GetComponent(UnityEngine.UI.Button)
+        -- 监听frame中的显示隐藏属性
+        --交互按钮的显示
+        self:subscribe(self.m_frame:on_event_quest_bar_set(false), function(value)
+            self.quest_bar_btn:SetActive(value)
+        end)
+        self:subscribe(self.m_frame:on_event_show_btn_set(false), function(value)
+            npc_btn.gameObject:SetActive(value)
+        end)
+        self:subscribe(self.m_frame:on_event_show_btn1_set(false), function(value)
+            npc_btn1.gameObject:SetActive(value)
+        end)
+        self:subscribe(self.m_frame:on_event_show_btn2_set(false), function(value)
+            npc_btn2.gameObject:SetActive(value)
+        end)
+        --交互按钮的监听事件
+        npc_btn.onClick:AddListener(function()
+            self:npc_talk()
+        end)
+        npc_btn1.onClick:AddListener(function()
+            self:npc_talk()
+        end)
+        npc_btn2.onClick:AddListener(function()
+            self:npc_talk()
+        end)
+        ---------------------
+
+        --  buff_container
+        self.m_world = self:getFrame("world")
+        self.m_main_unit = self.m_world:get_main_player()
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "player_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = self["player_buff_container_gameObject"].transform
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "target_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = go.transform:Find("Target/TargetBuff")
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "player_special_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = self["player_buff_special_container_gameObject"].transform
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "trace_quest_bar") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = self["quest_bar_gameObject"].transform
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "mini_map") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = self["mini_map_gameObject"].transform
+                view_go.transform.parent = parent_trs
+                view_go.transform.anchoredPosition3D = Vector3.zero
+            end
+        end)
+        self.m_frame:create_player_buff_container(self.m_main_unit)
+        self.m_frame:create_trace_quest_bar()
+        self.m_frame:create_mini_map()
+
+        self:subscribe(self.m_frame:on_event_change_battle_state(), function(value)
+            if (value == true) then
+                self:in_combat()
+            else
+                self:out_combat()
+            end
+        end)
+
+        self:subscribe(role:on_event_target_set(true), function(value)
+            local target = value
+            -- 粗暴的做法，删除旧buff_container
+            if self.m_target_unit ~= nil and self.m_target_unit ~= self.m_world:get_main_player() then
+                self.m_target_buff_container:destroySelf()
+            end
+            -- 注销观察旧数据
+            if self.m_conn_target_hp ~= nil then
+                self:unsubscribe(self.m_conn_target_hp)
+            end
+
+            -- 使用新数据
+            if target == nil then
+                target_trs.gameObject:SetActive(false)
+                self.m_target_unit = nil
+            else
+                target_trs.gameObject:SetActive(true)
+
+                name_txt.text = target:get_name()
+
+                -- 注册事件
+                self.m_conn_target_hp = self:subscribe(target:on_event_hp_set(true), function(value)
+                    hp_prog.fillAmount = target:get_hp() / target:get_hp_max()
+
+                    hp_txt.text = string.format("%d//%d", target:get_hp(), target:get_hp_max())
+                end)
+                if target ~= self.m_world:get_main_player() then
+                    self.m_target_buff_container = self.m_frame:create_target_buff_container(target)
+                end
+            end
+            self.m_target_unit = value
+
+            --team
+            head_icon_toggle.isOn = false
+            team_invate_tr.gameObject:SetActive(false)
+        end)
+
+        -- 目标unit被删除时，血条消失
+        self:subscribe(self.m_world:on_event("del_unit"), function(id, unit)
+            if self.m_target_unit ~= nil then
+                if self.m_target_unit:get_id() == id then
+                    role:set_target(nil)
+                end
+            end
+        end)
+        self.m_frame:create_subsystem()
+
+
+        --------------------team system begin-------------------
+        head_icon_toggle.onValueChanged:AddListener(function(is_on)
+            assert(self.m_target_unit)
+            local is_in_team = app:get_team_mgr():is_has_member(self.m_target_unit:get_id())
+            local is_owner = self.m_target_unit == self:getFrame("world"):get_main_player()
+            if is_on then
+                if is_owner then
+                    team_invate_tr.gameObject:SetActive(false)
+                else
+                    if is_in_team then
+                        team_invate_tr.gameObject:SetActive(false)
+                    else
+                        team_invate_tr.gameObject:SetActive(true)
+                    end
+                end
+            else
+                team_invate_tr.gameObject:SetActive(false)
+            end
+        end)
+        team_invate_btn.onClick:AddListener(function()
+            if self.m_target_unit == nil then
+                head_icon_toggle.isOn = false
+                return
+            end
+            head_icon_toggle.isOn = false
+            app:get_team_mgr():req_invitation(self.m_target_unit:get_id(), self.m_target_unit:get_dbid())
+        end)
+        --------------------team system end-------------------
+
+        --------------------  dungeon system  begin  --------------------
+        -- 副本解锁显示
+        self.m_dungeon_manager = self:getFrame("dungeon_manager")
+
+        self:subscribe(self.m_dungeon_manager:on_event("unlock_dungeon_system"), function()
+            self["dungeon_diff_gameObject"]:SetActive(true)
+        end)
+
+        self:subscribe(self.m_dungeon_manager:on_event("unlock_new_dungeon"), function(new_dungeon_id)
+            self:unlock_new_dungenon(new_dungeon_id)
+        end)
+
+        local is_dungeon = self.m_dungeon_manager:gain_inst_id()
+        if is_dungeon ~= 0 then
+            self:on_in_dungeon()
+        end
+
+        -- 第一次创建副本
+        self:subscribe(self.m_dungeon_manager:on_event("join_dungeon_first"), function(time, progress_arry, drag_arry)
+            local acc_time = time
+            local pro_array = progress_arry
+            local drag_array = drag_arry
+            self:on_create_dungeon(acc_time, pro_array, drag_array)
+        end)
+
+        -- 副本存在时进入副本
+        self:subscribe(self.m_dungeon_manager:on_event("join_dungeon"), function(time)
+            self:on_join_dungeon(time)
+        end)
+
+        -- 地图切换之后将副本特定显示的按钮消失   切换副本时要判断时间显示，以及进度确认是否还没有销毁，如果还没有销毁，需要在这里将其销毁
+        self:subscribe(self.m_world:on_event("out_dungeon"), function()
+            self:on_out_dungeon()
+        end)
+
+        -- 查看副本进度按钮
+        self.m_dungeon_type_image.onClick:AddListener(function()
+            if self.m_mgr:getFrame("dungeon_confirm_progress") == nil then
+                local id = self.m_dungeon_manager:gain_inst_id()
+                self.m_dungeon_manager:req_req_kill_pro_for_diff_sel(id)
+            end
+        end)
+
+        --------------------  dungeon system  end  --------------------
+
+        -------死亡复活
+        self:subscribe(self.m_frame:on_event("resurrection_rebounding"), function(Enum_UI_Rebounding)
+            self:resurrection_rebounding(Enum_UI_Rebounding)
+        end)
+        ----响应原地复活按钮抛出的事件
+        self:subscribe(self.m_frame:on_event("situ_but_btn_click"), function()
+            self:situ_but_btn_click()
+        end)
+        ----响应原地复活按钮抛出的事件
+        self:subscribe(self.m_frame:on_event("bind_but_btn_click"), function()
+            self:situ_but_btn_click()
+        end)
+        self:subscribe(self:getFrame("death_manager"):on_event("player_death_click"), function()
+            self:situ_but_btn_click()
+        end)
+
+        --------------临时的gm--------------
+        local level_up_btn = go.transform:Find("level_up"):GetComponent(UI.Button)
+        local txt = go.transform:Find("level_up/Text"):GetComponent(UI.Text)
+        self.m_gm_txt = txt
+        local gm_input = go.transform:Find("gm_input"):GetComponent(UI.InputField)
+        self.m_gm_input = gm_input
+        local confirm_btn = go.transform:Find("gm_input/confirm"):GetComponent(UI.Button)
+        local cancel_btn = go.transform:Find("gm_input/cancel"):GetComponent(UI.Button)
+
+        self.m_input_is_open = false
+        level_up_btn.onClick:AddListener(function()
+            --if not self.m_input_is_open then
+            --    gm_input.gameObject:SetActive(true)\
+            --    txt.text = "close gm"
+            --    self.m_input_is_open = true
+            --else
+            --    txt.text = "open gm"
+            --    gm_input.gameObject:SetActive(false)
+            --    self.m_input_is_open = false
+            --    gm_input.text = ""
+            --end
+        end)
+        confirm_btn.onClick:AddListener(function()
+            --local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+            --local sdk = app:getKBESDK()
+            --local role_id = sdk:get_player_id()
+            --local role = kbe_mgr:get_entity(role_id)
+            --local level = role:get_attr("level")
+            -- pacman 2017-12-16 临时添加，切换操作模式， 指令字 cz
+            local input_txt = gm_input.text
+            local find_s, find_e = string.find(input_txt, "cz%s")
+            local gm_cmd = true
+            if find_s == 1 then
+                local match = string.match(input_txt, "%g+", find_e + 1)
+                if match ~= nil then
+                    app:get_cmd().change_player_controll_type(match)
+                    gm_cmd = false
+                end
+            end
+
+            if gm_cmd then
+                self:getFrame("skill_ui_manager"):base_call("gm_command", gm_input.text)
+            end
+
+        end)
+        cancel_btn.onClick:AddListener(function()
+            gm_input.text = ""
+        end)
+        --------------临时的gm--------------
+
+        self:subscribe(self.m_frame:on_event("load_spirit_scene"), function()
+
+            local path = app:getAssetPathMgr().get_ui_main_view_scene('scene1')
+            self:loadScene(path, function()
+            end)
+
+            local path = app:getAssetPathMgr().get_ui_main_view_scene('scene2')
+            self:loadScene(path, function()
+
+            end)
+
+        end)
+
+        self:subscribe(self.m_frame:on_event("skill_btn_down"), function()
+            local pc_view = self.m_mgr:getView("player_controller")
+            if pc_view:get_skill_ui_page_num() == 1 then
+                self:getFrame("skill_ui_main"):show(1)
+                self:show_skill_red_point(false)
+                pc_view:hide_red_point()
+                pc_view:set_skill_ui_page_num(0)
+            elseif pc_view:get_skill_ui_page_num() == 2 then
+                self:getFrame("skill_ui_main"):show(2)
+                self:show_skill_red_point(false)
+                pc_view:hide_red_point()
+                pc_view:set_skill_ui_page_num(0)
+            elseif pc_view:get_skill_ui_page_num() == 3 then
+                self:getFrame("skill_ui_main"):show(2)
+                self:show_skill_red_point(false)
+                pc_view:hide_red_point()
+                pc_view:set_skill_ui_page_num(0)
+            elseif pc_view:get_skill_ui_page_num() == 0 then
+                self:getFrame("skill_ui_main"):show(0)
+                self:show_skill_red_point(false)
+                pc_view:hide_red_point()
+            end
+        end)
+
+        --位面
+        self.m_sfx_plane = go.transform:Find("sfx_plane")
+
+        -- rjy 人物升级的变化及特效
+        self.m_sfx_container = go.transform:Find("sfx_container")
+        self.m_level_up_sfx = nil
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_juese_shengji"), self.m_sfx_container, "m_level_up_sfx")
+        self:subscribe(self:get_role():on_event_attr_set("level", true), function(val)
+            local level_up = true
+            self.m_is_level_up = level_up
+            if (self.m_level_up_sfx ~= nil) then
+                self:getFrame():set_level_up_sfx_is_over(false)
+                self.m_level_up_sfx.gameObject:SetActive(true)
+                self.m_level_up_sfx:Play()
+                slua_timer.addDelayEvent(2, function()
+                    self.m_level_up_sfx.gameObject:SetActive(false)
+                    self:getFrame():set_level_up_sfx_is_over(true)
+                end)
+            end
+        end)
+
+        -- 任务失败特效
+        self.m_quest_fail_sfx = nil
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_renwu_shibai"), self.m_sfx_container, "m_quest_fail_sfx")
+        self:subscribe(self.m_quest_manager:on_event("quest_fall"), function(quest_id)
+            if (self.m_quest_fail_sfx ~= nil) then
+                self.m_quest_fail_sfx.gameObject:SetActive(true)
+                self.m_quest_fail_sfx:Play()
+                slua_timer.addDelayEvent(2, function()
+                    self.m_quest_fail_sfx.gameObject:SetActive(false)
+                end)
+            end
+        end)
+
+        -- rjy 2017.12.04 监听任务完成  使得当完成任务并且升级时  只播放升级特效
+        Event_system:add_event_listener(EVENT_QUEST_DEL_QUEST, event_binder(self, self.del_quest))
+        self.m_quest_complete_sfx = nil
+        self:load_sfx(app:getAssetPathMgr().get_sfx_asset("ui_renwu_wancheng"), self.m_sfx_container, "m_quest_complete_sfx")
+    end)
+end
+
+---复活后弹板消失
+function M:situ_but_btn_click()
+    self["rebounding_GUIImage"].gameObject:SetActive(false)
+    self["situ_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+end
+function M:situ_but_btn_click_grey()
+
+end
+--复活弹板
+function M:resurrection_rebounding(enum_ui_rebounding)
+    self["rebounding_GUIImage"].gameObject:SetActive(true)
+    self["situ_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    if (enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.SITU_RESURRECTION) then
+        -- 原地能复活
+        self["situ_but_btn_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.SITU_RESURRECTION_MASK then
+        -- 原地不能复活
+        self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION then
+        -- 复活点能复活
+        self["bind_but_btn_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION_MASK then
+        -- 复活点不能复活
+        self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(true)
+    end
+end
+--位面
+function M:plane_sfx()
+    return self.m_sfx_plane
+end
+-- 任务完成特效
+function M:del_quest(quest_id)
+    -- 如果人物升级了  则不播放任务完成特效
+    local cur_xp = self:get_role():get_attr("xp")
+    local quest_give_xp = 0
+    for i, v in ipairs(dbc.quest[quest_id].gains) do
+        quest_give_xp = quest_give_xp + dbc.loot[v].exp
+    end
+    local level = self:get_role():get_attr("level")
+    local level_up_xp = dbc.level[level].xp
+    if cur_xp + quest_give_xp >= level_up_xp then
+        return
+    else
+        if (self.m_quest_complete_sfx ~= nil) then
+            self.m_quest_complete_sfx.gameObject:SetActive(true)
+            self.m_quest_complete_sfx:Play()
+            slua_timer.addDelayEvent(2, function()
+                self.m_quest_complete_sfx.gameObject:SetActive(false)
+            end)
+        end
+    end
+end
+
+function M:fetch_team_column_template_go()
+    return self.m_team_column_template_go
+end
+
+function M:in_combat()
+    -- 进入战斗状态不允许玩家看灵兽
+    self["sprite_entry_GUIButton"].gameObject:SetActive(false)
+    self["in_combat_GUIImage"].gameObject:SetActive(true)
+    self["out_combat_GUIImage"].gameObject:SetActive(false)
+    self["combat_back_in_GUIImage"].gameObject:SetActive(true)
+    self["in_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["out_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["combat_back_in_GUIImage"].gameObject.transform.localPosition = Vector3(-500, 0, 0)
+
+    local t1 = ShortcutExtensions.DOLocalMoveX(self["combat_back_in_GUIImage"].transform, 0, 0.5, false)
+    DG_DOTweenUtil.OnComplete(t1, function()
+        local t2 = ShortcutExtensions.DOLocalMoveX(self["in_combat_GUIImage"].transform, 500, 0.5, false)
+        ShortcutExtensions.DOLocalMoveX(self["combat_back_in_GUIImage"].transform, 500, 0.5, false)
+        DG_DOTweenUtil.OnComplete(t2, function( )
+            self["in_combat_GUIImage"].gameObject:SetActive(false)
+            self["combat_back_in_GUIImage"].gameObject:SetActive(false)
+        end)
+    end)
+end
+
+function M:out_combat()
+    -- 非战斗状态不允许玩家看灵兽
+    self["sprite_entry_GUIButton"].gameObject:SetActive(true)
+    self["in_combat_GUIImage"].gameObject:SetActive(false)
+    self["out_combat_GUIImage"].gameObject:SetActive(true)
+    self["combat_back_out_GUIImage"].gameObject:SetActive(true)
+    self["in_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["out_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["combat_back_out_GUIImage"].gameObject.transform.localPosition = Vector3(-500, 0, 0)
+    local t1 = ShortcutExtensions.DOLocalMoveX(self["combat_back_out_GUIImage"].transform, 0, 0.5, false)
+    DG_DOTweenUtil.OnComplete(t1, function()
+        local t2 = ShortcutExtensions.DOLocalMoveX(self["out_combat_GUIImage"].transform, 500, 0.5, false)
+        ShortcutExtensions.DOLocalMoveX(self["combat_back_out_GUIImage"].transform, 500, 0.5, false)
+        DG_DOTweenUtil.OnComplete(t2, function()
+            self["out_combat_GUIImage"].gameObject:SetActive(false)
+            self["combat_back_out_GUIImage"].gameObject:SetActive(false)
+        end)
+    end)
+end
+
+------获取物品后icon飞向背包
+function M:equipment_icon_move(go)
+    local t1 = ShortcutExtensions.DOLocalMove(go.transform, self.m_equip_target_point.localPosition, 2.5, false)
+    local t2 = ShortcutExtensions.DOScale(go.transform, 0.3, 2.5)
+    DG_DOTweenUtil.OnComplete(t2, function()
+        Object.Destroy(go)
+    end)
+end
+
+function M:npc_talk()
+    local ui_manager = app:get_ui_manager()
+    --local param = {npc_id = npc_id,npc_state = npc_state}
+    if self.m_quest_talk == false then
+        ui_manager:CreateUI("quest_talk", "%subsystem.quest.quest_talk.quest_talk", nil, ui_manager.UI_Depth.HIGH)
+        self.m_quest_talk = true
+        --头像显示
+        self:getFrame():set_head(false)
+        --地图显示
+        self:getFrame():set_map(false)
+        --任务栏显示
+        self:getFrame():set_quest_bar(false)
+        self:getFrame("player_controller"):set_is_show_move_panel(false)
+        self:getFrame("player_controller"):set_is_show_battle_panel(false)
+    else
+
+        ui_manager:DestroyUI("quest_talk")
+        self.m_quest_talk = false
+        --头像显示
+        self:getFrame():set_head(true)
+        --地图显示
+        self:getFrame():set_map(true)
+        --任务栏显示
+        self:getFrame():set_quest_bar(true)
+        self:getFrame("player_controller"):set_is_show_move_panel(true)
+        self:getFrame("player_controller"):set_is_show_battle_panel(true)
+    end
+end
+
+------获得装备更换icon图片
+function M:get_equip_icon_sprite(image, icon_path, quality_image, quality_icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+            self:subscribe(app:getResMgr():rxLoad(quality_icon_path), function(asset)
+                local tex = asset
+                if (tex == nil) then
+                    Debug.LogError("找不到这个icon啊---->" .. quality_icon_path)
+                else
+                    quality_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+                    quality_image.gameObject:SetActive(true)
+                    self:equipment_icon_move(quality_image.gameObject)
+                end
+            end)
+        end
+    end)
+end
+
+------获得物品时处理进背包动画的方法
+function M:add_item(param)
+    for k, v in pairs(param) do
+        slua_timer.addDelayEvent(k / 2, function()
+            local go = Object.Instantiate(self.m_equip_item.gameObject)
+            go.transform.parent = self:getGO().transform:GetChild(0)
+            go.transform.localPosition = self.m_equip_generic_point.localPosition
+            go.transform.localScale = Vector3.one
+            local icon_image = go.transform:Find("equipment_icon").gameObject:GetComponent(UnityEngine.UI.Image)
+            local icon_path = self.m_item[v['tmpl']]['equip_path']
+            local inventory_manager = self:getFrame("inventory_manager")
+            local item_id = v['tmpl']
+            local level_label = self.m_item[item_id]['level_label']
+            local enhanced_level = v['enhanced_level']
+            local quality_id = inventory_manager:gain_equipment_quality(item_id, level_label + enhanced_level)
+            local quality_image = go:GetComponent(UnityEngine.UI.Image)
+            local quality_icon_path = dbc.equip_quality_client[quality_id]['backpack_icon']
+            self:get_equip_icon_sprite(icon_image, icon_path, quality_image, quality_icon_path)
+        end)
+    end
+end
+
+------获得装备类物品，需额外处理快速装备功能
+function M:add_wearable_item(wearanble_info)
+    self:add_item(wearanble_info)
+end
+
+
+---- rjy 2017.11.28  以下两个方法移动至player_controller_view中  由于没有把升级的特效加载移过去  所以这个没有屏蔽
+---- 抄袭 skill_btn 加载特效
+function M:load_sfx(path, parent, cache)
+    self:load(path, function(go)
+        local component = go:GetComponent(ParticleSystem)
+        go.transform:SetParent(parent)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        local ui_manager = app:get_ui_manager()
+        local depth = ui_manager:GetDepth(ui_manager.UI_Depth.ALERT)
+        if cache == "m_match_sfx" then
+            depth = ui_manager:GetDepth(ui_manager.UI_Depth.NORMAL)
+            go.transform:SetParent(self.m_sfx_container)
+            go:SetActive(true)
+            component:Play()
+            self.m_match_sfx = go
+            self:matching_event()
+        else
+            go:SetActive(false)
+            component:Stop()
+        end
+
+
+        local ps = go:GetComponentsInChildren(ParticleSystem)
+        if (ps ~= nil) then
+            for info in foreach(ps) do
+                info.gameObject.layer = LayerMask.NameToLayer("UI")
+                info:GetComponent(Renderer).sortingOrder = depth + 1
+            end
+        end
+
+        if (cache == nil) then
+            return
+        end
+        if cache ~= "m_match_sfx" then
+            self[cache] = component
+        end
+    end)
+end
+
+-- rjy 2017.11.28 临时加一个获取当前玩家role的方法    doInit传过来的是unit
+function M:get_role()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    return role
+end
+
+-----是否显示技能面板按钮上的小红点
+function M:show_skill_red_point(show)
+    self["red_point_gameObject"]:SetActive(show)
+end
+
+function M:doUpdate()
+    if Input.GetKeyDown(KeyCode.Tab) then
+        if not self.m_input_is_open then
+            self.m_gm_input.gameObject:SetActive(true)
+            self.m_gm_txt.text = "close gm"
+            self.m_input_is_open = true
+        else
+            self.m_gm_txt.text = "open gm"
+            self.m_gm_input.gameObject:SetActive(false)
+            self.m_input_is_open = false
+            self.m_gm_input.text = ""
+        end
+    end
+end
+
+--------------------  mainView  local  begin  --------------------
+
+-- 切换到main页签
+function M:change_to_main_page(skill_container, btn)
+    local qua = Quaternion.Euler(0, 0, 90)
+    ShortcutExtensions.DORotateQuaternion(btn.transform, qua, 0.5)
+    ShortcutExtensions.DOLocalMoveY(skill_container.gameObject.transform, -900, 0.6, false)
+    ShortcutExtensions.DOLocalMoveY(self.m_system_btn_container.gameObject.transform, 0, 0.6, false)
+end
+
+-- 切换到player_contrller页签
+function M:change_to_skill_page(skill_container, btn)
+    local qua = Quaternion.Euler(0, 0, 0)
+    ShortcutExtensions.DORotateQuaternion(btn.transform, qua, 0.5)
+    ShortcutExtensions.DOLocalMoveY(self.m_system_btn_container.gameObject.transform, -600, 0.6, false)
+    ShortcutExtensions.DOLocalMoveY(skill_container.gameObject.transform, 0, 0.6, false)
+end
+
+--------------------  mainView  local  begin  --------------------
+
+
+
+--------------------  matching system  begin  --------------------
+
+-- 匹配相关事件的注册
+function M:matching_event()
+    local matching_manager = self:getFrame("matching_manager")
+    self:subscribe(matching_manager:on_event("rec_matching_data"), function(challenge_num, is_maching, dungeon_id, time, diff)
+        if is_maching == 1 then
+            self:in_matching_state()
+        else
+            self:out_matching_state()
+        end
+    end)
+
+    matching_manager:req_matching_data()
+end
+
+-- 匹配状态
+function M:in_matching_state()
+    self.m_match_sfx.gameObject:SetActive(true)
+    self["quick_matching_GUIButton"].gameObject:GetComponent(UI.Image).color = Color(1, 1, 1, 0)
+end
+
+-- 未匹配状态
+function M:out_matching_state()
+    self.m_match_sfx.gameObject:SetActive(false)
+    self["quick_matching_GUIButton"].gameObject:GetComponent(UI.Image).color = Color(1, 1, 1, 1)
+end
+
+--------------------  matching system  end  --------------------
+
+
+--------------------  dungeon system  begin  --------------------
+
+-- 副本解锁提示
+function M:unlock_new_dungenon(id)
+    self.m_dungeonun_unlock_text.text = ""
+    local show_color = "red"
+    local dungeon_name = dbc.instances[id].name
+    local type = dbc.instances[id].diff_name
+    self.m_dungeonun_unlock_text.text = self.m_dungeonun_unlock_text.text .. "<color=" .. show_color .. ">" .. dungeon_name .. "</color>" .. "副本<color=" .. show_color .. ">" .. type .. "</color>难度解锁"
+    self.m_dungeon_tip_text.gameObject:SetActive(true)
+    self.m_dungeon_tip_text.gameObject.transform.localPosition = Vector3(-1000, 300, 0)
+    local t2 = ShortcutExtensions.DOLocalMoveX(self.m_dungeon_tip_text.gameObject.transform, 1000, 5, false)
+    ShortcutExtensions.DOLocalMoveX(self.m_dungeon_tip_text.gameObject.transform, 1000, 5, false)
+    DG_DOTweenUtil.OnComplete(t2, function()
+        self.m_dungeon_tip_text.gameObject:SetActive(false)
+    end)
+end
+
+-- 在副本内应该做的处理
+function M:on_in_dungeon()
+    self:dungeon_type_show()
+end
+
+-- 离开副本时需要做的操作
+function M:on_out_dungeon()
+    local ui_manager = app:get_ui_manager()
+    local frame_mgr = self.m_frame:getFrameMgr()
+    self.m_dungeon_type_image.transform.gameObject:SetActive(false)
+    if frame_mgr:getFrame("dungeon_confirm_progress") ~= nil then
+        ui_manager:DestroyUI("dungeon_confirm_progress")
+    end
+    if frame_mgr:getFrame("dungeon_stop_time") ~= nil then
+        ui_manager:DestroyUI("dungeon_stop_time")
+    end
+    if frame_mgr:getFrame("big_map") ~= nil then
+        ui_manager:DestroyUI("big_map")
+    end
+    if frame_mgr:getFrame("dungeon_leave_sure") ~= nil then
+        ui_manager:DestroyUI("dungeon_leave_sure")
+    end
+end
+
+-- 创建副本时候进入的处理
+function M:on_create_dungeon(acc_time, acc_array, drag_array)
+    self:on_in_dungeon()
+    self.m_dungeon_manager:create_dungeon_stop_time(acc_time)
+    -- 弹出副本进度面板
+    self.m_dungeon_manager:create_dungeon_confirm_progress(acc_array, drag_array)
+end
+
+-- 非创建副本时候进入的处理
+function M:on_join_dungeon(time)
+    self:on_in_dungeon()
+    self.m_dungeon_manager:create_dungeon_stop_time(time)
+end
+
+-- 根据副本的类型显示对应的图片
+function M:dungeon_type_show()
+    local id = self.m_dungeon_manager:gain_inst_id()
+    if id == 0 then
+        return
+    elseif not id then
+        return
+    else
+        local type = dbc.instances[id].diff_name
+        local path = nil
+        if type == "普通" then
+            path = app:getAssetPathMgr().get_ui_main_view_resource('normal')
+            self:change_sprite(path)
+        elseif type == "英雄" then
+            path = app:getAssetPathMgr().get_ui_main_view_resource('hero')
+            self:change_sprite(path)
+        elseif type == "史诗" then
+            path = app:getAssetPathMgr().get_ui_main_view_resource('epic')
+            self:change_sprite(path)
+        elseif type == "秘境" then
+            path = app:getAssetPathMgr().get_ui_main_view_resource('mist')
+            self:change_sprite(path)
+        end
+    end
+    self.m_dungeon_type_image.gameObject:SetActive(true)
+end
+
+-- 更改图片
+function M:change_sprite(icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset)
+        local tex = asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            self.m_dungeon_type_image.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+--------------------  dungeon system  end  --------------------
+
+return M

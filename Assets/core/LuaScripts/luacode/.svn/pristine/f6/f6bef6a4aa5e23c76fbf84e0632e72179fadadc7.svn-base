@@ -1,0 +1,72 @@
+local Frame = require("system.frame")
+local skill_ui_setting_list = class("skill_ui_setting_list", Frame)
+
+
+-- 配置技能事件
+Event.decl(skill_ui_setting_list, "set_skill")
+
+function skill_ui_setting_list:doInit(param)
+
+    -- 已经学习的技能  资讯列表
+    self.m_master_info_list = {}
+
+    -- 已学习主动技能信息列表
+    self.m_positive_skill_info_list = {}
+
+end
+
+function skill_ui_setting_list:on_loaded()
+
+    local skill_ui_manager = self:getFrame("skill_ui_manager")
+    self.m_master_info_list = skill_ui_manager:get_master_info_list()
+    -- 已经学习的技能  id列表
+    for i, v in ipairs(self.m_master_info_list) do
+        -- 已学习技能中的主动技能
+        if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+            table.insert(self.m_positive_skill_info_list, v)
+        end
+    end
+
+
+    -- 创建技能图标
+    self.m_skill_btn_list = {}
+    local skill_num = 0
+    for i, v in ipairs(self.m_positive_skill_info_list) do
+        skill_num = skill_num + 1
+        local skill_id = v.tmpl
+        local cur_level = v.stat
+        local slot_info = v.slot
+        local param = { ["skill_id"] = skill_id, ["cur_level"] = cur_level, ["slot_info"] = slot_info }
+        local skill_btn = self:createChild("skill_ui_setting_list_btn" .. skill_id, "%subsystem/skill_system_ui/skill_ui_setting_list_btn", param)
+        self.m_skill_btn_list[skill_num] = skill_btn
+        --print(self.m_skill_btn_list[i]:get_skill_id())
+    end
+
+    -- 监听发来的新学习技能列表
+    self:subscribe(skill_ui_manager:on_event("master_info_add"), function(skill_info)
+        for i, v in ipairs(skill_info) do
+            -- 维护自己的已学习技能资讯列表
+            table.insert(self.m_master_info_list, v)
+            if dbc.spell_ui[v.tmpl].passivity_skill == 0 then
+                -- 维护自己的已学习主动技能的id列表
+                table.insert(self.m_positive_skill_info_list, v)
+                local skill_id = v.tmpl
+                local cur_level = v.stat
+                local slot_info = v.slot
+                local param = { ["skill_id"] = skill_id, ["cur_level"] = cur_level, ["slot_info"] = slot_info }
+                self:createChild("skill_ui_setting_list_btn" .. skill_id, "%subsystem/skill_system_ui/skill_ui_setting_list_btn", param)
+            end
+        end
+    end)
+
+end
+
+
+function skill_ui_setting_list:set_skill(skill_id,slot)
+    self:emit_event("set_skill", skill_id,slot)
+end
+
+function skill_ui_setting_list:get_skill_info_list()
+    return self.m_master_info_list
+end
+return skill_ui_setting_list

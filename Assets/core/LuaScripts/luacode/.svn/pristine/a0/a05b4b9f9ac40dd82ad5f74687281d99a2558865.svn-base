@@ -1,0 +1,35 @@
+local View = require("system.view")
+local big_map_dungeon_join_view = class("big_map_dungeon_join_view", View)
+
+function big_map_dungeon_join_view:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+    local frame = self:getFrame()
+
+    self.m_map_manager = self:getFrame("map_manager")
+    local big_map = self:getFrame("big_map")
+
+    self:load_prefab(app:getAssetPathMgr().get_ui_view_asset("BigMap"), function(loaded_go)
+
+        local template_go = loaded_go.transform:Find("map_bg/map_area/Viewport/Content/area/dungeon_join_list/dungeon_join_item").gameObject
+        local go = Object.Instantiate(template_go)
+
+        local type_three = go.transform:Find("dungeon_type_three").gameObject
+        local type_two = go.transform:Find("dungeon_type_two").gameObject
+        self:getGO():AddComponent(RectTransform)
+
+        go.transform:SetParent(self:getGO().transform)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+
+        go:SetActive(true)
+        if param["type"] == 2 then
+            type_two:SetActive(true)
+            type_three:SetActive(false)
+        else
+            type_three:SetActive(true)
+            type_two:SetActive(false)
+        end
+    end)
+end
+
+return big_map_dungeon_join_view

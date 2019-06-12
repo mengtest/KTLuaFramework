@@ -1,0 +1,130 @@
+--套装选择界面view
+local View = require("system.view")
+local fashion_select_view = class("fashion_select_view", View)
+
+function fashion_select_view:doInit()
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+
+    ----是否需要移动
+    self.m_need_move = false
+    ----移动速度
+    self.m_move_speed = 0
+    ----移动时间
+    self.m_move_time = 0.2
+    ---滑动条的值
+    self.m_scroll_bar_target_value = 0
+    -----开始拖拽的位置
+    self.m_drag_begin_pos = nil
+    ---结束拖拽的位置
+    self.m_drag_end_pos = nil
+    ---滑动条索引值列表
+    self.m_value_list = {}
+    ---存放卡牌group的列表
+    self.m_group_list = {}
+    ---滑动条当前的值
+    self.m_current_value = nil
+    ---标记当前滑动到第几页
+    self.m_current_page = 0
+
+    self:load("UI/Fashion_select.prefab", function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        --存放时装卡牌的父物体
+        self.m_template_go = go.transform:Find("Fashion_select_slippage/scroll_View/Viewport/Content")
+        ----存放卡牌的group，每四张卡牌放在一个group中
+        self.m_card_group = go.transform:Find("Fashion_select_slippage/card_group").gameObject
+        --滑动条
+        self.m_scroll_bar = go.transform:Find("Fashion_select_slippage/scroll_View/Scrollbar"):GetComponent(UI.Scrollbar)
+        --控制滑动区域
+        self.m_drag_area_container = go.transform:Find("Fashion_select_slippage/scroll_View"):GetComponent("DragSkill")
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local param = child_frame:getParam()
+            if param % 4 == 1 then
+                self:instantiate_card_group()
+            end
+            local view = self.m_mgr:getView(name)
+            local view_go = view:getGO()
+            local parent_transform = self.m_current_value.transform
+            view_go.transform.parent = parent_transform
+            view_go.transform.localPosition = Vector3.zero
+            view_go.transform.localScale = Vector3.one
+        end)
+        self.m_frame:on_loaded()
+        self:add_value_list()
+
+        self.m_drag_area_container.onBeginDrag = DragSkill_OnBeginDragHandler()
+        self.m_drag_area_container.onBeginDrag:AddListener(function(eventdata)
+            --记录开始拖拽时的位置
+            self.m_drag_begin_pos = eventdata.position
+        end)
+
+        self.m_drag_area_container.onEndDrag = DragSkill_OnEndDragHandler()
+        self.m_drag_area_container.onEndDrag:AddListener(function(eventdata)
+            self.m_drag_end_pos = eventdata.position
+            self:end_drag_callback(self.m_drag_begin_pos, self.m_drag_end_pos)
+        end)
+    end)
+end
+
+function fashion_select_view:doUpdate()
+    if self.m_need_move then
+        if (math.abs(self.m_scroll_bar.value - self.m_scroll_bar_target_value) < 0.01) then
+            self.m_scroll_bar.value = self.m_scroll_bar_target_value
+            self.m_need_move = false
+            return
+        end
+        ----在unity中有一个返回值，但是函数的参数有应用类型的参数，所以将引用类型的那个参数作为返回值返回，故有两个参数
+        local smoothed_val, move_speed = Mathf.SmoothDamp(self.m_scroll_bar.value, self.m_scroll_bar_target_value, self.m_move_speed, self.m_move_time)
+        self.m_scroll_bar.value = smoothed_val
+        self.m_move_speed = move_speed
+    end
+end
+
+function fashion_select_view:end_drag_callback(begin_pos, end_pos)
+    for k,v in pairs(self.m_value_list) do
+        print(k,v)
+    end
+    if end_pos.y > begin_pos.y then
+        for i = 1, #self.m_group_list do
+            if self.m_current_value == self.m_group_list[i] and i >= 1 and i < #self.m_group_list then
+                self.m_scroll_bar_target_value = self.m_value_list[i + 1]
+                self.m_current_value = self.m_group_list[i + 1]
+                self.m_need_move = true
+                break
+            end
+        end
+    elseif end_pos.y < begin_pos.y then
+        for i = 1, #self.m_group_list do
+            if self.m_current_value == self.m_group_list[i] and i <= #self.m_group_list and i > 1 then
+                self.m_scroll_bar_target_value = self.m_value_list[i - 1]
+                self.m_current_value = self.m_group_list[i - 1]
+                self.m_need_move = true
+                break
+            end
+        end
+    end
+end
+
+function fashion_select_view:add_value_list()
+    local list_count = #self.m_group_list
+    if list_count > 1 then
+        for i = 1, list_count do
+            self.m_value_list[i] = 1 / (list_count - 1) * (list_count - i)
+        end
+    end
+end
+
+function fashion_select_view:instantiate_card_group()
+    local group_go = Object.Instantiate(self.m_card_group)
+    group_go.transform:SetParent(self.m_template_go)
+    group_go.transform.localPosition = Vector3.zero
+    group_go.transform.localScale = Vector3.one
+    group_go:SetActive(true)
+    self.m_group_list[#self.m_group_list + 1] = group_go
+    self.m_current_value = group_go
+end
+
+return fashion_select_view

@@ -1,0 +1,579 @@
+local M = class("KBESDK")
+
+Event.decl(M, "login_result")
+Event.decl(M, "bekick")
+
+Event.decl(M, "map_change")
+
+Event.decl(M, "entity_init")
+Event.decl(M, "entity_destroy")
+
+Event.decl(M, "entity_enter")
+Event.decl(M, "entity_exit")
+
+Event.decl(M, "entity_property_set")
+Event.decl(M, "entity_remote_method_call")
+
+Event.decl(M, "entity_set_position")
+Event.decl(M, "entity_set_direction")
+
+local EVENTS = {
+	-- Entity events:
+	"onEnterWorld",
+	"onLeaveWorld",
+	"onEnterSpace",
+	"onLeaveSpace",
+	"onCreateAccountResult",
+	"onControlled",
+	"onLoseControlledEntity",
+	"set_position",
+	"set_direction",
+	"updatePosition",
+	"onPropertySet",
+	"onRemoteMethodCall",
+	"onEntityDestroy",
+	"onEntityInit",
+	-- Protocol events:
+	"onVersionNotMatch",
+	"onScriptVersionNotMatch",
+	"Loginapp_importClientMessages",
+	"Baseapp_importClientMessages",
+	"Baseapp_importClientEntityDef",
+	-- Login and Logout status:
+	"onLoginBaseapp",
+	"onReloginBaseapp",
+	"onKicked",
+	"onLoginFailed",
+	"onLoginBaseappFailed",
+	"onReloginBaseappFailed",
+	"onReloginBaseappSuccessfully",
+	-- Space events:
+	"addSpaceGeometryMapping",
+	"onSetSpaceData",
+	"onDelSpaceData",
+	-- Network events:
+	"onConnectionState",
+	"onDisconnected",
+}
+
+local function convert_container_value(value)
+    if type(value) == "userdata" then
+        local value_type = tostring(value)
+        if value_type == "System.Collections.Generic.List`1[System.Object]" or value_type == "Array<Object>" then
+            local ret = {}
+            for item in Slua.iter(value) do
+                ret[#ret+1] = convert_container_value(item)
+            end
+            return ret
+        elseif value_type == "System.Collections.Generic.Dictionary`2[System.String,System.Object]" then
+            local ret = {}
+            for pair in Slua.iter(value) do
+                ret[pair.Key] = convert_container_value(pair.Value)
+            end
+            return ret
+        else
+            print("value type not support", value_type)
+        end
+    end
+
+    return value
+end
+
+function M:initialize()
+    Event.init(self)
+
+    local go = GameObject.Find("KBEMain")
+    if not go then
+        go = GameObject()
+        go.name = "KBEMain"
+        go:AddComponent("KBEMain")
+    end
+
+	self.m_event = KBEngine.KBEvent()
+
+	for _, name in ipairs(EVENTS) do
+		self.m_event["reg_"..name](self.m_event, function(...)
+            if  name ~= "updatePosition" and
+                name ~= "set_direction" and
+                name ~= "onPropertySet" then
+                --print("kbe event", name, ...)
+            end
+			
+			local cb = self[name]
+			if cb and type(cb) == "function" then
+				cb(self, ...)
+			end
+		end)
+	end
+
+	self.m_entity_map = {}
+    self.m_space_data = {}
+    self.m_lp_role_id = nil
+end
+
+function M:onEntityInit(ent)
+    assert(self.m_entity_map[ent.id] == nil)
+
+    self.m_entity_map[ent.id] = ent
+    self:emit_event("entity_init", ent.id, ent.className, ent:isPlayer())
+end
+
+function M:onEntityDestroy(ent)
+    assert(self.m_entity_map[ent.id] == ent)
+
+    self:emit_event("entity_destroy", ent.id)
+    self.m_entity_map[ent.id] = nil
+
+    if self.m_lp_role_id and self.m_lp_role_id == ent.id then
+        self.m_lp_role_id = nil
+    end
+end
+
+function M:onPropertySet(ent, name, old)
+    if name == "position" then
+        return self:set_position(ent)
+    end
+
+    if name == "direction" then
+        return self:set_direction(ent)
+    end
+
+    local value = convert_container_value(ent:getDefinedProperty(name))
+
+    self:emit_event("entity_property_set", ent.id, name, value, old)
+end
+
+function M:onRemoteMethodCall(ent, name, args)
+    self:emit_event("entity_remote_method_call", ent.id, name, convert_container_value(args))
+end
+
+function M:onConnectionState(success)
+    if not success then
+        self:emit_event("login_result", false, "connect_fail")
+    end
+end
+
+function M:onLoginFailed(ecode)
+    self:emit_event("login_result", false, string.format("login_fail_%d", ecode))
+end
+
+function M:onLoginBaseappFailed(ecode)
+    self:emit_event("login_result", false, string.format("login_baseapp_fail_%d", ecode))
+end
+
+function M:onKicked(ecode)
+    if self.m_lp_role_id then
+        self.m_lp_role_id = nil
+        self:emit_event("bekick", ecode)
+    end
+end
+
+function M:onSetSpaceData(id, key, value)
+    self.m_space_data[id] = self.m_space_data[id] or {}
+    self.m_space_data[id][key] = value
+
+    if key == "map_id" then
+        local old = self.m_map_id
+        self.m_map_id = tonumber(value)
+        self:emit_event("map_change", self.m_map_id, old)
+    end
+end
+
+function M:onDelSpaceData(id, key)
+    if self.m_space_data[id] and self.m_space_data[id][key] then
+        self.m_space_data[id][key] = nil
+    end
+end
+
+function M:onEnterSpace(ent)
+    if ent.className == "Role" and ent:isPlayer() then
+        assert(self.m_lp_role_id == nil)
+        self.m_lp_role_id = ent.id
+
+        self:emit_event("login_result", true)
+    end
+end
+
+function M:onLeaveSpace(ent)
+    if self.m_lp_role_id and self.m_lp_role_id == ent.id then
+        self.m_lp_role_id = nil
+    end
+end
+
+function M:onEnterWorld(ent)
+    self:emit_event("entity_enter", ent.id)
+end
+
+function M:onLeaveWorld(ent)
+    self:emit_event("entity_exit", ent.id)
+end
+
+function M:set_position(ent)
+    self:emit_event("entity_set_position", ent.id, ent.position)
+end
+
+function M:set_direction(ent)
+    self:emit_event("entity_set_direction", ent.id, ent.direction)
+end
+
+function M:updatePosition(ent)
+    self:emit_event("entity_update_position", ent.id, ent.position)
+end
+
+
+function M:login(ip, port, username, password)
+    assert(type(username) == "string")
+    assert(type(password) == "string")
+
+    KBEngine.KBEngineApp.app:getInitArgs().ip = ip
+    KBEngine.KBEngineApp.app:getInitArgs().port = port
+
+    self.m_event:login(username, password)
+end
+
+function M:create_account(username, password)
+    assert(type(username) == "string")
+    assert(type(password) == "string")
+    self.m_event:createAccount(username, password)
+end
+
+function M:get_all_entity()
+    local ret = {}
+    for id in pairs(self.m_entity_map) do
+        table.insert(ret, id)
+    end
+    return ret
+end
+
+function M:get_entity_type(id)
+    local ent = self.m_entity_map[id]
+    if ent then
+        return ent.className
+    end
+end
+
+function M:is_entity_in_world(id)
+    local ent = self.m_entity_map[id]
+    if ent then
+        return ent.inWorld
+    end
+end
+
+function M:get_entity_property(id, name)
+    local ent = self.m_entity_map[id]
+    if ent then
+        return ent:getDefinedProperty(name)
+    end
+end
+
+function M:get_entity_position(id)
+    local ent = self.m_entity_map[id]
+    if ent then
+        return ent.position
+    end
+end
+
+function M:get_entity_direction(id)
+    local ent = self.m_entity_map[id]
+    if ent then
+        return ent.direction
+    end
+end
+
+function M:get_player_id()
+    return self.m_lp_role_id
+end
+
+function M:get_player_map_id()
+    return self.m_map_id
+end
+
+function M:player_update(position, direction)
+    if self.m_lp_role_id then
+        local ent = assert(self.m_entity_map[self.m_lp_role_id])
+        ent.position = position
+        ent.direction = direction
+    end
+end
+
+function M:entity_base_call(id, name, ...)
+    local ent = self.m_entity_map[id]
+    if ent then
+        ent:baseCall(name, ...)
+    end
+end
+
+function M:entity_cell_call(id, name, ...)
+    local ent = self.m_entity_map[id]
+    if ent then
+        ent:cellCall(name, ...)
+    end
+end
+
+return M
+
+--[[
+1: Create clientapp.cs
+    using KBEngine;
+    public class clientapp : KBEMain 
+    {
+    }
+
+2: Implment the KBE defined entity (including the client part)
+    See: kbengine\kbengine_demos_assets\scripts\entities.xml <hasClient="true" need to implment
+        <Account hasClient="true"></Account>
+        <Monster hasClient="true"></Monster>
+        <Gate hasClient="true"></Gate>
+        <Space/>
+
+        public class Account : KBEngine.Entity 
+        {
+            // entity initialization
+            public override void __init__()
+            {
+            }
+        }
+
+    Call entity server method
+        entity.baseCall("base_func", 1, "arg2", "argN")
+        entity.cellCall("cell_func", 1, "arg2", "argN")
+
+3: Monitor KBE-plugins event
+    For example:
+        public class UI : MonoBehaviour
+        {
+            void Start () 
+            {
+                KBEngine.Event.registerOut("onConnectionState", this, "onConnectionState");
+            }
+
+            public void onConnectionState(bool success)
+            {
+                // KBE-plugins event fired
+            }
+        }
+
+4: Fire events to the KBE-plugins
+    For example:
+        KBEngine.Event.fireIn("login", "stringAccount", "stringPasswd", System.Text.Encoding.UTF8.GetBytes("kbengine_unity3d_demo"));
+KBE-Plugin fire-out events(KBE => Unity):
+
+Entity events:
+    onEnterWorld
+        Description: 
+            Entity enter the client-world.
+
+        Event-datas: 
+            Enity
+
+
+    onLeaveWorld
+        Description: 
+            Entity leave the client-world.
+
+        Event-datas: 
+            Enity
+
+    onEnterSpace
+        Description: 
+            Player enter the new space.
+
+        Event-datas: 
+            Enity
+
+    onLeaveSpace
+        Description: 
+            Player enter the space.
+
+        Event-datas: 
+            Enity
+
+    onCreateAccountResult
+        Description: 
+            Create account feedback results.
+
+        Event-datas: 
+            uint16: retcode
+                http://kbengine.org/docs/configuration/server_errors.html
+
+            bytes: datas
+                If you use third-party account system, the system may fill some of the third-party additional datas.
+
+    onControlled
+        Description: 
+            Triggered when the entity is controlled or out of control.
+
+        Event-datas: 
+            Enity
+            bool: isControlled
+
+    onLoseControlledEntity
+        Description: 
+            Lose controlled entity.
+
+        Event-datas: 
+            Enity
+
+    set_position
+        Description: 
+            Sets the current position of the entity.
+
+        Event-datas: 
+            Enity
+
+    set_direction
+        Description: 
+            Sets the current direction of the entity.
+
+        Event-datas: 
+            Enity
+
+    updatePosition
+        Description: 
+            The entity position is updated, you can smooth the moving entity to new location.
+
+        Event-datas: 
+            Enity
+
+Protocol events:
+    onVersionNotMatch
+        Description: 
+            Engine version mismatch.
+
+        Event-datas: 
+            string: clientVersion
+            string: serverVersion
+
+    onScriptVersionNotMatch
+        Description: 
+            script version mismatch.
+
+        Event-datas: 
+            string: clientScriptVersion
+            string: serverScriptVersion
+
+    Loginapp_importClientMessages
+        Description: 
+            Importing the message protocol for loginapp and client.
+
+        Event-datas: 
+            No datas.
+
+    Baseapp_importClientMessages
+        Description: 
+            Importing the message protocol for baseapp and client.
+
+        Event-datas: 
+            No datas.
+
+    Baseapp_importClientEntityDef
+        Description: 
+            Protocol description for importing entities.
+
+        Event-datas: 
+            No datas.
+
+Login and Logout status:
+    onLoginBaseapp
+        Description: 
+            Login to baseapp.
+
+        Event-datas: 
+            No datas.
+
+    onReloginBaseapp
+        Description: 
+            Relogin to baseapp.
+
+        Event-datas: 
+            No datas.
+
+    onKicked
+        Description: 
+            Kicked of the current server.
+
+        Event-datas: 
+            uint16: retcode
+                http://kbengine.org/docs/configuration/server_errors.html
+
+    onLoginFailed
+        Description: 
+            Login failed.
+
+        Event-datas: 
+            uint16: retcode
+                http://kbengine.org/docs/configuration/server_errors.html
+
+    onLoginBaseappFailed
+        Description: 
+            Login baseapp failed.
+
+        Event-datas: 
+            uint16: retcode
+                http://kbengine.org/docs/configuration/server_errors.html
+
+    onReloginBaseappFailed
+        Description: 
+            Relogin baseapp failed.
+
+        Event-datas: 
+            uint16: retcode
+                http://kbengine.org/docs/configuration/server_errors.html
+
+    onReloginBaseappSuccessfully
+        Description: 
+            Relogin baseapp success.
+
+        Event-datas: 
+            No datas.
+
+Space events:
+    addSpaceGeometryMapping
+        Description: 
+            The current space is specified by the geometry mapping.
+            Popular said is to load the specified Map Resources.
+
+        Event-datas: 
+            string: resPath
+
+    onSetSpaceData
+        Description: 
+            Server spaceData set data.
+
+        Event-datas: 
+            int32: spaceID
+            string: key
+            string value
+
+    onDelSpaceData
+        Description: 
+            Server spaceData delete data.
+
+        Event-datas: 
+            int32: spaceID
+            string: key
+
+Network events:
+    onConnectionState
+        Description: 
+            Status of connection server.
+
+        Event-datas: 
+            bool: success or fail
+
+    onDisconnected
+        Description: 
+            Status of connection server.
+
+        Event-datas: 
+            No datas.
+]]
+
+--[[
+createAccount
+login
+reloginBaseapp
+resetPassword
+bindAccountEmail
+newPassword
+]]

@@ -1,0 +1,104 @@
+local M = {}
+
+function M:doInit(parma)
+    
+    self.m_view_mgr = parma.ViewMgr
+    
+    -- 所有通过ui_manager创建的view
+    self.m_view_list = {}
+    
+    -- self.m_view_Sibling = 1
+    self.frame = self:getFrame()
+    
+    self:getGO().layer = LayerMask.NameToLayer("UI")
+    
+    -- 创建Camera  目前应该只需要根节点放一个相机即可
+    -- 这个直接做一个Camera Prefab是不是就好了, 还方便一些设置.
+    local ui_cam_res = Resources.Load('UICamera', Camera)
+    local ui_cam_go = GameObject.Instantiate(ui_cam_res)
+    local ui_cam = ui_cam_go:GetComponent(Camera)
+    --[[
+    local ui_cam = self:getGO():AddComponent(Camera)
+    ui_cam.clearFlags = CameraClearFlags.Depth
+    ui_cam.cullingMask = LayerMask.GetMask("UI")
+    ui_cam.depth = 2
+    ui_cam.allowHDR = false;
+    ui_cam.allowMSAA = false;
+    ui_cam.orthographicSize = 1
+    ui_cam.orthographic = true;
+    --]]
+    
+    
+    self.frame:set_ui_camera(ui_cam)    
+    
+    self:subscribe(self.frame:on_event_show_set(), function(value)
+        self:getGO():SetActive(value)
+    end)
+    
+    self:subscribe(self.frame:on_event_add_ui(), function(name)
+        assert(self.m_view_list[name] == nil)
+        -- do something
+        self.m_view_list[name] = name
+    end)
+    
+    self:subscribe(self.frame:on_event_del_ui(), function(name)
+            -- do something
+            self.m_view_list[name] = nil
+    end)
+    
+    self:subscribe(self.frame:on_event_call_view(), function(funcName, name)
+        self[funcName](self, name)
+    end)
+
+    self:subscribe(self.frame:on_event_setindex(), function(name, index)
+        self:setindex(name,index)
+    end)
+    
+    self:subscribe(self.frame:on_event_adapt_resolution(), function(name, go)
+        self:AdaptResolution(name, go)
+    end)
+end
+
+function M:show_view(name)
+    -- assert(self.m_view_list[name] ~= nil)
+    if (self.m_view_list[name] ~= nil) then
+        self.m_view_mgr:getView(name):getGO():SetActive(true)
+    end
+end
+
+function M:hide_view(name)
+    -- assert(self.m_view_list[name] ~= nil)
+    if (self.m_view_list[name] ~= nil) then
+        self.m_view_mgr:getView(name):getGO():SetActive(false)
+    end
+end
+
+function M:send_top(name)
+    if (self.m_view_list[name] ~= nil) then
+        local view_go = self.m_view_mgr:getView(name):getGO()
+        view_go.transform:SetAsLastSibling()
+    end
+end
+
+-- 在当前root中显示到最后
+function M:sendfrist(name)
+    if (self.m_view_list[name] ~= nil) then
+        local view_go = self.m_view_mgr:getView(name):getGO()
+        view_go.transform:SetAsFristSibling()
+    end
+end
+
+-- 设置在当前root中显示的层级
+function M:setindex(name,index)
+    if (self.m_view_list[name] ~= nil) then
+        local view_go = self.m_view_mgr:getView(name):getGO()
+        view_go.transform:SetSiblingIndex(index)
+    end
+end
+
+function M:AdaptResolution(name, go)
+    local view_go = self.m_view_mgr:getView(name)
+    view_go:AdaptResolution(go)
+end
+
+return M

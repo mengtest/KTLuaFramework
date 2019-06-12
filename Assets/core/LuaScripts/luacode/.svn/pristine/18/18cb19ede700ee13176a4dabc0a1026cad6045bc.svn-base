@@ -1,0 +1,222 @@
+local Frame = require("system.frame")
+local spirit_info = class("spirit_info", Frame)
+
+-- 名称
+Attribute.decl(spirit_info, "name", "")
+-- 等级
+Attribute.decl(spirit_info, "level", "")
+-- 属性
+Attribute.decl(spirit_info, "property", "")
+-- 灵兽提高的耐力str
+Attribute.decl(spirit_info, "endurance_str", "")
+-- 灵兽提高的耐力
+Attribute.decl(spirit_info, "endurance", "")
+-- 灵兽特性 提高的武器等级
+Attribute.decl(spirit_info, "weapon_lvl", "")
+
+Event.decl(spirit_info, "strengthen")
+Event.decl(spirit_info, "show")
+Event.decl(spirit_info, "hide")
+Event.decl(spirit_info, "show_go_out_btn")
+Event.decl(spirit_info, "hide_go_out_btn")
+Event.decl(spirit_info, "refresh_star")
+
+
+function spirit_info:doInit(data)
+    self.m_unit = self:getFrame("world"):get_main_player()
+    self.m_inventory_mgr = self:getFrame("inventory_manager")
+    self.m_spirit_data = data
+    -- 初始化的时候先获取一下已经出战的灵兽
+    self.m_attch_spirit_slot = self.m_inventory_mgr:gain_out_sprite()
+    -- 左侧槽位列表
+    self.m_spirit_slot_list = self:getFrame("sprite"):get_slot_list()
+    --print("出站零售", self.m_attch_spirit_slot)
+    if self.m_attch_spirit_slot ~= 0 then
+        -- 如果当前有已经出战的灵兽，则灵兽出战
+        for i, v in pairs(self.m_spirit_slot_list) do
+            if v:get_slot_id() == self.m_attch_spirit_slot then
+                self:getFrame("world"):add_spirit_beast(self.m_unit, v:get_spirit_data().tmpl)
+                --self.m_inventory_mgr:sprite_attach_request_server(self.m_attch_spirit_slot)
+                break
+            end
+        end
+    end
+    -- 获取灵兽出战
+    self:subscribe(self.m_inventory_mgr:on_event("attach_sprite"), function(val)
+        self.m_attch_spirit_slot = val
+        self:emit_event("hide_go_out_btn")
+    end)
+    -- 获取解除灵兽出战
+    self:subscribe(self.m_inventory_mgr:on_event("unattached_sprite"), function()
+        self.m_attch_spirit_slot = 0
+        self:emit_event("show_go_out_btn")
+    end)
+end
+
+function spirit_info:on_loaded()
+    if self.m_spirit_data ~= nil then
+        self:refresh_data(self.m_spirit_data)
+        self:show()
+        self:getFrame("spirit_list"):hide()
+    else
+        self:hide()
+        self:getFrame("spirit_list"):show(self:getFrame("spirit_list").ChildPageName.CHANGE_PAGE)
+    end
+    -- 确认更换
+    self:subscribe(self:getFrame("sprite"):on_event("sprite_equipped"), function(spirit_data, args)
+        if self.m_spirit_data ~= nil and spirit_data.unique == self.m_spirit_data.unqiue then
+            self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.CLOSE)
+        end
+        self:refresh_data(spirit_data)
+        self.m_spirit_data = spirit_data
+        self:show()
+    end)
+
+    -- 当点击左侧槽位时
+    self:subscribe(self:getFrame("sprite"):on_event("change_slot"), function(spirit_data)
+        if spirit_data == nil then
+            self.m_spirit_data = nil
+            self:hide()
+            self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.CLOSE)
+        else
+            self:refresh_data(spirit_data)
+            self.m_spirit_data = spirit_data
+            self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.CLOSE)
+            self:show()
+        end
+    end)
+end
+
+-- 更换灵兽按钮
+function spirit_info:on_change()
+    self:getFrame("spirit_list"):show(self:getFrame("spirit_list").ChildPageName.CHANGE_PAGE)
+    self:getFrame("spirit_list"):refresh_list(self.m_spirit_data, dbc.sprite[self.m_spirit_data.tmpl].slot)
+    self:hide()
+    -- 当点击了这个按钮的时候，右下角的返回按钮要换
+    self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.RETURN)
+end
+-- 强化按钮
+function spirit_info:on_develop()
+    self:emit_event("strengthen")
+    self:hide()
+    -- 当点击了这个按钮的时候，右下角的返回按钮要换
+    self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.RETURN)
+end
+-- 分解按钮
+function spirit_info:on_decompose()
+    self:getFrame("spirit_list"):show(self:getFrame("spirit_list").ChildPageName.DECOMPOSE_PAGE)
+    self:getFrame("spirit_list"):refresh_decompose_list()
+    self:hide()
+    -- 当点击了这个按钮的时候，右下角的返回按钮要换
+    self:getFrame("sprite"):show_close_btn_or_return_btn(self:getFrame("sprite").Return_Btn_Type.RETURN)
+end
+-- 出战按钮
+function spirit_info:on_go_out()
+    if self.m_spirit_data then
+        -- 给服务器发协议
+        self.m_inventory_mgr:sprite_attach_request_server(dbc.sprite[self.m_spirit_data.tmpl].slot)
+    end
+end
+
+-- 回收按钮
+function spirit_info:on_recover()
+    -- 回收宠物 给服务器发协议
+    self.m_inventory_mgr:sprite_unattaching_request_server()
+end
+-- 刷新信息
+function spirit_info:refresh_data(spirit_data)
+    ---- TODO 有些东西还需要  暂时先有  名字  等级  描述
+    -- 名字
+    self:set_name(dbc.sprite[spirit_data.tmpl].name)
+    -- 等级
+    self:set_level("Lv." .. spirit_data.stat)
+    -- 属性文字
+    if dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.FIRE then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.FIRE)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WATER then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WATER)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.WOOD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.WOOD)
+    elseif dbc.sprite[spirit_data.tmpl].slot == enum.spirit_beast.SpiritBeastProperty.GOLD then
+        self:set_property(enum.spirit_beast.SpiritBeastPropertyDes.GOLD)
+    end
+    -- upgrade_bonuses
+    local bonus1_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[spirit_data.tmpl].upgrade_bonuses[1] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus1_str = str
+                end
+            end
+        end
+    end
+    for index, level in ipairs(dbc.sprite[spirit_data.tmpl].upgrade1_levels) do
+        if spirit_data.stat == level then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade1_params[index]
+            self:set_endurance_str(bonus1_str)
+            self:set_endurance(bonus)
+            break
+        elseif 0 < spirit_data.stat - level and spirit_data.stat - level < 3 then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade1_params[index]
+            self:set_endurance_str(bonus1_str)
+            self:set_endurance(bonus)
+        end
+    end
+
+
+    local bonus2_str = ""
+    for _, v in pairs(enum.shared.PropMod) do
+        if v == dbc.sprite[spirit_data.tmpl].upgrade_bonuses[2] then
+            for key, str in pairs(enum.spirit_beast.UpgradeBonuses) do
+                local num = tonumber(string.match(key, "%d+"))
+                if num == v then
+                    bonus2_str = str
+                end
+            end
+        end
+    end
+    for index, level in ipairs(dbc.sprite[spirit_data.tmpl].upgrade2_levels) do
+        if spirit_data.stat == level then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade2_params[index]
+            self:set_weapon_lvl(bonus2_str .. "    " .. tostring(bonus))
+            break
+        elseif 0 < spirit_data.stat - level and spirit_data.stat - level < 3 then
+            local bonus = dbc.sprite[spirit_data.tmpl].upgrade2_params[index]
+            self:set_weapon_lvl(bonus2_str .. "    " .. tostring(bonus))
+        end
+    end
+
+
+
+
+    -- 如果当前出战灵兽为本灵兽  则隐藏出战按钮
+    if dbc.sprite[spirit_data.tmpl].slot == self.m_attch_spirit_slot then
+        self:emit_event("hide_go_out_btn")
+    else
+        self:emit_event("show_go_out_btn")
+    end
+
+    -- 技能
+    -- TODO 现在技能先走一下创建删除试试，今后会改成全都创建出来，用哪个显示哪个/ 或者用设置tmpl的方式
+    if self.m_skill_btn_list ~= nil then
+        for i, v in pairs(self.m_skill_btn_list) do
+            self:destroyChild(v)
+        end
+    end
+    self.m_skill_btn_list = {}
+    for i, v in ipairs(spirit_data.assists) do
+        local skill_data = v
+        self.m_skill_btn_list[i] = self:createChild("spirit_info_skill_btn" .. v.tmpl, "spirit_beast.spirit_skill_btn", skill_data)
+    end
+    self:emit_event("refresh_star", spirit_data)
+end
+-- 加这个参数是为了从强化界面返回这个界面的时候需要强行打开
+function spirit_info:show(force_to_open)
+    self:emit_event("show", force_to_open)
+end
+function spirit_info:hide()
+    self:emit_event("hide")
+end
+return spirit_info

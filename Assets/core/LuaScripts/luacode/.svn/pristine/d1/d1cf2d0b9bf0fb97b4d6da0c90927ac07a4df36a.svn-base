@@ -1,0 +1,259 @@
+local M = {}
+
+function M:doInit(role)
+
+    ----用来对于界面的显示隐藏做标志位
+    self.m_skill_ui_main = false
+    self.m_ui_character_info = false
+
+    local frame = self:getFrame()
+    self:load("UI/Main.prefab", function(go)
+        -- pacman 2017-06-15 临时做法
+        local target_trs = go.transform:Find("Target")
+        local name_txt = target_trs:Find("TextName"):GetComponent(UI.Text)
+        local hp_prog = target_trs:Find("HealthBar"):GetComponent(UI.Slider)
+        local hp_txt = target_trs:Find("HealthBar/Hp"):GetComponent(UI.Text)
+
+        local tr_quick_invate = go.transform:Find("quick_invate")
+        local tr_pop_win = tr_quick_invate:Find("pop_win")
+        local tr_invate = tr_quick_invate:Find("pop_win/pop_bg/btn_invate")
+        local tr_leave = tr_quick_invate:Find("pop_win/pop_bg/btn_leave")
+        local tog_pop_win = tr_quick_invate:Find("btn_search"):GetComponent(UnityEngine.UI.Toggle)
+        local btn_hide_pop_win = tr_quick_invate:Find("pop_win"):GetComponent(UnityEngine.UI.Button)
+        local btn_invate = tr_invate:GetComponent(UnityEngine.UI.Button)
+        local btn_leave = tr_leave:GetComponent(UnityEngine.UI.Button)
+        -------自己的代码
+        local ui_manager = app:get_ui_manager()
+        ui_manager:AdaptResolution(frame:getFrameName(), go)
+        local characterinfo_btn = go.transform:Find("TempCharacterPanel").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        --副本相关   ke   temp等待引导系统还会修改
+        self.m_dungeon_image = go.transform:Find("dungeon_image")
+        self.m_dungeon_tip_text = go.transform:Find("Dungeon_state")
+        self.m_dungeon_leave_btn = go.transform:Find("leave_dungeon").gameObject:GetComponent(UnityEngine.UI.Button)
+        self.m_skill_system_btn = go.transform:Find("temp_skill_ui").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        characterinfo_btn.onClick:AddListener(function()
+            local sdk = app:getKBESDK()
+            if not self.m_ui_character_info then
+                ui_manager:CreateUI("ui_character_info", "ui_character_info", {
+                    role_id = sdk:get_player_id()
+                },
+                ui_manager.UI_Depth.HIGH)
+                self.m_ui_character_info = true
+            else
+                self.m_mgr:getView("ui_character_info"):getGO():SetActive(true)
+            end
+        end)
+        ---------------------
+        local filter_pop_win_btn = function(is_owner, is_leave_available)
+            btn_invate.gameObject:SetActive(not is_owner)
+            btn_leave.gameObject:SetActive(is_leave_available)
+        end
+        local switch_pop_win = function(flag)
+            local is_owner = self.m_target_unit == role
+            local is_leave_available = is_owner and self:getFrame("team_manager"):get_is_in_team()
+            --if flag then filter_pop_win_btn(self.m_target_unit) end
+            if is_owner and not is_leave_available then
+                return
+            end
+            filter_pop_win_btn(is_owner, is_leave_available)
+            tr_pop_win.gameObject:SetActive(flag)
+        end
+        tog_pop_win.onValueChanged:AddListener(switch_pop_win)
+        btn_hide_pop_win.onClick:AddListener(function()
+            tog_pop_win.isOn = false
+        end)
+        btn_invate.onClick:AddListener(function()
+            local team_manager = self:getFrame("team_manager")
+            team_manager:req_invitation(self.m_target_unit:get_id(), self.m_target_unit:get_dbid())
+            tog_pop_win.isOn = false
+        end)
+        btn_leave.onClick:AddListener(function()
+            local team_manager = self:getFrame("team_manager")
+            team_manager:req_leave()
+            tog_pop_win.isOn = false
+        end)
+
+        --  buff_container
+        self.world = self:getFrame("world")
+        local main_unit = self.world:get_main_player()
+        self:subscribe(frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            if string.find(name, "player_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                print("main_unit...........................", view_go)
+                local parent_trs = go.transform:Find("Head/PlayerBuff")
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "target_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                local parent_trs = go.transform:Find("Target/TargetBuff")
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            elseif string.find(name, "player_special_buff_container") then
+                local view = self:getView(name)
+                local view_go = view:getGO()
+                print("main_unit...........................", view_go)
+                local parent_trs = go.transform:Find("PlayerBuff_Special")
+                view_go.transform.parent = parent_trs
+                view_go.transform.localPosition = Vector3.zero
+            end
+        end)
+        self.m_frame:create_player_buff_container(main_unit)
+
+
+        self:subscribe(frame:on_event_change_battle_state(), function(value)
+            if (value == true) then
+                self:in_combat()
+            else
+                self:out_combat()
+            end
+        end)
+
+        self:subscribe(role:on_event_target_set(true), function(value)
+            local target = value
+            -- 粗暴的做法，删除旧buff_container
+            if self.m_target_unit ~= nil and self.m_target_unit ~= self.world:get_main_player() then
+                self.m_target_buff_container:destroySelf()
+            end
+            -- 注销观察旧数据
+            if self.m_conn_target_hp ~= nil then
+                self:unsubscribe(self.m_conn_target_hp)
+            end
+
+            -- 使用新数据
+            if target == nil then
+                target_trs.gameObject:SetActive(false)
+                tr_quick_invate.gameObject:SetActive(false)
+                self.m_target_unit = nil
+            else
+                target_trs.gameObject:SetActive(true)
+                if value:get_is_role() then
+                    tr_quick_invate.gameObject:SetActive(true)
+                    tog_pop_win.isOn = false
+                else
+                    tr_quick_invate.gameObject:SetActive(false)
+                end
+                name_txt.text = target:get_name()
+
+                -- 注册事件
+                self.m_conn_target_hp = self:subscribe(target:on_event_hp_set(true), function(value)
+                    hp_prog.value = target:get_hp() / target:get_hp_max()
+
+                    hp_txt.text = string.format("%d//%d", target:get_hp(), target:get_hp_max())
+                end)
+                if target ~= self.world:get_main_player() then
+                    self.m_target_buff_container = self.m_frame:create_target_buff_container(target)
+                end
+            end
+            self.m_target_unit = value
+        end)
+
+        -- 目标unit被删除时，血条消失
+        self:subscribe(self.world:on_event("del_unit"), function(id, unit)
+            if self.m_target_unit ~= nil then
+                if self.m_target_unit:get_id() == id then
+                    role:set_target(nil)
+                end
+            end
+        end)
+        self.m_frame:create_quest_bar()
+        ------副本解锁 显示   temp
+        self.m_dungeon_manager = self:getFrame("dungeon_manager")
+        self:subscribe(
+        self.m_dungeon_manager:on_event("unlock_dungeon"),
+        function()
+            self:Dungenon_in()
+        end)
+
+        self:subscribe(
+        self.m_dungeon_manager:on_event("open_dungeon_join"),
+        function(open_diff_list)
+            frame:create_dungeon_join(open_diff_list)
+        end)
+
+        ------技能系统UI主面板的创建
+        self.m_skill_system_btn.onClick:AddListener(function()
+            if not self.m_skill_ui_main then
+                frame:create_skill_ui_main()
+                self.m_skill_ui_main = true
+            else
+                self.m_mgr:getView("skill_ui_main"):getGO():SetActive(true)
+            end
+        end)
+        ------显示副本的推出按钮
+        self:subscribe(frame:on_event("join_dungeon"), function(prepare_time)
+            self.m_dungeon_leave_btn.transform.gameObject:SetActive(true)
+            ---弹出副本进度面板
+            frame:create_dungeon_confirm_progress()
+            frame:create_dungeon_stop_time(prepare_time)
+        end)
+
+        self:subscribe(frame:on_event("out_dungeon"), function()
+            self.m_dungeon_leave_btn.transform.gameObject:SetActive(false)
+        end)
+
+        self.m_dungeon_leave_btn.onClick:AddListener(function()
+            self:getFrame("dungeon_manager"):base_call("req_leave_instance")
+            self.m_dungeon_leave_btn.transform.gameObject:SetActive(false)
+        end)
+    end)
+end
+
+function M:fetch_team_column_template_go()
+    return self.m_team_column_template_go
+end
+
+function M:in_combat()
+    self["in_combat_GUIImage"].gameObject:SetActive(true)
+    self["out_combat_GUIImage"].gameObject:SetActive(false)
+    self["combat_back_GUIImage"].gameObject:SetActive(true)
+    self["in_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["out_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["combat_back_GUIImage"].gameObject.transform.localPosition = Vector3(-500, 0, 0)
+
+    local t1 = ShortcutExtensions.DOLocalMoveX(self["combat_back_GUIImage"].transform, 0, 0.5, false)
+    DG_DOTweenUtil.OnComplete(t1, function()
+        local t2 = ShortcutExtensions.DOLocalMoveX(self["in_combat_GUIImage"].transform, 500, 0.5, false)
+        ShortcutExtensions.DOLocalMoveX(self["combat_back_GUIImage"].transform, 500, 0.5, false)
+        DG_DOTweenUtil.OnComplete(t2, function( )
+            self["in_combat_GUIImage"].gameObject:SetActive(false)
+            self["combat_back_GUIImage"].gameObject:SetActive(false)
+        end)
+    end)
+end
+
+function M:out_combat()
+    self["in_combat_GUIImage"].gameObject:SetActive(false)
+    self["out_combat_GUIImage"].gameObject:SetActive(true)
+    self["combat_back_GUIImage"].gameObject:SetActive(true)
+    self["in_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["out_combat_GUIImage"].gameObject.transform.localPosition = Vector3.zero
+    self["combat_back_GUIImage"].gameObject.transform.localPosition = Vector3(-500, 0, 0)
+    local t1 = ShortcutExtensions.DOLocalMoveX(self["combat_back_GUIImage"].transform, 0, 0.5, false)
+    DG_DOTweenUtil.OnComplete(t1, function()
+        local t2 = ShortcutExtensions.DOLocalMoveX(self["out_combat_GUIImage"].transform, 500, 0.5, false)
+        ShortcutExtensions.DOLocalMoveX(self["combat_back_GUIImage"].transform, 500, 0.5, false)
+        DG_DOTweenUtil.OnComplete(t2, function()
+            self["out_combat_GUIImage"].gameObject:SetActive(false)
+            self["combat_back_GUIImage"].gameObject:SetActive(false)
+        end)
+    end)
+end
+
+-----副本解锁提示
+function M:Dungenon_in()
+    self.m_dungeon_tip_text.gameObject:SetActive(true)
+    self.m_dungeon_tip_text.gameObject.transform.localPosition = Vector3(-1000, 300, 0)
+
+    local t2 = ShortcutExtensions.DOLocalMoveX(self.m_dungeon_tip_text.gameObject.transform, 1000, 2, false)
+    ShortcutExtensions.DOLocalMoveX(self.m_dungeon_tip_text.gameObject.transform, 1000, 2, false)
+    DG_DOTweenUtil.OnComplete(t2, function()
+        self.m_dungeon_tip_text.gameObject:SetActive(false)
+        self.m_dungeon_image.gameObject:SetActive(true)
+    end)
+end
+return M

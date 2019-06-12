@@ -1,0 +1,208 @@
+local Frame = require("system.frame")
+local dungeon_manager = class("dungeon_manager", Frame)
+
+Event.decl(dungeon_manager, "unlock_dungeon")
+Event.decl(dungeon_manager, "open_dungeon_join")
+Event.decl(dungeon_manager, "join_dungeon")
+Event.decl(dungeon_manager, "refresh_dungeon_progress")
+
+function dungeon_manager:doInit()
+    ----所有副本的id，这是一个列表
+    self.m_dungeon_list = {}
+    ---所有副本的可以用到的信息，这是一个字典，以id为键
+    self.m_dungeon_dic = {}
+    ----副本的总表
+    self.m_dungeon_info_dic = {}
+    -----当前玩家所在的副本的id
+    self.m_in_dungeon_id = nil
+    ----副本进行了多长时间
+    self.m_dungeon_time = nil
+    ----副本的进度
+    self.m_dungeon_progress = {}
+    ----副本的Boss拾取进度
+    self.m_drag_progress = {}
+    for k, v in pairs(dbc.instances) do
+        self.m_dungeon_info_dic[k] = v
+    end
+end
+
+function dungeon_manager:init()
+    self:local_log("dungeon_manager  初始化")
+    self:req_unlock_dungeon_list()
+end
+
+--服务器返回解锁列表
+function dungeon_manager:accept_unlock_dungeon_list(unlock_dungeon_list)
+    self.m_dungeon_list = unlock_dungeon_list
+    ----temp test
+    --self.m_dungeon_list[2] = 12
+    --self.m_dungeon_list[3] = 13
+    --self.m_dungeon_list[4] = 14
+    --self.m_dungeon_list[5] = 15
+    -----
+    self:is_dungeon_unlock()
+
+    ----维护客户端的一个字典来存储副本的信息
+    for k, v in pairs(self.m_dungeon_list) do
+        local in_map_id = dbc.instances[v].inst_map_id
+        local level_name = dbc.instances[v].diff_name
+        local data = { ["map_id"] = in_map_id, ["level_name"] = level_name }
+        self.m_dungeon_dic[v] = data
+    end
+end
+
+----接受服务器反回的地图id结果
+function dungeon_manager:accept_dungeon_diff_result(acc_map_id)
+    --这里是返回了一个地图的map_id，要在总的表中根据map_id找出对应的id，再找出此副本所拥有的难度类型，
+    self:local_log("收到了服务器传来的消息%s", acc_map_id)
+    local curr_map_level_list = {}
+    for k, v in pairs(self.m_dungeon_info_dic) do
+        if v.inst_map_id == acc_map_id then
+            curr_map_level_list[k] = v.diff_name
+        end
+    end
+
+    -----之后再从已经解锁的表当中来确定哪些难度可以进入，哪些难度不可以进入，这个主要用来判断按钮变灰，是否可以点击
+    --------本map_id对应的难度list，在值中1表示普通，2表示英雄，3表示史诗，4表示秘境
+    local open_diff_list = {}
+    for k, v in pairs(curr_map_level_list) do
+        if v == "普通" then
+            open_diff_list[1] = { ["level"] = 1, ["ret_id"] = k, ["state"] = 0 }
+        elseif v == "英雄" then
+            open_diff_list[2] = { ["level"] = 2, ["ret_id"] = k, ["state"] = 0 }
+        elseif v == "史诗" then
+            open_diff_list[3] = { ["level"] = 3, ["ret_id"] = k, ["state"] = 0 }
+        elseif v == "秘境" then
+            open_diff_list[4] = { ["level"] = 4, ["ret_id"] = k, ["state"] = 0 }
+        end
+    end
+
+    for k, v in pairs(self.m_dungeon_dic) do
+        if v["map_id"] == acc_map_id then
+            if v["level_name"] == "普通" then
+                open_diff_list[1]["state"] = 1
+            elseif v["level_name"] == "英雄" then
+                open_diff_list[2]["state"] = 1
+            elseif v["level_name"] == "史诗" then
+                open_diff_list[3]["state"] = 1
+            elseif v["level_name"] == "秘境" then
+                open_diff_list[4]["state"] = 1
+            end
+        end
+    end
+
+    ---触发打开dunjeon_join面板
+    self:emit_event("open_dungeon_join", open_diff_list)
+end
+
+----副本系统是否已经解锁
+function dungeon_manager:is_dungeon_unlock()
+    if #self.m_dungeon_list >= 1 then
+        self:emit_event("unlock_dungeon")
+    end
+end
+
+
+--解锁新副本
+function dungeon_manager:accept_unlock_new_dungeon(dungeon_id)
+    self:do_add_dungeon(dungeon_id)
+end
+
+---向服务器请求解锁列表
+function dungeon_manager:req_unlock_dungeon_list()
+    self:base_call("req_unlock_instances")
+end
+
+----被拉入副本时服务器传来时间和当前副本的进度
+function dungeon_manager:accept_dungeon_time_and_progress(time, progress_arry, drag_arry)
+    self:local_log("进入副本传来的时间        %s", time)
+    for k, v in pairs(progress_arry) do
+        self:local_log("进入副本kzhi         %s", k)
+        self:local_log("进入副本vzhi       %s", v)
+    end
+    self.m_dungeon_time = time
+    self.m_dungeon_progress = progress_arry
+    -----抛出进入副本的事件
+    self.m_drag_progress = drag_arry
+    self:emit_event("join_dungeon", time, progress_arry, drag_arry)
+end
+
+----当打开副本地图的时候向服务器请求，服务器返回副本的进度的回调
+function dungeon_manager:accept_dungeon_progress(progress_arry)
+    self.m_dungeon_progress = progress_arry
+    self:emit_event("refresh_dungeon_progress", progress_arry)
+end
+
+---向副本的列表中添加新解锁的副本id
+function dungeon_manager:do_add_dungeon(dungeon_id)
+    ---向副本列表中添加
+    self.m_dungeon_list[#self.m_dungeon_list] = dungeon_id
+
+    ---向副本字典中添加
+    local map_id = dbc.instances[dungeon_id].map_id
+    local level_name = dbc.instances[dungeon_id].diff_name
+    local data = { ["map_id"] = map_id, ["level_name"] = level_name }
+    self.m_dungeon_dic[dungeon_id] = data
+
+end
+
+-----获取当前所在副本的id  外界调用
+function dungeon_manager:gain_curr_dungeon_id()
+    local id = self.m_in_dungeon_id
+    return id
+end
+
+-----获取最新一次服务器发来的副本进行时间
+function dungeon_manager:gain_dungeon_time()
+    local time = self.m_dungeon_time
+    return time
+end
+
+----获取服务器发来的boss拾取进度
+function dungeon_manager:gain_drag_progress()
+    local ret = self.m_drag_progress
+    return ret
+end
+
+-----获取当前副本的进度
+function dungeon_manager:gain_dungeon_progress()
+    local progress = self.m_dungeon_progress
+    return progress
+end
+
+----获取当前的主角所在的副本id
+function dungeon_manager:gain_inst_id()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local id = role:get_inst_id()
+    return id
+end
+
+----外界获取副本列表
+function dungeon_manager:show_dungeon_list()
+    local ret = {}
+    for k, v in pairs(self.m_dungeon_list) do
+        ret[k] = v
+    end
+    return ret
+end
+
+function dungeon_manager:base_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_base_call(player_id, method_name, ...)
+end
+
+function dungeon_manager:cell_call(method_name, ...)
+    local kbesdk = app:getKBESDK()
+    local player_id = kbesdk:get_player_id()
+    kbesdk:entity_cell_call(player_id, method_name, ...)
+end
+
+function dungeon_manager:local_log(...)
+    --app:logError(string.format(...))
+end
+
+return dungeon_manager

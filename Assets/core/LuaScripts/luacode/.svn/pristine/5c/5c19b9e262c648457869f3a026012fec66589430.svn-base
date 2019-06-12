@@ -1,0 +1,157 @@
+﻿local ResMgr 	= require "system.res_mgr"
+local FrameMgr 	= require "system.frame_mgr"
+local ViewMgr  	= require "system.view_mgr"
+local ModelMgr  = require "common.bp_model_mgr"
+local VfxMgr    = require "common.vfx_mgr"
+local SfxMgr    = require "common.sfx_mgr"
+local BpMgr     = require "common.bp_mgr"
+local SkillMgr	= require "system.bp_skill_mgr"
+local BattleMgr = require "system.battle_mgr"
+
+-- 全局常量
+-- 日志输出级别
+LOG_LEVEL_NONE  = 0 -- 不输出日志
+LOG_LEVEL_ERROR = 1 -- 错误日志
+LOG_LEVEL_WARN  = 2 -- 警告日志
+LOG_LEVEL_INFO  = 3 -- 信息日志
+LOG_LEVEL_DEBUG = 4 -- 调试日志
+
+local Application = class("Application")
+
+function Application:initialize()
+	--math.randomseed(os.time())
+	self.m_log_level = LOG_LEVEL_DEBUG
+
+	self.m_res_mgr       = ResMgr:new()
+	self.m_frame_mgr     = FrameMgr:new()
+	self.m_view_mgr      = ViewMgr:new(self.m_frame_mgr)
+	self.m_model_mgr     = ModelMgr:new()
+	self.m_vfx_mgr       = VfxMgr:new()
+	self.m_sfx_mgr       = SfxMgr:new()
+	self.m_bp_mgr        = BpMgr:new()
+	self.m_skill_mgr 	 = SkillMgr:new()
+	self.m_battle_mgr    = BattleMgr:new()
+    self.m_ui_manager 	 = self:createFrame("ui_manager","ui_manager",nil,{FrameMgr = self.m_frame_mgr,ViewMgr = self.m_view_mgr})
+    self.m_curve_storage = GameObject.Find("AnimationCurveStorage"):GetComponent(CurveStorage)
+end
+
+--保留老的接口
+function Application:getResMgr()
+	return self.m_res_mgr
+end
+
+function Application:get_res_mgr()
+	return self.m_res_mgr
+end
+
+function Application:get_frame_mgr()
+	return self.m_frame_mgr
+end
+
+function Application:get_view_mgr()
+	return self.m_view_mgr
+end
+
+function Application:get_model_mgr()
+	return self.m_model_mgr
+end
+
+function Application:get_vfx_mgr()
+	return self.m_vfx_mgr
+end
+
+function Application:get_sfx_mgr()
+	return self.m_sfx_mgr
+end
+
+function Application:get_skill_mgr()
+	return self.m_skill_mgr
+end
+
+function Application:get_battle_mgr()
+	return self.m_battle_mgr
+end
+
+function Application:get_bp_mgr()
+	return self.m_bp_mgr
+end
+
+function Application:get_ui_mgr()
+	return self.m_ui_manager
+end
+--兼容旧函数名
+function Application:get_ui_manager()
+	return self.m_ui_manager
+end
+
+function Application:get_curve_storage()
+    return self.m_curve_storage
+end
+
+function Application:start()
+	self:start_preview()
+end
+
+function Application:update()
+	self.m_res_mgr:update()
+	self.m_frame_mgr:update()
+	self.m_view_mgr:update()
+	self.m_model_mgr:update()
+	self.m_vfx_mgr:update()
+	self.m_sfx_mgr:update()
+end
+
+function Application:get_delta_time()
+	return Time.deltaTime
+end
+
+function Application:get_server_time()
+	return Time.unscaledTime
+end
+
+--启动游戏
+function Application:start_preview()
+	self:logDebug("Application:bp_game")
+	self:createFrame("game", "bp.bp_game")
+end
+
+local function log_join(...)
+	local args = {...}
+	for k,v in pairs(args) do args[k] = tostring(v) end
+	return table.concat(args, "\t")
+end
+
+function Application:logDebug(...)
+	if self.m_log_level >= LOG_LEVEL_DEBUG then
+		Debug.Log(log_join(...))
+	end
+end
+
+function Application:logInfo(...)
+	if self.m_log_level >= LOG_LEVEL_INFO then
+		Debug.Log(log_join(...))
+	end
+end
+
+function Application:logWarn(...)
+	if self.m_log_level >= LOG_LEVEL_WARN then
+		Debug.LogWarning(log_join(...))
+	end
+end
+
+function Application:logError(...)
+	if self.m_log_level >= LOG_LEVEL_ERROR then
+		Debug.LogError(log_join(...))
+	end
+end
+
+function Application:asyncExec(func)
+	coroutine.wrap(func)()
+end
+
+function Application:createFrame(...) 	return self.m_frame_mgr:createFrame(...) end
+function Application:getFrame(...) 		return self.m_frame_mgr:getFrame(...) end
+function Application:destroyFrame(...) 	return self.m_frame_mgr:destroyFrame(...) end
+function Application:getView(...) 		return self.m_view_mgr:getView(...) end
+
+return Application

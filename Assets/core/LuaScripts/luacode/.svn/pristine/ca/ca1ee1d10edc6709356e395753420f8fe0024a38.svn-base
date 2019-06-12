@@ -1,0 +1,27 @@
+local Frame = require("system.frame")
+local dungeon_confirm_progress = class("dungeon_confirm_progress", Frame)
+
+function dungeon_confirm_progress:doInit(param)
+    self.m_ui_manager = app:get_ui_manager()
+end
+
+-- 确认
+function dungeon_confirm_progress:on_accept_btn()
+    local frame_mgr = self:getFrameMgr()
+    if frame_mgr:getFrame("dungeon_join") ~= nil then
+        self.m_ui_manager:ShowView("dungeon_join")
+    else
+        self.m_ui_manager:ShowLowUIRootByName(self.m_ui_manager.UI_Depth.HIGH)
+    end
+    self:destroySelf()
+end
+
+-- 离开副本
+function dungeon_confirm_progress:on_leave_btn()
+    if self.m_mgr:getFrame("dungeon_leave_sure") == nil then
+        self.m_ui_manager:CreateUI("dungeon_leave_sure", "dungeon.dungeon_leave_sure", "是否确认离开副本？", self.m_ui_manager.UI_Depth.HIGH)
+    end
+    self:destroySelf()
+end
+
+return dungeon_confirm_progress

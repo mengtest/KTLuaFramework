@@ -1,0 +1,37 @@
+local GameWithoutNetwork = {}
+
+function GameWithoutNetwork:doInit(name)
+	self:createChild("world")
+	self:createChild("ui_main")
+	self:createChild("head_overlay")
+
+	local id_next = 1
+	local function generate_id()
+		local id = id_next
+		id_next = id_next + 1
+		return id
+	end
+	local function random_pos()
+		return Vector3(math.random(-5, 5), 0, math.random(-5, 5))
+	end
+	local function random_type()
+		return 1000 + math.random(1, 3)
+	end
+
+	local world = self:getFrame("world")
+	local role = world:addUnit(generate_id(), random_type(), name, random_pos())
+	self:createChild("player_controller", nil, role)
+	self.m_lp_unit = role
+
+	for i = 1, 10 do
+		local name = string.format("player%d", i)
+		local role = world:addUnit(generate_id(), random_type(), name, random_pos())
+		self:createChild(string.format("bot_controller_%d", i), "bot_controller", role)
+	end
+end
+
+function GameWithoutNetwork:getLocalPlayerUnit()
+	return self.m_lp_unit
+end
+
+return GameWithoutNetwork

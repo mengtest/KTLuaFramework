@@ -1,0 +1,47 @@
+local View = require("system.view")
+local dungeon_confirm_progress_view = class("dungeon_confirm_progress_view", View)
+
+function dungeon_confirm_progress_view:doInit(param)
+    local dungeon_progress = param
+    self.m_pro_list = {}
+    self.m_ui_manager = app:get_ui_manager()
+    self:load("ui/Confirmdungeonprogress.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+        local accept_btn = go.transform:Find("confirm_dungeon_progress/accept_btn"):GetComponent(UI.Button)
+        self.tip_text = go.transform:Find("confirm_dungeon_progress/Scroll View/Viewport/Content"):GetComponent(UI.Text)
+
+        accept_btn.onClick:AddListener(function()
+            self.m_ui_manager:DestroyUI("dungeon_confirm_progress")
+        end)
+        self.tip_text.text = "lalalal"
+        self.tip_text.text = self.tip_text.text.."\n".."啦啦啦"
+        --local id = self:get_inst_id()
+        -------当前副本的需要显示的进度节点
+        --local progress_point = dbc.dungeon_progress["id"].progress_point
+        ---------根据每个副本的boss的id找出对应的表中的boss名字，用于显示
+        --local boss_arr = dbc.dungeon_progress["id"].boss_id
+        --for k,v in pairs(boss_arr) do
+        --    local name = dbc.creature[v].name
+        --    local id = v
+        --    local progress_point_id = progress_point[k]
+        --    ------state 1代表存活  0代表死亡
+        --    self.m_pro_list[k] = {["pro_point"] = progress_point_id, ["boss_id"] = id, ["boss_name"] = name, ["boss_state"] = 1}
+        --end
+        --for k,v in pairs(dungeon_progress) do
+        --    if self.m_pro_list[k]["pro_point"] == v then
+        --        self.m_pro_list[k]["boss_state"] = 0
+        --    end
+        --end
+        --------接下来做对应的英雄名字状态的显示
+    end)
+end
+
+function dungeon_confirm_progress_view:get_inst_id()
+    local kbe_mgr = self:getFrame("kbe.kbe_mgr")
+    local sdk = app:getKBESDK()
+    local role_id = sdk:get_player_id()
+    local role = kbe_mgr:get_entity(role_id)
+    local id = role:get_inst_id()
+end
+
+return dungeon_confirm_progress_view

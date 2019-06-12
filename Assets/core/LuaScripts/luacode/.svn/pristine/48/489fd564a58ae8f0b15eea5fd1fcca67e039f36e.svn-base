@@ -1,0 +1,14 @@
+local row_0 = {['id']=1001,['icon_path']='',['boss_skill_arry']={1001,1002,1003,1005},['boss_drop_arry']={1001,1002,1003,1005}}
+local row_1 = {['id']=1002,['icon_path']='',['boss_skill_arry']={},['boss_drop_arry']={}}
+local row_2 = {['id']=1003,['icon_path']='',['boss_skill_arry']={},['boss_drop_arry']={}}
+local row_3 = {['id']=1004,['icon_path']='',['boss_skill_arry']={},['boss_drop_arry']={}}
+local row_4 = {['id']=1005,['icon_path']='',['boss_skill_arry']={},['boss_drop_arry']={}}
+
+local datas = {
+	[1001] = row_0,
+	[1002] = row_1,
+	[1003] = row_2,
+	[1004] = row_3,
+	[1005] = row_4,
+}
+return datas

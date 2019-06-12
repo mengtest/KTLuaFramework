@@ -1,0 +1,235 @@
+local View = require("system.view")
+local big_map_view = class("dungeon_confirm_progress_view", View)
+
+function big_map_view:doInit(param)
+    self.m_map_left_bottom = param["map_left_bottom"]
+    self.m_map_right_up = param["map_right_up"]
+    local is_in_dungeon = param["inst_id"]
+
+    ---如果在副本内
+    --for   遍历那个boss的表    list[1]  [2]
+    --[1]["pos"]
+
+    self.m_ui_manager = app:get_ui_manager()
+    self.m_frame = self:getFrame()
+
+    self.m_world = self:getFrame("world")
+    self.m_quest_manager = self:getFrame("quest_manager")
+    self.m_dungeon_manager = self:getFrame("dungeon_manager")
+    self.m_map_manager = self:getFrame("map_manager")
+    self.m_scale_x = nil
+    self.m_scale_y = nil
+    self.m_icon_point = nil
+
+    self.m_will_trans = false
+    self.m_tran_pro = 0
+    self.m_send_done = false
+    self.m_begin_init = false
+    self.m_prepare_time = 3
+    --self.m_quest_condition_aim_area_dict = {}
+
+    self:load("ui/BigMap.prefab", function(go)
+        self.m_ui_manager:AdaptResolution(self:getFrame():getFrameName(), go)
+
+        self.m_map = go.transform:Find("map"):GetComponent(UI.Image)
+        self.m_trans_bar = go.transform:Find("trans_bg").transform
+        self.m_loading = go.transform:Find("loading").transform
+
+        self.m_trans_bar_text = self.m_trans_bar:Find("Text"):GetComponent(UI.Text)
+        self.m_trans_bar_image = self.m_trans_bar:Find("fill"):GetComponent(UI.Image)
+        self.m_trans_bar_image.fillAmount = self.m_tran_pro
+        self.m_loading_text = self.m_loading:Find("Text"):GetComponent(UI.Text)
+        local map_id = self.m_world:get_map_id()
+        local path = dbc.map[map_id].map_pic_path
+        self:change_sprite(self.m_map, path)
+
+        self.m_icon = go.transform:Find("map/player_icon")
+        ----主角icon的特效，打开地图显示，2秒后消失
+        self.m_icon_partical = self.m_icon:Find("ui_ditu_kuosan")
+        slua_timer.addDelayEvent(
+        2.0,
+        function()
+            --当大地图还存在时，将特效关闭
+            if self:getGO() then
+                self.m_icon_partical.gameObject:SetActive(false)
+            end
+        end)
+        --实际场景左下角和右上角坐标，暂时写死
+
+        local temp_map_size = self.m_map_right_up - self.m_map_left_bottom
+        --地图的尺寸
+        local map_size = self.m_map:GetComponent(UnityEngine.RectTransform).rect.size
+        self.m_scale_x = map_size.x / temp_map_size.x
+        self.m_scale_y = map_size.y / temp_map_size.z
+        self.m_icon_point = self.m_icon:GetComponent(UnityEngine.RectTransform)
+        self.m_frame:set_scale(self.m_scale_x, self.m_scale_y)
+
+        self:subscribe(self.m_frame:on_event("child_created"), function(child_frame)
+            local name = child_frame:getFrameName()
+            local param = child_frame:getParam()
+            --Debug.LogError(tostring(name))
+            local id = tonumber(string.match(name, "%d"))
+            --Debug.LogError(id)
+
+            if string.find(name, "boss_icon") then
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("map/boss_list")
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(param["pos"])
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "quest_icon") then
+                local view = self.m_mgr:getView(name)
+
+                local area_data = self.m_world:get_area_data(param["map_id"], param["area_id"])
+                --print(param["map_id"],param["area_id"])
+                --print(area_data)
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("map/quest_list")
+                view_go.transform.parent = parent_transform
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(area_data["worldPosition"])
+                view_go.transform.localScale = Vector3.one
+            end
+
+            if string.find(name, "transt") then
+                local view = self.m_mgr:getView(name)
+
+                -- 布局位置
+                local view_go = view:getGO()
+                local parent_transform = go.transform:Find("map/transmit_list")
+                view_go.transform.parent = parent_transform
+                local list_pos = {}
+                list_pos["x"] = dbc.teleport_point[id].client_map_pos[1]
+                list_pos["z"] = dbc.teleport_point[id].client_map_pos[2]
+                view_go.transform.localPosition = self:project_3d_pos_to_map_pos(list_pos)
+                view_go.transform.localScale = Vector3.one
+            end
+        end)
+        self.m_frame:do_trans()
+
+        local return_btn = go.transform:Find("map/return_bg/Button").gameObject:GetComponent(UnityEngine.UI.Button)
+
+        return_btn.onClick:AddListener(function()
+            self.m_frame:destroySelf()
+        end)
+
+        if is_in_dungeon == 0 then
+            ----不在副本中，不显示boss信息
+            self.m_frame:on_loaded(0)
+        else
+            ----在副本中，显示对应的信息
+            self.m_dungeon_manager:cell_call("get_inst_progress")
+            self.m_frame:on_loaded(1)
+        end
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_owner_pos"), function(pos)
+        self:refresh_owner_pos(pos)
+    end)
+    self:subscribe(self.m_frame:on_event("refresh_owner_dir"), function(dir)
+        self:refresh_owner_dir(dir)
+    end)
+    self:subscribe(self.m_frame:on_event("show_quest_condition_aim_area"), function(quest_id, index)
+        self:show_quest_condition_aim_area(quest_id, index)
+    end)
+    self:subscribe(self.m_frame:on_event("begin_trans"), function(id)
+        self:on_do_trans(id)
+    end)
+end
+
+function big_map_view:refresh_owner_pos(pos)
+    self.m_icon_point.anchoredPosition3D = self:project_3d_pos_to_map_pos(pos)
+end
+
+function big_map_view:refresh_owner_dir(dir)
+    self.m_icon_point.localEulerAngles = Vector3(0, 0, -dir)
+end
+
+function big_map_view:project_3d_pos_to_map_pos(pos)
+    return Vector3((pos.x - self.m_map_left_bottom.x) * self.m_scale_x, (pos.z - self.m_map_left_bottom.z) * self.m_scale_y, 0)
+end
+
+------得到缩放
+function big_map_view:gain_xy_scale()
+    return self.m_scale_x, self.m_scale_y
+end
+
+function big_map_view:change_sprite(obj, icon_path)
+    self:subscribe(app:getResMgr():rxLoad(icon_path), function(asset_ref)
+        local tex = asset_ref.asset
+        if (tex == nil) then
+            Debug.LogError("找不到这个icon啊---->" .. icon_path)
+        else
+            obj.sprite = Sprite.Create(tex, Rect(0, 0, tex.width, tex.height), Vector2(0.5, 0.5))
+        end
+    end)
+end
+
+-----处理传送的一系列操作
+function big_map_view:on_do_trans(id)
+    self.m_map.gameObject:SetActive(false)
+    self.m_go_map = dbc.teleport_point[id].map_id
+    self.m_trans_bar_text.text = dbc.teleport_point[id].teleport_point_name
+    self.m_trans_bar.gameObject:SetActive(true)
+    self.m_will_trans = true
+    self.m_tran_id = id
+end
+
+function big_map_view:doUpdate()
+    if self.m_begin_init then
+        self.m_prepare_time = self.m_prepare_time - app:get_delta_time()
+        local show = math.floor(self.m_prepare_time)
+        if show <= 0 then
+            if self.m_frame.m_mgr:getFrame("big_map") ~= nil then
+                self.m_ui_manager:DestroyUI("big_map")
+            end
+        end
+        if self.m_loading_text then
+            self.m_loading_text.text = "Loading..." .. tostring(show)
+        end
+    end
+
+    if self.m_send_done then
+        return
+    end
+
+    if self.m_tran_pro >= 1 then
+        self.m_map_manager:req_transform(self.m_tran_id)
+        self.m_send_done = true
+        self.m_trans_bar.gameObject:SetActive(false)
+        if self.m_go_map == self.m_world:get_map_id() then
+            self.m_loading.gameObject:SetActive(true)
+            self.m_begin_init = true
+        else
+            if self.m_frame.m_mgr:getFrame("big_map") ~= nil then
+                self.m_ui_manager:DestroyUI("big_map")
+            end
+        end
+        self.m_will_trans = false
+        return
+    end
+
+    if not self.m_will_trans then
+        return
+    end
+
+    if self.m_will_trans then
+        if self.m_tran_pro >= 1 then
+            self.m_will_trans = false
+            return
+        end
+        if self.m_tran_pro < 1 then
+            local pro = self.m_tran_pro + app:get_delta_time() * 0.5
+            self.m_tran_pro = pro
+            self.m_trans_bar_image.fillAmount = self.m_tran_pro
+        else
+            self.m_will_trans = false
+        end
+    end
+end
+
+return big_map_view

@@ -1,0 +1,1122 @@
+
+local zhandouceshi = 
+{
+    ["root"] = 
+    {
+        ["worldPosition"] = 
+        {
+            ["y"] = 0,
+            ["x"] = 0,
+            ["z"] = 0,
+        },
+        ["localPosition"] = 
+        {
+            ["y"] = 0,
+            ["x"] = 0,
+            ["z"] = 0,
+        },
+        ["nodeType"] = 1,
+        ["worldScale"] = 
+        {
+            ["y"] = 1,
+            ["x"] = 1,
+            ["z"] = 1,
+        },
+        ["addr"] = "",
+        ["name"] = "根节点",
+        ["localRotation"] = 
+        {
+            ["y"] = 0,
+            ["x"] = 0,
+            ["z"] = 0,
+        },
+        ["__children"] = 
+        {
+            [1] = "fightStages##0",
+        },
+        ["localScale"] = 
+        {
+            ["y"] = 1,
+            ["x"] = 1,
+            ["z"] = 1,
+        },
+        ["worldRotation"] = 
+        {
+            ["y"] = 0,
+            ["x"] = 0,
+            ["z"] = 0,
+        }
+    },
+    ["patrolPoints"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = -1.8500000238419,
+                ["z"] = 17.219999313354,
+            },
+            ["moveSpeed"] = 0,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["stayRangeHigh"] = 0,
+            ["nodeType"] = 10,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "patrolPoints##0",
+            ["name"] = "巡逻点",
+            ["stayRangeLow"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        },
+        [2] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = 1.2800000905991,
+                ["z"] = 17.219999313354,
+            },
+            ["moveSpeed"] = 0,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 3.1300001144409,
+                ["z"] = 0,
+            },
+            ["stayRangeHigh"] = 0,
+            ["nodeType"] = 10,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "patrolPoints##1",
+            ["name"] = "巡逻点",
+            ["stayRangeLow"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        },
+        [3] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = 1.4499999284744,
+                ["z"] = 20.639999389648,
+            },
+            ["moveSpeed"] = 0,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 3.2999999523163,
+                ["z"] = 3.4200000762939,
+            },
+            ["stayRangeHigh"] = 0,
+            ["nodeType"] = 10,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "patrolPoints##2",
+            ["name"] = "巡逻点",
+            ["stayRangeLow"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        },
+        [4] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = -1.7900000810623,
+                ["z"] = 20.719999313354,
+            },
+            ["moveSpeed"] = 0,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0.059999998658895,
+                ["z"] = 3.5,
+            },
+            ["stayRangeHigh"] = 0,
+            ["nodeType"] = 10,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "patrolPoints##3",
+            ["name"] = "巡逻点",
+            ["stayRangeLow"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        }
+    },
+    ["bornLocations"] = 
+    {
+    },
+    ["triggers"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "triggers##0",
+            ["__children"] = 
+            {
+            },
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["triggerConditions"] = 
+            {
+                [1] = 
+                {
+                    ["__area"] = "patrolAreas##0",
+                    ["radius"] = 0,
+                    ["dialogType"] = 1,
+                    ["taskID"] = 0,
+                    ["dialogID"] = 0,
+                    ["playType"] = 1,
+                    ["width"] = 0,
+                    ["angle"] = 0,
+                    ["bubbleID"] = 0,
+                    ["__condition"] = "",
+                    ["conditionType"] = 0,
+                    ["height"] = 0,
+                    ["length"] = 0,
+                    ["bloodPercent"] = 0,
+                    ["skillID"] = 0,
+                }
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["conditionRelationType"] = 2,
+            ["isActive"] = true,
+            ["nodeType"] = 6,
+            ["name"] = "触发器",
+            ["executeNum"] = 0,
+            ["triggerResults"] = 
+            {
+                [1] = 
+                {
+                    ["patrolGoBackNum"] = 0,
+                    ["buffId4"] = 0,
+                    ["campId"] = 0,
+                    ["innerRadius"] = 0,
+                    ["buffId2"] = 0,
+                    ["musicId"] = 0,
+                    ["toggle"] = 1,
+                    ["executeCount"] = 0,
+                    ["selectedAnimType"] = 0,
+                    ["creatureId"] = -1,
+                    ["weatherId"] = 0,
+                    ["__targetGenerator"] = "",
+                    ["buffId1"] = 0,
+                    ["id"] = 0,
+                    ["isKeepPatrol"] = false,
+                    ["dialogID"] = 0,
+                    ["camId"] = 0,
+                    ["selectedPatrolType"] = 0,
+                    ["isInvincible"] = false,
+                    ["animName"] = "",
+                    ["shakeEffectId"] = 0,
+                    ["buffId3"] = 0,
+                    ["bubbleID"] = 0,
+                    ["isHasShotAnim"] = false,
+                    ["executeRandomRange"] = 0,
+                    ["executeInterval"] = 0,
+                    ["outerRadius"] = 0,
+                    ["executeNow"] = false,
+                    ["targetMode"] = 1,
+                    ["isSkillTargeting"] = false,
+                    ["progressId"] = -1,
+                    ["isLoop"] = false,
+                    ["__area"] = "",
+                    ["campTag"] = 0,
+                    ["isReact"] = false,
+                    ["__result"] = "monsterGenerators##0",
+                    ["toggleOn"] = false,
+                    ["fsId"] = -1,
+                    ["resultType"] = 0,
+                    ["dialogType"] = 1,
+                    ["__patrolPath"] = "",
+                    ["campTagOpType"] = 0,
+                    ["statuID"] = 0,
+                    ["__patrolArea"] = "",
+                    ["isGoAndBackPatrol"] = false,
+                    ["aiId"] = -1,
+                    ["delay"] = 0,
+                    ["skillID"] = 0,
+                },
+                [2] = 
+                {
+                    ["patrolGoBackNum"] = 0,
+                    ["buffId4"] = 0,
+                    ["campId"] = 0,
+                    ["innerRadius"] = 0,
+                    ["buffId2"] = 0,
+                    ["musicId"] = 0,
+                    ["toggle"] = 1,
+                    ["executeCount"] = 0,
+                    ["selectedAnimType"] = 0,
+                    ["creatureId"] = -1,
+                    ["weatherId"] = 0,
+                    ["__targetGenerator"] = "",
+                    ["buffId1"] = 0,
+                    ["id"] = 0,
+                    ["isKeepPatrol"] = false,
+                    ["dialogID"] = 0,
+                    ["camId"] = 0,
+                    ["selectedPatrolType"] = 0,
+                    ["isInvincible"] = false,
+                    ["animName"] = "",
+                    ["shakeEffectId"] = 0,
+                    ["buffId3"] = 0,
+                    ["bubbleID"] = 0,
+                    ["isHasShotAnim"] = false,
+                    ["executeRandomRange"] = 0,
+                    ["executeInterval"] = 0,
+                    ["outerRadius"] = 0,
+                    ["executeNow"] = false,
+                    ["targetMode"] = 1,
+                    ["isSkillTargeting"] = false,
+                    ["progressId"] = -1,
+                    ["isLoop"] = false,
+                    ["__area"] = "",
+                    ["campTag"] = 0,
+                    ["isReact"] = false,
+                    ["__result"] = "",
+                    ["toggleOn"] = false,
+                    ["fsId"] = -1,
+                    ["resultType"] = 4,
+                    ["dialogType"] = 1,
+                    ["__patrolPath"] = "",
+                    ["campTagOpType"] = 0,
+                    ["statuID"] = 0,
+                    ["__patrolArea"] = "",
+                    ["isGoAndBackPatrol"] = false,
+                    ["aiId"] = -1,
+                    ["delay"] = 0,
+                    ["skillID"] = 0,
+                },
+                [3] = 
+                {
+                    ["patrolGoBackNum"] = 0,
+                    ["buffId4"] = 0,
+                    ["campId"] = 0,
+                    ["innerRadius"] = 0,
+                    ["buffId2"] = 0,
+                    ["musicId"] = 0,
+                    ["toggle"] = 1,
+                    ["executeCount"] = 0,
+                    ["selectedAnimType"] = 0,
+                    ["creatureId"] = -1,
+                    ["weatherId"] = 0,
+                    ["__targetGenerator"] = "",
+                    ["buffId1"] = 0,
+                    ["id"] = 0,
+                    ["isKeepPatrol"] = false,
+                    ["dialogID"] = 100007,
+                    ["camId"] = 0,
+                    ["selectedPatrolType"] = 0,
+                    ["isInvincible"] = false,
+                    ["animName"] = "",
+                    ["shakeEffectId"] = 0,
+                    ["buffId3"] = 0,
+                    ["bubbleID"] = 0,
+                    ["isHasShotAnim"] = false,
+                    ["executeRandomRange"] = 0,
+                    ["executeInterval"] = 0,
+                    ["outerRadius"] = 0,
+                    ["executeNow"] = false,
+                    ["targetMode"] = 1,
+                    ["isSkillTargeting"] = false,
+                    ["progressId"] = -1,
+                    ["isLoop"] = false,
+                    ["__area"] = "",
+                    ["campTag"] = 0,
+                    ["isReact"] = false,
+                    ["__result"] = "monsterGenerators##0",
+                    ["toggleOn"] = false,
+                    ["fsId"] = -1,
+                    ["resultType"] = 25,
+                    ["dialogType"] = 1,
+                    ["__patrolPath"] = "",
+                    ["campTagOpType"] = 0,
+                    ["statuID"] = 0,
+                    ["__patrolArea"] = "",
+                    ["isGoAndBackPatrol"] = false,
+                    ["aiId"] = -1,
+                    ["delay"] = 0,
+                    ["skillID"] = 0,
+                },
+                [4] = 
+                {
+                    ["patrolGoBackNum"] = 0,
+                    ["buffId4"] = 0,
+                    ["campId"] = 0,
+                    ["innerRadius"] = 0,
+                    ["buffId2"] = 0,
+                    ["musicId"] = 0,
+                    ["toggle"] = 1,
+                    ["executeCount"] = 0,
+                    ["selectedAnimType"] = 0,
+                    ["creatureId"] = -1,
+                    ["weatherId"] = 0,
+                    ["__targetGenerator"] = "",
+                    ["buffId1"] = 0,
+                    ["id"] = 0,
+                    ["isKeepPatrol"] = false,
+                    ["dialogID"] = 0,
+                    ["camId"] = 0,
+                    ["selectedPatrolType"] = 0,
+                    ["isInvincible"] = false,
+                    ["animName"] = "",
+                    ["shakeEffectId"] = 0,
+                    ["buffId3"] = 0,
+                    ["bubbleID"] = 0,
+                    ["isHasShotAnim"] = false,
+                    ["executeRandomRange"] = 0,
+                    ["executeInterval"] = 0,
+                    ["outerRadius"] = 0,
+                    ["executeNow"] = false,
+                    ["targetMode"] = 1,
+                    ["isSkillTargeting"] = false,
+                    ["progressId"] = -1,
+                    ["isLoop"] = false,
+                    ["__area"] = "",
+                    ["campTag"] = 0,
+                    ["isReact"] = false,
+                    ["__result"] = "monsterGenerators##1",
+                    ["toggleOn"] = false,
+                    ["fsId"] = -1,
+                    ["resultType"] = 0,
+                    ["dialogType"] = 1,
+                    ["__patrolPath"] = "",
+                    ["campTagOpType"] = 0,
+                    ["statuID"] = 0,
+                    ["__patrolArea"] = "",
+                    ["isGoAndBackPatrol"] = false,
+                    ["aiId"] = -1,
+                    ["delay"] = 0,
+                    ["skillID"] = 0,
+                },
+                [5] = 
+                {
+                    ["patrolGoBackNum"] = 0,
+                    ["buffId4"] = 0,
+                    ["campId"] = 0,
+                    ["innerRadius"] = 0,
+                    ["buffId2"] = 0,
+                    ["musicId"] = 0,
+                    ["toggle"] = 1,
+                    ["executeCount"] = 0,
+                    ["selectedAnimType"] = 0,
+                    ["creatureId"] = -1,
+                    ["weatherId"] = 0,
+                    ["__targetGenerator"] = "",
+                    ["buffId1"] = 0,
+                    ["id"] = 0,
+                    ["isKeepPatrol"] = false,
+                    ["dialogID"] = 0,
+                    ["camId"] = 0,
+                    ["selectedPatrolType"] = 0,
+                    ["isInvincible"] = false,
+                    ["animName"] = "",
+                    ["shakeEffectId"] = 0,
+                    ["buffId3"] = 0,
+                    ["bubbleID"] = 0,
+                    ["isHasShotAnim"] = false,
+                    ["executeRandomRange"] = 0,
+                    ["executeInterval"] = 0,
+                    ["outerRadius"] = 0,
+                    ["executeNow"] = false,
+                    ["targetMode"] = 1,
+                    ["isSkillTargeting"] = false,
+                    ["progressId"] = -1,
+                    ["isLoop"] = false,
+                    ["__area"] = "",
+                    ["campTag"] = 0,
+                    ["isReact"] = false,
+                    ["__result"] = "monsterGenerators##2",
+                    ["toggleOn"] = false,
+                    ["fsId"] = -1,
+                    ["resultType"] = 0,
+                    ["dialogType"] = 1,
+                    ["__patrolPath"] = "",
+                    ["campTagOpType"] = 0,
+                    ["statuID"] = 0,
+                    ["__patrolArea"] = "",
+                    ["isGoAndBackPatrol"] = false,
+                    ["aiId"] = -1,
+                    ["delay"] = 0,
+                    ["skillID"] = 0,
+                }
+            },
+            ["specNum"] = 2,
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["runResultOnBorn"] = false,
+        }
+    },
+    ["patrolAreas"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.290000915527,
+                ["x"] = 5.2199997901917,
+                ["z"] = 19.010000228882,
+            },
+            ["radius"] = 6,
+            ["id"] = 1001,
+            ["localPosition"] = 
+            {
+                ["y"] = 51.290000915527,
+                ["x"] = 5.2199997901917,
+                ["z"] = 19.010000228882,
+            },
+            ["nodeType"] = 8,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 6,
+                ["z"] = 6,
+            },
+            ["addr"] = "patrolAreas##0",
+            ["name"] = "区域1001",
+            ["lineColor"] = 
+            {
+                ["a"] = 1,
+                ["b"] = 0,
+                ["g"] = 1,
+                ["r"] = 0,
+            },
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 6,
+                ["z"] = 6,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        }
+    },
+    ["patrolPaths"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = -1.8500000238419,
+                ["z"] = 17.219999313354,
+            },
+            ["localPosition"] = 
+            {
+                ["y"] = 51.459999084473,
+                ["x"] = -1.8500000238419,
+                ["z"] = 17.219999313354,
+            },
+            ["nodeType"] = 7,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "patrolPaths##0",
+            ["name"] = "路径",
+            ["lineColor"] = 
+            {
+                ["a"] = 1,
+                ["b"] = 0,
+                ["g"] = 1,
+                ["r"] = 0,
+            },
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+                [1] = "patrolPoints##0",
+                [2] = "patrolPoints##1",
+                [3] = "patrolPoints##2",
+                [4] = "patrolPoints##3",
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        }
+    },
+    ["cameras"] = 
+    {
+    },
+    ["monsterGenerators"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.369998931885,
+                ["x"] = -3.0699999332428,
+                ["z"] = 17.540000915527,
+            },
+            ["isRandomInterval"] = false,
+            ["localPosition"] = 
+            {
+                ["y"] = 51.369998931885,
+                ["x"] = -3.0699999332428,
+                ["z"] = 17.540000915527,
+            },
+            ["patrolGoBackNum"] = 1,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["appendTime"] = 0,
+            ["__children"] = 
+            {
+                [1] = "monsters##0",
+            },
+            ["selectedRoleId"] = 1058,
+            ["level"] = 0,
+            ["worldRotation"] = 
+            {
+                ["y"] = 72.159339904785,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["selectedBornAction"] = "",
+            ["intervalLow"] = 0,
+            ["generateNum"] = 1,
+            ["__patrolArea"] = "",
+            ["selectedNormalAction"] = "",
+            ["name"] = "发生器1058",
+            ["intervalHigh"] = 0,
+            ["isKeepPatrol"] = false,
+            ["bornShotRange"] = 0,
+            ["generatorType"] = 0,
+            ["selectedPatrolType"] = 0,
+            ["selectedMobType"] = 0,
+            ["addr"] = "monsterGenerators##0",
+            ["localRotation"] = 
+            {
+                ["y"] = 72.159339904785,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["isRandomPos"] = false,
+            ["selectedShowType"] = 1,
+            ["nodeType"] = 5,
+            ["__patrolPath"] = "patrolPaths##0",
+            ["isGoAndBackPatrol"] = true,
+            ["appendNum"] = 0,
+            ["intervalTime"] = 0,
+            ["isEnabled"] = true,
+            ["selectedRoleType"] = 6,
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["selectedLevelType"] = 0,
+        },
+        [2] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.5,
+                ["x"] = -2.9700000286102,
+                ["z"] = 14.220000267029,
+            },
+            ["isRandomInterval"] = false,
+            ["localPosition"] = 
+            {
+                ["y"] = 51.5,
+                ["x"] = -2.9700000286102,
+                ["z"] = 14.220000267029,
+            },
+            ["patrolGoBackNum"] = 0,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["appendTime"] = 0,
+            ["__children"] = 
+            {
+                [1] = "monsters##1",
+            },
+            ["selectedRoleId"] = 1059,
+            ["level"] = 0,
+            ["worldRotation"] = 
+            {
+                ["y"] = 96.77278137207,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["selectedBornAction"] = "",
+            ["intervalLow"] = 0,
+            ["generateNum"] = 1,
+            ["__patrolArea"] = "",
+            ["selectedNormalAction"] = "",
+            ["name"] = "发生器",
+            ["intervalHigh"] = 0,
+            ["isKeepPatrol"] = false,
+            ["bornShotRange"] = 0,
+            ["generatorType"] = 0,
+            ["selectedPatrolType"] = 0,
+            ["selectedMobType"] = 0,
+            ["addr"] = "monsterGenerators##1",
+            ["localRotation"] = 
+            {
+                ["y"] = 96.77278137207,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["isRandomPos"] = false,
+            ["selectedShowType"] = 1,
+            ["nodeType"] = 5,
+            ["__patrolPath"] = "",
+            ["isGoAndBackPatrol"] = false,
+            ["appendNum"] = 0,
+            ["intervalTime"] = 0,
+            ["isEnabled"] = true,
+            ["selectedRoleType"] = 6,
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["selectedLevelType"] = 0,
+        },
+        [3] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.619998931885,
+                ["x"] = -1.4700000286102,
+                ["z"] = 11.779999732971,
+            },
+            ["isRandomInterval"] = false,
+            ["localPosition"] = 
+            {
+                ["y"] = 51.619998931885,
+                ["x"] = -1.4700000286102,
+                ["z"] = 11.779999732971,
+            },
+            ["patrolGoBackNum"] = 0,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["appendTime"] = 0,
+            ["__children"] = 
+            {
+                [1] = "monsters##2",
+            },
+            ["selectedRoleId"] = 700003,
+            ["level"] = 0,
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["selectedBornAction"] = "",
+            ["intervalLow"] = 0,
+            ["generateNum"] = 1,
+            ["__patrolArea"] = "",
+            ["selectedNormalAction"] = "",
+            ["name"] = "发生器",
+            ["intervalHigh"] = 0,
+            ["isKeepPatrol"] = false,
+            ["bornShotRange"] = 0,
+            ["generatorType"] = 0,
+            ["selectedPatrolType"] = 0,
+            ["selectedMobType"] = 0,
+            ["addr"] = "monsterGenerators##2",
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["isRandomPos"] = false,
+            ["selectedShowType"] = 1,
+            ["nodeType"] = 5,
+            ["__patrolPath"] = "",
+            ["isGoAndBackPatrol"] = false,
+            ["appendNum"] = 0,
+            ["intervalTime"] = 0,
+            ["isEnabled"] = true,
+            ["selectedRoleType"] = 7,
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["selectedLevelType"] = 0,
+        }
+    },
+    ["monsters"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.369998931885,
+                ["x"] = -3.0699999332428,
+                ["z"] = 17.540000915527,
+            },
+            ["roleType"] = 6,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["roleId"] = 1058,
+            ["nodeType"] = 9,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "monsters##0",
+            ["name"] = "生物",
+            ["generateType"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 72.159339904785,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        },
+        [2] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.5,
+                ["x"] = -2.9700000286102,
+                ["z"] = 14.220000267029,
+            },
+            ["roleType"] = 6,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["roleId"] = 1059,
+            ["nodeType"] = 9,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "monsters##1",
+            ["name"] = "生物",
+            ["generateType"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 96.77278137207,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        },
+        [3] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 51.619998931885,
+                ["x"] = -1.4700000286102,
+                ["z"] = 11.779999732971,
+            },
+            ["roleType"] = 7,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["roleId"] = 700003,
+            ["nodeType"] = 9,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "monsters##2",
+            ["name"] = "生物",
+            ["generateType"] = 0,
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        }
+    },
+    ["fightStages"] = 
+    {
+        [1] = 
+        {
+            ["worldPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__monsterGenerator"] = "",
+            ["id"] = -1,
+            ["localPosition"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__area"] = "",
+            ["nodeType"] = 4,
+            ["worldScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["addr"] = "fightStages##0",
+            ["name"] = "战斗阶段",
+            ["__bornLocation"] = "",
+            ["localRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            },
+            ["__children"] = 
+            {
+                [1] = "monsterGenerators##0",
+                [2] = "patrolPaths##0",
+                [3] = "patrolAreas##0",
+                [4] = "triggers##0",
+                [5] = "monsterGenerators##1",
+                [6] = "monsterGenerators##2",
+            },
+            ["localScale"] = 
+            {
+                ["y"] = 1,
+                ["x"] = 1,
+                ["z"] = 1,
+            },
+            ["worldRotation"] = 
+            {
+                ["y"] = 0,
+                ["x"] = 0,
+                ["z"] = 0,
+            }
+        }
+    }
+}
+
+return zhandouceshi

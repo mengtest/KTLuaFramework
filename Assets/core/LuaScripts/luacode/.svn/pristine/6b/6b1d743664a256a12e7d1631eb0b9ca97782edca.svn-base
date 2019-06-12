@@ -1,0 +1,85 @@
+local rows = {}
+rows[1] = {['lv']=1,['min_lv']=10,['max_lv']=10,['step']=5,['gold_rd']=10}
+rows[2] = {['lv']=2,['min_lv']=15,['max_lv']=20,['step']=5,['gold_rd']=15}
+rows[3] = {['lv']=3,['min_lv']=20,['max_lv']=30,['step']=5,['gold_rd']=20}
+rows[4] = {['lv']=4,['min_lv']=25,['max_lv']=40,['step']=5,['gold_rd']=25}
+rows[5] = {['lv']=5,['min_lv']=30,['max_lv']=50,['step']=5,['gold_rd']=30}
+rows[6] = {['lv']=6,['min_lv']=35,['max_lv']=60,['step']=5,['gold_rd']=35}
+rows[7] = {['lv']=7,['min_lv']=40,['max_lv']=70,['step']=5,['gold_rd']=40}
+rows[8] = {['lv']=8,['min_lv']=45,['max_lv']=80,['step']=5,['gold_rd']=45}
+rows[9] = {['lv']=9,['min_lv']=50,['max_lv']=90,['step']=5,['gold_rd']=50}
+rows[10] = {['lv']=10,['min_lv']=55,['max_lv']=100,['step']=5,['gold_rd']=55}
+rows[11] = {['lv']=11,['min_lv']=60,['max_lv']=110,['step']=5,['gold_rd']=60}
+rows[12] = {['lv']=12,['min_lv']=65,['max_lv']=120,['step']=5,['gold_rd']=65}
+rows[13] = {['lv']=13,['min_lv']=70,['max_lv']=130,['step']=5,['gold_rd']=70}
+rows[14] = {['lv']=14,['min_lv']=75,['max_lv']=140,['step']=5,['gold_rd']=75}
+rows[15] = {['lv']=15,['min_lv']=80,['max_lv']=150,['step']=5,['gold_rd']=80}
+rows[16] = {['lv']=16,['min_lv']=85,['max_lv']=160,['step']=5,['gold_rd']=85}
+rows[17] = {['lv']=17,['min_lv']=90,['max_lv']=170,['step']=5,['gold_rd']=90}
+rows[18] = {['lv']=18,['min_lv']=95,['max_lv']=180,['step']=5,['gold_rd']=95}
+rows[19] = {['lv']=19,['min_lv']=100,['max_lv']=190,['step']=5,['gold_rd']=100}
+rows[20] = {['lv']=20,['min_lv']=105,['max_lv']=200,['step']=5,['gold_rd']=105}
+rows[21] = {['lv']=21,['min_lv']=110,['max_lv']=210,['step']=5,['gold_rd']=110}
+rows[22] = {['lv']=22,['min_lv']=115,['max_lv']=220,['step']=5,['gold_rd']=115}
+rows[23] = {['lv']=23,['min_lv']=120,['max_lv']=230,['step']=5,['gold_rd']=120}
+rows[24] = {['lv']=24,['min_lv']=125,['max_lv']=240,['step']=5,['gold_rd']=125}
+rows[25] = {['lv']=25,['min_lv']=130,['max_lv']=250,['step']=5,['gold_rd']=130}
+rows[26] = {['lv']=26,['min_lv']=135,['max_lv']=260,['step']=5,['gold_rd']=135}
+rows[27] = {['lv']=27,['min_lv']=140,['max_lv']=270,['step']=5,['gold_rd']=140}
+rows[28] = {['lv']=28,['min_lv']=145,['max_lv']=280,['step']=5,['gold_rd']=145}
+rows[29] = {['lv']=29,['min_lv']=150,['max_lv']=290,['step']=5,['gold_rd']=150}
+rows[30] = {['lv']=30,['min_lv']=155,['max_lv']=300,['step']=5,['gold_rd']=155}
+rows[31] = {['lv']=31,['min_lv']=160,['max_lv']=310,['step']=5,['gold_rd']=160}
+rows[32] = {['lv']=32,['min_lv']=165,['max_lv']=320,['step']=5,['gold_rd']=165}
+rows[33] = {['lv']=33,['min_lv']=170,['max_lv']=330,['step']=5,['gold_rd']=170}
+rows[34] = {['lv']=34,['min_lv']=175,['max_lv']=340,['step']=5,['gold_rd']=175}
+rows[35] = {['lv']=35,['min_lv']=180,['max_lv']=350,['step']=5,['gold_rd']=180}
+rows[36] = {['lv']=36,['min_lv']=185,['max_lv']=360,['step']=5,['gold_rd']=185}
+rows[37] = {['lv']=37,['min_lv']=190,['max_lv']=370,['step']=5,['gold_rd']=190}
+rows[38] = {['lv']=38,['min_lv']=195,['max_lv']=380,['step']=5,['gold_rd']=195}
+rows[39] = {['lv']=39,['min_lv']=200,['max_lv']=390,['step']=5,['gold_rd']=200}
+rows[40] = {['lv']=40,['min_lv']=205,['max_lv']=400,['step']=5,['gold_rd']=205}
+
+local datas = {
+	[1] = rows[1],
+	[2] = rows[2],
+	[3] = rows[3],
+	[4] = rows[4],
+	[5] = rows[5],
+	[6] = rows[6],
+	[7] = rows[7],
+	[8] = rows[8],
+	[9] = rows[9],
+	[10] = rows[10],
+	[11] = rows[11],
+	[12] = rows[12],
+	[13] = rows[13],
+	[14] = rows[14],
+	[15] = rows[15],
+	[16] = rows[16],
+	[17] = rows[17],
+	[18] = rows[18],
+	[19] = rows[19],
+	[20] = rows[20],
+	[21] = rows[21],
+	[22] = rows[22],
+	[23] = rows[23],
+	[24] = rows[24],
+	[25] = rows[25],
+	[26] = rows[26],
+	[27] = rows[27],
+	[28] = rows[28],
+	[29] = rows[29],
+	[30] = rows[30],
+	[31] = rows[31],
+	[32] = rows[32],
+	[33] = rows[33],
+	[34] = rows[34],
+	[35] = rows[35],
+	[36] = rows[36],
+	[37] = rows[37],
+	[38] = rows[38],
+	[39] = rows[39],
+	[40] = rows[40],
+}
+return datas

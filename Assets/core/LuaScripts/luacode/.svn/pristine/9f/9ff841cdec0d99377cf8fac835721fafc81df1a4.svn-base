@@ -1,0 +1,67 @@
+local M = {}
+
+function M:doInit(unit)
+    self:load(app:getAssetPathMgr().get_ui_view_asset("Death"), function(go)
+        go.transform.localPosition = Vector3.zero
+        go.transform.localScale = Vector3.one
+        -------死亡复活
+        self:subscribe(self.m_frame:on_event("resurrection_rebounding"), function(Enum_UI_Rebounding)
+            self:resurrection_rebounding(Enum_UI_Rebounding)
+        end)
+        ----响应原地复活按钮抛出的事件
+        self:subscribe(self.m_frame:on_event("situ_but_btn_click"), function()
+            self:situ_but_btn_click()
+        end)
+        ----响应原地复活按钮抛出的事件
+        self:subscribe(self.m_frame:on_event("bind_but_btn_click"), function()
+            self:situ_but_btn_click()
+        end)
+        self.m_frame:on_loaded()
+
+        -- TODO 这个只是为了加载的时候好看一些  等需求明确的时候在来改
+        if unit:get_dead() then
+            slua_timer.addDelayEvent(3.87, function()
+                local pro = loading_temp_pro
+                loading_temp_pro = pro + 0.1
+            end)
+        else
+            local pro = loading_temp_pro
+            loading_temp_pro = pro + 0.1
+        end
+    end)
+end
+
+
+--复活后弹板消失
+function M:situ_but_btn_click()
+    self["rebounding_GUIImage"].gameObject:SetActive(false)
+    self["situ_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+end
+function M:situ_but_btn_click_grey()
+
+end
+--复活弹板
+function M:resurrection_rebounding(enum_ui_rebounding)
+    self["rebounding_GUIImage"].gameObject:SetActive(true)
+    self["situ_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_GUIButton"].gameObject:SetActive(false)
+    self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(false)
+    if (enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.SITU_RESURRECTION) then
+        -- 原地能复活
+        self["situ_but_btn_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.SITU_RESURRECTION_MASK then
+        -- 原地不能复活
+        self["situ_but_btn_grey_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION then
+        -- 复活点能复活
+        self["bind_but_btn_GUIButton"].gameObject:SetActive(true)
+    elseif enum_ui_rebounding == enum.ui.Enum_UI_Rebounding.BIND_RESURRECTION_MASK then
+        -- 复活点不能复活
+        self["bind_but_btn_grey_GUIButton"].gameObject:SetActive(true)
+    end
+end
+return M

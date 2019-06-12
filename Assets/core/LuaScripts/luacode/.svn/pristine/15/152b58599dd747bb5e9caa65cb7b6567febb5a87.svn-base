@@ -1,0 +1,40 @@
+﻿
+local Quest_condition_base = require("frame.quest.condition.quest_condition_base")
+local Quest_condition_enter_area = class("Quest_condition_enter_area", Quest_condition_base)
+
+function Quest_condition_enter_area:on_initialize(quest_id, index, quest_manager)
+    self.m_quest_id = quest_id
+    self.m_index = index
+    self.m_quest_manager = quest_manager
+    
+    self.m_map_id = self.m_tbl_params[1]
+    self.m_trigger_id = self.m_tbl_params[2]
+    self.m_quest_manager:add_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+end
+
+function Quest_condition_enter_area:set_cur_param(cur_param)
+    self.m_is_passed = cur_param["done"] == enum.shared.QuestCond.NONE
+    self.m_is_fail= cur_param["done"] <0--by lijunfeng 2018/3/5 是否失败
+
+    if self.m_is_passed then
+        -- 目前进入区域，只接受服务器的“任务状态更新”消息，而不接受任何额外数据，故目前“cur_param”无用
+        self.m_quest_manager:del_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+    end
+end
+
+--清除所有相关数据 by lijunfeng 2018/2/6
+function Quest_condition_enter_area:clear()
+    print("清理条件数据")
+    Quest_condition_enter_area.super.clear(self)
+    self.m_quest_manager:add_area_condition_info(self.m_map_id, self.m_trigger_id, self.m_quest_id, self.m_index)
+end
+
+function Quest_condition_enter_area:get_cur_weight()
+    return self.m_is_passed and self.m_per_weight or 0
+end
+
+function Quest_condition_enter_area:get_aim_weight()
+    return self.m_per_weight
+end
+
+return Quest_condition_enter_area
