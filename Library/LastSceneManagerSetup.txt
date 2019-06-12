@@ -1,4 +1,0 @@
-sceneSetups:
-- path: Assets/Plugins/AsyncWait/AsyncAwaitUtil/Tests/AsyncTests.unity
-  isLoaded: 1
-  isActive: 1
