@@ -5,13 +5,12 @@ namespace Kernel.core
 {
 	public interface ISystem
 	{
-		IList<BitSet> SubscribedComponentMasks { get; }
-		BitSet SubscribedComponentsMask { get; }
+
 	}
 
 	public abstract class BaseSystem : ISystem
 	{
-		protected ECSWorld entityManager;
+		protected readonly ECSWorld entityManager;
 
 		public BaseSystem(ECSWorld entityManager)
 		{
@@ -22,9 +21,6 @@ namespace Kernel.core
 
 			this.entityManager = entityManager;
 		}
-
-		public abstract IList<BitSet> SubscribedComponentMasks { get; }
-		public abstract BitSet SubscribedComponentsMask { get; }
 	}
 }
 

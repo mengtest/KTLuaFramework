@@ -88,15 +88,15 @@ namespace Kernel.core
 		/// <param name="system"></param>
 		/// <param name="result"></param>
 		/// <returns></returns>
-		public IList<HashSet<IComponent>> FectchAll(ISystem system, IList<HashSet<IComponent>> result)
+		public IList<HashSet<IComponent>> FectchAll(BitSet subscribedComponentsMask,IList<BitSet> subscribedComponentMasks,IList<HashSet<IComponent>> result)
 		{
 			if (result == null)
 				result = new List<HashSet<IComponent>>();
 
 			foreach (var item in m_entities)
 			{
-				if ((system.SubscribedComponentsMask & item.BitMask).IsZero)
-					result.Add(item.GetComponentsTuple(system.SubscribedComponentMasks, new HashSet<IComponent>()));
+				if ((subscribedComponentsMask & item.BitMask).IsZero)
+					result.Add(item.GetComponentsTuple(subscribedComponentMasks, new HashSet<IComponent>()));
 			}
 
 			return result;
@@ -107,14 +107,14 @@ namespace Kernel.core
 		/// <param name="system"></param>
 		/// <param name="result"></param>
 		/// <returns></returns>
-		public IList<IComponent> FectchAll(ISystem system, IList<IComponent> result)
+		public IList<IComponent> FectchAll(BitSet subscribedComponentsMask, IList<IComponent> result)
 		{
 			if (result == null)
 				result = new List<IComponent>();
 
 			foreach (var item in m_entities)
 			{
-				if ((system.SubscribedComponentsMask & item.BitMask).IsZero)
+				if ((subscribedComponentsMask & item.BitMask).IsZero)
 					result.Add(item.GetComponent(item.BitMask));
 			}
 

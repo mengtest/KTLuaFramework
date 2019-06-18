@@ -2,10 +2,10 @@ using System;
 
 namespace Kernel.core
 {
-	public struct AttributeVariable
+	public class AttributeVariable
 	{
 		private readonly int key;
-        public AttributeValue value;
+		private AttributeValue value;
 
 		public AttributeVariable(int key, AttributeValue value)
 		{

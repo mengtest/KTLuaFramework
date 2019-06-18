@@ -6,7 +6,7 @@ namespace Kernel.core
 	/// <summary>
 	/// 总公式是 (basic * (1 + relative) + absolute) * (1 + percent) + extra
 	/// </summary>
-	public struct AttributeValue
+	public class AttributeValue
 	{
 		private double basic;
 		private double relative;
@@ -22,13 +22,7 @@ namespace Kernel.core
 		private bool dirty2;
 		private double value2;
 
-		public AttributeValue(Fixed basic) : this(basic, 0, 0, 0, 0)
-		{
-			
-		}
-
-		public AttributeValue(Fixed basic, Fixed relative, Fixed absolute, Fixed percent, Fixed extra)
-			: this(basic.AsDouble(), relative.AsDouble(), absolute.AsDouble(), percent.AsDouble(), extra.AsDouble())
+		public AttributeValue(double basic) : this(basic, 0, 0, 0, 0)
 		{
 			
 		}
@@ -139,6 +133,15 @@ namespace Kernel.core
 			Absolute = v.Absolute;
 			Percent = v.Percent;
 			Extra = v.Extra;
+		}
+
+		public void Set(double basic,double relative=0,double absolute=0,double percent=0,double extra=0)
+		{
+			Basic = basic;
+			Relative = relative;
+			Absolute = absolute;
+			Percent = percent;
+			Extra = extra;
 		}
 
 		public double Basic
@@ -277,7 +280,7 @@ namespace Kernel.core
 
 		bool Equals(AttributeValue other)
 		{
-			return basic.EqualsEx(other.basic) && relative.EqualsEx(other.relative) && absolute.EqualsEx(other.absolute) && percent.EqualsEx(other.percent) && extra.EqualsEx(other.extra);
+			return basic==other.basic && relative== other.relative && absolute== other.absolute && percent== other.percent && extra== other.extra;
 		}
 
 		public override bool Equals(object obj)

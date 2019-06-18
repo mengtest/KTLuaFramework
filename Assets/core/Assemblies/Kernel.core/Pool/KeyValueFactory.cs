@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Kernel.core.Pool
+namespace Kernel.core
 {
 	/// <summary>
 	///    Key Value Factory

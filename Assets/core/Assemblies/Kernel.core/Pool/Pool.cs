@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Kernel.core.Pool
+namespace Kernel.core
 {
 	public class Pool<T> : IPool where T : IPoolItem
 	{

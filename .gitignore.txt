@@ -4,4 +4,3 @@
 /obj/
 /ProjectSettings/
 .vs
-*.meta

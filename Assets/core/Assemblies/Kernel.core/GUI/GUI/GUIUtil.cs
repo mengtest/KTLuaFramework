@@ -34,7 +34,7 @@ namespace Kernel.core
 #if UNITY_EDITOR
         public static bool RightClicked(Rect rect)
         {
-            return Event.current.type == EventType.ContextClick && rect.Contains(Event.current.mousePosition);
+            return UnityEngine.Event.current.type == EventType.ContextClick && rect.Contains(UnityEngine.Event.current.mousePosition);
         }
         public static IDisposable Settings(params IDisposable[] args)
         {

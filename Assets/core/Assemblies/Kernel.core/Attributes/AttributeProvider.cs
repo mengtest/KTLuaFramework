@@ -3,145 +3,109 @@ using Kernel.Engine;
 
 namespace Kernel.core
 {
-	public class AttributeProvider : IAttributeProvider
+	public class AttributeProvider
 	{
-		private readonly Dictionary<int, AttributeVariable> attributes = new Dictionary<int, AttributeVariable>(88);
-		private Dictionary<int, AttributeVariable> dirtyAttributes;
+		private readonly Dictionary<int, AttributeValue> attributes = new Dictionary<int, AttributeValue>();
+		private Dictionary<int, AttributeValue> dirtyAttributes=new Dictionary<int, AttributeValue>();
 		private bool dirty;
 
 		public void Add(int key, AttributeValue value)
 		{
-			Dictionary<int, AttributeVariable> dictionary;
-			var variable = GetAttributeVariable(key, value, out dictionary);
-			if(dictionary == null)
-			{
-				attributes[key] = variable;
-			}
+			AttributeValue variable;
+			if(GetAttributeVariable(key, out variable))
+				variable.Add(value);
+		}
+
+		public void Add(int key, double value)
+		{
+			AttributeValue variable;
+			if (GetAttributeVariable(key, out variable))
+				variable.Add(new AttributeValue(value));
+		}
+
+		public void Sub(int key, AttributeValue value)
+		{
+			AttributeValue variable;
+			if (GetAttributeVariable(key, out variable))
+				variable.Sub(value);
+		}
+
+		public void Sub(int key, double value)
+		{
+			AttributeValue variable;
+			if (GetAttributeVariable(key, out variable))
+				variable.Sub(new AttributeValue(value));
+		}
+
+		public AttributeProvider SetVariableForce(int key, AttributeValue value)
+		{
+			if (!attributes.ContainsKey(key))
+				attributes.Add(key,value);
 			else
-			{
-				variable.value.Add(value);
-                dictionary[key] = variable;
-			}
+				attributes[key].Set(value);
+
+			return this;
 		}
 
-		public void Add(AttributeVariable v)
+		public AttributeProvider SetVariableForce(int key, double value)
 		{
-			Dictionary<int, AttributeVariable> dictionary;
-			var variable = GetAttributeVariable(v.Key, v.Value, out dictionary);
-			if (dictionary == null)
-			{
-				attributes[v.Key] = v;
-			}
+			if (!attributes.ContainsKey(key))
+				attributes.Add(key, new AttributeValue(value));
 			else
-			{
-				variable.Add(v);
-				dictionary[v.Key] = variable;
-			}
+				attributes[key].Set(value);
+
+			return this;
 		}
 
-		public void Add(IList<AttributeVariable> attributeVariables)
+		public AttributeProvider SetChangedVariableForce(int key, AttributeValue value)
 		{
-			if (attributeVariables != null && attributeVariables.Count > 0)
-			{
-				for (var i = 0; i < attributeVariables.Count; i++)
-				{
-					Add(attributeVariables[i]);
-				}
-			}
-		}
-
-		public void Sub(AttributeVariable v)
-		{
-			Dictionary<int, AttributeVariable> dictionary;
-			var variable = GetAttributeVariable(v.Key, v.Value, out dictionary);
-			if (dictionary != null)
-			{
-				variable.Sub(v);
-				dictionary[v.Key] = variable;
-			}
-		}
-
-		public void Sub(IList<AttributeVariable> attributeVariables)
-		{
-			if (attributeVariables != null && attributeVariables.Count > 0)
-			{
-				for (var i = 0; i < attributeVariables.Count; i++)
-				{
-					Sub(attributeVariables[i]);
-				}
-			}
-		}
-
-		public AttributeVariable GetAttributeVariable(int key)
-		{
-			AttributeVariable res;
-			if (dirty && dirtyAttributes != null)
-			{
-				if (dirtyAttributes.TryGetValue(key, out res))
-				{
-					return res;
-				}
-			}
-
-			if (attributes.TryGetValue(key, out res))
-			{
-				return res;
-			}
-			return new AttributeVariable(key, new AttributeValue(AttributeModifyType.BASIC, 0));
-		}
-
-		public AttributeVariable GetAttributeVariable(int key, AttributeValue value, out Dictionary<int, AttributeVariable> dictionary)
-		{
-			AttributeVariable res;
-			dictionary = null;
-			if (dirty && dirtyAttributes != null)
-			{
-				if (dirtyAttributes.TryGetValue(key, out res))
-				{
-					dictionary = dirtyAttributes;
-					return res;
-				}
-			}
-
-			if (attributes.TryGetValue(key, out res))
-			{
-				dictionary = attributes;
-				return res;
-			}
-			return new AttributeVariable(key, value);
-		}
-
-		public void SetAttributeVariable(AttributeVariable v)
-		{
-			AttributeVariable variable;
-			if (attributes.TryGetValue(v.Key, out variable))
-			{
-				variable.Set(v);
-				attributes[v.Key] = variable;
-			}
+			if (!dirtyAttributes.ContainsKey(key))
+				dirtyAttributes.Add(key, value);
 			else
-			{
-				variable = new AttributeVariable(v.Key, new AttributeValue(0));
-				variable.Set(v);
-				attributes.Add(v.Key, v);
-			}
-		}
+				dirtyAttributes[key].Set(value);
 
-		public void SetAttributeVariableForce(int key, double value)
-		{
-			var newVariable = new AttributeVariable(key, new AttributeValue(value));
-			AttributeVariable variable;
-			if (dirtyAttributes == null) dirtyAttributes = new Dictionary<int, AttributeVariable>(88);
-			if (dirtyAttributes.TryGetValue(key, out variable))
-			{
-				variable.Set(newVariable);
-				dirtyAttributes[key] = variable;
-			}
-			else
-			{
-				dirtyAttributes.Add(key, newVariable);
-			}
 			dirty = true;
+			return this;
+		}
+
+		public AttributeProvider SetChangedVariableForce(int key, double value)
+		{
+			if (!dirtyAttributes.ContainsKey(key))
+				dirtyAttributes.Add(key, new AttributeValue(value));
+			else
+				dirtyAttributes[key].Set(value);
+
+			dirty = true;
+			return this;
+		}
+
+		public AttributeValue GetAttributeVariable(int key)
+		{
+			AttributeValue value;
+			if (dirty && dirtyAttributes.TryGetValue(key, out value))
+			{
+				return value;
+			}
+			else if (dirtyAttributes.TryGetValue(key, out value))
+			{
+				return value;
+			}
+
+			return default(AttributeValue);
+		}
+
+		private bool GetAttributeVariable(int key,out AttributeValue value)
+		{
+			if (dirty && dirtyAttributes.TryGetValue(key,out value))
+			{
+				return true;
+			}
+			else if (dirtyAttributes.TryGetValue(key, out value))
+			{
+				return true;
+			}
+
+			return false;
 		}
 
 		public void ClearAttributeVariable()
@@ -151,21 +115,21 @@ namespace Kernel.core
 			dirty = false;
 		}
 
-		public Dictionary<int, Fixed> ToAttributeDictionary(Dictionary<int, Fixed> cache = null)
+		public Dictionary<int, double> ToAttributeDictionary(Dictionary<int, double> cache = null)
 		{
-			if (cache == null) cache = new Dictionary<int, Fixed>();
+			if (cache == null) cache = new Dictionary<int, double>();
 			cache.Clear();
 
 			foreach (var attributeVariable in attributes)
 			{
-				cache[attributeVariable.Key] = attributeVariable.Value.Value.Value;
+				cache.Add(attributeVariable.Key,attributeVariable.Value.Value);
 			}
 			return cache;
 		}
 
-		public List<AttributeVariable> GetAllAttributeVariables()
+		public List<AttributeValue> GetAllAttributeVariables()
 		{
-			List<AttributeVariable> list = new List<AttributeVariable>();
+			List<AttributeValue> list = new List<AttributeValue>();
 			foreach (var a in attributes.Values)
 			{
 				list.Add(a);
@@ -173,23 +137,16 @@ namespace Kernel.core
 			return list;
 		}
 
-		public void Reset(Dictionary<int, Fixed> values)
+		/// <summary>
+		/// Ìí¼Ó»ù´¡ÊôÐÔ
+		/// </summary>
+		/// <param name="values"></param>
+		public void Reset(Dictionary<int, double> values)
 		{
 			ClearAttributeVariable();
 			foreach (var v in values)
 			{
-				Add(new AttributeVariable(v.Key, new AttributeValue(v.Value.AsDouble())));
-			}
-		}
-		public void Debug()
-		{
-			foreach (var kv in attributes)
-			{
-				if (kv.Value.value.Value > 0)
-				{
-					UnityEngine.Debug.LogError("key: " + ((AttributeType)kv.Key).ToString() + "  " + kv.Value.value.Value);
-				}
-				
+				SetVariableForce(v.Key,v.Value);
 			}
 		}
 	}

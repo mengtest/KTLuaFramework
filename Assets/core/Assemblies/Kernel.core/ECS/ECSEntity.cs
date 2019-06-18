@@ -5,12 +5,15 @@ using UnityEngine;
 
 namespace Kernel.core
 {
-	public sealed class ECSEntity
+	public class ECSEntity
 	{
 		private Dictionary<BitSet, IComponent> m_componentsTuple=new Dictionary<BitSet, IComponent>();
-		private BitSet bitMask=ECSFamily.BitFalse;
+		public BitSet BitMask { get; private set; }
 
-		public BitSet BitMask {get { return bitMask; }}
+		public ECSEntity()
+		{
+			BitMask = ECSFamily.BitFalse;
+		}
 
 		public HashSet<IComponent> GetComponentsTuple(IList<BitSet> names, HashSet<IComponent> result)
 		{
@@ -35,24 +38,25 @@ namespace Kernel.core
 			return com;
 		}
 
-		public void AddComponent<T>() where T : IComponent, new()
+		public ECSEntity AddComponent<T>() where T : IComponent, new()
 		{
 			var com = ECSFamily.GetComponent<T>();
 			var mask= ECSFamily.GetKey<T>();
 			if (m_componentsTuple.ContainsKey(mask))
 			{
 				Debug.LogWarningFormat("com {0} is repeat", typeof(T).Name);
-				return;
+				return this;
 			}
 
-			bitMask.OrEquals(mask);
+			BitMask.OrEquals(mask);
 			m_componentsTuple.Add(mask, com);
+			return this;
 		}
 
 		public bool DelComponent<T>() where T : IComponent
 		{
 			var mask = ECSFamily.GetKey<T>();
-			bitMask.AndEquals(~mask);
+			BitMask.AndEquals(~mask);
 			ECSFamily.DelComponent(m_componentsTuple[mask]);
 			return m_componentsTuple.Remove(mask);
 		}

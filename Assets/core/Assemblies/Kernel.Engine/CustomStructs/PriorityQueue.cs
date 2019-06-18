@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace kernel.core
+namespace Kernel.core
 {
     public interface IPriorityItem<K>
     {

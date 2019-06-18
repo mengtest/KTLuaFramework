@@ -1,6 +1,6 @@
 using System;
 
-namespace Kernel.core.Pool
+namespace Kernel.core
 {
 	public interface IPoolItem : IDisposable
 	{
