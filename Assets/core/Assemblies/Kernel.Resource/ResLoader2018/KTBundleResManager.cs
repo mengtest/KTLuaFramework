@@ -1,5 +1,6 @@
 ﻿using LuaFramework;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,10 +10,15 @@ using UnityEngine.SceneManagement;
 namespace Kernel.core
 {
 	/// <summary>
-	/// 请求的每个原始资源（非Instante的）都会增加对应bundle和依赖bundle的引用计数，返回给业务层的原始对象使用完必须由此管理器回收，每回收一次，对应bundle引用计数-1，如果 bundle设置了TimeoutCache缓存模式
+	/// 每次请求的每个原始资源（非Instante的）都会增加对应bundle和依赖bundle的引用计数，返回给业务层的原始对象使用完必须由此管理器回收，每回收一次，对应bundle引用计数-1，如果 bundle设置了TimeoutCache缓存模式
+	/// bundle的引用计数是根依赖它的每个其他资源请求增加而增加的。
+	/// 打包时bundle分为3种
+	/// 1：只包含可被直接请求的资源，这种包不能被其他资源依赖，只能依赖其他资源。一般会设置成TimeoutCache和None
+	/// 2：这种包只会被唯一一个直接请求的资源包依赖，这种专属包如果被依赖的资源缓存模式为None，则会一同跟着请求资源加载完后unload(false)
+	/// 3：不能被直接请求，会被多个包的多个直接请求的资源依赖，或者被其他包依赖,只能手动管理缓存
 	/// 批量手动卸载资源，必须等待所有正在加载的任务完成，再执行卸载。
 	/// </summary>
-	public class KTBundleResourceManager2:Singleton<KTBundleResourceManager2>,ITick
+	public sealed class KTBundleResManager : Singleton<KTBundleResManager>, IKTResManager,ITick, IDisposable
 	{
 		/// <summary>
 		/// bundle资源缓存类型
@@ -198,6 +204,19 @@ namespace Kernel.core
 			}
 		}
 
+		private class StringComparer : IEqualityComparer<string>
+		{
+			public bool Equals(string x, string y)
+			{
+				throw new NotImplementedException();
+			}
+
+			public int GetHashCode(string obj)
+			{
+				throw new NotImplementedException();
+			}
+		}
+
 		private AssetBundleManifest m_manifest;
 		private Dictionary<string, string> m_assetNameToBundleNameMap;
 		private Dictionary<string, KTBundleInfo> m_bundleLoaded = new Dictionary<string, KTBundleInfo>(16); //key:bundleName
@@ -287,7 +306,6 @@ namespace Kernel.core
 			m_bundleLoading.Add(bundleName, bundleLoader);
 			bundleLoader.BeginLoad();
 		}
-
 
 		/// <summary>
 		/// 加载场景
@@ -477,6 +495,73 @@ namespace Kernel.core
 			return 0;
 		}
 
+		public void Tick(float deltaTime)
+		{
+			while (m_priorityQueue.Count > 0 && Time.realtimeSinceStartup - m_priorityQueue.Top().startTime >= m_priorityQueue.Top().cacheTimeout)
+			{
+				var info = m_priorityQueue.Pop();
+				info.Release(true);
+				m_bundleLoaded.Remove(info.name);
+			}
+		}
+
+		public void RecycleAsset(string assetName)
+		{
+			var requestBundleName = m_assetNameToBundleNameMap[assetName];
+			DecreaseRef(requestBundleName);
+		}
+
+		/// <summary>
+		/// 强制卸载顶级依赖bundle,必须等待所有正在加载的任务完成
+		/// </summary>
+		/// <param name="bundleName"></param>
+		/// <returns></returns>
+		public IEnumerator UnloadBundle(string bundleName)
+		{
+			while (m_bundleLoading.Count > 0)
+				yield return false;
+
+			while (m_assetLoading.Count > 0)
+				yield return false;
+
+			KTBundleInfo info = null;
+			if (m_bundleLoaded.TryGetValue(bundleName, out info))
+			{
+				if (info.cacheType != BundleCacheType.Share)
+				{
+					Debug.LogError("CacheType to Unload Bundle is not BundleCacheType.Share");
+					yield return false;
+				}
+
+				info.Release(true);
+				m_bundleLoaded.Remove(bundleName);
+			}
+			yield return true;
+		}
+
+		/// <summary>
+		/// 强制卸载所有已加载的资源，必须先停止优先级队列，等待所有正在加载的任务完成，弱引用表也要清理
+		/// </summary>
+		public IEnumerator Clear(bool destroy)
+		{
+			while (m_bundleLoading.Count > 0)
+				yield return false;
+
+			while (m_assetLoading.Count > 0)
+				yield return false;
+
+			m_bundleRefCountInfo.Clear();
+			m_assetNameToWeakPtr.Clear();
+			m_priorityQueue.Clear();
+
+			foreach (var item in m_bundleLoaded)
+			{
+				item.Value.Release(true);
+			}
+			m_bundleLoaded.Clear();
+			yield return true;
+		}
+
 		private void BundleCompleteCallback(KTBundleLoader loader)
 		{
 			var bundleInfo = new KTBundleInfo()
@@ -597,72 +682,9 @@ namespace Kernel.core
 			}
 		}
 
-		public void Tick(float deltaTime)
+		public void Dispose()
 		{
-			while(m_priorityQueue.Count>0&& Time.realtimeSinceStartup-m_priorityQueue.Top().startTime>=m_priorityQueue.Top().cacheTimeout)
-			{
-				var info=m_priorityQueue.Pop();
-				info.Release(true);
-				m_bundleLoaded.Remove(info.name);
-			}
-		}
-		
-		public void RecycleAsset(string assetName)
-		{
-			var requestBundleName = m_assetNameToBundleNameMap[assetName];
-			DecreaseRef(requestBundleName);
-		}
-
-		/// <summary>
-		/// 强制卸载顶级依赖bundle,必须等待所有正在加载的任务完成
-		/// </summary>
-		/// <param name="bundleName"></param>
-		/// <returns></returns>
-		public IEnumerable<bool> UnloadBundle(string bundleName)
-		{
-			while (m_bundleLoading.Count > 0)
-				yield return false;
-
-			while (m_assetLoading.Count > 0)
-				yield return false;
-
-			KTBundleInfo info = null;
-			if(m_bundleLoaded.TryGetValue(bundleName,out info))
-			{
-				if(info.cacheType!= BundleCacheType.Share)
-				{
-					Debug.LogError("CacheType to Unload Bundle is not BundleCacheType.Share");
-					yield return false;
-				}
-
-				info.Release(true);
-				m_bundleLoaded.Remove(bundleName);
-			}
-			yield return true;
-		}
-
-		/// <summary>
-		/// 强制卸载所有已加载的资源，必须先停止优先级队列，等待所有正在加载的任务完成，弱引用表也要清理
-		/// </summary>
-		public IEnumerable<bool> Clear(bool destroy)
-		{
-			while (m_bundleLoading.Count > 0)
-				yield return false;
-
-			while (m_assetLoading.Count > 0)
-				yield return false;
-
-			m_bundleRefCountInfo.Clear();
-			m_assetNameToWeakPtr.Clear();
-			m_priorityQueue.Clear();
-
-			foreach (var item in m_bundleLoaded)
-			{
-				item.Value.Release(true);
-			}
-			m_bundleLoaded.Clear();
-			yield return true;
+			throw new NotImplementedException();
 		}
 	}
-
 }

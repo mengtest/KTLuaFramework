@@ -7,7 +7,7 @@ namespace Kernel.core
 {
 	public class ECSEntity
 	{
-		private Dictionary<BitSet, IComponent> m_componentsTuple=new Dictionary<BitSet, IComponent>();
+		private readonly Dictionary<BitSet, IComponent> m_componentsTuple=new Dictionary<BitSet, IComponent>();
 		public BitSet BitMask { get; private set; }
 
 		public ECSEntity()

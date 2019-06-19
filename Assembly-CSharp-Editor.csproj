@@ -67,6 +67,7 @@
     <Compile Include="Assets\core\Assemblies\Editor\Extend\ExposableMonobehaviourEditor.cs" />
     <Compile Include="Assets\core\Assemblies\Editor\Extend\ExposeProperties.cs" />
     <Compile Include="Assets\core\Assemblies\Editor\TempletsCreater\CreateLuaEditor.cs" />
+    <Compile Include="Assets\core\Assemblies\Editor\TempletsCreater\KTCreateECSClassWindow.cs" />
     <Compile Include="Assets\core\Assemblies\Editor\TempletsCreater\KTCreateScriptObjectWindow.cs" />
     <Compile Include="Assets\Slua\Editor\CustomEditor.cs" />
     <Compile Include="Assets\Slua\Editor\CustomExport.cs" />

@@ -14,28 +14,39 @@ namespace LuaFramework
     /// </summary>
     public class KTCreateScriptObjectWindow : OdinEditorWindow
     {
-        [MenuItem("LuaFramework/ScriptableObjectTools/ScriptableObjectTool")]
-        public static void ShowScriptObjectEditor()
+		private static readonly ValueDropdownList<string> kClassNames = new ValueDropdownList<string>();
+		private Assembly assembly;
+
+		[MenuItem("LuaFramework/ScriptableObjectTools/ScriptableObjectTool")]
+		private static void ShowScriptObjectEditor()
         {
             EditorWindow.GetWindow<KTCreateScriptObjectWindow>("ScriptableObjectTool").autoRepaintOnSceneChange = true;
         }
 
         protected override void OnEnable()
         {
-            var dir = "Assets/Scripts/ScriptableObjects";
-            var files=Directory.GetFiles(dir, "*.cs", SearchOption.TopDirectoryOnly);
-            files.ToList<string>().ForEach(file => kClassNames.Add(Path.GetFileNameWithoutExtension(file)));
+			if(assembly==null)
+				assembly = Assembly.Load("Assembly-CSharp");
 
-            if(kClassNames.Count>0)
+			var dir = @"Assets\core\Assemblies\Kernel.core\ScriptableObjects";
+            var files=Directory.GetFiles(dir, "*.cs", SearchOption.TopDirectoryOnly);
+			files.Select(file=> Path.GetFileNameWithoutExtension(file))
+				.Where(file=>
+				{
+					var type = assembly.GetTypes().First(t => t.Name.ToUpper() == file.ToUpper());
+					return type != null && type.IsSubclassOf(typeof(ScriptableObject));
+				})
+				.ToList()
+				.ForEach(file => kClassNames.Add(file));
+
+			if (kClassNames.Count>0)
                 scriptName = kClassNames[0].Value;
-        }
+		}
 
         private void OnDisable()
         {
             kClassNames.Clear();
         }
-
-        public static ValueDropdownList<string> kClassNames = new ValueDropdownList<string>();
 
         [LabelText("类名"), ValueDropdown("kClassNames")]
         public string scriptName;
@@ -44,6 +55,7 @@ namespace LuaFramework
         [GUIColor(0.0f, 1.0f, 0.0f)]
         public void New()
         {
+			//选择文件夹，只对Project右侧子面板的选择有效
             UnityEngine.Object obj = Selection.activeObject;
             if (obj == null)
                 return;
@@ -54,11 +66,10 @@ namespace LuaFramework
             .Append(scriptName)
             .Append(KTConfigs.kAssetExt);
             var fullpath = KTStringBuilderCache.GetStringAndRelease(sb);
-            var assembly = Assembly.GetExecutingAssembly();
 
             try
             {
-                var type = this.GetType().Assembly.GetTypes().First((t) =>
+                var type = assembly.GetTypes().First((t) =>
                 {
                     return t.Name.ToUpper() == scriptName.ToUpper();
                 });

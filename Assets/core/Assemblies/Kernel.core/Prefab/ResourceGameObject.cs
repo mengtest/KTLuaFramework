@@ -97,7 +97,7 @@ namespace Kernel.core
 				}
 				else
 				{
-					KTBundleResourceManager2.Instance.LoadAsset(path, OnLoadFinish);
+					KTResManager.Instance.LoadAsset(path, OnLoadFinish);
 				}
 			}
 		}

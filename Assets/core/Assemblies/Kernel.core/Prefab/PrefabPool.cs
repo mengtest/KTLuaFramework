@@ -79,7 +79,7 @@ namespace Kernel.core
             {
                 onLoaded = null;
                 ClearQueue();
-				KTBundleResourceManager2.Instance.RecycleAsset(assetName);
+				KTResManager.Instance.RecycleAsset(assetName);
                 disposed = true;
                 GC.SuppressFinalize(this);
             }
@@ -101,7 +101,7 @@ namespace Kernel.core
 				Logger.Logger.Error("prefabPool has been loaded with {0}, reload is forbided.", assetName);
             }
 
-			KTBundleResourceManager2.Instance.LoadAsset(assetName, OnMainAssetLoad);
+			KTResManager.Instance.LoadAsset(assetName, OnMainAssetLoad);
 
 			if (callback != null)
             {
